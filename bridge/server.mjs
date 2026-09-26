@@ -252,6 +252,22 @@ const VETO_EXEMPT = new Set([
   'openrouter__send-feedback',
 ])
 
+/**
+ * Effectful tools allowed even in read-only mode.
+ *
+ * Scheduling by voice is the point of connecting a calendar, and switching on
+ * ALLOW_WRITES for it would also unlock the shell, files and every device.
+ * So these few are named one by one instead. Deleting events and answering
+ * invitations stay behind ALLOW_WRITES.
+ *
+ * Full `server__tool` keys, like VETO_EXEMPT, so nothing leaks across servers.
+ */
+const WRITE_ALLOWLIST = new Set([
+  'google-calendar__create-event',
+  'google-calendar__create-events',
+  'google-calendar__update-event',
+])
+
 function decideTool(name) {
   if (READ_ONLY_BUILTINS.has(name)) return true
   if (WRITE_BUILTINS.has(name)) return ALLOW_WRITES
@@ -280,6 +296,7 @@ function decideTool(name) {
     if (server === 'jarvis_eyes') return true
 
     const tool = mcpToolOf(name)
+    if (WRITE_ALLOWLIST.has(`${server}__${tool}`)) return true
     if (EFFECTFUL_VERB.test(tool) && !VETO_EXEMPT.has(`${server}__${tool}`)) {
       return ALLOW_WRITES
     }
