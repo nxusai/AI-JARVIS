@@ -15,8 +15,9 @@ import { z } from 'zod'
  *   NEXY_CALL_PHONE_ID   the ElevenLabs id of the imported Twilio number
  *
  * The message travels as the dynamic variable `nexy_brief`, which the agent's
- * prompt reads. ElevenLabs rejects a call whose prompt names a variable it was
- * not sent, so one is always sent, empty-handed or not.
+ * first message speaks straight after its greeting. ElevenLabs rejects a call
+ * whose agent names a variable it was not sent, so one is always sent — and
+ * because it is spoken as-is, the empty case is a line worth hearing.
  */
 
 const OUTBOUND_URL = 'https://api.elevenlabs.io/v1/convai/twilio/outbound-call'
@@ -25,7 +26,7 @@ const E164 = /^\+[1-9]\d{6,14}$/
 /** A model that retries on silence can ring a phone five times in a minute. */
 const MIN_GAP_MS = 60_000
 
-const NO_MESSAGE = 'No message for this call. Ask how you can help.'
+const NO_MESSAGE = '¿En qué te ayudo?'
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
@@ -33,10 +34,11 @@ const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
 const CALL_ME_DESCRIPTION =
   "Phone the user on their own mobile, right now, using the Nexy phone agent. " +
   'Use it when they ask you to call them, ring them, or phone them with ' +
-  'something — a summary, a reminder, what is on today. Put what the call ' +
-  'should tell them in `message`, written to be spoken: short sentences, no ' +
-  'lists, no links. It can only ever call the user; there is no way to call ' +
-  'anyone else, so never offer to.'
+  'something — a summary, a reminder, what is on today. Gather what they want ' +
+  'first, then put it in `message`: it is spoken word for word as soon as ' +
+  'they answer, so write it in their language, in short spoken sentences, ' +
+  'with no lists and no links. It can only ever call the user; there is no ' +
+  'way to call anyone else, so never offer to.'
 
 const callMeSchema = {
   message: z
