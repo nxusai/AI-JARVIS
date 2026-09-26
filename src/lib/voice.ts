@@ -68,17 +68,18 @@ const WAKE_DEBOUNCE = 1500
  * His name, and the only wake phrase.
  *
  * The optional prefix is genuinely optional: addressing him by name alone is
- * correct, and during an answer "Jarvis" on its own is the natural way to cut
- * in. The negative lookahead keeps possessives ("Jarvis's job") from waking him.
+ * correct, and during an answer "Nexy" on its own is the natural way to cut
+ * in. The negative lookahead keeps possessives ("Nexy's job") from waking her.
  *
- * The alternates are not padding. "Jarvis" is not in a general dictation
- * model's high-frequency vocabulary, and Chrome routinely returns Travis,
- * Jervis, Jarvys or Java's for a perfectly clear utterance — every one of which
- * used to be silently discarded, so the wake word "just didn't work" with no
- * indication why. Better a rare false wake than a name that does not answer.
+ * The alternates are not padding. "Nexy" is not in a general dictation
+ * model's vocabulary, so a perfectly clear utterance comes back as Nexi, Nexie,
+ * Neksi or Lexi — each of which would otherwise be silently discarded, so the
+ * wake word "just didn't work" with no indication why. Better a rare false wake
+ * than a name that does not answer. "Wake up", "oye" and "hola" are accepted as
+ * prefixes alongside "hey".
  */
 const WAKE =
-  /\b(?:hey|hi|ok|okay|yo)?\s*(?:jarvis|jarvys|jervis|jarvis's|travis|jarviss|java's|jarv)\b(?!'s)/i
+  /\b(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\s*(?:nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy)\b(?!'s)/i
 
 /** Everything after the wake phrase, which is usually the actual command. */
 function afterWake(text: string): string {
@@ -267,7 +268,7 @@ const norm = (s: string) =>
  * would be the single most infuriating failure this file could have.
  */
 const OVERRIDE =
-  /\b(stop|wait|jarvis|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no)\b/i
+  /\b(stop|wait|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no)\b/i
 
 /**
  * Words too common to be evidence of anything.

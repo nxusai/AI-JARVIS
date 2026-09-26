@@ -290,7 +290,7 @@ function decideTool(name) {
   return ALLOW_WRITES
 }
 
-const SYSTEM_PROMPT = `You are JARVIS. You are speaking out loud to one person.
+const SYSTEM_PROMPT = `You are Nexy. You are speaking out loud to one person.
 
 LENGTH. Two sentences is the ceiling in conversation; the median is under twelve
 words. Every word is read aloud and the user waits in silence while it plays, so

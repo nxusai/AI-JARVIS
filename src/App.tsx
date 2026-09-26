@@ -62,12 +62,12 @@ const newId = () =>
   `id${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 
 /** The same mishearings voice.ts accepts for the wake word — otherwise a turn
- *  that woke him as "travis" gets that word sent on to the model as a question. */
-const NAME = '(?:jarvis|jarvys|jervis|travis|jarviss|java\'s|jarv)'
-/** A bare vocative — "Jarvis", "hey jarvis" — with nothing asked. */
-const BARE_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo)?\\s*${NAME}[\\s,.!?]*$`, 'i')
-/** A leading vocative on a real command: "Jarvis, what's the weather". */
-const LEADING_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo)?\\s*${NAME}\\b[\\s,.:!?-]*`, 'i')
+ *  that woke as "nexi" gets that word sent on to the model as a question. */
+const NAME = '(?:nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy)'
+/** A bare vocative — "Nexy", "hey nexy" — with nothing asked. */
+const BARE_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\\s*${NAME}[\\s,.!?]*$`, 'i')
+/** A leading vocative on a real command: "Nexy, what's the weather". */
+const LEADING_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\\s*${NAME}\\b[\\s,.:!?-]*`, 'i')
 
 export default function App() {
   const store = useStore
