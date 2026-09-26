@@ -314,6 +314,18 @@ function decideTool(name) {
   return ALLOW_WRITES
 }
 
+/**
+ * The owner's time zone, for anything with a clock in it.
+ *
+ * The calendar server falls back to the calendar's own default zone whenever an
+ * event arrives without one, and nothing tells the model which zone the user is
+ * standing in, so "tomorrow at three" could land in whichever zone the calendar
+ * was created in. The Mac's zone is right for anyone at home; NEXY_TIMEZONE
+ * overrides it for travel or a misconfigured machine.
+ */
+const TIME_ZONE =
+  process.env.NEXY_TIMEZONE?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone
+
 const SYSTEM_PROMPT = `You are Nexy. You are speaking out loud to one person.
 
 LENGTH. Two sentences is the ceiling in conversation; the median is under twelve
@@ -469,7 +481,16 @@ Email:
 - Send an email only when the user has asked, out loud in this conversation,
   for that email to go to that person. Replying in an existing conversation
   keeps its thread.
-- After sending, say who it went to in one short sentence.`
+- After sending, say who it went to in one short sentence.
+
+Calendar:
+- The user's time zone is ${TIME_ZONE}. Work out and say every time in it, and
+  pass timeZone "${TIME_ZONE}" on every event you create, move or change, never
+  the calendar's default.
+- Before working out "tomorrow", "next Monday" and the like, check the current
+  date and time with get-current-time.
+- To change an event, find it, then update that event. To add one, create a new
+  event. You may do both whenever the user asks.`
 
 /**
  * ElevenLabs credentials, borrowed from the MCP server config.
@@ -1038,6 +1059,7 @@ console.log(
   `[jarvis] speech ${elevenKey() ? 'via ElevenLabs (key from MCP config)' : 'using browser fallback voice'}`,
 )
 console.log(`[jarvis] model ${MODEL} · effort ${EFFORT}`)
+console.log(`[jarvis] time zone ${TIME_ZONE}`)
 console.log(
   `[jarvis] writes ${ALLOW_WRITES ? 'ENABLED' : 'disabled'}` +
     (ALLOW_WRITES ? '' : ' — set JARVIS_ALLOW_WRITES=1 to permit shell/file/device actions'),
