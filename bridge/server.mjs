@@ -21,6 +21,7 @@ import { displayServer } from './panels.mjs'
 import { uiServer } from './ui.mjs'
 import { chromeAvailable, chromeServer } from './chrome.mjs'
 import { visionServer } from './vision.mjs'
+import { phoneServer } from './phone.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -270,6 +271,8 @@ const WRITE_ALLOWLIST = new Set([
   'google-calendar__update-event',
   'gmail__send_email',
   'gmail__draft_email',
+  // Rings only the owner's own number, fixed on this machine (see phone.mjs).
+  'jarvis_phone__call_me',
 ])
 
 function decideTool(name) {
@@ -1244,6 +1247,8 @@ wss.on('connection', (socket) => {
         jarvis_chrome: chromeServer({ allowWrites: ALLOW_WRITES }),
         // The camera, which unlike everything else here has to ask and wait.
         jarvis_eyes: visionServer(ask),
+        // The owner's phone, through the ElevenLabs phone agent.
+        jarvis_phone: phoneServer(elevenKey),
       },
       // A plain system prompt, not the claude_code preset. The preset is
       // tuned for a coding agent — verbose, file-oriented, and a large chunk
