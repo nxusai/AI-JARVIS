@@ -274,6 +274,8 @@ const WRITE_ALLOWLIST = new Set([
   // Rings only the owner's own number, fixed on this machine (see phone.mjs),
   // and cancels only the calls Nexy itself booked.
   'jarvis_phone__call_me',
+  // Only lists; named here because the veto reads "call" in its name.
+  'jarvis_phone__list_my_calls',
   'jarvis_phone__cancel_my_call',
 ])
 
