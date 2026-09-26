@@ -200,6 +200,11 @@ export function phoneServer(elevenKey, zone) {
 
         const message = (args.message ?? '').trim() || NO_MESSAGE
         const delay = Math.max(0, when - now)
+        console.log(
+          delay < 1000
+            ? '[jarvis] call_me: calling now'
+            : `[jarvis] call_me: ringing in ${Math.round(delay / 1000)}s (${speakable(when, zone)})`,
+        )
 
         if (delay <= LOCAL_MAX_MS) {
           if (now - lastCall < MIN_GAP_MS) {
