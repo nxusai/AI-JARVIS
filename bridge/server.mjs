@@ -271,8 +271,10 @@ const WRITE_ALLOWLIST = new Set([
   'google-calendar__update-event',
   'gmail__send_email',
   'gmail__draft_email',
-  // Rings only the owner's own number, fixed on this machine (see phone.mjs).
+  // Rings only the owner's own number, fixed on this machine (see phone.mjs),
+  // and cancels only the calls Nexy itself booked.
   'jarvis_phone__call_me',
+  'jarvis_phone__cancel_my_call',
 ])
 
 function decideTool(name) {
@@ -1270,7 +1272,7 @@ wss.on('connection', (socket) => {
         // The camera, which unlike everything else here has to ask and wait.
         jarvis_eyes: visionServer(ask),
         // The owner's phone, through the ElevenLabs phone agent.
-        jarvis_phone: phoneServer(elevenKey),
+        jarvis_phone: phoneServer(elevenKey, TIME_ZONE),
       },
       // A plain system prompt, not the claude_code preset. The preset is
       // tuned for a coding agent — verbose, file-oriented, and a large chunk
