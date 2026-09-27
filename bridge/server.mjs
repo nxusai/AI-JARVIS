@@ -22,6 +22,7 @@ import { uiServer } from './ui.mjs'
 import { chromeAvailable, chromeServer } from './chrome.mjs'
 import { visionServer } from './vision.mjs'
 import { phoneServer } from './phone.mjs'
+import { messagesServer } from './messages.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -1275,6 +1276,8 @@ wss.on('connection', (socket) => {
         jarvis_eyes: visionServer(ask),
         // The owner's phone, through the ElevenLabs phone agent.
         jarvis_phone: phoneServer(elevenKey, TIME_ZONE),
+        // What the phone receptionist took down while the owner was away.
+        jarvis_messages: messagesServer(elevenKey, TIME_ZONE),
       },
       // A plain system prompt, not the claude_code preset. The preset is
       // tuned for a coding agent — verbose, file-oriented, and a large chunk
