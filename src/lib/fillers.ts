@@ -68,7 +68,8 @@ function makePicker(pool: string[]) {
  * music used to carry a recorded introduction under another name; the music
  * now ends before any voice, and this is the introduction instead.
  */
-export const BOOT_LINE = 'Nexy en línea. Todos los sistemas listos.'
+export const BOOT_LINE =
+  'Welcome back, Eduardo. Es un gusto tenerte de vuelta. Nexy en línea. Todos los sistemas listos.'
 
 export const working = makePicker(WORKING)
 export const acknowledge = makePicker(ACKNOWLEDGE)
