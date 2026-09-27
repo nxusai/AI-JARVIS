@@ -63,6 +63,13 @@ function makePicker(pool: string[]) {
   }
 }
 
+/**
+ * Said once, in her own voice, as the start-up sequence finishes. The boot
+ * music used to carry a recorded introduction under another name; the music
+ * now ends before any voice, and this is the introduction instead.
+ */
+export const BOOT_LINE = 'Nexy en línea. Todos los sistemas listos.'
+
 export const working = makePicker(WORKING)
 export const acknowledge = makePicker(ACKNOWLEDGE)
 export const attention = makePicker(ATTENTION)

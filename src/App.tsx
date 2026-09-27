@@ -14,7 +14,7 @@ import { listenForClap } from './lib/clap'
 import * as camera from './lib/camera'
 import * as kokoro from './lib/kokoro'
 import { TTS_ENGINE } from './config'
-import { forTool, attention } from './lib/fillers'
+import { forTool, attention, BOOT_LINE } from './lib/fillers'
 import {
   ask,
   warm,
@@ -513,6 +513,20 @@ export default function App() {
     // first turn already uses ElevenLabs when a key is present and the browser
     // fallback when it is not — no flag, no reload.
     await probeCapabilities()
+
+    // She introduces herself now that the speech engines are known, so it is
+    // her own voice rather than the browser's, and before the listening loop
+    // starts so she does not hear herself. Capped, because a start from a clap
+    // is not a user gesture and the browser may refuse to play anything — the
+    // interface must come up either way.
+    try {
+      const hello = createSpeaker()
+      speaker.current = hello
+      hello.say(BOOT_LINE)
+      await Promise.race([hello.end(), new Promise((r) => setTimeout(r, 8000))])
+    } catch {
+      // Unheard, not fatal.
+    }
 
     // One voice loop, started once, running until the page closes.
     voice.current = await startVoice({

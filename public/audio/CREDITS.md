@@ -7,7 +7,7 @@ audience can see it (a description box is fine).
 
 | File | Track | Used for |
 |---|---|---|
-| `boot-music.mp3` | *Impact Prelude* | The swell when the reactor comes up |
+| `boot-music.mp3` | *Impact Prelude* | The swell when the reactor comes up (trimmed to the first 4.3 s, before a recorded voice-over that is not part of the track) |
 | `ambient.mp3` | *Ossuary 6 – Air* | Low bed looping under the interface |
 | `work.mp3` | *Mechanolith* | Rises while a tool is running |
 

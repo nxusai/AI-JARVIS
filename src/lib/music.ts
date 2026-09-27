@@ -2,7 +2,7 @@
  * Score.
  *
  * Three cues, all local files under public/audio/:
- *   boot-music — the JARVIS start-up sound, once, as the reactor comes up
+ *   boot-music — the start-up sound, once, as the reactor comes up
  *   ambient    — the opening music, once, alongside it
  *   work       — an industrial cue that loops while a tool is running
  *
@@ -183,6 +183,9 @@ export function playBoot() {
   if (dissolve) clearTimeout(dissolve)
   const arm = () => {
     const secs = Number.isFinite(t.el.duration) && t.el.duration > 1 ? t.el.duration : 17
+    // A short clip carries its own fade; dissolving it as well would start the
+    // fade almost as soon as the sound does.
+    if (secs < 6) return
     // Start the fade far enough from the end that it is a dissolve rather than
     // a cut, and never sooner than half a second in.
     const at = Math.max(500, (secs - 2.6) * 1000)
