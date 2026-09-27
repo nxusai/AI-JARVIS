@@ -278,6 +278,8 @@ const WRITE_ALLOWLIST = new Set([
   // Only lists; named here because the veto reads "call" in its name.
   'jarvis_phone__list_my_calls',
   'jarvis_phone__cancel_my_call',
+  // Only marks messages heard, in a file on this Mac (see messages.mjs).
+  'jarvis_messages__clear_messages',
 ])
 
 function decideTool(name) {
