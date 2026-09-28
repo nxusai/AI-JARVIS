@@ -37,8 +37,23 @@ const MAX_TEXT = 4000
  */
 const NEEDS_APPROVAL = /(^|[_-])(send|publish|post|tweet|share|reply)([_-]|$)|send_email|create_post|upload/i
 
-/** The call tools confirm out loud already; asking twice would be noise. */
-const NO_APPROVAL = new Set(['jarvis_phone__call_me', 'jarvis_contacts__call_contact'])
+/** The call tools confirm out loud already; asking twice would be noise. A
+ *  Notion search is a read that happens to be an HTTP POST. */
+const NO_APPROVAL = new Set([
+  'jarvis_phone__call_me',
+  'jarvis_contacts__call_contact',
+  'notion__API-post-search',
+])
+
+/** Changes other people will see that the name rule above cannot tell apart. */
+const ALWAYS_APPROVAL = new Set([
+  'notion__API-post-page',
+  'notion__API-patch-page',
+  'notion__API-create-a-comment',
+  'notion__API-patch-block-children',
+  'notion__API-update-a-block',
+  'notion__API-update-page-markdown',
+])
 
 const clip = (v) => {
   if (typeof v === 'string') return v.length > MAX_TEXT ? `${v.slice(0, MAX_TEXT)}…` : v
@@ -60,6 +75,7 @@ export function splitTool(name) {
 
 export function needsApproval(name) {
   const { server, tool } = splitTool(name)
+  if (ALWAYS_APPROVAL.has(`${server}__${tool}`)) return true
   if (NO_APPROVAL.has(`${server}__${tool}`)) return false
   return server !== 'builtin' && NEEDS_APPROVAL.test(tool)
 }

@@ -26,8 +26,9 @@ export const SERVICES: Record<string, Service> = {
   jarvis: { label: 'Pantalla', icon: '🖥️', hidden: true },
   jarvis_ui: { label: 'Interfaz', icon: '🎨', hidden: true },
   builtin: { label: 'Sistema', icon: '⚙️', hidden: true },
+  notion: { label: 'Notion', icon: '📓' },
   // Añade aquí tus apps nuevas, una línea cada una:
-  // notion: { label: 'Notion', icon: '📓' },
+  // instagram: { label: 'Instagram', icon: '📸' },
 }
 
 /** Friendly names for steps. Anything missing is spelled out from its tool name. */
@@ -55,6 +56,22 @@ const STEPS: Record<string, string> = {
   'jarvis_memory__list_memories': 'Leer memoria',
   'jarvis_eyes__look': 'Mirar con la cámara',
   'jarvis_eyes__watch': 'Observar con la cámara',
+  'notion__API-post-search': 'Buscar en Notion',
+  'notion__API-query-data-source': 'Consultar tareas',
+  'notion__API-retrieve-a-data-source': 'Ver base de datos',
+  'notion__API-retrieve-a-database': 'Ver base de datos',
+  'notion__API-retrieve-a-page': 'Leer página',
+  'notion__API-retrieve-page-markdown': 'Leer página',
+  'notion__API-get-block-children': 'Leer contenido',
+  'notion__API-get-users': 'Ver personas del equipo',
+  'notion__API-get-user': 'Ver persona',
+  'notion__API-retrieve-a-comment': 'Leer comentarios',
+  'notion__API-post-page': 'Crear tarea o página',
+  'notion__API-patch-page': 'Actualizar tarea',
+  'notion__API-create-a-comment': 'Comentar',
+  'notion__API-patch-block-children': 'Agregar contenido',
+  'notion__API-update-a-block': 'Editar contenido',
+  'notion__API-update-page-markdown': 'Reescribir página',
   'builtin__WebSearch': 'Buscar en internet',
   'builtin__WebFetch': 'Leer una página web',
 }
@@ -102,15 +119,55 @@ const FIELD_NAMES: Record<string, string> = {
   in_minutes: 'En minutos',
   timeZone: 'Zona horaria',
   caption: 'Texto',
+  page_id: 'Página',
+  data_source_id: 'Base de datos',
+  markdown: 'Contenido',
+  rich_text: 'Comentario',
   text: 'Texto',
+}
+
+/** Notion's rich text arrays, as the words they spell. */
+const plain = (v: unknown): string =>
+  Array.isArray(v)
+    ? v.map((t) => (t as { plain_text?: string; text?: { content?: string } })?.plain_text ?? (t as { text?: { content?: string } })?.text?.content ?? '').join('')
+    : ''
+
+/** One Notion property value, the way a person would say it. */
+function notionValue(p: unknown): string {
+  if (!p || typeof p !== 'object') return String(p ?? '')
+  const o = p as Record<string, unknown>
+  if ('title' in o) return plain(o.title)
+  if ('rich_text' in o) return plain(o.rich_text)
+  if ('status' in o) return String((o.status as { name?: string })?.name ?? '')
+  if ('select' in o) return String((o.select as { name?: string })?.name ?? '')
+  if ('multi_select' in o) return ((o.multi_select as Array<{ name?: string }>) ?? []).map((x) => x?.name).join(', ')
+  if ('date' in o) {
+    const d = o.date as { start?: string; end?: string } | null
+    return d ? [d.start, d.end].filter(Boolean).join(' → ') : '(sin fecha)'
+  }
+  if ('people' in o) return `${((o.people as unknown[]) ?? []).length} persona(s)`
+  if ('checkbox' in o) return o.checkbox ? 'Sí' : 'No'
+  if ('number' in o) return String(o.number)
+  if ('url' in o) return String(o.url ?? '')
+  return JSON.stringify(o)
 }
 
 export function describeInput(input: unknown): Array<[string, string]> {
   if (!input || typeof input !== 'object') return []
-  return Object.entries(input as Record<string, unknown>)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => [
+  const entries = Object.entries(input as Record<string, unknown>).filter(
+    ([k, v]) => v !== undefined && v !== null && v !== '' && k !== 'parent',
+  )
+  // Notion properties read as their own rows: "Estado: Hecho", not raw JSON.
+  const props = entries.find(([k, v]) => k === 'properties' && v && typeof v === 'object')
+  const rows: Array<[string, string]> = props
+    ? Object.entries(props[1] as Record<string, unknown>).map(([k, v]) => [k, notionValue(v)])
+    : []
+  return rows.concat(
+    entries
+      .filter(([k]) => k !== 'properties')
+      .map(([k, v]) => [
       FIELD_NAMES[k] ?? humanize(k),
-      typeof v === 'string' ? v : Array.isArray(v) ? v.map(String).join(', ') : JSON.stringify(v),
-    ])
+        typeof v === 'string' ? v : Array.isArray(v) ? v.map(String).join(', ') : JSON.stringify(v),
+      ]),
+  )
 }
