@@ -14,11 +14,15 @@
  * adaptable: connecting Notion or Instagram needs no change to this file.
  *
  * The protocol, over ws://localhost:<port>/console:
- *   bridge → console  { type: 'snapshot', servers, tasks, approvals }
+ *   bridge → console  { type: 'snapshot', servers, tasks, approvals, brands, org, brain }
  *                     { type: 'servers', servers }
  *                     { type: 'task', task }
  *                     { type: 'approvals', approvals }
+ *                     { type: 'brands', brands }   which brand is active, and all of them
+ *                     { type: 'brain', brain }     the knowledge graph (see brain.mjs)
  *   console → bridge  { type: 'approve' | 'reject', id, note? }
+ *                     { type: 'use-brand', id }          switch the active brand
+ *                     { type: 'brand-manual', id, text } save a brand's manual
  */
 
 /** Tasks kept for the history list. */
@@ -80,6 +84,9 @@ export function needsApproval(name) {
   return server !== 'builtin' && NEEDS_APPROVAL.test(tool)
 }
 
+/** The SDK's subagent tool, under its old and new names. */
+const AGENT_TOOLS = new Set(['Agent', 'Task'])
+
 /** A tool result's text, however the SDK shaped it. */
 function resultText(content) {
   if (typeof content === 'string') return content
@@ -97,6 +104,10 @@ function createHub() {
   let servers = []
   const tasks = []
   const approvals = new Map()
+  let brands = null
+  let org = null
+  let brain = null
+  let onCommand = () => {}
   let seq = 0
   const nextId = (p) => `${p}${Date.now().toString(36)}${(seq++).toString(36)}`
 
@@ -140,6 +151,9 @@ function createHub() {
           servers,
           tasks,
           approvals: [...approvals.values()].map((a) => a.view),
+          brands,
+          org,
+          brain,
         }),
       )
       socket.on('message', (raw) => {
@@ -151,6 +165,12 @@ function createHub() {
         }
         if ((msg.type === 'approve' || msg.type === 'reject') && typeof msg.id === 'string') {
           settle(msg.id, msg.type === 'approve', msg.note)
+        } else if ((msg.type === 'use-brand' || msg.type === 'brand-manual') && typeof msg.id === 'string') {
+          try {
+            onCommand(msg)
+          } catch (err) {
+            console.log(`[jarvis] console command failed: ${err?.message ?? err}`)
+          }
         }
       })
       socket.on('close', () => consoles.delete(socket))
@@ -163,10 +183,48 @@ function createHub() {
       broadcast({ type: 'servers', servers })
     },
 
+    /** Brand switches and manual edits made in the console. */
+    onCommand(fn) {
+      onCommand = fn
+    },
+
+    /**
+     * The brands changed. The task being worked on moves with the switch: "in
+     * VAYRO, write three hooks" starts in whatever brand was active and the
+     * work belongs to VAYRO.
+     */
+    setBrands(state) {
+      brands = { activa: state.activa, marcas: state.marcas }
+      broadcast({ type: 'brands', brands })
+      // Only the newest: it is the one being worked on, and an older task
+      // still winding down keeps the brand it was done for.
+      const t = tasks.find((x) => x.status === 'running')
+      if (t && t.brand !== state.activa) {
+        t.brand = state.activa
+        pushTask(t)
+      }
+      for (const a of approvals.values()) {
+        const t = tasks.find((x) => x.id === a.view.taskId)
+        if (t) a.view.brand = t.brand
+      }
+      pushApprovals()
+    },
+
+    setOrg(value) {
+      org = value
+      broadcast({ type: 'org', org })
+    },
+
+    setBrain(value) {
+      brain = value
+      broadcast({ type: 'brain', brain })
+    },
+
     /** The owner asked for something. Returns the task id. */
-    startTask(text) {
+    startTask(text, brand = brands?.activa ?? null) {
       const task = {
         id: nextId('t'),
+        brand,
         text: clip(String(text ?? '')),
         status: 'running',
         startedAt: Date.now(),
@@ -180,16 +238,26 @@ function createHub() {
       return task.id
     },
 
-    /** A tool call, as soon as its input is known. Idempotent per tool-use id. */
-    startStep(taskId, toolUseId, name, input) {
+    /**
+     * A tool call, as soon as its input is known. Idempotent per tool-use id.
+     * `parentId` is set for a call made by one of Nexy's agents: it is the id
+     * of the Agent call that started that agent, so the console can draw the
+     * work inside the agent that did it.
+     */
+    startStep(taskId, toolUseId, name, input, parentId = null) {
       const task = tasks.find((t) => t.id === taskId)
       if (!task || !toolUseId || task.steps.some((s) => s.id === toolUseId)) return
       const { server, tool } = splitTool(name)
+      const agent = AGENT_TOOLS.has(name) && typeof input?.subagent_type === 'string' ? input.subagent_type : null
+      const by = parentId ? (task.steps.find((s) => s.id === parentId)?.agent ?? null) : null
       task.steps.push({
         id: toolUseId,
         name,
         server,
         tool,
+        agent,
+        by,
+        parent: parentId,
         input: clip(input ?? {}),
         status: 'running',
         startedAt: Date.now(),
@@ -249,6 +317,7 @@ function createHub() {
           view: {
             id,
             taskId,
+            brand: task?.brand ?? null,
             stepId: step?.id ?? null,
             name,
             server,

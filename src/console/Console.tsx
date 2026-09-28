@@ -1,83 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BRIDGE_WS_URL } from '../config'
-import { describeInput, homeOf, serviceOf, stepLabel } from './services'
+import { brandOf, clock, isAgentStep, liveNodes, stepLook } from './activity'
+import { Boards } from './Boards'
+import { Brain } from './Brain'
+import { MapView } from './MapView'
+import { useMapNodes } from './mapNodes'
+import { ApprovalCard, BrandPill, TaskView } from './parts'
+import { homeOf } from './services'
+import type { Approval, Brain as BrainData, Brands, Org, Server, Task } from './types'
 
 /**
- * The Nexy console: a second page that shows what she is doing and where she
- * is asking for approval. It only watches and answers approvals — everything
- * it shows comes from bridge/console.mjs, and it never talks to the agent.
+ * The NXUS AI console: what Nexy and her team are doing, for which brand, and
+ * where she is waiting for approval. It watches, answers approvals, switches
+ * brands and edits brand manuals — everything else comes from
+ * bridge/console.mjs, and it never talks to the agent.
  */
-
-type StepStatus = 'running' | 'waiting' | 'done' | 'error' | 'blocked' | 'rejected' | 'interrupted'
-type Step = {
-  id: string
-  name: string
-  server: string
-  tool: string
-  input: Record<string, unknown>
-  status: StepStatus
-  startedAt: number
-  endedAt: number | null
-  result: string
-}
-type Task = {
-  id: string
-  text: string
-  status: 'running' | 'done' | 'error' | 'interrupted'
-  startedAt: number
-  endedAt: number | null
-  reply: string
-  steps: Step[]
-}
-type Approval = {
-  id: string
-  taskId: string
-  name: string
-  server: string
-  tool: string
-  input: Record<string, unknown>
-  createdAt: number
-  expiresAt: number
-}
-type Server = { name: string; status: string }
-
-const STEP_ICON: Record<StepStatus, string> = {
-  running: '🔄',
-  waiting: '⏸️',
-  done: '✅',
-  error: '❌',
-  blocked: '🚫',
-  rejected: '✋',
-  interrupted: '⏹️',
-}
-const STEP_WORD: Record<StepStatus, string> = {
-  running: 'Trabajando',
-  waiting: 'Esperando tu aprobación',
-  done: 'Listo',
-  error: 'Error',
-  blocked: 'Bloqueado por seguridad',
-  rejected: 'Rechazado por ti',
-  interrupted: 'Interrumpido',
-}
-const TASK_WORD: Record<Task['status'], string> = {
-  running: 'En curso',
-  done: 'Terminada',
-  error: 'Con error',
-  interrupted: 'Interrumpida',
-}
-
-/** How long a node keeps glowing after a step on it finishes. */
-const AFTERGLOW_MS = 4000
-
-const secs = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`)
-const clock = (t: number) =>
-  new Date(t).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })
 
 function useBridge() {
   const [connected, setConnected] = useState(false)
   const [servers, setServers] = useState<Server[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [approvals, setApprovals] = useState<Approval[]>([])
+  const [brands, setBrands] = useState<Brands | null>(null)
+  const [org, setOrg] = useState<Org | null>(null)
+  const [brain, setBrain] = useState<BrainData | null>(null)
   const socket = useRef<WebSocket | null>(null)
 
   useEffect(() => {
@@ -102,10 +48,19 @@ function useBridge() {
           setServers((msg.servers as Server[]) ?? [])
           setTasks((msg.tasks as Task[]) ?? [])
           setApprovals((msg.approvals as Approval[]) ?? [])
+          setBrands((msg.brands as Brands) ?? null)
+          setOrg((msg.org as Org) ?? null)
+          setBrain((msg.brain as BrainData) ?? null)
         } else if (msg.type === 'servers') {
           setServers((msg.servers as Server[]) ?? [])
         } else if (msg.type === 'approvals') {
           setApprovals((msg.approvals as Approval[]) ?? [])
+        } else if (msg.type === 'brands') {
+          setBrands((msg.brands as Brands) ?? null)
+        } else if (msg.type === 'org') {
+          setOrg((msg.org as Org) ?? null)
+        } else if (msg.type === 'brain') {
+          setBrain((msg.brain as BrainData) ?? null)
         } else if (msg.type === 'task') {
           const task = msg.task as Task
           setTasks((prev) => {
@@ -123,10 +78,12 @@ function useBridge() {
     }
   }, [])
 
-  const answer = (id: string, approve: boolean, note: string) =>
-    socket.current?.send(JSON.stringify({ type: approve ? 'approve' : 'reject', id, note }))
+  const send = (msg: object) => socket.current?.send(JSON.stringify(msg))
+  const answer = (id: string, approve: boolean, note: string) => send({ type: approve ? 'approve' : 'reject', id, note })
+  const switchBrand = (id: string) => send({ type: 'use-brand', id })
+  const saveManual = (id: string, text: string) => send({ type: 'brand-manual', id, text })
 
-  return { connected, servers, tasks, approvals, answer }
+  return { connected, servers, tasks, approvals, brands, org, brain, answer, switchBrand, saveManual }
 }
 
 /** Re-render every second, for timers and the map's afterglow. */
@@ -139,221 +96,227 @@ function useTick() {
   return now
 }
 
-function Fields({ input, full }: { input: Record<string, unknown>; full?: boolean }) {
-  const rows = describeInput(input)
-  if (!rows.length) return null
-  return (
-    <dl className={full ? 'fields full' : 'fields'}>
-      {rows.map(([k, v]) => (
-        <div key={k}>
-          <dt>{k}</dt>
-          <dd>{v}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-function MapView({ servers, tasks, now }: { servers: Server[]; tasks: Task[]; now: number }) {
-  const nodes = useMemo(() => {
-    const keys = new Set<string>()
-    for (const s of servers) keys.add(s.name)
-    for (const t of tasks) for (const st of t.steps) keys.add(homeOf(st.server, st.tool))
-    keys.add('web')
-    return [...keys].filter((k) => !serviceOf(k).hidden).sort()
-  }, [servers, tasks])
-
-  const state = (key: string) => {
-    const server = servers.find((s) => s.name === key)
-    if (server && (server.status === 'failed' || server.status === 'needs-auth')) return 'down'
-    for (const t of tasks) {
-      for (const st of t.steps) {
-        if (homeOf(st.server, st.tool) !== key) continue
-        if (st.status === 'waiting') return 'waiting'
-        if (st.status === 'running') return 'active'
-        if (st.endedAt && now - st.endedAt < AFTERGLOW_MS) return 'active'
-      }
+/** A small preference kept in this browser only; fine to lose. */
+function useSaved<T extends string | null>(key: string, initial: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const v = localStorage.getItem(key)
+      return (v === null ? initial : v === '' ? null : v) as T
+    } catch {
+      return initial
     }
-    return 'idle'
+  })
+  const set = (v: T) => {
+    setValue(v)
+    try {
+      localStorage.setItem(key, v ?? '')
+    } catch {
+      // Private window or blocked storage: the choice just won't be remembered.
+    }
   }
-
-  const W = 560
-  const H = 380
-  const cx = W / 2
-  const cy = H / 2
-  const r = Math.min(W, H) / 2 - 52
-  return (
-    <svg className="map" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Mapa de conexiones de Nexy">
-      {nodes.map((key, i) => {
-        const a = (i / nodes.length) * Math.PI * 2 - Math.PI / 2
-        const x = cx + Math.cos(a) * r
-        const y = cy + Math.sin(a) * r * 0.82
-        const s = state(key)
-        const svc = serviceOf(key)
-        return (
-          <g key={key} className={`node ${s}`}>
-            <line x1={cx} y1={cy} x2={x} y2={y} className="edge" />
-            <circle cx={x} cy={y} r={26} className="dot" />
-            <text x={x} y={y + 7} textAnchor="middle" className="icon">
-              {svc.icon}
-            </text>
-            {/* Above the node in the top half, so the line in from the centre never crosses it. */}
-            <text x={x} y={Math.sin(a) < -0.2 ? y - 34 : y + 44} textAnchor="middle" className="label">
-              {svc.label}
-            </text>
-          </g>
-        )
-      })}
-      <g className="core">
-        <circle cx={cx} cy={cy} r={38} />
-        <text x={cx} y={cy + 6} textAnchor="middle">
-          NEXY
-        </text>
-      </g>
-    </svg>
-  )
+  return [value, set]
 }
 
-function ApprovalCard({ a, now, answer }: { a: Approval; now: number; answer: (id: string, ok: boolean, note: string) => void }) {
-  const [note, setNote] = useState('')
-  const left = Math.max(0, a.expiresAt - now)
-  const svc = serviceOf(homeOf(a.server, a.tool))
-  return (
-    <article className="approval">
-      <header>
-        <span className="svc">{svc.icon}</span>
-        <h3>¿Apruebas? · {stepLabel(a.server, a.tool)}</h3>
-        <span className="expires">
-          expira en {Math.floor(left / 60000)}:{String(Math.floor((left % 60000) / 1000)).padStart(2, '0')}
-        </span>
-      </header>
-      <Fields input={a.input} full />
-      <textarea
-        placeholder="¿Qué cambiarías? (opcional, si rechazas)"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        rows={2}
-      />
-      <div className="actions">
-        <button className="approve" onClick={() => answer(a.id, true, '')}>
-          Aprobar
-        </button>
-        <button className="reject" onClick={() => answer(a.id, false, note)}>
-          Rechazar
-        </button>
-      </div>
-    </article>
-  )
-}
-
-function TaskView({ task, now, open }: { task: Task; now: number; open?: boolean }) {
-  const steps = task.steps.filter((s) => !serviceOf(homeOf(s.server, s.tool)).hidden)
-  const took = (task.endedAt ?? now) - task.startedAt
-  return (
-    <details className={`task ${task.status}`} open={open}>
-      <summary>
-        <span className="when">{clock(task.startedAt)}</span>
-        <span className="ask">“{task.text}”</span>
-        <span className={`badge ${task.status}`}>{TASK_WORD[task.status]}</span>
-        <span className="took">{secs(took)}</span>
-      </summary>
-      {steps.length ? (
-        <ol className="steps">
-          {steps.map((s, i) => {
-            const svc = serviceOf(homeOf(s.server, s.tool))
-            return (
-              <li key={s.id} className={`step ${s.status}`}>
-                <div className="line">
-                  <span className="n">{i + 1}.</span>
-                  <span className={`st ${s.status}`}>{STEP_ICON[s.status]}</span>
-                  <span className="svc">{svc.icon}</span>
-                  <span className="what">{stepLabel(s.server, s.tool)}</span>
-                  <span className="word">{STEP_WORD[s.status]}</span>
-                  <span className="took">{secs((s.endedAt ?? now) - s.startedAt)}</span>
-                </div>
-                <Fields input={s.input} />
-                {s.result ? (
-                  <details className="result">
-                    <summary>Ver resultado</summary>
-                    <pre>{s.result}</pre>
-                  </details>
-                ) : null}
-              </li>
-            )
-          })}
-        </ol>
-      ) : (
-        <p className="empty">{task.status === 'running' ? 'Pensando…' : 'Respondió sin usar herramientas.'}</p>
-      )}
-      {task.reply ? <p className="reply">🗣️ {task.reply}</p> : null}
-    </details>
-  )
-}
+type Tab = 'mapa' | 'cerebro' | 'tableros' | 'aprobaciones'
+const TABS: Array<[Tab, string]> = [
+  ['mapa', 'Mapa'],
+  ['cerebro', 'Cerebro'],
+  ['tableros', 'Tableros'],
+  ['aprobaciones', 'Aprobaciones'],
+]
 
 export default function Console() {
-  const { connected, servers, tasks, approvals, answer } = useBridge()
+  const { connected, servers, tasks, approvals, brands, org, brain, answer, switchBrand, saveManual } = useBridge()
   const now = useTick()
-  const [current, ...history] = tasks
-  const visible = servers.filter((s) => !serviceOf(s.name).hidden)
+  const [tab, setTab] = useSaved<Tab>('nexy-console-tab', 'mapa')
+  const [brandFilter, setBrandFilter] = useSaved<string | null>('nexy-console-brand', null)
+  const [selected, setSelected] = useState<string | null>(null)
+
+  const agents = useMemo(() => org?.agents ?? [], [org])
+  const live = useMemo(() => liveNodes(tasks, agents, now), [tasks, agents, now])
+  const nodes = useMapNodes(org, servers, tasks)
+  const active = brandOf(brands, brands?.activa)
+  const filterBrand = brandOf(brands, brandFilter)
+  const inBrand = (id?: string | null) => !brandFilter || id === brandFilter
+  const shownTasks = tasks.filter((t) => inBrand(t.brand))
+  const shownApprovals = approvals.filter((a) => inBrand(a.brand))
+  const [current, ...history] = shownTasks
+
+  // The steps behind a map node, newest first, for the side card.
+  const node = nodes.find((n) => n.key === selected)
+  const nodeSteps = node
+    ? tasks
+        .flatMap((t) => t.steps.map((s) => ({ t, s })))
+        .filter(({ s }) => {
+          if (node.kind === 'agent') return s.agent === node.key.slice(6) || s.by === node.key.slice(6)
+          if (node.kind === 'svc') return !isAgentStep(s) && homeOf(s.server, s.tool) === node.key.slice(4)
+          return false
+        })
+        .sort((a, b) => b.s.startedAt - a.s.startedAt)
+        .slice(0, 8)
+    : []
+  const agentInfo = node?.kind === 'agent' ? agents.find((a) => `agent:${a.id}` === node.key) : null
+
+  const approvalsBlock = shownApprovals.length ? (
+    <>
+      <h2 className="attention">Esperando tu aprobación ({shownApprovals.length})</h2>
+      {shownApprovals.map((a) => (
+        <ApprovalCard key={a.id} a={a} now={now} brands={brands} answer={answer} />
+      ))}
+    </>
+  ) : null
 
   return (
-    <div className="console">
+    <div className="console" style={active ? { ['--brand' as string]: active.color } : undefined}>
       <header className="top">
-        <h1>Consola Nexy</h1>
+        <div className="logo">
+          <span className="mark">NXUS AI</span>
+          <span className="sub">Consola de Nexy</span>
+        </div>
+        <label className="working-on">
+          <span>Nexy trabaja en</span>
+          <select value={brands?.activa ?? ''} onChange={(e) => switchBrand(e.target.value)} disabled={!brands}>
+            {(brands?.marcas ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.nombre}
+              </option>
+            ))}
+          </select>
+          <i className="swatch" />
+        </label>
         <span className={connected ? 'conn on' : 'conn off'}>
           {connected ? '● Conectada' : '● Sin conexión con Nexy — ¿está encendida?'}
         </span>
       </header>
 
-      <main>
-        <section className="left">
-          <h2>Mapa</h2>
-          <MapView servers={servers} tasks={tasks} now={now} />
-          <h2>Conexiones</h2>
-          <ul className="servers">
-            {visible.length ? (
-              visible.map((s) => {
-                const down = s.status === 'failed' || s.status === 'needs-auth'
-                return (
-                  <li key={s.name} className={down ? 'down' : 'up'}>
-                    {down ? '⚠️' : '✅'} {serviceOf(s.name).icon} {serviceOf(s.name).label}
-                    {down ? <em> — {s.status === 'needs-auth' ? 'pide iniciar sesión' : 'no conecta'}</em> : null}
-                  </li>
-                )
-              })
+      <nav className="brand-filter" aria-label="Ver marca">
+        <button className={!brandFilter ? 'chip on' : 'chip'} onClick={() => setBrandFilter(null)}>
+          Todas
+        </button>
+        {(brands?.marcas ?? []).map((b) => (
+          <button
+            key={b.id}
+            className={brandFilter === b.id ? 'chip on' : 'chip'}
+            style={{ ['--brand' as string]: b.color }}
+            onClick={() => setBrandFilter(brandFilter === b.id ? null : b.id)}
+          >
+            <i />
+            {b.nombre}
+          </button>
+        ))}
+      </nav>
+
+      <nav className="tabs" role="tablist">
+        {TABS.map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'tab on' : 'tab'} onClick={() => setTab(id)}>
+            {label}
+            {id === 'aprobaciones' && approvals.length ? <span className="count">{approvals.length}</span> : null}
+          </button>
+        ))}
+      </nav>
+
+      {tab !== 'aprobaciones' && tab !== 'mapa' && approvals.length ? (
+        <button className="banner" onClick={() => setTab('aprobaciones')}>
+          ⚠️ {approvals.length === 1 ? 'Hay 1 acción' : `Hay ${approvals.length} acciones`} esperando tu aprobación — ver
+        </button>
+      ) : null}
+
+      {tab === 'mapa' ? (
+        <main className="split">
+          <section className="left">
+            <MapView
+              nodes={nodes}
+              live={live}
+              selected={selected}
+              onSelect={setSelected}
+              watermark={(filterBrand ?? active)?.nombre}
+              accent={(filterBrand ?? active)?.color}
+            />
+            <div className="legend">
+              <span>
+                <i className="lg dept" /> Área
+              </span>
+              <span>
+                <i className="lg agent" /> Agente
+              </span>
+              <span>
+                <i className="lg svc" /> Conexión
+              </span>
+              <span>
+                <i className="lg live" /> Trabajando ahora
+              </span>
+            </div>
+            {node ? (
+              <aside className="node-card">
+                <h3>
+                  {node.icon} {node.label}
+                </h3>
+                {agentInfo ? <p>{agentInfo.description}</p> : null}
+                {node.kind === 'svc' ? <p className={node.down ? 'bad' : 'good'}>{node.down ? 'No conecta' : 'Conectado'}</p> : null}
+                {node.kind === 'dept' ? (
+                  <p className="muted">
+                    {agents.filter((a) => a.dept === node.dept).length} agentes ·{' '}
+                    {nodes.filter((n) => n.kind === 'svc' && n.dept === node.dept).length} conexiones
+                  </p>
+                ) : null}
+                {nodeSteps.length ? (
+                  <ul className="recent">
+                    {nodeSteps.map(({ t, s }) => (
+                      <li key={s.id}>
+                        <span className="when">{clock(s.startedAt)}</span>
+                        <BrandPill brand={brandOf(brands, t.brand)} />
+                        {stepLook(s, agents).label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : node.kind !== 'dept' ? (
+                  <p className="muted">Todavía sin actividad.</p>
+                ) : null}
+              </aside>
+            ) : null}
+          </section>
+
+          <section className="right">
+            {approvalsBlock}
+            <h2>Tarea actual</h2>
+            {current ? (
+              <TaskView task={current} now={now} open brands={brands} agents={agents} />
             ) : (
-              <li className="muted">Aparecen cuando le hables a Nexy por primera vez.</li>
+              <p className="muted">Nada todavía. Pídele algo a Nexy y aquí verás cada paso.</p>
             )}
-          </ul>
-        </section>
+            {history.length ? (
+              <>
+                <h2>Historial</h2>
+                {history.map((t) => (
+                  <TaskView key={t.id} task={t} now={now} brands={brands} agents={agents} />
+                ))}
+              </>
+            ) : null}
+          </section>
+        </main>
+      ) : null}
 
-        <section className="right">
-          {approvals.length ? (
-            <>
-              <h2 className="attention">Esperando tu aprobación ({approvals.length})</h2>
-              {approvals.map((a) => (
-                <ApprovalCard key={a.id} a={a} now={now} answer={answer} />
-              ))}
-            </>
-          ) : null}
+      {tab === 'cerebro' ? <Brain data={brain} live={live} brandFilter={brandFilter} /> : null}
 
-          <h2>Tarea actual</h2>
-          {current ? (
-            <TaskView task={current} now={now} open />
-          ) : (
-            <p className="muted">Nada todavía. Pídele algo a Nexy y aquí verás cada paso.</p>
-          )}
+      {tab === 'tableros' ? (
+        <Boards
+          brands={brands}
+          brandFilter={brandFilter}
+          tasks={tasks}
+          approvals={approvals}
+          servers={servers.filter((s) => s.name !== 'jarvis' && s.name !== 'jarvis_ui')}
+          org={org}
+          brain={brain}
+          switchBrand={switchBrand}
+          saveManual={saveManual}
+        />
+      ) : null}
 
-          {history.length ? (
-            <>
-              <h2>Historial</h2>
-              {history.map((t) => (
-                <TaskView key={t.id} task={t} now={now} />
-              ))}
-            </>
-          ) : null}
-        </section>
-      </main>
+      {tab === 'aprobaciones' ? (
+        <main className="approvals-page">
+          {approvalsBlock ?? <p className="muted">Nada esperando tu aprobación. Cuando Nexy vaya a enviar, publicar o cambiar algo, aparecerá aquí.</p>}
+        </main>
+      ) : null}
     </div>
   )
 }

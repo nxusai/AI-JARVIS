@@ -1,35 +1,52 @@
 /**
- * How each connected service looks on the console.
+ * How each connected service looks on the console, and which department of
+ * the map it hangs from.
  *
  * A server that is not listed here still appears — with its own name and a
- * plug icon — the moment Nexy connects to it, so nothing breaks when a new app
- * is added. A line here only makes it look nicer. To add Notion, for example:
+ * plug icon, under Núcleo — the moment Nexy connects to it, so nothing breaks
+ * when a new app is added. A line here only makes it look nicer and puts it in
+ * the right department. For example:
  *
- *   notion: { label: 'Notion', icon: '📓' },
+ *   instagram: { label: 'Instagram', icon: '📸', dept: 'marketing' },
  *
- * The key is the server's name as it appears in `claude mcp list`.
+ * The key is the server's name as it appears in `claude mcp list`. The
+ * departments are listed in bridge/agents.mjs.
  */
 
-export type Service = { label: string; icon: string; hidden?: boolean }
+export type Service = { label: string; icon: string; dept?: string; hidden?: boolean }
 
 export const SERVICES: Record<string, Service> = {
-  gmail: { label: 'Gmail', icon: '📧' },
-  'google-calendar': { label: 'Calendario', icon: '📅' },
-  jarvis_phone: { label: 'Llamadas', icon: '📞' },
-  jarvis_contacts: { label: 'Contactos', icon: '👥' },
-  jarvis_messages: { label: 'Recados', icon: '📝' },
-  jarvis_memory: { label: 'Memoria', icon: '🧠' },
-  jarvis_eyes: { label: 'Cámara', icon: '📷' },
-  jarvis_chrome: { label: 'Chrome', icon: '🌐' },
-  web: { label: 'Internet', icon: '🔎' },
+  gmail: { label: 'Gmail', icon: '📧', dept: 'comunicacion' },
+  'google-calendar': { label: 'Calendario', icon: '📅', dept: 'operaciones' },
+  notion: { label: 'Notion', icon: '📓', dept: 'operaciones' },
+  jarvis_phone: { label: 'Teléfono', icon: '☎️', dept: 'llamadas' },
+  jarvis_contacts: { label: 'Contactos', icon: '👥', dept: 'llamadas' },
+  jarvis_messages: { label: 'Recados', icon: '📝', dept: 'llamadas' },
+  jarvis_memory: { label: 'Memoria', icon: '💭', dept: 'nucleo' },
+  jarvis_brands: { label: 'Marcas', icon: '🏷️', dept: 'nucleo' },
+  jarvis_eyes: { label: 'Cámara', icon: '📷', dept: 'nucleo' },
+  jarvis_chrome: { label: 'Chrome', icon: '🌐', dept: 'nucleo' },
+  web: { label: 'Internet', icon: '🔎', dept: 'ventas' },
+  elevenlabs: { label: 'ElevenLabs', icon: '🎙️', dept: 'llamadas' },
+  // Redes y contenido, para cuando se conecten:
+  ayrshare: { label: 'Ayrshare', icon: '🗓️', dept: 'marketing' },
+  metricool: { label: 'Metricool', icon: '🗓️', dept: 'marketing' },
+  buffer: { label: 'Buffer', icon: '🗓️', dept: 'marketing' },
+  instagram: { label: 'Instagram', icon: '📸', dept: 'marketing' },
+  tiktok: { label: 'TikTok', icon: '🎵', dept: 'marketing' },
+  linkedin: { label: 'LinkedIn', icon: '💼', dept: 'marketing' },
+  heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'marketing' },
+  fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'marketing' },
+  replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'marketing' },
   // Nexy's own screen: busy all the time, and not a connection worth watching.
   jarvis: { label: 'Pantalla', icon: '🖥️', hidden: true },
   jarvis_ui: { label: 'Interfaz', icon: '🎨', hidden: true },
   builtin: { label: 'Sistema', icon: '⚙️', hidden: true },
-  notion: { label: 'Notion', icon: '📓' },
-  // Añade aquí tus apps nuevas, una línea cada una:
-  // instagram: { label: 'Instagram', icon: '📸' },
+  // Añade aquí tus apps nuevas, una línea cada una.
 }
+
+/** The department a service hangs from on the map. */
+export const deptOf = (key: string) => SERVICES[key]?.dept ?? 'nucleo'
 
 /** Friendly names for steps. Anything missing is spelled out from its tool name. */
 const STEPS: Record<string, string> = {
@@ -54,6 +71,10 @@ const STEPS: Record<string, string> = {
   'jarvis_memory__remember': 'Guardar en memoria',
   'jarvis_memory__forget': 'Olvidar de la memoria',
   'jarvis_memory__list_memories': 'Leer memoria',
+  'jarvis_brands__list_brands': 'Ver marcas',
+  'jarvis_brands__use_brand': 'Cambiar de marca',
+  'jarvis_brands__read_brand': 'Leer manual de marca',
+  'jarvis_brands__brand_note': 'Anotar en el manual de marca',
   'jarvis_eyes__look': 'Mirar con la cámara',
   'jarvis_eyes__watch': 'Observar con la cámara',
   'notion__API-post-search': 'Buscar en Notion',
@@ -124,7 +145,14 @@ const FIELD_NAMES: Record<string, string> = {
   markdown: 'Contenido',
   rich_text: 'Comentario',
   text: 'Texto',
+  brand: 'Marca',
+  note: 'Nota',
+  description: 'Encargo',
+  prompt: 'Instrucciones',
 }
+
+/** Fields that are plumbing, not something the owner needs to read. */
+const SKIP_FIELDS = new Set(['parent', 'subagent_type', 'run_in_background', 'model'])
 
 /** Notion's rich text arrays, as the words they spell. */
 const plain = (v: unknown): string =>
@@ -155,7 +183,7 @@ function notionValue(p: unknown): string {
 export function describeInput(input: unknown): Array<[string, string]> {
   if (!input || typeof input !== 'object') return []
   const entries = Object.entries(input as Record<string, unknown>).filter(
-    ([k, v]) => v !== undefined && v !== null && v !== '' && k !== 'parent',
+    ([k, v]) => v !== undefined && v !== null && v !== '' && !SKIP_FIELDS.has(k),
   )
   // Notion properties read as their own rows: "Estado: Hecho", not raw JSON.
   const props = entries.find(([k, v]) => k === 'properties' && v && typeof v === 'object')
