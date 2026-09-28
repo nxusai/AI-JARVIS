@@ -79,6 +79,19 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 const isDevPort = (port) =>
   (port >= 5173 && port <= 5199) || (port >= 4173 && port <= 4199)
 
+/**
+ * Only this Mac may talk to the bridge.
+ *
+ * The server listens on every interface, and the Origin check below is a
+ * browser convention: a program on the same Wi-Fi can send any Origin it
+ * likes. Checked on the socket's own address, which cannot be forged the same
+ * way, a laptop on a hotel network is turned away before it can read a task,
+ * approve an action or ask the agent anything. Covers IPv4, IPv6 and the
+ * IPv4-in-IPv6 form Node reports on dual-stack sockets.
+ */
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+const fromThisMac = (req) => LOOPBACK.has(req.socket?.remoteAddress ?? '')
+
 function originAllowed(origin) {
   if (!origin) return ALLOW_NO_ORIGIN
   if (EXTRA_ORIGINS.has(origin.replace(/\/+$/, ''))) return true
@@ -1045,6 +1058,11 @@ const handleRequest = async (req, res) => {
 }
 
 const server = http.createServer((req, res) => {
+  if (!fromThisMac(req)) {
+    console.warn(`[jarvis] rejected request from ${req.socket?.remoteAddress} — only this Mac may connect`)
+    res.writeHead(403)
+    return res.end('This bridge only answers the computer it runs on.')
+  }
   // The handler is async, so anything it throws would otherwise become an
   // unhandled rejection and leave the browser waiting on a socket that is
   // never going to answer.
@@ -1062,6 +1080,10 @@ const wss = new WebSocketServer({
   // the likeliest cause is a dev server on an unexpected port, and a silent
   // 403 would look like the bridge simply isn't running.
   verifyClient: ({ origin, req }, done) => {
+    if (!fromThisMac(req)) {
+      console.warn(`[jarvis] rejected websocket from ${req.socket?.remoteAddress} — only this Mac may connect`)
+      return done(false, 403, 'Forbidden')
+    }
     const path = (req.url ?? '/').split('?')[0]
     if (path !== '/' && path !== '/ws' && path !== '/console') {
       console.warn(`[jarvis] rejected websocket on path ${path}`)
