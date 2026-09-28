@@ -23,6 +23,8 @@
  *   console → bridge  { type: 'approve' | 'reject', id, note? }
  *                     { type: 'use-brand', id }          switch the active brand
  *                     { type: 'brand-manual', id, text } save a brand's manual
+ *
+ * Approvals can also be answered from Telegram: see addApprover below.
  */
 
 /** Tasks kept for the history list. */
@@ -108,6 +110,17 @@ function createHub() {
   let org = null
   let brain = null
   let onCommand = () => {}
+  /** Other places the owner can answer an approval from (Telegram). */
+  const approvers = new Set()
+  const tellApprovers = (event, payload) => {
+    for (const a of approvers) {
+      try {
+        a[event]?.(payload)
+      } catch (err) {
+        console.log(`[jarvis] approver failed: ${err?.message ?? err}`)
+      }
+    }
+  }
   let seq = 0
   const nextId = (p) => `${p}${Date.now().toString(36)}${(seq++).toString(36)}`
 
@@ -138,6 +151,7 @@ function createHub() {
       pushTask(found.task)
     }
     pushApprovals()
+    tellApprovers('settled', { id, approved, note })
     a.resolve({ approved, note: typeof note === 'string' ? note.slice(0, 500) : '' })
   }
 
@@ -177,6 +191,26 @@ function createHub() {
     },
 
     hasConsole: () => [...consoles].some((s) => s.readyState === s.OPEN),
+
+    /** Whether anyone can answer an approval right now: a console, or Telegram. */
+    hasApprover() {
+      return this.hasConsole() || approvers.size > 0
+    },
+
+    /**
+     * Another place approvals can be answered. `approver.requested(view)` is
+     * called for each new one and `approver.settled({ id, approved })` when it
+     * is answered, wherever that happened. Returns a function that removes it.
+     */
+    addApprover(approver) {
+      approvers.add(approver)
+      return () => approvers.delete(approver)
+    },
+
+    /** Answer an approval from outside the console. */
+    answer(id, approved, note) {
+      settle(id, approved === true, note)
+    },
 
     setServers(list) {
       servers = list.map((s) => (typeof s === 'string' ? { name: s, status: 'connected' } : s))
@@ -221,10 +255,11 @@ function createHub() {
     },
 
     /** The owner asked for something. Returns the task id. */
-    startTask(text, brand = brands?.activa ?? null) {
+    startTask(text, brand = brands?.activa ?? null, via = 'voz') {
       const task = {
         id: nextId('t'),
         brand,
+        via,
         text: clip(String(text ?? '')),
         status: 'running',
         startedAt: Date.now(),
@@ -328,6 +363,7 @@ function createHub() {
           },
         })
         pushApprovals()
+        tellApprovers('requested', approvals.get(id).view)
       })
     },
   }

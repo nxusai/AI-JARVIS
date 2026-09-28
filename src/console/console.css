@@ -226,6 +226,13 @@ button {
   white-space: nowrap;
 }
 
+.via {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7cc7ff;
+  white-space: nowrap;
+}
+
 .brand-pill.big {
   font-size: 15px;
   padding: 4px 12px;

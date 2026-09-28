@@ -23,6 +23,8 @@ export type Step = {
 export type Task = {
   id: string
   brand?: string | null
+  /** Where the owner asked: out loud, or on Telegram. */
+  via?: 'voz' | 'telegram'
   text: string
   status: 'running' | 'done' | 'error' | 'interrupted'
   startedAt: number

@@ -29,6 +29,7 @@ import { hub, needsApproval } from './console.mjs'
 import { brandsPrompt, brandsServer, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
+import { startTelegram } from './telegram.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -1207,6 +1208,139 @@ hub.onCommand((msg) => {
   if (msg.type === 'brand-manual' && typeof msg.text === 'string') saveManualText(msg.id, msg.text)
 })
 
+/**
+ * The agent's options, the same for every way of talking to Nexy — the voice
+ * interface and Telegram — so both have the same tools, team, brands, memory
+ * and permission gate. What differs is passed in: the servers only that
+ * channel has, a note about the channel for the prompt, how to tell the owner
+ * an approval is waiting, and which console task is current.
+ */
+function agentOptions({ local = {}, channelPrompt = '', notice = () => {}, currentTask = () => null }) {
+  return {
+    // Everything Claude Code has configured, plus whatever this channel
+    // brings of its own (the HUD, the camera) and the servers every channel
+    // shares.
+    mcpServers: {
+      ...MCP_SERVERS,
+      ...local,
+      // The owner's phone, through the ElevenLabs phone agent.
+      jarvis_phone: phoneServer(elevenKey, TIME_ZONE),
+      // What the phone receptionist took down while the owner was away.
+      jarvis_messages: messagesServer(elevenKey, TIME_ZONE),
+      // The owner's approved contacts, phoned with a message after they confirm.
+      jarvis_contacts: contactsServer(elevenKey, TIME_ZONE),
+      // What the owner has told her about themselves, kept across restarts.
+      jarvis_memory: memoryServer(),
+      // The owner's brands: which one she is working in, and their manuals.
+      jarvis_brands: brandsServer(),
+    },
+    // Her specialists (see agents.mjs). They only read and draft.
+    agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
+    // An agent left to run in the background would report after Nexy has
+    // finished speaking, into a turn nobody is listening to any more.
+    env: { ...process.env, CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1' },
+    // A plain system prompt, not the claude_code preset. The preset is
+    // tuned for a coding agent — verbose, file-oriented, and a large chunk
+    // of input tokens on every turn. Replacing it makes the persona stick,
+    // keeps answers short enough to speak, and cuts cost per turn.
+    // Memory is read per connection, so a fact saved yesterday is known today.
+    systemPrompt: SYSTEM_PROMPT + memoryPrompt() + brandsPrompt() + teamPrompt() + channelPrompt,
+    // Run from the home directory so project-scoped MCP servers don't shadow
+    // the global ones, and so file tools have a sane root.
+    cwd: homedir(),
+    // No filesystem settings at all. Left to its default the SDK loads
+    // ~/.claude/settings.json and settings.local.json exactly as the CLI
+    // does — which on a working machine means a bypassPermissions default
+    // and a pile of allow-rules for Bash. Allow-rules are matched before the
+    // permission callback, so decideTool below would never even be asked
+    // about the tools it most needs to refuse. Empty makes this bridge the
+    // only authority. It also stops the global CLAUDE.md riding along on
+    // every voice turn, carrying instructions written for a coding agent
+    // into a conversation that is meant to be two sentences long.
+    //
+    // The cost is that MCP servers stop being discovered too, which is why
+    // mcpServers above passes them in by hand.
+    settingSources: [],
+    // Stated explicitly, and it has to be.
+    //
+    // With no `model` here the SDK falls back to its own default, which on
+    // this machine resolved to claude-opus-4-8[1m] — not what src/config.ts
+    // declares for the browser-direct path, and not anything anyone chose.
+    // Normally your own `/model` preference would decide, but that lives in
+    // the settings files `settingSources: []` deliberately stops loading, so
+    // without this line nothing in the project has a say at all.
+    model: MODEL,
+    effort: EFFORT,
+    maxTurns: 24,
+    permissionMode: 'default',
+    // Without this the SDK only emits whole assistant messages, and JARVIS
+    // would sit silent until the entire answer was written. Partial events
+    // are what let speech start on the first finished sentence.
+    includePartialMessages: true,
+    // Signature is (toolName, input, options) and it must return a
+    // PermissionResult object. Returning a bare boolean silently denies
+    // everything, with the tool name arriving undefined.
+    //
+    // Worth knowing: this is a last gate, not the only one. Calls the CLI
+    // has already settled never arrive here — its own classifier waves
+    // through a `Bash: echo hello` without asking, and only reaches us for
+    // something with a consequence, like a `touch`. So a deny here is
+    // reliable; an absence of a call here is not proof nothing ran.
+    canUseTool: async (toolName, input) => {
+      // An update is allowed; the same call used to bin a page is not.
+      if (
+        /^mcp__notion__API-(patch-page|update-a-block)$/.test(toolName) &&
+        (input?.archived === true || input?.in_trash === true)
+      ) {
+        console.log(`[jarvis] tool ${toolName} -> deny (archive/delete)`)
+        return {
+          behavior: 'deny',
+          message: 'Archiving or deleting in Notion is not allowed. Tell the user to do it in Notion themselves.',
+        }
+      }
+      const ok = decideTool(toolName)
+      console.log(`[jarvis] tool ${toolName} -> ${ok ? 'allow' : 'deny'}`)
+      // Outward-facing actions wait for the owner in the console, or on
+      // Telegram, when either is there to answer. With neither they run as
+      // before, so the voice alone is never left unable to do what it could
+      // do yesterday.
+      if (ok && needsApproval(toolName) && hub.hasApprover()) {
+        notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
+        const answer = await hub.requestApproval(currentTask(), toolName, input)
+        console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
+        if (!answer.approved) {
+          return {
+            behavior: 'deny',
+            message:
+              'The user rejected this in the Nexy console' +
+              (answer.note ? `, saying: ${answer.note}` : '') +
+              '. It was not done. Tell them briefly and ask what to change.',
+          }
+        }
+      }
+      // Belt and braces with the env setting above: an agent always runs
+      // inside the owner's turn.
+      if (ok && (toolName === 'Agent' || toolName === 'Task') && input?.run_in_background !== false) {
+        return { behavior: 'allow', updatedInput: { ...input, run_in_background: false } }
+      }
+      return ok
+        ? { behavior: 'allow' }
+        : {
+            behavior: 'deny',
+            // Every word of this can end up spoken, so it carries no command
+            // to read out — the persona is forbidden from saying one aloud.
+            message:
+              'Blocked: JARVIS is running in read-only mode and cannot take' +
+              ' actions that change anything. Tell the user this action is' +
+              ' unavailable until they enable write access on the machine.',
+          }
+    },
+  }
+}
+
+// Telegram, for when the owner is away from the office. Off until set up.
+void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+
 wss.on('connection', (socket, req) => {
   // The console page only watches and approves; it gets no agent session.
   if ((req.url ?? '/').split('?')[0] === '/console') {
@@ -1376,13 +1510,8 @@ wss.on('connection', (socket, req) => {
 
   const session = query({
     prompt: userMessages(),
-    options: {
-      // Everything Claude Code has configured, plus the HUD as an in-process
-      // server. The HUD's handler closes over this socket, so a `display` call
-      // lands on screen directly — which is also why this object is built per
-      // connection rather than once.
-      mcpServers: {
-        ...MCP_SERVERS,
+    options: agentOptions({
+      local: {
         jarvis: displayServer(
           (panel) => send({ type: 'panel', panel }),
           (blade) => send({ type: 'blade', blade }),
@@ -1398,118 +1527,10 @@ wss.on('connection', (socket, req) => {
         jarvis_chrome: chromeServer({ allowWrites: ALLOW_WRITES }),
         // The camera, which unlike everything else here has to ask and wait.
         jarvis_eyes: visionServer(ask),
-        // The owner's phone, through the ElevenLabs phone agent.
-        jarvis_phone: phoneServer(elevenKey, TIME_ZONE),
-        // What the phone receptionist took down while the owner was away.
-        jarvis_messages: messagesServer(elevenKey, TIME_ZONE),
-        // The owner's approved contacts, phoned with a message after they confirm.
-        jarvis_contacts: contactsServer(elevenKey, TIME_ZONE),
-        // What the owner has told her about themselves, kept across restarts.
-        jarvis_memory: memoryServer(),
-        // The owner's brands: which one she is working in, and their manuals.
-        jarvis_brands: brandsServer(),
       },
-      // Her specialists (see agents.mjs). They only read and draft.
-      agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
-      // An agent left to run in the background would report after Nexy has
-      // finished speaking, into a turn nobody is listening to any more.
-      env: { ...process.env, CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1' },
-      // A plain system prompt, not the claude_code preset. The preset is
-      // tuned for a coding agent — verbose, file-oriented, and a large chunk
-      // of input tokens on every turn. Replacing it makes the persona stick,
-      // keeps answers short enough to speak, and cuts cost per turn.
-      // Memory is read per connection, so a fact saved yesterday is known today.
-      systemPrompt: SYSTEM_PROMPT + memoryPrompt() + brandsPrompt() + teamPrompt(),
-      // Run from the home directory so project-scoped MCP servers don't shadow
-      // the global ones, and so file tools have a sane root.
-      cwd: homedir(),
-      // No filesystem settings at all. Left to its default the SDK loads
-      // ~/.claude/settings.json and settings.local.json exactly as the CLI
-      // does — which on a working machine means a bypassPermissions default
-      // and a pile of allow-rules for Bash. Allow-rules are matched before the
-      // permission callback, so decideTool below would never even be asked
-      // about the tools it most needs to refuse. Empty makes this bridge the
-      // only authority. It also stops the global CLAUDE.md riding along on
-      // every voice turn, carrying instructions written for a coding agent
-      // into a conversation that is meant to be two sentences long.
-      //
-      // The cost is that MCP servers stop being discovered too, which is why
-      // mcpServers above passes them in by hand.
-      settingSources: [],
-      // Stated explicitly, and it has to be.
-      //
-      // With no `model` here the SDK falls back to its own default, which on
-      // this machine resolved to claude-opus-4-8[1m] — not what src/config.ts
-      // declares for the browser-direct path, and not anything anyone chose.
-      // Normally your own `/model` preference would decide, but that lives in
-      // the settings files `settingSources: []` deliberately stops loading, so
-      // without this line nothing in the project has a say at all.
-      model: MODEL,
-      effort: EFFORT,
-      maxTurns: 24,
-      permissionMode: 'default',
-      // Without this the SDK only emits whole assistant messages, and JARVIS
-      // would sit silent until the entire answer was written. Partial events
-      // are what let speech start on the first finished sentence.
-      includePartialMessages: true,
-      // Signature is (toolName, input, options) and it must return a
-      // PermissionResult object. Returning a bare boolean silently denies
-      // everything, with the tool name arriving undefined.
-      //
-      // Worth knowing: this is a last gate, not the only one. Calls the CLI
-      // has already settled never arrive here — its own classifier waves
-      // through a `Bash: echo hello` without asking, and only reaches us for
-      // something with a consequence, like a `touch`. So a deny here is
-      // reliable; an absence of a call here is not proof nothing ran.
-      canUseTool: async (toolName, input) => {
-        // An update is allowed; the same call used to bin a page is not.
-        if (
-          /^mcp__notion__API-(patch-page|update-a-block)$/.test(toolName) &&
-          (input?.archived === true || input?.in_trash === true)
-        ) {
-          console.log(`[jarvis] tool ${toolName} -> deny (archive/delete)`)
-          return {
-            behavior: 'deny',
-            message: 'Archiving or deleting in Notion is not allowed. Tell the user to do it in Notion themselves.',
-          }
-        }
-        const ok = decideTool(toolName)
-        console.log(`[jarvis] tool ${toolName} -> ${ok ? 'allow' : 'deny'}`)
-        // Outward-facing actions wait for the owner in the console when it is
-        // open. With no console open they run as before, so the voice alone is
-        // never left unable to do what it could do yesterday.
-        if (ok && needsApproval(toolName) && hub.hasConsole()) {
-          sendTurn({ type: 'text', delta: 'Te lo dejé en la consola para que lo apruebes. ' })
-          const answer = await hub.requestApproval(openTasks[0], toolName, input)
-          console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
-          if (!answer.approved) {
-            return {
-              behavior: 'deny',
-              message:
-                'The user rejected this in the Nexy console' +
-                (answer.note ? `, saying: ${answer.note}` : '') +
-                '. It was not done. Tell them briefly and ask what to change.',
-            }
-          }
-        }
-        // Belt and braces with the env setting above: an agent always runs
-        // inside the owner's turn.
-        if (ok && (toolName === 'Agent' || toolName === 'Task') && input?.run_in_background !== false) {
-          return { behavior: 'allow', updatedInput: { ...input, run_in_background: false } }
-        }
-        return ok
-          ? { behavior: 'allow' }
-          : {
-              behavior: 'deny',
-              // Every word of this can end up spoken, so it carries no command
-              // to read out — the persona is forbidden from saying one aloud.
-              message:
-                'Blocked: JARVIS is running in read-only mode and cannot take' +
-                ' actions that change anything. Tell the user this action is' +
-                ' unavailable until they enable write access on the machine.',
-            }
-      },
-    },
+      notice: (text) => sendTurn({ type: 'text', delta: text }),
+      currentTask: () => openTasks[0],
+    }),
   })
 
   // Pump the session's output stream to the browser for as long as it lives.

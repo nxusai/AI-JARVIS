@@ -149,6 +149,11 @@ export function TaskView({
       <summary>
         <span className="when">{clock(task.startedAt)}</span>
         <BrandPill brand={brandOf(brands, task.brand)} />
+        {task.via === 'telegram' ? (
+          <span className="via" title="Pedido por Telegram">
+            📱 Telegram
+          </span>
+        ) : null}
         <span className="ask">“{task.text}”</span>
         <span className={`badge ${task.status}`}>{TASK_WORD[task.status]}</span>
         <span className="took">{secs(took)}</span>
