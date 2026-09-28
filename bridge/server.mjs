@@ -25,6 +25,7 @@ import { phoneServer } from './phone.mjs'
 import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
+import { hub, needsApproval } from './console.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -1062,7 +1063,7 @@ const wss = new WebSocketServer({
   // 403 would look like the bridge simply isn't running.
   verifyClient: ({ origin, req }, done) => {
     const path = (req.url ?? '/').split('?')[0]
-    if (path !== '/' && path !== '/ws') {
+    if (path !== '/' && path !== '/ws' && path !== '/console') {
       console.warn(`[jarvis] rejected websocket on path ${path}`)
       return done(false, 403, 'Forbidden')
     }
@@ -1118,8 +1119,21 @@ const RESULT_FAILURES = {
   default: 'The turn ended without an answer.',
 }
 
-wss.on('connection', (socket) => {
+wss.on('connection', (socket, req) => {
+  // The console page only watches and approves; it gets no agent session.
+  if ((req.url ?? '/').split('?')[0] === '/console') {
+    console.log('[jarvis] console connected')
+    hub.addConsole(socket)
+    return
+  }
   console.log('[jarvis] client connected')
+
+  /**
+   * The owner's requests as console tasks, oldest first. A turn's result
+   * closes the oldest, which stays right across a barge-in: the interrupted
+   * turn reports its result before the next one starts using tools.
+   */
+  const openTasks = []
 
   // Answer the HUD straight away rather than making it wait for the agent's
   // first turn. Refined later by the real init message.
@@ -1349,9 +1363,26 @@ wss.on('connection', (socket) => {
       // through a `Bash: echo hello` without asking, and only reaches us for
       // something with a consequence, like a `touch`. So a deny here is
       // reliable; an absence of a call here is not proof nothing ran.
-      canUseTool: async (toolName) => {
+      canUseTool: async (toolName, input) => {
         const ok = decideTool(toolName)
         console.log(`[jarvis] tool ${toolName} -> ${ok ? 'allow' : 'deny'}`)
+        // Outward-facing actions wait for the owner in the console when it is
+        // open. With no console open they run as before, so the voice alone is
+        // never left unable to do what it could do yesterday.
+        if (ok && needsApproval(toolName) && hub.hasConsole()) {
+          sendTurn({ type: 'text', delta: 'Te lo dejé en la consola para que lo apruebes. ' })
+          const answer = await hub.requestApproval(openTasks[0], toolName, input)
+          console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
+          if (!answer.approved) {
+            return {
+              behavior: 'deny',
+              message:
+                'The user rejected this in the Nexy console' +
+                (answer.note ? `, saying: ${answer.note}` : '') +
+                '. It was not done. Tell them briefly and ask what to change.',
+            }
+          }
+        }
         return ok
           ? { behavior: 'allow' }
           : {
@@ -1405,6 +1436,7 @@ wss.on('connection', (socket) => {
             for (const block of msg.content ?? msg.message?.content ?? []) {
               if (block.type === 'tool_use') {
                 announceTool(block.id, block.name)
+                hub.startStep(openTasks[0], block.id, block.name, block.input)
               }
             }
             break
@@ -1419,6 +1451,7 @@ wss.on('connection', (socket) => {
             for (const block of blocks) {
               if (block?.type === 'tool_result') {
                 settleTool(block.tool_use_id, block.is_error === true)
+                hub.endStep(block.tool_use_id, block.is_error === true, block.content)
               }
             }
             break
@@ -1430,6 +1463,11 @@ wss.on('connection', (socket) => {
             // empty text is indistinguishable from a turn that simply had
             // nothing to say — the HUD stops spinning and JARVIS stands there
             // silent. Say what happened instead.
+            hub.endTask(
+              openTasks.shift(),
+              msg.subtype === 'success' ? 'done' : 'error',
+              msg.subtype === 'success' ? msg.result : RESULT_FAILURES[msg.subtype] ?? RESULT_FAILURES.default,
+            )
             if (msg.subtype === 'success') {
               sendTurn({
                 type: 'done',
@@ -1464,6 +1502,7 @@ wss.on('connection', (socket) => {
                 .filter((s) => s.status !== 'needs-auth' && s.status !== 'failed')
                 .map((s) => s.name)
               send({ type: 'ready', servers: usable })
+              hub.setServers((msg.mcp_servers ?? []).map((s) => ({ name: s.name, status: s.status })))
               console.log(`[jarvis] ${usable.length} MCP servers available`)
             }
             break
@@ -1507,6 +1546,7 @@ wss.on('connection', (socket) => {
        */
       const text = msg.text
       const id = typeof msg.id === 'string' ? msg.id : null
+      openTasks.push(hub.startTask(text))
       void settling.then(() => {
         answering = id
         if (deliver) {
@@ -1544,6 +1584,7 @@ wss.on('connection', (socket) => {
 
   socket.on('close', () => {
     console.log('[jarvis] client disconnected')
+    for (const t of openTasks.splice(0)) hub.endTask(t, 'interrupted', '')
     closed = true
     deliver?.(null)
     session.close?.()

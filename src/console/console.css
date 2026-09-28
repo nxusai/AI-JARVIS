@@ -1,0 +1,442 @@
+:root {
+  --bg: #01060c;
+  --panel: #07131f;
+  --line: #12324a;
+  --text: #d6ecff;
+  --muted: #7d9ab3;
+  --accent: #38d4ff;
+  --ok: #3ddc97;
+  --warn: #ffc857;
+  --bad: #ff6b6b;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.console {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.conn.on {
+  color: var(--ok);
+}
+
+.conn.off {
+  color: var(--bad);
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 20px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 18px 0 8px;
+}
+
+h2.attention {
+  color: var(--warn);
+}
+
+.muted,
+.empty {
+  color: var(--muted);
+}
+
+/* Map */
+.map {
+  width: 100%;
+  height: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.map .edge {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.map .dot {
+  fill: var(--bg);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.map .icon {
+  font-size: 20px;
+}
+
+.map .label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.map .node.active .edge {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+  animation: flow 0.8s linear infinite;
+}
+
+.map .node.active .dot {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.map .node.active .label {
+  fill: var(--accent);
+}
+
+.map .node.waiting .edge,
+.map .node.waiting .dot {
+  stroke: var(--warn);
+}
+
+.map .node.waiting .label {
+  fill: var(--warn);
+}
+
+.map .node.down .dot {
+  stroke: var(--bad);
+}
+
+.map .node.down .label {
+  fill: var(--bad);
+}
+
+.map .core circle {
+  fill: #0b2a40;
+  stroke: var(--accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 10px rgba(56, 212, 255, 0.5));
+}
+
+.map .core text {
+  fill: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  font-size: 15px;
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.servers {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+
+.servers li {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.servers li.down {
+  border-color: var(--bad);
+}
+
+/* Approvals */
+.approval {
+  background: #1d1605;
+  border: 2px solid var(--warn);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.approval header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.approval h3 {
+  margin: 0;
+  font-size: 17px;
+  flex: 1;
+}
+
+.approval .expires {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.approval textarea {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.actions button {
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.actions .approve {
+  background: var(--ok);
+  color: #032013;
+}
+
+.actions .reject {
+  background: var(--bad);
+  color: #2a0505;
+}
+
+/* Fields */
+.fields {
+  margin: 8px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.fields div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.fields dt {
+  color: var(--muted);
+}
+
+.fields dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.step .fields dd {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fields.full dd {
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* Tasks */
+.task {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.task > summary {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.task > summary::-webkit-details-marker {
+  display: none;
+}
+
+.task .when,
+.task .took {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.task .ask {
+  flex: 1;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+}
+
+.badge.running {
+  color: var(--accent);
+}
+
+.badge.done {
+  color: var(--ok);
+}
+
+.badge.error,
+.badge.interrupted {
+  color: var(--bad);
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.step {
+  border-left: 3px solid var(--line);
+  padding: 4px 0 4px 10px;
+}
+
+.step.running {
+  border-color: var(--accent);
+}
+
+.step.waiting {
+  border-color: var(--warn);
+}
+
+.step.done {
+  border-color: var(--ok);
+}
+
+.step.error,
+.step.blocked,
+.step.rejected {
+  border-color: var(--bad);
+}
+
+.step .line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.step .n {
+  color: var(--muted);
+}
+
+.step .what {
+  font-weight: 600;
+  flex: 1;
+}
+
+.step .word {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.step.waiting .word {
+  color: var(--warn);
+}
+
+.st.running {
+  display: inline-block;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.result {
+  margin-top: 4px;
+}
+
+.result summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.result pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.reply {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map .node.active .edge,
+  .st.running {
+    animation: none;
+  }
+}
