@@ -110,6 +110,8 @@ const TOOL_LABEL = {
   'notion__API-patch-block-children': 'Agregar contenido en Notion',
   'notion__API-update-a-block': 'Editar contenido en Notion',
   'notion__API-update-page-markdown': 'Reescribir página de Notion',
+  jarvis_contacts__save_contact: 'Guardar contacto (Nexy podrá llamarle)',
+  jarvis_contacts__remove_contact: 'Borrar contacto',
 }
 
 const FIELD = {
@@ -121,6 +123,8 @@ const FIELD = {
   text: 'Texto',
   caption: 'Texto',
   name: 'Nombre',
+  phone: 'Teléfono',
+  country: 'País',
   markdown: 'Contenido',
 }
 const SKIP = new Set(['parent', 'subagent_type', 'run_in_background', 'model'])
@@ -337,6 +341,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   // from here or from the console, whichever came first.
   const cards = new Map()
   hub.addApprover({
+    // Only once paired: before that there is nobody to send the card to.
+    available: () => Boolean(readTelegram()?.owner),
     requested(view) {
       const owner = readTelegram()?.owner
       if (!owner) return

@@ -17,6 +17,7 @@ import {
   fold,
   normalisePhone,
   readContacts,
+  toE164,
   writeContacts,
 } from '../bridge/contact-book.mjs'
 
@@ -29,7 +30,8 @@ function show() {
 }
 
 if (cmd === 'add') {
-  const number = normalisePhone(phone)
+  // Also takes the old Mexican mobile form, +521 and ten digits.
+  const number = toE164(phone) ?? normalisePhone(phone)
   if (!name?.trim() || !ALLOWED_NUMBER.test(number)) {
     console.log('Uso: node scripts/contacts.mjs add "Nombre" +1XXXXXXXXXX  (o +52 y 10 dígitos para México)')
     process.exit(1)

@@ -59,6 +59,9 @@ const ALWAYS_APPROVAL = new Set([
   'notion__API-patch-block-children',
   'notion__API-update-a-block',
   'notion__API-update-page-markdown',
+  // Who Nexy may phone in the owner's name.
+  'jarvis_contacts__save_contact',
+  'jarvis_contacts__remove_contact',
 ])
 
 const clip = (v) => {
@@ -194,7 +197,7 @@ function createHub() {
 
     /** Whether anyone can answer an approval right now: a console, or Telegram. */
     hasApprover() {
-      return this.hasConsole() || approvers.size > 0
+      return this.hasConsole() || [...approvers].some((a) => a.available?.() ?? true)
     },
 
     /**
