@@ -49,6 +49,8 @@ const NO_APPROVAL = new Set([
   'jarvis_phone__call_me',
   'jarvis_contacts__call_contact',
   'notion__API-post-search',
+  // The owner's own brand images going to Higgsfield: nothing public happens.
+  'jarvis_files__upload_to_url',
 ])
 
 /** Changes other people will see that the name rule above cannot tell apart. */

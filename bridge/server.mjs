@@ -43,6 +43,7 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_brands__unlink_brand_account',
 ])
 import { startTelegram } from './telegram.mjs'
+import { filesServer } from './files.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -321,6 +322,8 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_brands__unlink_brand_account',
   // Copies an image the owner sent into a brand's folder, nothing else (see brands.mjs).
   'jarvis_brands__save_brand_reference',
+  // Only brand images, only to an https link (see files.mjs).
+  'jarvis_files__upload_to_url',
   // Adding or removing a contact: always held for the owner's tap (see canUseTool).
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',
@@ -618,6 +621,9 @@ Content:
   weight, case; name a font only as "similar to" unless it is certain), the
   layout and the mood. If they want it copied, keep the images with
   save_brand_reference and that description.
+- To give a service one of those images (a reference for Higgsfield, media for
+  a post), get its upload link from the service, then upload_to_url with the
+  image path. You have no shell: never try Bash or curl for this.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1288,6 +1294,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_memory: memoryServer(),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
+      // Sending a brand image to an upload link, and nothing else (see files.mjs).
+      jarvis_files: filesServer(),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
@@ -1425,9 +1433,10 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
             // Every word of this can end up spoken, so it carries no command
             // to read out — the persona is forbidden from saying one aloud.
             message:
-              'Blocked: JARVIS is running in read-only mode and cannot take' +
-              ' actions that change anything. Tell the user this action is' +
-              ' unavailable until they enable write access on the machine.',
+              `Blocked: ${toolName} is not available to you. You have no shell and cannot change files ` +
+              'on this Mac; use the tools you were given (for uploads, upload_to_url). If nothing else ' +
+              'can do it, tell the user in one sentence what you could not do, without suggesting they ' +
+              'turn on write access.',
           }
     },
   }
