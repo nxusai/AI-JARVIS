@@ -180,7 +180,8 @@ function adsLabel(view) {
   const t = view.tool.toLowerCase()
   const verb = /create/.test(t) ? 'crear' : /duplicate|copy/.test(t) ? 'duplicar' : /pause/.test(t) ? 'pausar' : /activate|resume/.test(t) ? 'activar' : /budget/.test(t) ? 'cambiar presupuesto de' : /update|edit|set/.test(t) ? 'cambiar' : /upload/.test(t) ? 'subir' : t.replace(/^ads_/, '').replace(/_/g, ' ')
   const what = /adset|ad_set/.test(t) ? 'conjunto de anuncios' : /campaign/.test(t) ? 'campaña' : /creative/.test(t) ? 'creativo' : /image|video|media/.test(t) ? 'imagen o video' : /audience/.test(t) ? 'público' : /\bad\b|_ad$|_ads?_/.test(t) ? 'anuncio' : ''
-  return `Meta Ads: ${verb}${what ? ` ${what}` : ''}`
+  const phrase = verb === 'cambiar presupuesto de' && !what ? 'cambiar presupuesto' : `${verb}${what ? ` ${what}` : ''}`
+  return `Meta Ads: ${phrase}`
 }
 
 /** An approval as the owner reads it on the phone. */
