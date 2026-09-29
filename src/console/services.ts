@@ -73,6 +73,8 @@ const STEPS: Record<string, string> = {
   'jarvis_contacts__list_contacts': 'Ver contactos',
   'jarvis_contacts__call_contact': 'Llamar a un contacto',
   'jarvis_contacts__save_contact': 'Guardar contacto',
+  'jarvis_contacts__list_contact_calls': 'Ver llamadas programadas a contactos',
+  'jarvis_contacts__cancel_contact_call': 'Cancelar llamada a contacto',
   'jarvis_contacts__remove_contact': 'Borrar contacto',
   'jarvis_contacts__list_contact_replies': 'Ver respuestas de contactos',
   'jarvis_messages__list_messages': 'Revisar recados',

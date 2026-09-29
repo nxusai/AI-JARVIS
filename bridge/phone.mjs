@@ -67,7 +67,7 @@ function zoneOffset(ms, zone) {
  * time in the owner's zone — what "tomorrow at eight" means to them — so it is
  * converted here rather than trusting the model to get the offset right.
  */
-function resolveWhen({ at, in_minutes }, zone, now) {
+export function resolveWhen({ at, in_minutes }, zone, now) {
   if (in_minutes !== undefined && in_minutes !== null && in_minutes !== '') {
     const minutes = Number(in_minutes)
     if (!Number.isFinite(minutes) || minutes < 0) return { error: 'in_minutes must be a number of minutes.' }
