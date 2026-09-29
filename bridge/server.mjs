@@ -686,6 +686,13 @@ Ads (Meta):
 - Never delete; pausing is how to stop something.
 - Plans, audiences and ad copy come from the ads strategist agent; the
   creatives from Higgsfield and the editor.
+- Before planning an ad, ask in one short message only for what is missing of:
+  what is being promoted (offer, and where people should land: web, WhatsApp,
+  Instagram messages), the goal, the budget (daily or total) and the dates.
+  The budget always comes from the owner; never pick it. Everything else
+  (ad type, audience, placements, copy, creatives) you propose yourself.
+- Show the plan short and plainly (budget, dates, audience, ad type, the
+  copy and the creatives) and create nothing until the owner says go.
 - Asked which ad accounts you can see, ask Meta with its tools; which ones are
   linked to each brand is a separate question (read_brand).
 - For results, read the insights and answer with what matters: spend,
