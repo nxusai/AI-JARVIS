@@ -8,6 +8,7 @@ import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
+import { country, toE164 } from './contact-book.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -72,7 +73,7 @@ const HELP =
   '/auto — voz si me hablas, texto si me escribes\n' +
   '/nuevo — empezar una conversación nueva\n' +
   '/cancelar — detener lo que estoy haciendo\n' +
-  'También puedes mandarme fotos, por ejemplo de tus diseños, para que las analice.\n' +
+  'También puedes mandarme fotos, videos, música, o un contacto de tu agenda para que lo guarde.\n' +
   '/ayuda — ver esto otra vez'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -549,6 +550,42 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     }
   }
 
+  /**
+   * A contact card from the owner's phone book. Sending it is the owner
+   * saying "save this person"; Nexy still shows the exact number on an
+   * approval card before it goes on the list she may call.
+   */
+  function shareContact(c, chatId) {
+    const name = [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || 'Sin nombre'
+    const raw = String(c.phone_number ?? '').trim()
+    const phone = toE164(raw.startsWith('+') ? raw : `+${raw.replace(/\D/g, '')}`) ?? toE164(raw)
+    // Ten digits with no country code: Mexico or the US, and only the owner knows which.
+    if (!phone && raw.replace(/\D/g, '').length === 10) {
+      const request =
+        `Guarda este contacto: ${name}, ${raw}.\n\n` +
+        `[The owner shared this contact card from their own phone book on Telegram: they want it saved. The number has no country code: ` +
+        `ask them in one short line whether it is Mexico or the US, then call save_contact with name "${name}", phone "${raw}" and that country.]`
+      const taskId = hub.startTask(`👤 Guardar contacto: ${name}`, undefined, 'telegram')
+      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+      keepTyping(chatId, false)
+      return
+    }
+    if (!phone) {
+      return say(
+        chatId,
+        `Recibí a ${name} (${raw || 'sin número'}), pero solo puedo guardar números de México (+52) o Estados Unidos (+1) con 10 dígitos. ` +
+          '¿Me dices su número con lada, por ejemplo +52 55 1234 5678?',
+      )
+    }
+    const request =
+      `Guarda este contacto: ${name}, ${phone} (${country(phone)}).\n\n` +
+      `[The owner shared this contact card from their own phone book on Telegram: they want it saved. Call save_contact with name "${name}" and phone "${phone}". ` +
+      'Then say in one line that it is ready and that they can ask you to call them with a message.]'
+    const taskId = hub.startTask(`👤 Guardar contacto: ${name}`, undefined, 'telegram')
+    talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+    keepTyping(chatId, false)
+  }
+
   let convo = null
   const talk = () => {
     if (!convo || convo.closed) convo = conversation({ agentOptions, onAnswer: answer, runQuery, local: { jarvis_telegram: filesToOwner() } })
@@ -696,6 +733,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
     const image = imageOf(m)
     if (image) return collectImage(m, image, chatId)
+    if (m.contact) return shareContact(m.contact, chatId)
     const video = m.video ?? m.video_note ?? (m.document && /^video\//.test(m.document.mime_type ?? '') ? m.document : null)
     if (video) return receiveFile(m, chatId, video, INBOX, 'video')
     const song = m.audio ?? (m.document && /^audio\//.test(m.document.mime_type ?? '') ? m.document : null)
@@ -718,7 +756,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       }
       if (!request) return say(chatId, 'No alcancé a escuchar nada en esa nota.')
     } else if (!text) {
-      return say(chatId, 'Por ahora entiendo mensajes, notas de voz y fotos.')
+      return say(chatId, 'Por ahora entiendo mensajes, notas de voz, fotos, videos, música y contactos.')
     }
 
     // Written while this Mac was off or Nexy was closed: ask, don't act.
