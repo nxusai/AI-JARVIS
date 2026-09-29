@@ -140,7 +140,7 @@ const TOOL_LABEL = {
   metricool__update_Schedule_Post: 'Cambiar una publicación programada',
   jarvis_contacts__save_contact: 'Guardar contacto (Nexy podrá llamarle)',
   jarvis_contacts__remove_contact: 'Borrar contacto',
-  jarvis_brands__link_brand_account: 'Conectar una cuenta a esta marca',
+  jarvis_brands__link_brand_account: 'Conectar una cuenta a la marca',
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
 }
 

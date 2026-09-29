@@ -401,7 +401,7 @@ function createHub() {
           view: {
             id,
             taskId,
-            brand: task?.brand ?? null,
+            brand: extra.brand ?? task?.brand ?? null,
             stepId: step?.id ?? null,
             name,
             server,

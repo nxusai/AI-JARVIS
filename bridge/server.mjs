@@ -26,7 +26,7 @@ import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
-import { accountGuard, brandsPrompt, brandsServer, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
+import { accountGuard, brandsPrompt, brandsServer, findBrand, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
 import { toE164 } from './contact-book.mjs'
@@ -1480,7 +1480,9 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // do yesterday.
       if (ok && needsApproval(toolName) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
-        const answer = await hub.requestApproval(currentTask(), toolName, input, { account })
+        // A brand tool acts on the brand it names, not the one Nexy is working in.
+        const named = svc === 'jarvis_brands' && typeof input?.brand === 'string' ? findBrand(input.brand) : null
+        const answer = await hub.requestApproval(currentTask(), toolName, input, { account, brand: named?.id })
         console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
         if (!answer.approved) {
           return {
