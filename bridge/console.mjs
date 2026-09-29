@@ -82,9 +82,19 @@ export function splitTool(name) {
   return { server: 'builtin', tool: String(name ?? '') }
 }
 
+/**
+ * Publishing services: anything that is not a plain read waits for the owner,
+ * because it can put something in front of the brand's followers. Videos wait
+ * too — each one spends real Higgsfield credits — while images do not.
+ */
+const PUBLISHERS = new Set(['metricool', 'ayrshare', 'buffer', 'zernio'])
+const PLAIN_READ = /^(get|list|read|search|find|fetch|query|check|show|view|describe)/i
+
 export function needsApproval(name) {
   const { server, tool } = splitTool(name)
   if (ALWAYS_APPROVAL.has(`${server}__${tool}`)) return true
+  if (PUBLISHERS.has(server)) return !PLAIN_READ.test(tool)
+  if (server === 'higgsfield') return /video|animate|motion/i.test(tool) && !PLAIN_READ.test(tool)
   if (NO_APPROVAL.has(`${server}__${tool}`)) return false
   return server !== 'builtin' && NEEDS_APPROVAL.test(tool)
 }

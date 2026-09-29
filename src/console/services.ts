@@ -36,6 +36,8 @@ export const SERVICES: Record<string, Service> = {
   tiktok: { label: 'TikTok', icon: '🎵', dept: 'marketing' },
   linkedin: { label: 'LinkedIn', icon: '💼', dept: 'marketing' },
   heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'marketing' },
+  higgsfield: { label: 'Higgsfield', icon: '🎥', dept: 'marketing' },
+  zernio: { label: 'Zernio', icon: '🗓️', dept: 'marketing' },
   fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'marketing' },
   replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'marketing' },
   // Nexy's own screen: busy all the time, and not a connection worth watching.
