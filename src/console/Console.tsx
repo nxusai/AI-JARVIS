@@ -3,8 +3,8 @@ import { BRIDGE_WS_URL } from '../config'
 import { brandOf, clock, isAgentStep, liveNodes, stepLook } from './activity'
 import { Boards } from './Boards'
 import { Brain } from './Brain'
-import { MapView } from './MapView'
-import { useMapNodes } from './mapNodes'
+import { EcosystemMap } from './EcosystemMap'
+import { buildEcosystem, ecoLive } from './ecosystem'
 import { ApprovalCard, BrandPill, TaskView } from './parts'
 import { homeOf } from './services'
 import type { Approval, Brain as BrainData, Brands, Org, Server, Task } from './types'
@@ -134,28 +134,32 @@ export default function Console() {
 
   const agents = useMemo(() => org?.agents ?? [], [org])
   const live = useMemo(() => liveNodes(tasks, agents, now), [tasks, agents, now])
-  const nodes = useMapNodes(org, servers, tasks)
+  const nodes = useMemo(() => buildEcosystem(brands, org, servers, brain), [brands, org, servers, brain])
+  const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now), [tasks, nodes, org, brands, now])
+  // Picking a brand chip flies the map there; "Todas" pulls back to everything.
+  const [focus, setFocus] = useState<string | null>(null)
   const active = brandOf(brands, brands?.activa)
-  const filterBrand = brandOf(brands, brandFilter)
   const inBrand = (id?: string | null) => !brandFilter || id === brandFilter
   const shownTasks = tasks.filter((t) => inBrand(t.brand))
   const shownApprovals = approvals.filter((a) => inBrand(a.brand))
   const [current, ...history] = shownTasks
 
-  // The steps behind a map node, newest first, for the side card.
-  const node = nodes.find((n) => n.key === selected)
+  // The node picked on the map, and the steps behind it, newest first.
+  const node = nodes.find((n) => n.id === selected)
+  const [nodeEco, nodeKind, nodeKey] = (node?.id ?? '').split(':')
   const nodeSteps = node
     ? tasks
+        .filter((t) => nodeEco === 'core' || (t.brand ?? brands?.activa) === nodeEco)
         .flatMap((t) => t.steps.map((s) => ({ t, s })))
         .filter(({ s }) => {
-          if (node.kind === 'agent') return s.agent === node.key.slice(6) || s.by === node.key.slice(6)
-          if (node.kind === 'svc') return !isAgentStep(s) && homeOf(s.server, s.tool) === node.key.slice(4)
+          if (nodeKind === 'agent') return s.agent === nodeKey || s.by === nodeKey
+          if (nodeKind === 'svc') return !isAgentStep(s) && homeOf(s.server, s.tool) === nodeKey
+          if (nodeKind === 'brand') return true
           return false
         })
         .sort((a, b) => b.s.startedAt - a.s.startedAt)
         .slice(0, 8)
     : []
-  const agentInfo = node?.kind === 'agent' ? agents.find((a) => `agent:${a.id}` === node.key) : null
 
   const approvalsBlock = shownApprovals.length ? (
     <>
@@ -190,7 +194,13 @@ export default function Console() {
       </header>
 
       <nav className="brand-filter" aria-label="Ver marca">
-        <button className={!brandFilter ? 'chip on' : 'chip'} onClick={() => setBrandFilter(null)}>
+        <button
+          className={!brandFilter ? 'chip on' : 'chip'}
+          onClick={() => {
+            setBrandFilter(null)
+            setFocus('all')
+          }}
+        >
           Todas
         </button>
         {(brands?.marcas ?? []).map((b) => (
@@ -198,7 +208,11 @@ export default function Console() {
             key={b.id}
             className={brandFilter === b.id ? 'chip on' : 'chip'}
             style={{ ['--brand' as string]: b.color }}
-            onClick={() => setBrandFilter(brandFilter === b.id ? null : b.id)}
+            onClick={() => {
+              setBrandFilter(brandFilter === b.id ? null : b.id)
+              setFocus(null)
+              setTimeout(() => setFocus(brandFilter === b.id ? 'all' : b.id), 0)
+            }}
           >
             <i />
             {b.nombre}
@@ -224,20 +238,10 @@ export default function Console() {
       {tab === 'mapa' ? (
         <main className="split">
           <section className="left">
-            <MapView
-              nodes={nodes}
-              live={live}
-              selected={selected}
-              onSelect={setSelected}
-              watermark={(filterBrand ?? active)?.nombre}
-              accent={(filterBrand ?? active)?.color}
-            />
+            <EcosystemMap nodes={nodes} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
             <div className="legend">
               <span>
-                <i className="lg dept" /> Área
-              </span>
-              <span>
-                <i className="lg agent" /> Agente
+                <i className="lg dept" /> Marca · área · agente
               </span>
               <span>
                 <i className="lg svc" /> Conexión
@@ -249,16 +253,11 @@ export default function Console() {
             {node ? (
               <aside className="node-card">
                 <h3>
-                  {node.icon} {node.label}
+                  {node.icon ? `${node.icon} ` : ''}
+                  {node.label}
                 </h3>
-                {agentInfo ? <p>{agentInfo.description}</p> : null}
-                {node.kind === 'svc' ? <p className={node.down ? 'bad' : 'good'}>{node.down ? 'No conecta' : 'Conectado'}</p> : null}
-                {node.kind === 'dept' ? (
-                  <p className="muted">
-                    {agents.filter((a) => a.dept === node.dept).length} agentes ·{' '}
-                    {nodes.filter((n) => n.kind === 'svc' && n.dept === node.dept).length} conexiones
-                  </p>
-                ) : null}
+                {node.detail ? <p>{node.detail}</p> : null}
+                {node.faded ? <p className="muted">Sin cuenta conectada para esta marca.</p> : null}
                 {nodeSteps.length ? (
                   <ul className="recent">
                     {nodeSteps.map(({ t, s }) => (
@@ -269,8 +268,8 @@ export default function Console() {
                       </li>
                     ))}
                   </ul>
-                ) : node.kind !== 'dept' ? (
-                  <p className="muted">Todavía sin actividad.</p>
+                ) : nodeKind === 'agent' || nodeKind === 'svc' ? (
+                  <p className="muted">Todavía sin actividad aquí.</p>
                 ) : null}
               </aside>
             ) : null}
