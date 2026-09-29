@@ -1,7 +1,9 @@
-import { query } from '@anthropic-ai/claude-agent-sdk'
+import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk'
+import { z } from 'zod'
+import { mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { basename, extname, join, sep } from 'node:path'
+import { DONE, INBOX, MUSIC, VIDEO_DIR } from './video.mjs'
 import { hub } from './console.mjs'
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
@@ -241,7 +243,7 @@ const stepName = (name) => {
   return who ?? (server ? server : tool)
 }
 
-function conversation({ agentOptions, onAnswer, runQuery }) {
+function conversation({ agentOptions, onAnswer, runQuery, local }) {
   const inbox = []
   const jobs = []
   let deliver = null
@@ -261,7 +263,7 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
   const session = runQuery({
     prompt: prompts(),
     options: {
-      ...agentOptions({ channelPrompt: CHANNEL_PROMPT, currentTask: () => jobs[0]?.taskId ?? null }),
+      ...agentOptions({ local, channelPrompt: CHANNEL_PROMPT, currentTask: () => jobs[0]?.taskId ?? null }),
       ...(resume ? { resume } : {}),
     },
   })
@@ -454,9 +456,102 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     keepTyping(chatId, voice)
   }
 
+  // Sending the owner a finished video or image, in this chat and nowhere else.
+  const BOT_UPLOAD_LIMIT = 50 * 1024 * 1024
+  const filesToOwner = () =>
+    createSdkMcpServer({
+      name: 'jarvis_telegram',
+      version: '1.0.0',
+      instructions: "Sends files to the owner's own Telegram chat.",
+      alwaysLoad: true,
+      tools: [
+        tool(
+          'send_file',
+          'Send the owner a finished video or an image in this chat, so they can watch it before it is published. ' +
+            'Only files from the Nexy video folders or images they sent.',
+          {
+            path: z.string().describe('The file path, as edit_video or list_videos gave it.'),
+            caption: z.string().optional().describe('A short line to go with it.'),
+          },
+          async ({ path, caption }) => {
+            const owner = readTelegram()?.owner
+            if (!owner) return { isError: true, content: [{ type: 'text', text: 'Telegram is not paired.' }] }
+            let real
+            try {
+              real = realpathSync(String(path))
+            } catch {
+              return { isError: true, content: [{ type: 'text', text: 'That file does not exist.' }] }
+            }
+            const roots = [VIDEO_DIR, RECEIVED_DIR].map((d) => {
+              try {
+                return realpathSync(d) + sep
+              } catch {
+                return null
+              }
+            })
+            if (!roots.some((r) => r && real.startsWith(r))) {
+              return { isError: true, content: [{ type: 'text', text: 'Only finished videos and images from the Nexy folders can be sent.' }] }
+            }
+            const size = statSync(real).size
+            if (size > BOT_UPLOAD_LIMIT) {
+              return { isError: true, content: [{ type: 'text', text: `It is ${(size / 1048576).toFixed(0)} MB, over Telegram's 50 MB limit for bots. Tell the owner it is in ${DONE} on the Mac.` }] }
+            }
+            const ext = extname(real).toLowerCase()
+            const kind = /\.(mp4|mov|m4v)$/.test(ext) ? 'video' : /\.(jpe?g|png|webp)$/.test(ext) ? 'photo' : 'document'
+            const form = new FormData()
+            form.append('chat_id', String(owner.id))
+            form.append(kind, new Blob([readFileSync(real)]), basename(real))
+            if (caption) form.append('caption', String(caption).slice(0, 1000))
+            if (kind === 'video') form.append('supports_streaming', 'true')
+            const method = { video: 'sendVideo', photo: 'sendPhoto', document: 'sendDocument' }[kind]
+            try {
+              const res = await fetch(`${API}/bot${token}/${method}`, { method: 'POST', body: form })
+              const data = await res.json().catch(() => ({}))
+              if (!data.ok) throw new Error(data.description ?? `HTTP ${res.status}`)
+            } catch (err) {
+              console.log(`[jarvis] telegram send_file failed: ${err.message}`)
+              return { isError: true, content: [{ type: 'text', text: 'Telegram did not accept the file.' }] }
+            }
+            return { content: [{ type: 'text', text: 'Sent to the owner on Telegram.' }] }
+          },
+        ),
+      ],
+    })
+
+  /**
+   * Save a video or music file the owner sent, where the editor can use it.
+   * Telegram lets bots download files up to 20 MB; bigger ones go by AirDrop.
+   */
+  async function receiveFile(m, chatId, file, dir, what) {
+    if ((file.file_size ?? 0) > MAX_DOWNLOAD) {
+      return say(chatId, `Ese ${what} pesa más de 20 MB y Telegram no me deja bajarlo. Pásalo por AirDrop a la carpeta Películas → Nexy → ${dir === MUSIC ? 'musica' : 'entrada'} de tu Mac y dime cuando esté.`)
+    }
+    try {
+      const info = await api(token, 'getFile', { file_id: file.file_id })
+      const res = await fetch(`${API}/file/bot${token}/${info.file_path}`)
+      if (!res.ok) throw new Error(`download ${res.status}`)
+      const original = (file.file_name ?? '').replace(/[^\w.-]+/g, '-').slice(-60)
+      const ext = extname(original) || extname(info.file_path) || (dir === MUSIC ? '.mp3' : '.mp4')
+      const name = `${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}-${basename(original || 'archivo', extname(original)) || 'archivo'}${ext}`
+      mkdirSync(dir, { recursive: true })
+      const path = join(dir, name)
+      writeFileSync(path, Buffer.from(await res.arrayBuffer()))
+      const caption = (m.caption ?? '').trim()
+      const request =
+        (caption || (dir === MUSIC ? 'Te mando esta música para los videos.' : 'Te mando este video.')) +
+        `\n\n[${dir === MUSIC ? 'Music file' : 'Video'} sent by the owner on Telegram, saved at: ${path}]`
+      const taskId = hub.startTask(`${dir === MUSIC ? '🎵' : '🎬'} ${caption || (dir === MUSIC ? 'Música' : 'Video')}`, undefined, 'telegram')
+      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+      keepTyping(chatId, false)
+    } catch (err) {
+      console.log(`[jarvis] telegram file download failed: ${err.message}`)
+      return say(chatId, `No pude bajar ese ${what}. ¿Me lo mandas otra vez?`)
+    }
+  }
+
   let convo = null
   const talk = () => {
-    if (!convo || convo.closed) convo = conversation({ agentOptions, onAnswer: answer, runQuery })
+    if (!convo || convo.closed) convo = conversation({ agentOptions, onAnswer: answer, runQuery, local: { jarvis_telegram: filesToOwner() } })
     return convo
   }
 
@@ -601,9 +696,13 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
     const image = imageOf(m)
     if (image) return collectImage(m, image, chatId)
+    const video = m.video ?? m.video_note ?? (m.document && /^video\//.test(m.document.mime_type ?? '') ? m.document : null)
+    if (video) return receiveFile(m, chatId, video, INBOX, 'video')
+    const song = m.audio ?? (m.document && /^audio\//.test(m.document.mime_type ?? '') ? m.document : null)
+    if (song) return receiveFile(m, chatId, song, MUSIC, 'audio')
 
     let request = text
-    const audio = m.voice ?? m.audio
+    const audio = m.voice
     if (audio) {
       const key = elevenKey()
       if (!key) return say(chatId, 'No puedo escuchar notas de voz: falta la llave de ElevenLabs en esta Mac. Escríbeme, por favor.')

@@ -1,6 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join, sep } from 'node:path'
 
@@ -325,6 +325,15 @@ export function keepReferences(id, files) {
   return { kept }
 }
 
+/** The brand's logo file, if one was saved. */
+export function readLogo(id) {
+  for (const ext of ['png', 'webp', 'jpg', 'jpeg']) {
+    const f = join(MANUALS_DIR, id, `logo.${ext}`)
+    if (existsSync(f)) return f
+  }
+  return null
+}
+
 /** Replace a manual with text the owner typed in the console, one note per line. */
 export function saveManualText(id, text) {
   const brand = readBrands().marcas.find((b) => b.id === id)
@@ -372,9 +381,11 @@ const manualBody = (b) => {
   const manual = notes.length
     ? `Brand manual for ${b.nombre} — the owner's own notes, follow them:\n${notes.map((n) => `- ${n}`).join('\n')}`
     : `${b.nombre} has no manual yet. Write in a professional, warm tone in Spanish, and ask the owner how the brand should sound.`
+  const logo = readLogo(b.id)
+  const withLogo = `${manual}\n\n${logo ? `Logo: ${logo}` : 'No logo saved yet (the owner can send it on Telegram as a PNG file).'}`
   return refs.length
-    ? `${manual}\n\nVisual references for ${b.nombre} — images the owner chose as its look. Open them with the Read tool when making anything visual, and match their colours, typography and layout:\n${refs.map((r) => `- ${r}`).join('\n')}`
-    : manual
+    ? `${withLogo}\n\nVisual references for ${b.nombre} — images the owner chose as its look. Open them with the Read tool when making anything visual, and match their colours, typography and layout:\n${refs.map((r) => `- ${r}`).join('\n')}`
+    : withLogo
 }
 
 const notFound = (q) => {
@@ -478,6 +489,34 @@ export function brandsServer() {
           return unlinkAccount(b.id, String(service).toLowerCase().trim(), String(account_id))
             ? ok(`Unlinked from ${b.nombre}.`)
             : refuse(`${b.nombre} has no such account linked.`)
+        },
+      ),
+
+      tool(
+        'save_brand_logo',
+        "Keep an image the owner sent you as a brand's logo, used on its videos. Only when the owner says it is the " +
+          'logo. A PNG sent as a file keeps its transparent background; a photo does not, so say so if they sent a photo.',
+        {
+          file: z.string().describe('The image path given with the image the owner sent.'),
+          brand: z.string().optional().describe('The brand; the active one when left out.'),
+        },
+        async ({ file, brand }) => {
+          const b = brand ? findBrand(brand) : activeBrand()
+          if (!b) return notFound(brand)
+          let real
+          try {
+            real = realpathSync(String(file))
+            if (!real.startsWith(realpathSync(RECEIVED_DIR) + sep) || !IMAGE_FILE.test(real)) throw new Error()
+          } catch {
+            return refuse('That is not an image the owner sent. Use the path given with the image.')
+          }
+          const ext = real.split('.').pop().toLowerCase().replace('jpeg', 'jpg')
+          mkdirSync(join(MANUALS_DIR, b.id), { recursive: true })
+          for (const old of ['png', 'webp', 'jpg', 'jpeg']) rmSync(join(MANUALS_DIR, b.id, `logo.${old}`), { force: true })
+          copyFileSync(real, join(MANUALS_DIR, b.id, `logo.${ext}`))
+          console.log(`[jarvis] brand: logo saved for ${b.id}`)
+          changed()
+          return ok(`Saved as the ${b.nombre} logo${ext === 'png' ? '' : ' (no transparency: ask for a PNG file for a cleaner look)'}.`)
         },
       ),
 

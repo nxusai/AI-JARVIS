@@ -44,6 +44,7 @@ const CONTACT_EDITS = new Set([
 ])
 import { startTelegram } from './telegram.mjs'
 import { filesServer } from './files.mjs'
+import { findFfmpeg, videoServer } from './video.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
@@ -325,6 +326,11 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_brands__save_brand_reference',
   // Only brand images, only to an https link (see files.mjs).
   'jarvis_files__upload_to_url',
+  // Edits into ~/Movies/Nexy only, from the Nexy folders or public links (see video.mjs).
+  'jarvis_video__edit_video',
+  'jarvis_brands__save_brand_logo',
+  // Sends a finished file to the owner's own Telegram chat, nothing else.
+  'jarvis_telegram__send_file',
   // Adding or removing a contact: always held for the owner's tap (see canUseTool).
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',
@@ -629,6 +635,15 @@ Content:
 - To give a service one of those images (a reference for Higgsfield, media for
   a post), get its upload link from the service, then upload_to_url with the
   image path. You have no shell: never try Bash or curl for this.
+
+Video:
+- edit_video joins clips, cuts them, sets the format, burns in subtitles from
+  the speech, adds music, a voice-over and the brand logo. Default to vertical
+  9:16 with subtitles and logo unless the owner says otherwise.
+- The owner's own videos are in the folder list_videos shows (they can AirDrop
+  them there, or send short ones on Telegram); Higgsfield clips go in as links.
+- Use only music the owner gave you. Show the finished video to the owner
+  before it is published.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1222,6 +1237,7 @@ const wss = new WebSocketServer({
 server.listen(PORT)
 
 console.log(`[jarvis] bridge listening on ws://localhost:${PORT}`)
+console.log(`[jarvis] video editing ${findFfmpeg() ? 'ready' : 'off — install FFmpeg: cd ~/Desktop/nexy && npm install ffmpeg-static'}`)
 console.log(
   `[jarvis] speech ${elevenKey() ? 'via ElevenLabs (key from MCP config)' : 'using browser fallback voice'}`,
 )
@@ -1301,6 +1317,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_brands: brandsServer(),
       // Sending a brand image to an upload link, and nothing else (see files.mjs).
       jarvis_files: filesServer(),
+      // Video editing with FFmpeg on this Mac (see video.mjs).
+      jarvis_video: videoServer(elevenKey, VOICE_ID),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
