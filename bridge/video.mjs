@@ -65,9 +65,9 @@ export function findFfmpeg() {
  * printed; with `anyExit`, also when it exits with an error (a bare `-i`
  * always does, and its report is exactly what is wanted).
  */
-function run(ffmpeg, args, timeoutMs = 15 * 60_000, anyExit = false) {
+export function run(ffmpeg, args, timeoutMs = 15 * 60_000, anyExit = false, cwd = undefined) {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffmpeg, ['-hide_banner', '-nostdin', ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(ffmpeg, ['-hide_banner', '-nostdin', ...args], { stdio: ['ignore', 'pipe', 'pipe'], cwd })
     let log = ''
     const take = (d) => {
       log = (log + d).slice(-60_000)
@@ -88,7 +88,7 @@ function run(ffmpeg, args, timeoutMs = 15 * 60_000, anyExit = false) {
 }
 
 /** Duration, size and whether there is sound, read from FFmpeg's own report. */
-async function probe(ffmpeg, file) {
+export async function probe(ffmpeg, file) {
   const log = await run(ffmpeg, ['-i', file], 30_000, true).catch(() => '')
   const d = log.match(/Duration: (\d+):(\d+):([\d.]+)/)
   const v = log.match(/Video: .*?, (\d{2,5})x(\d{2,5})/)
@@ -126,7 +126,7 @@ function allowedRoots() {
 }
 
 /** A local source inside the Nexy folders, or a public https link downloaded to `work`. */
-async function resolveSource(source, work, n) {
+export async function resolveSource(source, work, n) {
   const s = String(source ?? '').trim()
   if (/^https:\/\//i.test(s)) {
     let url
@@ -162,7 +162,7 @@ async function resolveSource(source, work, n) {
 }
 
 /** Words from ElevenLabs Scribe, with times. */
-async function transcribeWords(key, audioFile) {
+export async function transcribeWords(key, audioFile) {
   const { readFileSync } = await import('node:fs')
   const form = new FormData()
   form.append('model_id', 'scribe_v1')

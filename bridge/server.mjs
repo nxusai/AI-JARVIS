@@ -45,6 +45,7 @@ const CONTACT_EDITS = new Set([
 import { startTelegram } from './telegram.mjs'
 import { filesServer } from './files.mjs'
 import { findFfmpeg, videoServer } from './video.mjs'
+import { workshopServer } from './workshop.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
@@ -394,6 +395,11 @@ function decideTool(name) {
     // indicator the user can see for as long as it is live.
     if (server === 'jarvis_eyes') return true
 
+    // Video: both servers confine themselves to ~/Movies/Nexy (see video.mjs
+    // and workshop.mjs), so their verbs — cut, remove, write — change nothing
+    // outside it.
+    if (server === 'jarvis_video' || server === 'jarvis_taller') return true
+
     const tool = mcpToolOf(name)
     if (server === 'notion') return NOTION_READ.has(tool) || NOTION_WRITE.has(tool)
     // Content: images and videos (Higgsfield) and publishing (Metricool and
@@ -644,6 +650,11 @@ Video:
   them there, or send short ones on Telegram); Higgsfield clips go in as links.
 - Use only music the owner gave you. Show the finished video to the owner
   before it is published.
+- Any other edit — cutting pauses or filler words, retakes, zooms, speed,
+  text, effects, transitions, colour, anything the owner describes — goes to
+  the editor agent. Tell it the files (paths from list_videos or the owner's
+  message, or links), the brand and exactly what the owner asked. When it
+  returns an exported file, send it to the owner to watch.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1319,6 +1330,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_files: filesServer(),
       // Video editing with FFmpeg on this Mac (see video.mjs).
       jarvis_video: videoServer(elevenKey, VOICE_ID),
+      // The editing workshop: all of FFmpeg, inside one project folder (see workshop.mjs).
+      jarvis_taller: workshopServer(elevenKey),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),

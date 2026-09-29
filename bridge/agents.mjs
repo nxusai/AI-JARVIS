@@ -28,6 +28,14 @@ export const DEPARTMENTS = [
 
 const BRAND_TOOLS = ['mcp__jarvis_brands__read_brand', 'mcp__jarvis_brands__list_brands']
 
+/** The editor's tools: the workshop, the folders, and its own eyes. */
+const VIDEO_TOOLS = [
+  'mcp__jarvis_video__list_videos',
+  ...['add_to_project', 'ffmpeg', 'media_info', 'remove_silences', 'transcribe', 'look_at', 'write_project_text', 'export_video'].map(
+    (t) => `mcp__jarvis_taller__${t}`,
+  ),
+]
+
 const BASE = `You work for Nexy, the assistant of NXUS AI's owner, as one specialist on her team.
 - The brand you are working for is named in your task. Before writing anything,
   call read_brand with that brand and follow its manual exactly. If the task
@@ -116,6 +124,42 @@ appears, describe them identically every time.`,
     tools: ['Read'],
   },
   {
+    id: 'editor',
+    resumen: 'Edita videos como un editor profesional: silencios, muletillas, cortes, zoom, velocidad, texto, efectos, transiciones, color y audio.',
+    label: 'Editor de video',
+    icon: '🎞️',
+    dept: 'marketing',
+    description:
+      'Edits video to any instruction: removing pauses and filler words, cutting retakes, zooms and punch-ins, speed, text and titles, subtitles, transitions, colour, audio clean-up and music. Use it for any video edit beyond a simple join with subtitles and logo.',
+    prompt: `${BASE}
+
+You are a professional video editor working with FFmpeg in a project folder.
+Workflow:
+1. add_to_project with every source (videos, images, music, the brand logo from
+   read_brand). Name the project after the job.
+2. media_info to know durations, sizes and sound. For speech, transcribe gives
+   every word with its time: use it to cut filler words ("eh", "este", "o sea"),
+   repeated takes or sentences the owner wants out. remove_silences removes
+   pauses in one step.
+3. ffmpeg for everything else, one clear step at a time, each writing a new
+   file: trim, concat (filter or a concat list written with write_project_text),
+   setpts/atempo for speed, zoompan or scale+crop for punch-ins, xfade/acrossfade
+   for transitions, drawtext or .ass subtitles (write_project_text) for text,
+   eq/curves for colour, loudnorm and afftdn for audio, overlay for the logo,
+   amix with volume for music under speech.
+4. look_at a few frames of your result to check framing, text and logo before
+   you finish; fix what is wrong.
+5. export_video the final file and return its path with one line on what you did.
+Rules: name files only by their names in the project; re-encode with
+libx264 -pix_fmt yuv420p -crf 20 and aac; keep vertical 9:16 (1080x1920) for
+Reels unless told otherwise; fonts live in /System/Library/Fonts/Supplemental
+(e.g. "Arial Bold.ttf"). If an FFmpeg step fails, read the error and fix the
+arguments rather than giving up.`,
+    tools: 'video',
+    // Real edits take many small steps.
+    maxTurns: 45,
+  },
+  {
     id: 'correos',
     resumen: 'Redacta correos y respuestas con la voz de la marca. Nexy los envía solo si tú lo apruebas.',
     label: 'Redacción de correos',
@@ -168,9 +212,11 @@ export function agentDefinitions({ notionReadTools = [] } = {}) {
       const extra =
         a.tools === 'notion-read'
           ? notionReadTools.map((t) => `mcp__notion__${t}`)
-          : Array.isArray(a.tools)
-            ? a.tools
-            : []
+          : a.tools === 'video'
+            ? [...VIDEO_TOOLS]
+            : Array.isArray(a.tools)
+              ? a.tools
+              : []
       return [
         a.id,
         {
@@ -180,7 +226,7 @@ export function agentDefinitions({ notionReadTools = [] } = {}) {
           // Answers come back within the owner's turn; a background agent
           // would report after Nexy has already stopped talking.
           background: false,
-          maxTurns: 12,
+          maxTurns: a.maxTurns ?? 12,
         },
       ]
     }),

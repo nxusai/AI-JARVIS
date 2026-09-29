@@ -48,7 +48,7 @@ const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'we
  */
 const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
 /** Waiting on a video render is slow by nature; it gets longer. */
-const SLOW_STEP = /wait|video|render/i
+const SLOW_STEP = /wait|video|render|taller|editor/i
 
 /** A message older than this when Nexy starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
