@@ -25,14 +25,23 @@ import { phoneServer } from './phone.mjs'
 import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
-import { hub, needsApproval } from './console.mjs'
-import { brandsPrompt, brandsServer, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
+import { hub, needsApproval, PLAIN_READ, PUBLISHERS, splitTool } from './console.mjs'
+import { accountGuard, brandsPrompt, brandsServer, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
 import { toE164 } from './contact-book.mjs'
 
-/** Changes to who Nexy may phone: always held for the owner's approval. */
-const CONTACT_EDITS = new Set(['mcp__jarvis_contacts__save_contact', 'mcp__jarvis_contacts__remove_contact'])
+/**
+ * Changes that must never happen unseen — who Nexy may phone, and which
+ * account each brand publishes to — so they are refused when nobody is there
+ * to approve them, rather than let through.
+ */
+const CONTACT_EDITS = new Set([
+  'mcp__jarvis_contacts__save_contact',
+  'mcp__jarvis_contacts__remove_contact',
+  'mcp__jarvis_brands__link_brand_account',
+  'mcp__jarvis_brands__unlink_brand_account',
+])
 import { startTelegram } from './telegram.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
@@ -307,6 +316,9 @@ const WRITE_ALLOWLIST = new Set([
   // Which brand Nexy works in, and notes in its manual: files on this Mac (see brands.mjs).
   'jarvis_brands__use_brand',
   'jarvis_brands__brand_note',
+  // Always held for the owner's tap (see canUseTool).
+  'jarvis_brands__link_brand_account',
+  'jarvis_brands__unlink_brand_account',
   // Copies an image the owner sent into a brand's folder, nothing else (see brands.mjs).
   'jarvis_brands__save_brand_reference',
   // Adding or removing a contact: always held for the owner's tap (see canUseTool).
@@ -576,6 +588,14 @@ Calling contacts:
 - Always read the call back and wait for a yes before it rings.
 - Save or remove a contact only when the user tells you to, with the name and
   number in their own words. They approve it with a button; then you can call.
+
+Publishing accounts:
+- Each brand publishes only to the accounts linked to it (read_brand lists
+  them). Before publishing, make sure the active brand is the one the content
+  is for, and pass that brand's account id. A call naming another brand's
+  account is blocked.
+- To link an account, list the service's accounts (Metricool: get_brands),
+  confirm with the owner which account is which brand, then link_brand_account.
 
 Notion:
 - It is where the user's company tracks tasks for their employees. To find
@@ -1343,7 +1363,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
           return {
             behavior: 'deny',
             message:
-              'Changing contacts needs the user to approve it in the console or on Telegram, and neither is open. ' +
+              'This change needs the user to approve it in the console or on Telegram, and neither is open. ' +
               'Tell them to open the console and ask again.',
           }
         }
@@ -1359,6 +1379,20 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
           changed = true
         }
       }
+      // The lock between brands: publishing may only name an account linked
+      // to the brand Nexy is working in. Checked here, in code, so no prompt,
+      // mistake or instruction can post one company's content on another's
+      // Instagram.
+      let account = null
+      const { server: svc, tool: svcTool } = splitTool(toolName)
+      if (PUBLISHERS.has(svc) && !PLAIN_READ.test(svcTool)) {
+        const guard = accountGuard(svc, input)
+        if (!guard.ok) {
+          console.log(`[jarvis] tool ${toolName} -> deny (wrong or no account for the active brand)`)
+          return { behavior: 'deny', message: guard.message }
+        }
+        account = guard.account
+      }
       const ok = decideTool(toolName)
       console.log(`[jarvis] tool ${toolName} -> ${ok ? 'allow' : 'deny'}`)
       // Outward-facing actions wait for the owner in the console, or on
@@ -1367,7 +1401,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // do yesterday.
       if (ok && needsApproval(toolName) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
-        const answer = await hub.requestApproval(currentTask(), toolName, input)
+        const answer = await hub.requestApproval(currentTask(), toolName, input, { account })
         console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
         if (!answer.approved) {
           return {

@@ -62,6 +62,9 @@ const ALWAYS_APPROVAL = new Set([
   // Who Nexy may phone in the owner's name.
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',
+  // Which account each brand publishes to.
+  'jarvis_brands__link_brand_account',
+  'jarvis_brands__unlink_brand_account',
 ])
 
 const clip = (v) => {
@@ -87,8 +90,8 @@ export function splitTool(name) {
  * because it can put something in front of the brand's followers. Videos wait
  * too — each one spends real Higgsfield credits — while images do not.
  */
-const PUBLISHERS = new Set(['metricool', 'ayrshare', 'buffer', 'zernio'])
-const PLAIN_READ = /^(get|list|read|search|find|fetch|query|check|show|view|describe)/i
+export const PUBLISHERS = new Set(['metricool', 'ayrshare', 'buffer', 'zernio'])
+export const PLAIN_READ = /^(get|list|read|search|find|fetch|query|check|show|view|describe)/i
 
 export function needsApproval(name) {
   const { server, tool } = splitTool(name)
@@ -348,7 +351,7 @@ function createHub() {
      * Hold an action for the owner. Resolves { approved, note } when they
      * answer in the console, or as a refusal after ten minutes.
      */
-    requestApproval(taskId, name, input) {
+    requestApproval(taskId, name, input, extra = {}) {
       const id = nextId('a')
       const task = tasks.find((t) => t.id === taskId)
       const step = task?.steps.findLast((s) => s.name === name && s.status === 'running')
@@ -371,6 +374,8 @@ function createHub() {
             server,
             tool,
             input: clip(input ?? {}),
+            // The exact account this will go out on, when it goes to one.
+            account: typeof extra.account === 'string' ? extra.account : null,
             createdAt: Date.now(),
             expiresAt: Date.now() + APPROVAL_TIMEOUT_MS,
           },

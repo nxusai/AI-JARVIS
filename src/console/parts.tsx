@@ -73,6 +73,7 @@ export function ApprovalCard({
       {brand ? (
         <div className="approval-brand">
           En la marca <strong>{brand.nombre}</strong>
+          {a.account ? <div className="approval-account">📍 Se publica en: {a.account}</div> : null}
         </div>
       ) : null}
       <header>

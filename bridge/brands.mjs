@@ -78,7 +78,105 @@ function clean(b) {
       redes: list(b.cuentas?.redes),
       notion: list(b.cuentas?.notion),
     },
+    // The accounts this brand publishes to, per service: Metricool's
+    // brand ids and the like. See accountGuard.
+    conexiones: Array.isArray(b.conexiones)
+      ? b.conexiones
+          .filter((c) => c && typeof c.servicio === 'string' && (typeof c.id === 'string' || typeof c.id === 'number'))
+          .map((c) => ({ servicio: c.servicio, id: String(c.id), nombre: typeof c.nombre === 'string' ? c.nombre.slice(0, 80) : '' }))
+      : [],
   }
+}
+
+/**
+ * Which brand an account belongs to. An account belongs to one brand only:
+ * that is the whole point.
+ */
+export function ownerOfAccount(servicio, id) {
+  return readBrands().marcas.find((b) => b.conexiones.some((c) => c.servicio === servicio && c.id === String(id)))
+}
+
+/** Link an account to a brand. Refused when another brand already has it. */
+export function linkAccount(brandId, servicio, id, nombre = '') {
+  const s = readBrands()
+  const b = s.marcas.find((x) => x.id === brandId)
+  if (!b) return { error: 'no such brand' }
+  const other = s.marcas.find((x) => x.id !== brandId && x.conexiones.some((c) => c.servicio === servicio && c.id === String(id)))
+  if (other) return { error: `that account already belongs to ${other.nombre}` }
+  b.conexiones = [...b.conexiones.filter((c) => !(c.servicio === servicio && c.id === String(id))), { servicio, id: String(id), nombre }]
+  save(s)
+  changed()
+  console.log(`[jarvis] brand: linked a ${servicio} account to ${brandId}`)
+  return { brand: b }
+}
+
+export function unlinkAccount(brandId, servicio, id) {
+  const s = readBrands()
+  const b = s.marcas.find((x) => x.id === brandId)
+  if (!b) return false
+  const before = b.conexiones.length
+  b.conexiones = b.conexiones.filter((c) => !(c.servicio === servicio && c.id === String(id)))
+  if (b.conexiones.length === before) return false
+  save(s)
+  changed()
+  return true
+}
+
+/** Parameter names publishing services use for "which account". */
+const ACCOUNT_KEY = /^(blog_?id|brand_?id|profile_?ids?|account_?ids?|page_?id)$/i
+
+/** Every account id a call names, at the top level or one level down. */
+export function accountIdsIn(input) {
+  const ids = []
+  const scan = (obj, depth) => {
+    if (!obj || typeof obj !== 'object') return
+    for (const [k, v] of Object.entries(obj)) {
+      if (ACCOUNT_KEY.test(k)) {
+        for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string' || typeof x === 'number') ids.push(String(x))
+      } else if (depth < 1 && v && typeof v === 'object' && !Array.isArray(v)) scan(v, depth + 1)
+      else if (depth < 1 && typeof v === 'string' && v.trim().startsWith('{')) {
+        try {
+          scan(JSON.parse(v), depth + 1)
+        } catch {
+          // Not JSON after all.
+        }
+      }
+    }
+  }
+  scan(input, 0)
+  return [...new Set(ids)]
+}
+
+/**
+ * The lock between brands: a publishing call may only name accounts linked
+ * to the brand Nexy is working in. Returns { ok, account } or { ok: false, message }.
+ */
+export function accountGuard(servicio, input) {
+  const active = activeBrand()
+  const mine = active.conexiones.filter((c) => c.servicio === servicio)
+  if (!mine.length) {
+    return {
+      ok: false,
+      message: `Blocked: ${active.nombre} has no ${servicio} account linked yet, so nothing can be published for it. Tell the owner; they can ask you to link the right account (link_brand_account), which they approve.`,
+    }
+  }
+  const ids = accountIdsIn(input)
+  if (!ids.length) {
+    return { ok: false, message: `Blocked: the call does not say which account. Pass ${active.nombre}'s account id ${mine.map((c) => c.id).join(' or ')}.` }
+  }
+  for (const id of ids) {
+    if (!mine.some((c) => c.id === id)) {
+      const owner = ownerOfAccount(servicio, id)
+      return {
+        ok: false,
+        message:
+          `Blocked: account ${id} ${owner ? `belongs to ${owner.nombre}` : 'is not linked to any brand'}, and you are working in ${active.nombre}. ` +
+          "Never publish one brand's content in another brand's account. If the owner meant another brand, switch with use_brand and check the content is for that brand.",
+      }
+    }
+  }
+  const link = mine.find((c) => c.id === ids[0])
+  return { ok: true, account: `${link.nombre || link.id} · ${active.nombre}` }
 }
 
 function save(state) {
@@ -262,6 +360,13 @@ const describe = (b, active) => {
 }
 
 const manualText = (b) => {
+  const links = b.conexiones.length
+    ? `\n\nAccounts linked to ${b.nombre} (publish only to these): ${b.conexiones.map((c) => `${c.servicio} id ${c.id}${c.nombre ? ` (${c.nombre})` : ''}`).join('; ')}.`
+    : `\n\n${b.nombre} has no publishing accounts linked yet.`
+  return manualBody(b) + links
+}
+
+const manualBody = (b) => {
   const notes = readManual(b.id)
   const refs = readReferences(b.id)
   const manual = notes.length
@@ -311,6 +416,45 @@ export function brandsServer() {
           const b = brand ? findBrand(brand) : activeBrand()
           if (!b) return notFound(brand)
           return ok(manualText(b))
+        },
+      ),
+
+      tool(
+        'link_brand_account',
+        "Link a publishing account (for example a Metricool brand, which holds one Instagram and Facebook) to one of the owner's brands, " +
+          'so content for that brand can only ever go there. Only when the owner asks. Find the account id first (for Metricool, with its ' +
+          'get_brands tool) and confirm with the owner which one is which. The owner approves it with a button.',
+        {
+          brand: z.string().describe('The owner’s brand.'),
+          service: z.string().describe('The service, e.g. metricool.'),
+          account_id: z.union([z.string(), z.number()]).describe('The account id in that service (Metricool: the blog id).'),
+          account_name: z.string().optional().describe('How the account is known, e.g. the Instagram handle.'),
+        },
+        async ({ brand, service, account_id, account_name }) => {
+          const b = findBrand(brand)
+          if (!b) return notFound(brand)
+          const svc = String(service ?? '').toLowerCase().trim()
+          if (!/^[a-z0-9_-]{2,30}$/.test(svc)) return refuse('Say which service the account is in.')
+          const { error } = linkAccount(b.id, svc, String(account_id).trim(), String(account_name ?? '').trim())
+          if (error) return refuse(`Not linked: ${error}.`)
+          return ok(`Linked. ${b.nombre} now publishes on ${svc} only to ${account_name || `account ${account_id}`}.`)
+        },
+      ),
+
+      tool(
+        'unlink_brand_account',
+        "Remove a publishing account from one of the owner's brands. Only when the owner asks; they approve it with a button.",
+        {
+          brand: z.string(),
+          service: z.string(),
+          account_id: z.union([z.string(), z.number()]),
+        },
+        async ({ brand, service, account_id }) => {
+          const b = findBrand(brand)
+          if (!b) return notFound(brand)
+          return unlinkAccount(b.id, String(service).toLowerCase().trim(), String(account_id))
+            ? ok(`Unlinked from ${b.nombre}.`)
+            : refuse(`${b.nombre} has no such account linked.`)
         },
       ),
 

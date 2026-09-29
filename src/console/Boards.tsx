@@ -74,7 +74,13 @@ function BrandCard({
       </div>
       <div className="accounts">
         <Account label="Correo" list={brand.cuentas.correo} />
-        <Account label="Redes" list={brand.cuentas.redes} />
+        <Account
+          label="Redes"
+          list={[
+            ...(brand.conexiones ?? []).map((c) => `${c.nombre || `#${c.id}`} (${c.servicio})`),
+            ...brand.cuentas.redes,
+          ]}
+        />
         <Account label="Notion" list={brand.cuentas.notion} />
         <div className="account">
           <span>Diseño</span>

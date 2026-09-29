@@ -123,6 +123,8 @@ const TOOL_LABEL = {
   'notion__API-update-page-markdown': 'Reescribir página de Notion',
   jarvis_contacts__save_contact: 'Guardar contacto (Nexy podrá llamarle)',
   jarvis_contacts__remove_contact: 'Borrar contacto',
+  jarvis_brands__link_brand_account: 'Conectar una cuenta a esta marca',
+  jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
 }
 
 const FIELD = {
@@ -135,6 +137,9 @@ const FIELD = {
   caption: 'Texto',
   name: 'Nombre',
   phone: 'Teléfono',
+  account_id: 'Cuenta (id)',
+  account_name: 'Cuenta',
+  service: 'Servicio',
   country: 'País',
   markdown: 'Contenido',
 }
@@ -158,6 +163,7 @@ export function describeApproval(view) {
   const brand = readBrands().marcas.find((b) => b.id === view.brand)
   const lines = ['⏸️ ¿Apruebas?']
   if (brand) lines.push(`🏷️ Marca: ${brand.nombre}`)
+  if (view.account) lines.push(`📍 Cuenta: ${view.account}`)
   lines.push(`➡️ ${TOOL_LABEL[key] ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
   const input = view.input && typeof view.input === 'object' ? view.input : {}
   for (const [k, v] of Object.entries(input)) {

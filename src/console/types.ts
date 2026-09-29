@@ -37,6 +37,8 @@ export type Approval = {
   id: string
   taskId: string
   brand?: string | null
+  /** The exact account it goes out on, e.g. "@nxus.ai · NXUS AI". */
+  account?: string | null
   name: string
   server: string
   tool: string
@@ -53,6 +55,8 @@ export type Brand = {
   color: string
   descripcion: string
   cuentas: { correo: string[]; redes: string[]; notion: string[] }
+  /** Accounts this brand publishes to — and the only ones it can. */
+  conexiones?: Array<{ servicio: string; id: string; nombre: string }>
 }
 export type Brands = { activa: string; marcas: Brand[] }
 
