@@ -9,6 +9,7 @@ import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { country, toE164 } from './contact-book.mjs'
+import { setRoutineRunner } from './routines.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -142,6 +143,9 @@ const TOOL_LABEL = {
   jarvis_contacts__remove_contact: 'Borrar contacto',
   jarvis_brands__link_brand_account: 'Conectar una cuenta a la marca',
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
+  jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
+  jarvis_rutinas__update_routine: 'Cambiar una rutina',
+  jarvis_rutinas__remove_routine: 'Borrar una rutina',
 }
 
 const FIELD = {
@@ -159,6 +163,12 @@ const FIELD = {
   service: 'Servicio',
   country: 'País',
   markdown: 'Contenido',
+  instructions: 'Qué hará',
+  time: 'Hora',
+  days: 'Días',
+  routine: 'Rutina',
+  active: 'Activa',
+  brand: 'Marca',
 }
 const SKIP = new Set(['parent', 'subagent_type', 'run_in_background', 'model'])
 
@@ -618,6 +628,17 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       } else tick()
     }, 4500)
   }
+
+  // Routines run here, in the same conversation, as if the owner had just
+  // asked; the report comes back to this chat.
+  setRoutineRunner((routine, prompt) => {
+    const owner = readTelegram()?.owner
+    if (!owner) return console.log(`[jarvis] routine ${routine.id} not run: Telegram is not paired`)
+    void say(owner.id, `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
+    const taskId = hub.startTask(`⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
+    talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre' })
+    keepTyping(owner.id, false)
+  })
 
   async function answer(job, text) {
     const key = elevenKey()

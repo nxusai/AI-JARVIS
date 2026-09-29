@@ -67,6 +67,10 @@ const ALWAYS_APPROVAL = new Set([
   // Which account each brand publishes to.
   'jarvis_brands__link_brand_account',
   'jarvis_brands__unlink_brand_account',
+  // Work left scheduled to run on its own.
+  'jarvis_rutinas__create_routine',
+  'jarvis_rutinas__update_routine',
+  'jarvis_rutinas__remove_routine',
 ])
 
 const clip = (v) => {

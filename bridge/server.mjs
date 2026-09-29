@@ -41,8 +41,13 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_contacts__remove_contact',
   'mcp__jarvis_brands__link_brand_account',
   'mcp__jarvis_brands__unlink_brand_account',
+  // Work left scheduled to run on its own.
+  'mcp__jarvis_rutinas__create_routine',
+  'mcp__jarvis_rutinas__update_routine',
+  'mcp__jarvis_rutinas__remove_routine',
 ])
 import { startTelegram } from './telegram.mjs'
+import { routinesServer, startRoutines } from './routines.mjs'
 import { filesServer } from './files.mjs'
 import { findFfmpeg, videoServer } from './video.mjs'
 import { workshopServer } from './workshop.mjs'
@@ -342,6 +347,12 @@ const WRITE_ALLOWLIST = new Set([
   // Memory lives in one capped file of the owner's own words (see memory.mjs).
   'jarvis_memory__remember',
   'jarvis_memory__forget',
+  // Routines are a file on this Mac; creating, changing or removing one is
+  // always held for the owner's tap (see canUseTool and routines.mjs).
+  'jarvis_rutinas__create_routine',
+  'jarvis_rutinas__update_routine',
+  'jarvis_rutinas__remove_routine',
+  'jarvis_rutinas__run_routine_now',
 ])
 
 /**
@@ -697,6 +708,20 @@ Ads (Meta):
   linked to each brand is a separate question (read_brand).
 - For results, read the insights and answer with what matters: spend,
   results, cost per result, CTR, and ROAS when there are purchases.
+
+Routines:
+- The owner can leave you work to do on your own at set times ("todos los
+  días a las 9", "cada lunes"): create_routine, which they approve with a tap.
+  Write the instructions complete, as a brief for someone who cannot ask
+  questions later: what to do, for which brand, how many, and what to report.
+  If the time or the task is unclear, ask first.
+- A routine runs only while the Mac is on and Nexy is open; say so once when
+  you create the first one. Its report goes to the owner on Telegram.
+- When a routine runs, do the whole job and report short. Anything outward
+  (publish, send, call, spend) still waits for the owner's approval.
+- "¿Qué rutinas tengo?" is list_routines. To stop one for a while, pause it
+  (update_routine); remove it only when they say so. run_routine_now tries
+  one once, right away.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1374,6 +1399,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_video: videoServer(elevenKey, VOICE_ID),
       // The editing workshop: all of FFmpeg, inside one project folder (see workshop.mjs).
       jarvis_taller: workshopServer(elevenKey),
+      // Work the owner left scheduled, at set times (see routines.mjs).
+      jarvis_rutinas: routinesServer(TIME_ZONE),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
@@ -1488,7 +1515,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       if (ok && needsApproval(toolName) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
         // A brand tool acts on the brand it names, not the one Nexy is working in.
-        const named = svc === 'jarvis_brands' && typeof input?.brand === 'string' ? findBrand(input.brand) : null
+        const named = (svc === 'jarvis_brands' || svc === 'jarvis_rutinas') && typeof input?.brand === 'string' ? findBrand(input.brand) : null
         const answer = await hub.requestApproval(currentTask(), toolName, input, { account, brand: named?.id })
         console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
         if (!answer.approved) {
@@ -1524,6 +1551,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
 
 // Telegram, for when the owner is away from the office. Off until set up.
 void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+startRoutines(TIME_ZONE)
 
 wss.on('connection', (socket, req) => {
   // The console page only watches and approves; it gets no agent session.

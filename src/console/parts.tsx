@@ -182,6 +182,10 @@ export function TaskView({
           <span className="via" title="Pedido por Telegram">
             📱 Telegram
           </span>
+        ) : task.via === 'rutina' ? (
+          <span className="via" title="Rutina programada">
+            ⏰ Rutina
+          </span>
         ) : null}
         <span className="ask">“{task.text}”</span>
         <span className={`badge ${task.status}`}>{TASK_WORD[task.status]}</span>
