@@ -389,6 +389,29 @@ export function brandsServer() {
     instructions: "The owner's brands: which one you are working in, and each one's manual.",
     alwaysLoad: true,
     tools: [
+      tool(
+        'get_current_time',
+        'The exact current date and time, in the owner’s time zone and in UTC. Use it before scheduling anything, ' +
+          'and whenever the owner says now, today, tonight or in N minutes.',
+        {},
+        async () => {
+          const now = new Date()
+          const zone = process.env.NEXY_TIMEZONE?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone
+          const local = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: zone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+            .format(now)
+            .replace(' ', 'T')
+          return ok(`Now: ${local} in ${zone} (UTC ${now.toISOString().slice(0, 19)}Z).`)
+        },
+      ),
+
       tool('list_brands', "List the owner's brands and which one is active.", {}, async () => {
         const { activa, marcas } = readBrands()
         return ok(marcas.map((b) => `- ${describe(b, activa)}`).join('\n'))

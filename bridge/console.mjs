@@ -225,6 +225,17 @@ function createHub() {
       return () => approvers.delete(approver)
     },
 
+    /** Whether a task is waiting on the owner to approve something. */
+    waitingOnOwner(taskId) {
+      return [...approvals.values()].some((a) => a.view.taskId === taskId)
+    },
+
+    /** The tool a task is running right now, if any. */
+    runningStepName(taskId) {
+      const task = tasks.find((t) => t.id === taskId)
+      return task?.steps.findLast((s) => s.status === 'running')?.name ?? null
+    },
+
     /** Answer an approval from outside the console. */
     answer(id, approved, note) {
       settle(id, approved === true, note)

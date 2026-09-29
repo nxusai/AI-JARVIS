@@ -39,6 +39,15 @@ const MAX_IMAGES = 8
 const ALBUM_WAIT_MS = 1500
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
 
+/**
+ * A turn with no sign of life for this long is stopped: a tool that never
+ * answers would otherwise leave her "typing" for ever. Time spent waiting for
+ * the owner's approval doesn't count.
+ */
+const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
+/** Waiting on a video render is slow by nature; it gets longer. */
+const SLOW_STEP = /wait|video|render/i
+
 /** A message older than this when Nexy starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
 
@@ -60,6 +69,7 @@ const HELP =
   '/texto — contestarte siempre por escrito\n' +
   '/auto — voz si me hablas, texto si me escribes\n' +
   '/nuevo — empezar una conversación nueva\n' +
+  '/cancelar — detener lo que estoy haciendo\n' +
   'También puedes mandarme fotos, por ejemplo de tus diseños, para que las analice.\n' +
   '/ayuda — ver esto otra vez'
 
@@ -224,6 +234,13 @@ async function speak(key, voiceId, text) {
  * One running conversation with the agent. Requests queue in order; each gets
  * its answer from the result that closes its turn.
  */
+/** A tool's name as the owner would say it. */
+const stepName = (name) => {
+  const [, server = '', tool = name] = String(name).match(/^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/) ?? []
+  const who = { higgsfield: 'Higgsfield', metricool: 'Metricool', gmail: 'Gmail', notion: 'Notion', 'google-calendar': 'el calendario' }[server]
+  return who ?? (server ? server : tool)
+}
+
 function conversation({ agentOptions, onAnswer, runQuery }) {
   const inbox = []
   const jobs = []
@@ -249,9 +266,28 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
     },
   })
 
+  // The watchdog. Every message from the agent is a sign of life; a turn that
+  // goes quiet for STUCK_MS, and isn't waiting on the owner, is interrupted and
+  // the owner is told which step it was stuck on.
+  let lastSign = Date.now()
+  const watchdog = setInterval(() => {
+    const job = jobs[0]
+    if (!job || job.stopped) return
+    if (hub.waitingOnOwner(job.taskId)) {
+      lastSign = Date.now()
+      return
+    }
+    const step = hub.runningStepName(job.taskId)
+    if (Date.now() - lastSign < (step && SLOW_STEP.test(step) ? STUCK_MS * 3 : STUCK_MS)) return
+    console.log(`[jarvis] telegram: turn stuck${step ? ` on ${step}` : ''}; stopping it`)
+    job.stopped = `Me quedé atorada${step ? ` esperando a ${stepName(step)}` : ''} y lo detuve. ¿Lo intento otra vez?`
+    Promise.resolve(session.interrupt?.()).catch(() => {})
+  }, 15_000)
+
   const done = (async () => {
     try {
       for await (const msg of session) {
+        lastSign = Date.now()
         if (msg.session_id && (msg.type === 'result' || (msg.type === 'system' && msg.subtype === 'init'))) {
           saveSession('telegram', msg.session_id)
         }
@@ -267,13 +303,18 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
           }
         } else if (msg.type === 'result') {
           const job = jobs.shift()
-          const ok = msg.subtype === 'success'
-          const text = ok ? String(msg.result ?? '').trim() : 'No pude terminar eso. Inténtalo otra vez, por favor.'
-          if (!ok) console.error(`[jarvis] telegram turn failed: ${msg.subtype}`)
+          const ok = msg.subtype === 'success' && !job?.stopped
+          const text = job?.stopped
+            ? job.stopped
+            : ok
+              ? String(msg.result ?? '').trim()
+              : 'No pude terminar eso. Inténtalo otra vez, por favor.'
+          if (!ok && !job?.stopped) console.error(`[jarvis] telegram turn failed: ${msg.subtype}`)
           if (job) {
-            hub.endTask(job.taskId, ok ? 'done' : 'error', text)
+            hub.endTask(job.taskId, job.stopped ? 'interrupted' : ok ? 'done' : 'error', text)
             onAnswer(job, text || 'Listo.')
           }
+          lastSign = Date.now()
         }
       }
     } catch (err) {
@@ -287,6 +328,7 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
       }
     } finally {
       closed = true
+      clearInterval(watchdog)
     }
   })()
 
@@ -305,6 +347,14 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
         deliver = null
         r(content)
       } else inbox.push(content)
+    },
+    /** Stop what she is doing now; the turn ends with `reason` as its answer. */
+    stop(reason) {
+      const job = jobs[0]
+      if (!job) return false
+      job.stopped = reason
+      Promise.resolve(session.interrupt?.()).catch(() => {})
+      return true
     },
     close() {
       closed = true
@@ -537,6 +587,10 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       cfg = { ...cfg, voice }
       writeTelegram(cfg)
       return say(chatId, { siempre: 'Te contesto siempre con nota de voz.', nunca: 'Te contesto siempre por escrito.', auto: 'Nota de voz si me hablas, texto si me escribes.' }[voice])
+    }
+    if (text === '/cancelar' || text === '/parar') {
+      if (!convo?.stop('Listo, lo detuve.')) return say(chatId, 'No estoy haciendo nada en este momento.')
+      return
     }
     if (text === '/nuevo') {
       await convo?.close()
