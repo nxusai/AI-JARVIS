@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
+import { clearSession, loadSession, saveSession } from './session-store.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -237,14 +238,23 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
     }
   }
 
+  // Pick up where the last conversation left off, across restarts.
+  const resume = loadSession('telegram')
+  if (resume) console.log('[jarvis] telegram: continuing the previous conversation')
   const session = runQuery({
     prompt: prompts(),
-    options: agentOptions({ channelPrompt: CHANNEL_PROMPT, currentTask: () => jobs[0]?.taskId ?? null }),
+    options: {
+      ...agentOptions({ channelPrompt: CHANNEL_PROMPT, currentTask: () => jobs[0]?.taskId ?? null }),
+      ...(resume ? { resume } : {}),
+    },
   })
 
   const done = (async () => {
     try {
       for await (const msg of session) {
+        if (msg.session_id && (msg.type === 'result' || (msg.type === 'system' && msg.subtype === 'init'))) {
+          saveSession('telegram', msg.session_id)
+        }
         if (msg.type === 'assistant') {
           for (const block of msg.message?.content ?? []) {
             if (block.type === 'tool_use') {
@@ -268,6 +278,9 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
       }
     } catch (err) {
       console.error('[jarvis] telegram session error:', err?.message ?? err)
+      // A conversation that cannot be picked up again is dropped, so the next
+      // message starts a fresh one instead of failing the same way.
+      clearSession('telegram')
       for (const job of jobs.splice(0)) {
         hub.endTask(job.taskId, 'error', '')
         onAnswer(job, 'Tuve un problema y reinicié la conversación. ¿Me lo repites?')
@@ -528,6 +541,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     if (text === '/nuevo') {
       await convo?.close()
       convo = null
+      clearSession('telegram')
       return say(chatId, 'Conversación nueva. ¿En qué te ayudo?')
     }
 

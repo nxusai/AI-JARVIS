@@ -44,6 +44,7 @@ const CONTACT_EDITS = new Set([
 ])
 import { startTelegram } from './telegram.mjs'
 import { filesServer } from './files.mjs'
+import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -1612,29 +1613,34 @@ wss.on('connection', (socket, req) => {
     if (!failed) sendTurn({ type: 'tool', name })
   }
 
+  // Pick up the last spoken conversation, so a reload or restart doesn't wipe it.
+  const resume = loadSession('voz')
   const session = query({
     prompt: userMessages(),
-    options: agentOptions({
-      local: {
-        jarvis: displayServer(
-          (panel) => send({ type: 'panel', panel }),
-          (blade) => send({ type: 'blade', blade }),
-        ),
-        // The interface controls, on the same socket. A separate key because
-        // MCP tool names are `mcp__<key>__<tool>` and one key can only carry
-        // one server; the underscore in it is why decideTool and announceTool
-        // both name `jarvis_ui` explicitly.
-        jarvis_ui: uiServer((op, args) => send({ type: 'ui', op, args })),
-        // The user's own Chrome, over the extension's native-host socket. It
-        // holds no per-connection state, but it is built here with the rest so
-        // the write gate is read once, at the same point as everything else.
-        jarvis_chrome: chromeServer({ allowWrites: ALLOW_WRITES }),
-        // The camera, which unlike everything else here has to ask and wait.
-        jarvis_eyes: visionServer(ask),
-      },
-      notice: (text) => sendTurn({ type: 'text', delta: text }),
-      currentTask: () => openTasks[0],
-    }),
+    options: {
+      ...(resume ? { resume } : {}),
+      ...agentOptions({
+        local: {
+          jarvis: displayServer(
+            (panel) => send({ type: 'panel', panel }),
+            (blade) => send({ type: 'blade', blade }),
+          ),
+          // The interface controls, on the same socket. A separate key because
+          // MCP tool names are `mcp__<key>__<tool>` and one key can only carry
+          // one server; the underscore in it is why decideTool and announceTool
+          // both name `jarvis_ui` explicitly.
+          jarvis_ui: uiServer((op, args) => send({ type: 'ui', op, args })),
+          // The user's own Chrome, over the extension's native-host socket. It
+          // holds no per-connection state, but it is built here with the rest so
+          // the write gate is read once, at the same point as everything else.
+          jarvis_chrome: chromeServer({ allowWrites: ALLOW_WRITES }),
+          // The camera, which unlike everything else here has to ask and wait.
+          jarvis_eyes: visionServer(ask),
+        },
+        notice: (text) => sendTurn({ type: 'text', delta: text }),
+        currentTask: () => openTasks[0],
+      }),
+    },
   })
 
   // Pump the session's output stream to the browser for as long as it lives.
@@ -1700,6 +1706,7 @@ wss.on('connection', (socket, req) => {
           }
 
           case 'result':
+            if (msg.session_id) saveSession('voz', msg.session_id)
             // A result is not automatically a success. The error subtypes
             // carry no `result` field at all, so reporting them as 'done' with
             // empty text is indistinguishable from a turn that simply had
@@ -1740,6 +1747,7 @@ wss.on('connection', (socket, req) => {
 
           case 'system':
             if (msg.subtype === 'init') {
+              if (msg.session_id) saveSession('voz', msg.session_id)
               // Servers report 'pending' until first use — they connect
               // lazily — so only drop the ones that are actually unusable.
               const usable = (msg.mcp_servers ?? [])
@@ -1754,6 +1762,7 @@ wss.on('connection', (socket, req) => {
       }
     } catch (err) {
       console.error('[jarvis] session error:', err)
+      clearSession('voz')
       send({ type: 'error', message: String(err?.message ?? err) })
       // The stream is finished either way — nothing will ever be read from it
       // again. Leaving the socket open would leave the client believing it has
