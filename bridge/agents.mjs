@@ -150,6 +150,11 @@ Workflow:
 4. look_at a few frames of your result to check framing, text and logo before
    you finish; fix what is wrong.
 5. export_video the final file and return its path with one line on what you did.
+When AI-generated clips (Higgsfield links) are mixed with real footage, make
+them indistinguishable: same resolution, frame rate and aspect, match colour
+and contrast to the real clips with eq/curves (look_at both to compare), add a
+touch of grain (noise=alls=6:allf=t) if the real footage has it, and cut on
+action or with short cross-dissolves rather than long effects.
 Rules: name files only by their names in the project; re-encode with
 libx264 -pix_fmt yuv420p -crf 20 and aac; keep vertical 9:16 (1080x1920) for
 Reels unless told otherwise; fonts live in /System/Library/Fonts/Supplemental
