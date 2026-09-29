@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { basename, extname, join, sep } from 'node:path'
 import { DONE, INBOX, MUSIC, VIDEO_DIR } from './video.mjs'
-import { hub } from './console.mjs'
+import { hub, spendsMoney } from './console.mjs'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
@@ -174,6 +174,15 @@ const notionValue = (p) => {
   return JSON.stringify(p).slice(0, 200)
 }
 
+/** Meta's ad tools in plain Spanish: "ads_create_adset" → "Meta Ads: crear conjunto de anuncios". */
+function adsLabel(view) {
+  if (view.server !== 'meta-ads') return null
+  const t = view.tool.toLowerCase()
+  const verb = /create/.test(t) ? 'crear' : /duplicate|copy/.test(t) ? 'duplicar' : /pause/.test(t) ? 'pausar' : /activate|resume/.test(t) ? 'activar' : /budget/.test(t) ? 'cambiar presupuesto de' : /update|edit|set/.test(t) ? 'cambiar' : /upload/.test(t) ? 'subir' : t.replace(/^ads_/, '').replace(/_/g, ' ')
+  const what = /adset|ad_set/.test(t) ? 'conjunto de anuncios' : /campaign/.test(t) ? 'campaña' : /creative/.test(t) ? 'creativo' : /image|video|media/.test(t) ? 'imagen o video' : /audience/.test(t) ? 'público' : /\bad\b|_ad$|_ads?_/.test(t) ? 'anuncio' : ''
+  return `Meta Ads: ${verb}${what ? ` ${what}` : ''}`
+}
+
 /** An approval as the owner reads it on the phone. */
 export function describeApproval(view) {
   const key = `${view.server}__${view.tool}`
@@ -181,7 +190,9 @@ export function describeApproval(view) {
   const lines = ['⏸️ ¿Apruebas?']
   if (brand) lines.push(`🏷️ Marca: ${brand.nombre}`)
   if (view.account) lines.push(`📍 Cuenta: ${view.account}`)
-  lines.push(`➡️ ${TOOL_LABEL[key] ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
+  if (spendsMoney(view.server, view.tool, view.input)) lines.push('💸 OJO: esto puede empezar a gastar dinero de la cuenta publicitaria.')
+  else if (view.server === 'meta-ads' && /create|duplicate|copy/i.test(view.tool)) lines.push('⏸️ Se crea en PAUSA: no gasta hasta que la actives.')
+  lines.push(`➡️ ${TOOL_LABEL[key] ?? adsLabel(view) ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
   const input = view.input && typeof view.input === 'object' ? view.input : {}
   // A post reads as a post: when, where, and the caption exactly as it will go out.
   const post = postPreview(input)

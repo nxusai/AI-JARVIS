@@ -25,7 +25,7 @@ import { phoneServer } from './phone.mjs'
 import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
-import { hub, needsApproval, PLAIN_READ, PUBLISHERS, splitTool } from './console.mjs'
+import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { accountGuard, brandsPrompt, brandsServer, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
@@ -365,7 +365,7 @@ const NOTION_WRITE = new Set([
 ])
 
 /** Image, video and social-publishing services, and what they may never do. */
-const CONTENT_SERVERS = new Set(['higgsfield', 'metricool', 'ayrshare', 'buffer', 'zernio'])
+const CONTENT_SERVERS = new Set(['higgsfield', 'metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads'])
 const CONTENT_REFUSED = /(delete|remove|purchase|buy|pay|billing|subscri|top[_-]?up|upgrade|invite)/i
 
 function decideTool(name) {
@@ -666,6 +666,21 @@ Video:
   that Instagram asks for realistic AI content to be labelled.
 - An agent's work arrives in your conversation; for the owner's files use
   send_file on Telegram.
+
+Ads (Meta):
+- Work only in the ad account linked to the active brand (read_brand lists it;
+  link one with link_brand_account, service meta-ads and the ad account id,
+  after the owner confirms which account is whose). A call naming another
+  brand's ad account is blocked.
+- Create campaigns, ad sets and ads PAUSED, always. Switching anything on,
+  raising a budget or anything else that spends money only when the owner
+  asks for exactly that; say the daily or total budget, dates and audience in
+  plain words. The owner approves every change with a tap.
+- Never delete; pausing is how to stop something.
+- Plans, audiences and ad copy come from the ads strategist agent; the
+  creatives from Higgsfield and the editor.
+- For results, read the insights and answer with what matters: spend,
+  results, cost per result, CTR, and ROAS when there are purchases.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1440,7 +1455,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Instagram.
       let account = null
       const { server: svc, tool: svcTool } = splitTool(toolName)
-      if (PUBLISHERS.has(svc) && !PLAIN_READ.test(svcTool)) {
+      if (PUBLISHERS.has(svc) && !isReadCall(svc, svcTool)) {
         const guard = accountGuard(svc, input)
         if (!guard.ok) {
           console.log(`[jarvis] tool ${toolName} -> deny (wrong or no account for the active brand)`)

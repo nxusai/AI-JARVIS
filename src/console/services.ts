@@ -42,6 +42,7 @@ export const SERVICES: Record<string, Service> = {
   heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'marketing' },
   higgsfield: { label: 'Higgsfield', icon: '🎥', dept: 'marketing' },
   zernio: { label: 'Zernio', icon: '🗓️', dept: 'marketing' },
+  'meta-ads': { label: 'Meta Ads', icon: '📢', dept: 'publicidad' },
   fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'marketing' },
   replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'marketing' },
   // Nexy's own screen: busy all the time, and not a connection worth watching.

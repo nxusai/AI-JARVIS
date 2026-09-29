@@ -92,13 +92,33 @@ export function splitTool(name) {
  * because it can put something in front of the brand's followers. Videos wait
  * too — each one spends real Higgsfield credits — while images do not.
  */
-export const PUBLISHERS = new Set(['metricool', 'ayrshare', 'buffer', 'zernio'])
+export const PUBLISHERS = new Set(['metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads'])
 export const PLAIN_READ = /^(get|list|read|search|find|fetch|query|check|show|view|describe)/i
+
+/**
+ * Meta's ad tools are all named ads_…, so the verb is in the middle: reports
+ * and lookups are reads, anything that creates, changes or switches something
+ * on is not.
+ */
+const ADS_READ = /(insight|report|get|list|search|benchmark|score|diagnos|context|preview|estimate|reach|status|fetch|recommend)/i
+const ADS_WRITE = /(create|update|edit|set|activate|pause|resume|delete|remove|duplicate|copy|upload|publish|launch|budget|bid|archive)/i
+
+/** Whether a publishing service's tool only reads. */
+export function isReadCall(server, tool) {
+  if (server === 'meta-ads') return ADS_READ.test(tool) && !ADS_WRITE.test(tool)
+  return PLAIN_READ.test(tool)
+}
+
+/** A Meta ads call that can start spending money. */
+export function spendsMoney(server, tool, input) {
+  if (server !== 'meta-ads') return false
+  return /activate|resume|launch|budget|bid/i.test(tool) || /"(status|effective_status)"\s*:\s*"ACTIVE"/i.test(JSON.stringify(input ?? {}))
+}
 
 export function needsApproval(name) {
   const { server, tool } = splitTool(name)
   if (ALWAYS_APPROVAL.has(`${server}__${tool}`)) return true
-  if (PUBLISHERS.has(server)) return !PLAIN_READ.test(tool)
+  if (PUBLISHERS.has(server)) return !isReadCall(server, tool)
   if (server === 'higgsfield') return /video|animate|motion/i.test(tool) && !PLAIN_READ.test(tool)
   if (NO_APPROVAL.has(`${server}__${tool}`)) return false
   return server !== 'builtin' && NEEDS_APPROVAL.test(tool)

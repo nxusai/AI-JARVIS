@@ -984,6 +984,20 @@ h2.attention {
   color: #2a0505;
 }
 
+.approval .spend {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #3a0d0d;
+  color: #ffb4b4;
+  font-weight: 700;
+}
+
+.approval .paused-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
 .post-media {
   display: flex;
   gap: 8px;

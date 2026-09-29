@@ -93,7 +93,7 @@ function clean(b) {
  * that is the whole point.
  */
 export function ownerOfAccount(servicio, id) {
-  return readBrands().marcas.find((b) => b.conexiones.some((c) => c.servicio === servicio && c.id === String(id)))
+  return readBrands().marcas.find((b) => b.conexiones.some((c) => c.servicio === servicio && c.id === normId(id)))
 }
 
 /** Link an account to a brand. Refused when another brand already has it. */
@@ -101,7 +101,8 @@ export function linkAccount(brandId, servicio, id, nombre = '') {
   const s = readBrands()
   const b = s.marcas.find((x) => x.id === brandId)
   if (!b) return { error: 'no such brand' }
-  const other = s.marcas.find((x) => x.id !== brandId && x.conexiones.some((c) => c.servicio === servicio && c.id === String(id)))
+  id = normId(id)
+  const other = s.marcas.find((x) => x.id !== brandId && x.conexiones.some((c) => c.servicio === servicio && c.id === id))
   if (other) return { error: `that account already belongs to ${other.nombre}` }
   b.conexiones = [...b.conexiones.filter((c) => !(c.servicio === servicio && c.id === String(id))), { servicio, id: String(id), nombre }]
   save(s)
@@ -123,7 +124,10 @@ export function unlinkAccount(brandId, servicio, id) {
 }
 
 /** Parameter names publishing services use for "which account". */
-const ACCOUNT_KEY = /^(blog_?id|brand_?id|profile_?ids?|account_?ids?|page_?id)$/i
+const ACCOUNT_KEY = /^(blog_?id|brand_?id|profile_?ids?|account_?ids?|ad_?account_?ids?|act_?id|page_?id)$/i
+
+/** Meta writes ad accounts as act_123 or 123; they are the same account. */
+const normId = (id) => String(id).trim().replace(/^act_/i, '')
 
 /** Every account id a call names, at the top level or one level down. */
 export function accountIdsIn(input) {
@@ -132,7 +136,7 @@ export function accountIdsIn(input) {
     if (!obj || typeof obj !== 'object') return
     for (const [k, v] of Object.entries(obj)) {
       if (ACCOUNT_KEY.test(k)) {
-        for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string' || typeof x === 'number') ids.push(String(x))
+        for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string' || typeof x === 'number') ids.push(normId(x))
       } else if (depth < 1 && v && typeof v === 'object' && !Array.isArray(v)) scan(v, depth + 1)
       else if (depth < 1 && typeof v === 'string' && v.trim().startsWith('{')) {
         try {

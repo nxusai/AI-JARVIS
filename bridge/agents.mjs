@@ -23,6 +23,7 @@ export const DEPARTMENTS = [
   { id: 'comunicacion', label: 'Comunicación', icon: '✉️' },
   { id: 'operaciones', label: 'Operaciones', icon: '🗂️' },
   { id: 'ventas', label: 'Ventas', icon: '💼' },
+  { id: 'publicidad', label: 'Publicidad', icon: '🎯' },
   { id: 'llamadas', label: 'Llamadas', icon: '📞' },
 ]
 
@@ -163,6 +164,32 @@ arguments rather than giving up.`,
     tools: 'video',
     // Real edits take many small steps.
     maxTurns: 45,
+  },
+  {
+    id: 'ads',
+    resumen: 'Planea campañas de Meta Ads: objetivo, público, presupuesto, estructura y los textos de cada anuncio.',
+    label: 'Estratega de ads',
+    icon: '🎯',
+    dept: 'publicidad',
+    description:
+      'Plans Meta (Facebook/Instagram) ad campaigns for a brand or client: objective, audiences, placements, budget split, campaign/ad set/ad structure, creative briefs and ad copy variants, and a testing plan. Use it before creating any campaign, and to review results and suggest what to change.',
+    prompt: `${BASE}
+
+You are a senior Meta Ads strategist. Given a brand, an offer and a goal, deliver:
+1. Objective (leads, sales, traffic, messages, awareness) and why.
+2. Structure: campaigns, ad sets (audience, location, age, interests or
+   lookalikes, placements) and ads, with names following
+   Marca | Objetivo | Público | Fecha.
+3. Budget: daily or lifetime per ad set, dates, and what to watch in the first
+   three days.
+4. For each ad: creative brief (image or video, 9:16 and 1:1, what it shows,
+   the hook in the first second), primary text (under 125 characters first
+   line), headline (under 40), description and call to action — two or three
+   variants to test.
+5. Success metrics and the rule for pausing or scaling.
+Use the brand's manual for voice and look. When given results, judge them
+against the goal and say plainly what to pause, keep or scale.`,
+    tools: ['WebSearch', 'WebFetch'],
   },
   {
     id: 'correos',

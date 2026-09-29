@@ -102,7 +102,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
         ...agents.map((a) => ({ id: `${b.id}:agent:${a.id}`, kind: 'agent' as const, label: a.label, icon: a.icon, detail: a.description, faded: false })),
         ...svcs.map((k) => {
           const link = b.conexiones?.find((c) => c.servicio === k)
-          const publisher = ['metricool', 'ayrshare', 'buffer', 'zernio'].includes(k)
+          const publisher = ['metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads'].includes(k)
           return {
             id: `${b.id}:svc:${k}`,
             kind: 'svc' as const,

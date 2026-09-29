@@ -103,6 +103,13 @@ export function ApprovalCard({
           expira en {Math.floor(left / 60000)}:{String(Math.floor((left % 60000) / 1000)).padStart(2, '0')}
         </span>
       </header>
+      {a.server === 'meta-ads' ? (
+        <p className={/activate|resume|launch|budget|bid/i.test(a.tool) || /"(status|effective_status)"\s*:\s*"ACTIVE"/i.test(JSON.stringify(a.input)) ? 'spend' : 'paused-note'}>
+          {/activate|resume|launch|budget|bid/i.test(a.tool) || /"(status|effective_status)"\s*:\s*"ACTIVE"/i.test(JSON.stringify(a.input))
+            ? '💸 Esto puede empezar a gastar dinero de la cuenta publicitaria.'
+            : '⏸️ Se crea o cambia en pausa: no gasta hasta que la actives.'}
+        </p>
+      ) : null}
       <Media input={a.input} />
       <Fields input={a.input} full />
       <textarea
