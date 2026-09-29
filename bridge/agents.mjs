@@ -109,8 +109,11 @@ hashtags where the network uses them.`,
 
 You are the art director. For each piece describe the visual in one line, then
 give a detailed generation prompt in English (subject, composition, lighting,
-style, colours, camera, aspect ratio) that follows the brand's look. If a
-recurring character or influencer appears, describe them identically every time.`,
+style, colours, camera, aspect ratio) that follows the brand's look. If
+read_brand lists visual references, open them with Read first and match their
+palette, typography and layout exactly. If a recurring character or influencer
+appears, describe them identically every time.`,
+    tools: ['Read'],
   },
   {
     id: 'correos',

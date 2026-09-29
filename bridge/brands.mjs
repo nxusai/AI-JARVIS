@@ -1,8 +1,8 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join, sep } from 'node:path'
 
 /**
  * The owner's brands, and which one Nexy is working in right now.
@@ -25,6 +25,11 @@ import { join } from 'node:path'
 const DIR = join(homedir(), '.nexy')
 export const BRANDS_FILE = join(DIR, 'marcas.json')
 export const MANUALS_DIR = join(DIR, 'marcas')
+
+/** Images the owner sent Nexy (from Telegram), before any is kept for a brand. */
+export const RECEIVED_DIR = join(DIR, 'recibidas')
+const MAX_REFERENCES = 30
+const IMAGE_FILE = /\.(jpe?g|png|webp|gif)$/i
 
 const MAX_NOTES = 150
 const MAX_NOTE_CHARS = 400
@@ -176,6 +181,52 @@ function writeManual(brand, notes) {
   writeFileSync(manualFile(brand.id), MANUAL_HEADER(brand.nombre) + notes.map((n) => `- ${n}`).join('\n') + '\n')
 }
 
+const referencesDir = (id) => join(MANUALS_DIR, id, 'referencias')
+
+/** A brand's visual references: images the owner chose as its look. */
+export function readReferences(id) {
+  try {
+    return readdirSync(referencesDir(id))
+      .filter((f) => IMAGE_FILE.test(f))
+      .sort()
+      .map((f) => join(referencesDir(id), f))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Keep images the owner sent as a brand's references. Only files Nexy herself
+ * saved from Telegram are accepted, so a path the model makes up can never
+ * copy anything else from this Mac.
+ */
+export function keepReferences(id, files) {
+  let root
+  try {
+    root = realpathSync(RECEIVED_DIR) + sep
+  } catch {
+    return { kept: 0, error: 'There are no received images on this Mac.' }
+  }
+  const have = readReferences(id).length
+  const room = MAX_REFERENCES - have
+  if (room <= 0) return { kept: 0, error: `${id} already has ${MAX_REFERENCES} references; the owner can remove some from ${referencesDir(id)}.` }
+  mkdirSync(referencesDir(id), { recursive: true })
+  let kept = 0
+  for (const f of files.slice(0, room)) {
+    let real
+    try {
+      real = realpathSync(String(f))
+    } catch {
+      continue
+    }
+    if (!real.startsWith(root) || !IMAGE_FILE.test(real)) continue
+    const dest = join(referencesDir(id), basename(real))
+    if (!existsSync(dest)) copyFileSync(real, dest)
+    kept++
+  }
+  return { kept }
+}
+
 /** Replace a manual with text the owner typed in the console, one note per line. */
 export function saveManualText(id, text) {
   const brand = readBrands().marcas.find((b) => b.id === id)
@@ -212,9 +263,13 @@ const describe = (b, active) => {
 
 const manualText = (b) => {
   const notes = readManual(b.id)
-  return notes.length
+  const refs = readReferences(b.id)
+  const manual = notes.length
     ? `Brand manual for ${b.nombre} — the owner's own notes, follow them:\n${notes.map((n) => `- ${n}`).join('\n')}`
     : `${b.nombre} has no manual yet. Write in a professional, warm tone in Spanish, and ask the owner how the brand should sound.`
+  return refs.length
+    ? `${manual}\n\nVisual references for ${b.nombre} — images the owner chose as its look. Open them with the Read tool when making anything visual, and match their colours, typography and layout:\n${refs.map((r) => `- ${r}`).join('\n')}`
+    : manual
 }
 
 const notFound = (q) => {
@@ -256,6 +311,41 @@ export function brandsServer() {
           const b = brand ? findBrand(brand) : activeBrand()
           if (!b) return notFound(brand)
           return ok(manualText(b))
+        },
+      ),
+
+      tool(
+        'save_brand_reference',
+        "Keep images the owner sent you as a brand's visual references, with a description of the design " +
+          '(palette with approximate hex codes, typography style, layout, mood). Use it when the owner asks you ' +
+          'to learn, keep or copy the look of the images they sent. Pass the file paths given with the images.',
+        {
+          files: z.array(z.string()).describe('The image paths given with the images the owner sent.'),
+          description: z.string().describe('The design, in the owner’s language: colours, typography, layout, mood.'),
+          brand: z.string().optional().describe('The brand; the active one when left out.'),
+        },
+        async ({ files, description, brand }) => {
+          const b = brand ? findBrand(brand) : activeBrand()
+          if (!b) return notFound(brand)
+          const { kept, error } = keepReferences(b.id, Array.isArray(files) ? files : [])
+          if (error) return refuse(error)
+          if (!kept) return refuse('None of those files are images the owner sent. Use the paths given with the images.')
+          const lines = String(description ?? '')
+            .split('\n')
+            .map((l) => l.replace(/^\s*[-*•]\s*/, '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .slice(0, 6)
+            .map((l) => `Diseño: ${l}`.slice(0, MAX_NOTE_CHARS))
+          const notes = readManual(b.id)
+          const fresh = lines.filter((l) => !notes.some((n) => fold(n) === fold(l)))
+          try {
+            if (fresh.length) writeManual(b, [...notes, ...fresh].slice(-MAX_NOTES))
+          } catch (err) {
+            console.log(`[jarvis] brand reference note failed: ${err?.message ?? err}`)
+          }
+          console.log(`[jarvis] brand: ${kept} reference image(s) kept for ${b.id}`)
+          changed()
+          return ok(`Kept ${kept} image${kept === 1 ? '' : 's'} as ${b.nombre} references and added the design to its manual.`)
         },
       ),
 

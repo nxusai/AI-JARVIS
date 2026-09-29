@@ -611,6 +611,7 @@ h2.attention {
 }
 
 .b-node.note text,
+.b-node.ref text,
 .b-node.fact text,
 .b-node.person text {
   fill: var(--muted);

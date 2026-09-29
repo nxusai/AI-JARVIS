@@ -23,6 +23,7 @@ function BrandCard({
   tasks,
   approvals,
   manual,
+  refs,
   onUse,
   onSave,
 }: {
@@ -31,6 +32,7 @@ function BrandCard({
   tasks: Task[]
   approvals: Approval[]
   manual: string
+  refs: number
   onUse: () => void
   onSave: (text: string) => void
 }) {
@@ -74,6 +76,10 @@ function BrandCard({
         <Account label="Correo" list={brand.cuentas.correo} />
         <Account label="Redes" list={brand.cuentas.redes} />
         <Account label="Notion" list={brand.cuentas.notion} />
+        <div className="account">
+          <span>Diseño</span>
+          {refs ? <b>{refs} referencia{refs === 1 ? '' : 's'} visual{refs === 1 ? '' : 'es'}</b> : <em>Mándale fotos de tus diseños a Nexy</em>}
+        </div>
       </div>
       <label className="manual">
         <span>Manual de marca — cómo suena, qué publica, qué evita. Una idea por línea.</span>
@@ -211,6 +217,7 @@ export function Boards({
                 tasks={tasks.filter((t) => t.brand === b.id)}
                 approvals={approvals.filter((a) => a.brand === b.id)}
                 manual={manualOf(b.id)}
+                refs={(brain?.nodes ?? []).filter((n) => n.kind === 'ref' && n.brand === b.id).length}
                 onUse={() => switchBrand(b.id)}
                 onSave={(text) => saveManual(b.id, text)}
               />

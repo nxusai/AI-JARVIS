@@ -1,6 +1,8 @@
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { hub } from './console.mjs'
-import { readBrands } from './brands.mjs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 
 /**
@@ -27,6 +29,14 @@ const MAX_MESSAGE = 3900
 const MAX_SPOKEN = 2500
 /** Telegram bots can only download files up to 20 MB. */
 const MAX_DOWNLOAD = 20 * 1024 * 1024
+/** The model reads images up to about this size; a bigger file is refused kindly. */
+const MAX_IMAGE = 5 * 1024 * 1024
+/** At most this many images in one request. */
+const MAX_IMAGES = 8
+/** Photos sent together arrive one by one; wait this long to take them as one. */
+const ALBUM_WAIT_MS = 1500
+const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
+
 /** A message older than this when Nexy starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
 
@@ -48,6 +58,7 @@ const HELP =
   '/texto — contestarte siempre por escrito\n' +
   '/auto — voz si me hablas, texto si me escribes\n' +
   '/nuevo — empezar una conversación nueva\n' +
+  'También puedes mandarme fotos, por ejemplo de tus diseños, para que las analice.\n' +
   '/ayuda — ver esto otra vez'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -200,9 +211,9 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
 
   async function* prompts() {
     while (!closed) {
-      const text = inbox.shift() ?? (await new Promise((r) => (deliver = r)))
-      if (closed || text == null) return
-      yield { type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null }
+      const content = inbox.shift() ?? (await new Promise((r) => (deliver = r)))
+      if (closed || content == null) return
+      yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null }
     }
   }
 
@@ -253,13 +264,14 @@ function conversation({ agentOptions, onAnswer, runQuery }) {
     get busy() {
       return jobs.length > 0
     },
-    ask(text, job) {
+    /** `content` is the owner's words, or a list of image and text blocks. */
+    ask(content, job) {
       jobs.push(job)
       if (deliver) {
         const r = deliver
         deliver = null
-        r(text)
-      } else inbox.push(text)
+        r(content)
+      } else inbox.push(content)
     },
     close() {
       closed = true
@@ -293,6 +305,70 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   const send = (params) => api(token, 'sendMessage', params).catch((err) => console.log(`[jarvis] telegram send failed: ${err.message}`))
   const say = async (chatId, text) => {
     for (const part of chunks(text)) await send({ chat_id: chatId, text: part })
+  }
+
+  /** The image in a message, if any: a photo, or a picture sent as a file. */
+  const imageOf = (m) => {
+    if (Array.isArray(m.photo) && m.photo.length) {
+      const p = m.photo[m.photo.length - 1]
+      return { fileId: p.file_id, size: p.file_size ?? 0, mime: 'image/jpeg' }
+    }
+    const d = m.document
+    if (d && IMAGE_TYPES[d.mime_type]) return { fileId: d.file_id, size: d.file_size ?? 0, mime: d.mime_type }
+    return null
+  }
+
+  // Photos sent together (an album) come as separate messages sharing a
+  // media_group_id; they are gathered for a moment and handled as one request.
+  const albums = new Map()
+  const collectImage = (m, image, chatId) => {
+    const key = m.media_group_id ? `g:${m.media_group_id}` : `m:${m.message_id}`
+    const entry = albums.get(key) ?? { chatId, date: m.date, caption: '', images: [], timer: null }
+    entry.images.push(image)
+    if (m.caption) entry.caption = m.caption.trim()
+    clearTimeout(entry.timer)
+    entry.timer = setTimeout(() => {
+      albums.delete(key)
+      handleImages(entry).catch((err) => console.log(`[jarvis] telegram images failed: ${err?.message ?? err}`))
+    }, ALBUM_WAIT_MS)
+    albums.set(key, entry)
+  }
+
+  async function handleImages({ chatId, date, caption, images }) {
+    if (Date.now() - date * 1000 > STALE_MS) {
+      return say(chatId, 'Me llegaron unas imágenes mientras estaba apagada. ¿Me las mandas otra vez con lo que quieres que haga?')
+    }
+    if (images.some((i) => i.size > MAX_IMAGE)) {
+      return say(chatId, 'Una de esas imágenes es muy pesada. Mándala como foto (no como archivo) y la reviso.')
+    }
+    const blocks = []
+    const paths = []
+    mkdirSync(RECEIVED_DIR, { recursive: true })
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    for (const [i, img] of images.slice(0, MAX_IMAGES).entries()) {
+      try {
+        const file = await api(token, 'getFile', { file_id: img.fileId })
+        const res = await fetch(`${API}/file/bot${token}/${file.file_path}`)
+        if (!res.ok) throw new Error(`download ${res.status}`)
+        const bytes = Buffer.from(await res.arrayBuffer())
+        const path = join(RECEIVED_DIR, `${stamp}-${i + 1}.${IMAGE_TYPES[img.mime]}`)
+        writeFileSync(path, bytes)
+        paths.push(path)
+        blocks.push({ type: 'image', source: { type: 'base64', media_type: img.mime, data: bytes.toString('base64') } })
+      } catch (err) {
+        console.log(`[jarvis] telegram image download failed: ${err.message}`)
+      }
+    }
+    if (!blocks.length) return say(chatId, 'No pude abrir esas imágenes. ¿Me las mandas otra vez?')
+    const n = blocks.length
+    const ask =
+      (caption || (n === 1 ? 'Te mando esta imagen. ¿Qué ves?' : `Te mando estas ${n} imágenes. ¿Qué ves?`)) +
+      `\n\n[${n === 1 ? 'Image' : `${n} images`} sent by the owner on Telegram, saved on this Mac at: ${paths.join(', ')}]`
+    blocks.push({ type: 'text', text: ask })
+    const taskId = hub.startTask(`📷 ${n === 1 ? 'Imagen' : `${n} imágenes`}${caption ? `: ${caption}` : ''}`, undefined, 'telegram')
+    const voice = readTelegram()?.voice === 'siempre'
+    talk().ask(blocks, { taskId, chatId, voice })
+    keepTyping(chatId, voice)
   }
 
   let convo = null
@@ -429,6 +505,9 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       return say(chatId, 'Conversación nueva. ¿En qué te ayudo?')
     }
 
+    const image = imageOf(m)
+    if (image) return collectImage(m, image, chatId)
+
     let request = text
     const audio = m.voice ?? m.audio
     if (audio) {
@@ -446,7 +525,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       }
       if (!request) return say(chatId, 'No alcancé a escuchar nada en esa nota.')
     } else if (!text) {
-      return say(chatId, 'Por ahora entiendo mensajes y notas de voz.')
+      return say(chatId, 'Por ahora entiendo mensajes, notas de voz y fotos.')
     }
 
     // Written while this Mac was off or Nexy was closed: ask, don't act.

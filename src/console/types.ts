@@ -63,7 +63,7 @@ export type Org = { departments: Department[]; agents: Agent[] }
 export type BrainNode = {
   id: string
   label: string
-  kind: 'core' | 'brand' | 'note' | 'dept' | 'agent' | 'person' | 'fact'
+  kind: 'core' | 'brand' | 'note' | 'ref' | 'dept' | 'agent' | 'person' | 'fact'
   color?: string
   icon?: string
   detail?: string

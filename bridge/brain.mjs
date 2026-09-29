@@ -1,5 +1,5 @@
 import { readFacts } from './memory.mjs'
-import { fold, readBrands, readManual } from './brands.mjs'
+import { fold, readBrands, readManual, readReferences } from './brands.mjs'
 import { readContacts } from './contact-book.mjs'
 import { orgView } from './agents.mjs'
 
@@ -30,6 +30,9 @@ export function buildBrain() {
     add({ id: `brand:${b.id}`, label: b.nombre, kind: 'brand', color: b.color, brand: b.id, active: b.id === activa }, 'nexy')
     readManual(b.id).forEach((note, i) =>
       add({ id: `note:${b.id}:${i}`, label: short(note), detail: note, kind: 'note', color: b.color, brand: b.id }, `brand:${b.id}`),
+    )
+    readReferences(b.id).forEach((file, i) =>
+      add({ id: `ref:${b.id}:${i}`, label: 'Referencia visual', icon: '🖼️', detail: file.split('/').pop(), kind: 'ref', color: b.color, brand: b.id }, `brand:${b.id}`),
     )
   }
 

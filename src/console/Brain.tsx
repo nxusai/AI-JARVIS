@@ -18,6 +18,7 @@ const SIZE: Record<BrainNode['kind'], number> = {
   agent: 7,
   person: 5,
   note: 4.5,
+  ref: 6,
   fact: 4.5,
 }
 const SPRING: Record<BrainNode['kind'], number> = {
@@ -27,6 +28,7 @@ const SPRING: Record<BrainNode['kind'], number> = {
   agent: 55,
   person: 45,
   note: 55,
+  ref: 60,
   fact: 55,
 }
 
@@ -144,7 +146,7 @@ export function Brain({ data, live, brandFilter }: { data: BrainData | null; liv
   // Sizes are in picture units; one unit of `u` is one screen pixel, so text
   // and dots stay the same size on screen however far the picture spreads.
   const u = Math.max(w / box.w, h / box.h)
-  const FONT: Record<BrainNode['kind'], number> = { core: 17, brand: 15, dept: 13, agent: 12, person: 11, note: 10.5, fact: 10.5 }
+  const FONT: Record<BrainNode['kind'], number> = { core: 17, brand: 15, dept: 13, agent: 12, person: 11, note: 10.5, ref: 11, fact: 10.5 }
 
   return (
     <div className="brain-wrap">
@@ -254,6 +256,7 @@ const KIND: Record<BrainNode['kind'], string> = {
   core: 'Nexy',
   brand: 'Marca',
   note: 'Nota del manual de marca',
+  ref: 'Referencia visual de la marca',
   dept: 'Área',
   agent: 'Agente',
   person: 'Contacto',

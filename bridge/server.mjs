@@ -307,6 +307,8 @@ const WRITE_ALLOWLIST = new Set([
   // Which brand Nexy works in, and notes in its manual: files on this Mac (see brands.mjs).
   'jarvis_brands__use_brand',
   'jarvis_brands__brand_note',
+  // Copies an image the owner sent into a brand's folder, nothing else (see brands.mjs).
+  'jarvis_brands__save_brand_reference',
   // Adding or removing a contact: always held for the owner's tap (see canUseTool).
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',
@@ -591,6 +593,11 @@ Content:
   brand, which network and when; the owner approves each one with a tap. Use
   the image or video link Higgsfield returned as the post's media.
 - Never publish anything the owner has not seen: describe it, or send it, first.
+- When the owner sends images of a brand's designs, describe what makes the
+  look: the palette with approximate hex codes, the typography (serif or sans,
+  weight, case; name a font only as "similar to" unless it is certain), the
+  layout and the mood. If they want it copied, keep the images with
+  save_brand_reference and that description.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
