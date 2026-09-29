@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
+import { isVideo, postPreview } from './post-preview.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -121,6 +122,8 @@ const TOOL_LABEL = {
   'notion__API-patch-block-children': 'Agregar contenido en Notion',
   'notion__API-update-a-block': 'Editar contenido en Notion',
   'notion__API-update-page-markdown': 'Reescribir página de Notion',
+  metricool__post_Schedule_Post: 'Programar publicación',
+  metricool__update_Schedule_Post: 'Cambiar una publicación programada',
   jarvis_contacts__save_contact: 'Guardar contacto (Nexy podrá llamarle)',
   jarvis_contacts__remove_contact: 'Borrar contacto',
   jarvis_brands__link_brand_account: 'Conectar una cuenta a esta marca',
@@ -166,6 +169,17 @@ export function describeApproval(view) {
   if (view.account) lines.push(`📍 Cuenta: ${view.account}`)
   lines.push(`➡️ ${TOOL_LABEL[key] ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
   const input = view.input && typeof view.input === 'object' ? view.input : {}
+  // A post reads as a post: when, where, and the caption exactly as it will go out.
+  const post = postPreview(input)
+  if (post) {
+    if (post.draft) lines.push('📝 Se guarda como BORRADOR (no se publica)')
+    if (post.when) lines.push(`🗓️ ${post.draft ? 'Fecha' : 'Se publica'}: ${post.when}`)
+    if (post.networks.length) lines.push(`📱 Redes: ${post.networks.join(', ')}`)
+    if (post.media.length) lines.push(`🖼️ ${post.media.length} ${post.media.length === 1 ? 'imagen o video (arriba)' : 'imágenes o videos (arriba)'}`)
+    lines.push('', '✍️ Caption:', post.caption || '(sin caption)')
+    if (post.firstComment) lines.push('', `💬 Primer comentario: ${post.firstComment}`)
+    return lines.join('\n').slice(0, MAX_MESSAGE)
+  }
   for (const [k, v] of Object.entries(input)) {
     if (SKIP.has(k) || v === undefined || v === null || v === '') continue
     if (k === 'properties' && typeof v === 'object') {
@@ -425,10 +439,16 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   hub.addApprover({
     // Only once paired: before that there is nobody to send the card to.
     available: () => Boolean(readTelegram()?.owner),
-    requested(view) {
+    async requested(view) {
       const owner = readTelegram()?.owner
       if (!owner) return
       const text = describeApproval(view)
+      // What will be posted, shown before the question about posting it.
+      for (const url of postPreview(view.input)?.media.slice(0, 4) ?? []) {
+        await api(token, isVideo(url) ? 'sendVideo' : 'sendPhoto', { chat_id: owner.id, [isVideo(url) ? 'video' : 'photo']: url }, 60_000).catch(
+          (err) => console.log(`[jarvis] telegram preview failed: ${err.message}`),
+        )
+      }
       api(token, 'sendMessage', {
         chat_id: owner.id,
         text,

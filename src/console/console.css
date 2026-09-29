@@ -984,6 +984,23 @@ h2.attention {
   color: #2a0505;
 }
 
+.post-media {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 4px;
+}
+
+.post-media img {
+  width: min(260px, 100%);
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+.post-media a {
+  color: var(--accent);
+}
+
 /* Fields */
 .fields {
   margin: 8px 0 0;

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { describeInput, homeOf, serviceOf, stepLabel } from './services'
+import { describeInput, homeOf, postPreview, serviceOf, stepLabel } from './services'
+import { BRIDGE_HTTP_URL } from '../config'
 import { brandOf, clock, isAgentStep, secs, stepLook } from './activity'
 import type { Agent, Approval, Brand, Brands, Step, StepStatus, Task } from './types'
 
@@ -35,6 +36,25 @@ export function BrandPill({ brand, big }: { brand?: Brand; big?: boolean }) {
       <i />
       {brand.nombre}
     </span>
+  )
+}
+
+/** The images of a post, through the bridge's image proxy; videos as links. */
+function Media({ input }: { input: Record<string, unknown> }) {
+  const media = postPreview(input)?.media ?? []
+  if (!media.length) return null
+  return (
+    <div className="post-media">
+      {media.slice(0, 4).map((url) =>
+        /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url) ? (
+          <a key={url} href={url} target="_blank" rel="noreferrer">
+            🎬 Ver video
+          </a>
+        ) : (
+          <img key={url} src={`${BRIDGE_HTTP_URL}/img?url=${encodeURIComponent(url)}`} alt="Imagen del post" />
+        ),
+      )}
+    </div>
   )
 }
 
@@ -83,6 +103,7 @@ export function ApprovalCard({
           expira en {Math.floor(left / 60000)}:{String(Math.floor((left % 60000) / 1000)).padStart(2, '0')}
         </span>
       </header>
+      <Media input={a.input} />
       <Fields input={a.input} full />
       <textarea
         placeholder="¿Qué cambiarías? (opcional, si rechazas)"

@@ -82,6 +82,13 @@ const STEPS: Record<string, string> = {
   'jarvis_brands__brand_note': 'Anotar en el manual de marca',
   'jarvis_brands__save_brand_reference': 'Guardar referencia visual',
   'jarvis_files__upload_to_url': 'Subir imagen de marca',
+  'metricool__post_Schedule_Post': 'Programar publicación',
+  'metricool__update_Schedule_Post': 'Cambiar publicación programada',
+  'metricool__getBrandSettings': 'Ver marcas de Metricool',
+  'metricool__get_brands': 'Ver marcas de Metricool',
+  'higgsfield__generate_image': 'Generar imagen',
+  'higgsfield__jobs_wait': 'Esperar la imagen o el video',
+  'higgsfield__media_upload': 'Preparar subida a Higgsfield',
   'jarvis_brands__link_brand_account': 'Conectar cuenta a la marca',
   'jarvis_brands__unlink_brand_account': 'Desconectar cuenta de la marca',
   'jarvis_eyes__look': 'Mirar con la cámara',
@@ -197,8 +204,61 @@ function notionValue(p: unknown): string {
   return JSON.stringify(o)
 }
 
+/** A scheduled post, read the way bridge/post-preview.mjs reads it. */
+export type PostPreview = { caption: string; media: string[]; networks: string[]; when: string | null; draft: boolean }
+
+const NETWORKS: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
+  twitter: 'X',
+  youtube: 'YouTube',
+  threads: 'Threads',
+  pinterest: 'Pinterest',
+}
+
+export function postPreview(input: unknown): PostPreview | null {
+  if (!input || typeof input !== 'object') return null
+  const top = input as Record<string, unknown>
+  let info: unknown = top.info
+  if (typeof info === 'string') {
+    try {
+      info = JSON.parse(info)
+    } catch {
+      info = null
+    }
+  }
+  const src = (info && typeof info === 'object' ? info : top) as Record<string, unknown>
+  const caption = typeof src.text === 'string' ? src.text : typeof top.text === 'string' ? top.text : null
+  const rawMedia = Array.isArray(src.media) ? src.media : Array.isArray(top.media) ? top.media : []
+  const media = rawMedia
+    .map((m) => (typeof m === 'string' ? m : ((m as { url?: string })?.url ?? null)))
+    .filter((u): u is string => typeof u === 'string' && u.startsWith('https://'))
+  if (caption == null && !media.length) return null
+  const providers = Array.isArray(src.providers) ? (src.providers as Array<{ network?: string }>) : []
+  const pub = src.publicationDate as { dateTime?: string; timezone?: string } | undefined
+  const when = pub?.dateTime ?? (typeof top.date === 'string' ? top.date : null)
+  return {
+    caption: caption ?? '',
+    media,
+    networks: providers.map((p) => NETWORKS[String(p?.network ?? '').toLowerCase()] ?? String(p?.network ?? '')).filter(Boolean),
+    when: when ? when.replace('T', ' ').slice(0, 16) + (pub?.timezone ? ` (${pub.timezone})` : '') : null,
+    draft: src.draft === true || src.draft === 'true',
+  }
+}
+
 export function describeInput(input: unknown): Array<[string, string]> {
   if (!input || typeof input !== 'object') return []
+  const post = postPreview(input)
+  if (post) {
+    const rows: Array<[string, string]> = []
+    if (post.draft) rows.push(['Tipo', 'Borrador (no se publica)'])
+    if (post.when) rows.push([post.draft ? 'Fecha' : 'Se publica', post.when])
+    if (post.networks.length) rows.push(['Redes', post.networks.join(', ')])
+    rows.push(['Caption', post.caption || '(sin caption)'])
+    return rows
+  }
   const entries = Object.entries(input as Record<string, unknown>).filter(
     ([k, v]) => v !== undefined && v !== null && v !== '' && !SKIP_FIELDS.has(k),
   )
