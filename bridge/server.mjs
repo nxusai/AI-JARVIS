@@ -612,6 +612,12 @@ Calendar:
   date and time with get-current-time.
 - To change an event, find it, then update that event. To add one, create a new
   event. You may do both whenever the user asks.
+- A meeting with someone (a client, a prospect): create the event in the
+  owner's calendar with a Google Meet link (conferenceData createRequest,
+  conferenceSolutionKey type hangoutsMeet), the guest's email in attendees and
+  sendUpdates "all", so Google sends them the invitation with the link. Check
+  the owner is free first. The owner approves it with a tap. Then say the day,
+  time and that the invitation went out.
 
 Calling contacts:
 - Call a contact only when the user asks you to, out loud, in this
@@ -1512,7 +1518,9 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Telegram, when either is there to answer. With neither they run as
       // before, so the voice alone is never left unable to do what it could
       // do yesterday.
-      if (ok && needsApproval(toolName) && hub.hasApprover()) {
+      // An event with guests emails them an invitation: outward, like a send.
+      const invites = svc === 'google-calendar' && /create|update/i.test(svcTool) && JSON.stringify(input?.attendees ?? input?.events ?? '').includes('@')
+      if (ok && (needsApproval(toolName) || invites) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
         // A brand tool acts on the brand it names, not the one Nexy is working in.
         const named = (svc === 'jarvis_brands' || svc === 'jarvis_rutinas') && typeof input?.brand === 'string' ? findBrand(input.brand) : null

@@ -143,6 +143,8 @@ const TOOL_LABEL = {
   jarvis_contacts__remove_contact: 'Borrar contacto',
   jarvis_brands__link_brand_account: 'Conectar una cuenta a la marca',
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
+  'google-calendar__create-event': 'Agendar en tu calendario (con invitados, les llega invitación)',
+  'google-calendar__update-event': 'Cambiar un evento (a los invitados les llega el cambio)',
   jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
   jarvis_rutinas__update_routine: 'Cambiar una rutina',
   jarvis_rutinas__remove_routine: 'Borrar una rutina',
@@ -167,10 +169,14 @@ const FIELD = {
   time: 'Hora',
   days: 'Días',
   routine: 'Rutina',
+  summary: 'Título',
+  start: 'Inicio',
+  end: 'Fin',
+  attendees: 'Invitados',
   active: 'Activa',
   brand: 'Marca',
 }
-const SKIP = new Set(['parent', 'subagent_type', 'run_in_background', 'model'])
+const SKIP = new Set(['parent', 'subagent_type', 'run_in_background', 'model', 'conferenceData', 'calendarId', 'timeZone', 'sendUpdates'])
 
 const notionValue = (p) => {
   if (!p || typeof p !== 'object') return String(p ?? '')
@@ -222,7 +228,7 @@ export function describeApproval(view) {
       for (const [pk, pv] of Object.entries(v)) lines.push(`${pk}: ${notionValue(pv)}`)
       continue
     }
-    const value = typeof v === 'string' ? v : Array.isArray(v) ? v.map(String).join(', ') : JSON.stringify(v)
+    const value = typeof v === 'string' ? v : Array.isArray(v) ? v.map((x) => (x && typeof x === 'object' ? (x.email ?? x.name ?? JSON.stringify(x)) : String(x))).join(', ') : JSON.stringify(v)
     lines.push(`${FIELD[k] ?? k}: ${value.length > 900 ? `${value.slice(0, 900)}…` : value}`)
   }
   return lines.join('\n').slice(0, MAX_MESSAGE)
