@@ -53,7 +53,7 @@ import { findFfmpeg, videoServer } from './video.mjs'
 import { workshopServer } from './workshop.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { homedir, tmpdir } from 'node:os'
-import { readFileSync, realpathSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve as resolvePath } from 'node:path'
 import { openRemote, proxyError, vetTarget, PROXY_UA } from './net.mjs'
@@ -1550,8 +1550,14 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
 }
 
 // Telegram, for when the owner is away from the office. Off until set up.
-void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
-startRoutines(TIME_ZONE)
+// Moved to another Mac (scripts/mudanza.mjs): the other one answers Telegram
+// and runs the routines, so two copies never do the same work twice.
+if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
+  console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
+} else {
+  void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+  startRoutines(TIME_ZONE)
+}
 
 wss.on('connection', (socket, req) => {
   // The console page only watches and approves; it gets no agent session.
