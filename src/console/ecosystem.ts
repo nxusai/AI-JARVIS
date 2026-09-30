@@ -73,7 +73,8 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
     { id: 'core:people', label: 'Contactos', icon: '👥', kids: people.map((p) => ({ label: p.label })) },
   ]
   sats.forEach((s, i) => {
-    const a = (i / sats.length) * TAU + Math.PI / sats.length
+    // Around Nexy, leaving the space under her clear for the holding's name.
+    const a = Math.PI / 2 + 1.1 + ((i + 0.5) / sats.length) * (TAU - 2.2)
     const p = polar(0, 0, RS, a)
     add({ id: s.id, kind: 'sat', label: s.label, icon: s.icon, ...p, r: 26, color: accent, eco: 'core', parent: 'core' })
     fan(s.kids.length, a, (200 * Math.PI) / 180).forEach((ka, j) => {
