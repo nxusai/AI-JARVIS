@@ -26,12 +26,15 @@ const MIN_K = 0.08
 const MAX_K = 6
 
 export function EcosystemMap({
+  grupo,
   nodes,
   live,
   selected,
   onSelect,
   focus,
 }: {
+  /** The holding company around every brand. */
+  grupo?: string
   nodes: EcoNode[]
   live: EcoLive
   selected: string | null
@@ -51,8 +54,9 @@ export function EcosystemMap({
   const extent = useMemo(() => {
     let m = 400
     for (const n of nodes) m = Math.max(m, Math.hypot(n.x, n.y) + n.r + 60)
-    return m
-  }, [nodes])
+    // Room for the holding's ring and its name above it.
+    return grupo ? m + 150 : m
+  }, [nodes, grupo])
 
   const fitCam = (w: number, h: number): Cam => {
     const k = Math.max(MIN_K, Math.min(w, h) / (2 * extent))
@@ -240,6 +244,18 @@ export function EcosystemMap({
         </defs>
         <rect width={size.w} height={size.h} fill="url(#eco-dots)" />
         <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.k})`}>
+          {grupo && nodes.length > 1 ? (
+            // The holding: one ring around everything it owns.
+            <g className="eco-group" pointerEvents="none">
+              <circle cx={0} cy={0} r={extent - 110} style={{ strokeWidth: 2 / cam.k, strokeDasharray: `${10 / cam.k} ${8 / cam.k}` }} />
+              <text x={0} y={-(extent - 110) + 34 / cam.k} textAnchor="middle" style={{ fontSize: 20 / cam.k }}>
+                {grupo.toUpperCase()}
+              </text>
+              <text x={0} y={-(extent - 110) + 52 / cam.k} textAnchor="middle" className="eco-group-sub" style={{ fontSize: 11 / cam.k }}>
+                casa matriz
+              </text>
+            </g>
+          ) : null}
           {nodes.map((n) => {
             const p = n.parent ? byId.get(n.parent) : null
             if (!p) return null

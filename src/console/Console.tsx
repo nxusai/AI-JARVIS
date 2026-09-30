@@ -10,7 +10,7 @@ import { homeOf } from './services'
 import type { Approval, Brain as BrainData, Brands, Org, Server, Task } from './types'
 
 /**
- * The NXUS AI console: what Nexy and her team are doing, for which brand, and
+ * The Ramos & Co. console: what Nexy and her team are doing, for which brand, and
  * where she is waiting for approval. It watches, answers approvals, switches
  * brands and edits brand manuals — everything else comes from
  * bridge/console.mjs, and it never talks to the agent.
@@ -174,7 +174,7 @@ export default function Console() {
     <div className="console" style={active ? { ['--brand' as string]: active.color } : undefined}>
       <header className="top">
         <div className="logo">
-          <span className="mark">NXUS AI</span>
+          <span className="mark">{brands?.grupo ?? 'Ramos & Co.'}</span>
           <span className="sub">Consola de Nexy</span>
         </div>
         <label className="working-on">
@@ -238,7 +238,7 @@ export default function Console() {
       {tab === 'mapa' ? (
         <main className="split">
           <section className="left">
-            <EcosystemMap nodes={nodes} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
+            <EcosystemMap grupo={brands?.grupo ?? 'Ramos & Co.'} nodes={nodes} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
             <div className="legend">
               <span>
                 <i className="lg dept" /> Marca · área · agente

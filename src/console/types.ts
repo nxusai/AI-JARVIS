@@ -58,7 +58,7 @@ export type Brand = {
   /** Accounts this brand publishes to — and the only ones it can. */
   conexiones?: Array<{ servicio: string; id: string; nombre: string }>
 }
-export type Brands = { activa: string; marcas: Brand[] }
+export type Brands = { grupo?: string; activa: string; marcas: Brand[] }
 
 export type Department = { id: string; label: string; icon: string }
 export type Agent = { id: string; label: string; icon: string; dept: string; description: string }

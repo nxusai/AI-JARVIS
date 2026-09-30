@@ -185,10 +185,13 @@ export function accountGuard(servicio, input) {
 
 function save(state) {
   mkdirSync(DIR, { recursive: true })
-  writeFileSync(BRANDS_FILE, JSON.stringify({ activa: state.activa, marcas: state.marcas }, null, 2) + '\n')
+  writeFileSync(BRANDS_FILE, JSON.stringify({ grupo: state.grupo, activa: state.activa, marcas: state.marcas }, null, 2) + '\n')
 }
 
-/** { activa, marcas }. Seeds the owner's brands the first time. */
+/** The owner's holding company, which owns every brand. */
+const DEFAULT_GROUP = 'Ramos & Co.'
+
+/** { grupo, activa, marcas }. Seeds the owner's brands the first time. */
 export function readBrands() {
   let raw = null
   try {
@@ -200,7 +203,8 @@ export function readBrands() {
   const seeded = !marcas.length
   if (seeded) marcas = DEFAULT_BRANDS.map(clean)
   const activa = marcas.some((b) => b.id === raw?.activa) ? raw.activa : marcas[0].id
-  const state = { activa, marcas }
+  const grupo = typeof raw?.grupo === 'string' && raw.grupo.trim() ? raw.grupo.trim().slice(0, 60) : DEFAULT_GROUP
+  const state = { grupo, activa, marcas }
   if (seeded) {
     try {
       save(state)
@@ -357,10 +361,10 @@ export function saveManualText(id, text) {
 
 /** The block appended to the system prompt. */
 export function brandsPrompt() {
-  const { activa, marcas } = readBrands()
+  const { grupo, activa, marcas } = readBrands()
   const active = marcas.find((b) => b.id === activa)
   return (
-    '\n\nBrands the owner runs (their company is NXUS AI): ' +
+    `\n\nThe owner's holding company is ${grupo}; it owns every brand they run: ` +
     marcas.map((b) => b.nombre).join(', ') +
     `. When this conversation started the active brand was ${active.nombre}; ` +
     'use_brand switches it and tells you the current one.'
