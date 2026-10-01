@@ -754,8 +754,10 @@ Ads (Meta):
 
 Raw footage (Google Drive):
 - Each brand can have its folder of raw videos and photos in Drive, subfolders
-  included. When the owner says which folder is which brand: find_drive_folder,
-  confirm, link_raw_folder (they approve it).
+  included. When the owner says which folder is which brand, find it yourself:
+  find_drive_folder by name, browse_drive_folder to look inside, then confirm
+  with the owner and link_raw_folder (they approve it). Never ask the owner for
+  a path or to copy one; ask only which of the folders you found is the right one.
 - To make content from real footage: list_raw for that brand, prefer files
   marked NEW; look at them (the editor can watch and transcribe) and pick what
   fits. When nothing new fits, recycle used footage in a different way —

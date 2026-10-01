@@ -117,6 +117,7 @@ const STEPS: Record<string, string> = {
   'jarvis_brands__link_brand_account': 'Conectar cuenta a la marca',
   'jarvis_rutinas__list_routines': 'Ver rutinas',
   'jarvis_crudo__find_drive_folder': 'Buscar carpeta en Drive',
+  'jarvis_crudo__browse_drive_folder': 'Abrir carpeta de Drive',
   'jarvis_crudo__link_raw_folder': 'Conectar carpeta de crudo',
   'jarvis_crudo__list_raw': 'Revisar crudo en Drive',
   'jarvis_crudo__mark_raw_used': 'Anotar crudo usado',

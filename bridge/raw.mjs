@@ -92,7 +92,7 @@ export function findDriveFolders(name, roots = driveRoots(), limit = 12) {
   const found = []
   let seen = 0
   const walk = (dir, depth) => {
-    if (found.length >= limit || depth > 5 || seen > 6000) return
+    if (found.length >= limit || depth > 8 || seen > 20000) return
     let entries = []
     try {
       entries = readdirSync(dir, { withFileTypes: true })
@@ -109,6 +109,27 @@ export function findDriveFolders(name, roots = driveRoots(), limit = 12) {
   }
   for (const r of roots) walk(r, 0)
   return found
+}
+
+/** The folders directly inside a folder. */
+export function subfolders(dir) {
+  try {
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+      .map((e) => e.name)
+      .sort()
+  } catch {
+    return []
+  }
+}
+
+/** A folder the owner named, as a path: an existing path, or the one Drive folder with that name. */
+export function resolveDriveFolder(q) {
+  const asPath = fromHome(String(q ?? '').trim().replace(/^['"]|['"]$/g, ''))
+  if (asPath.startsWith('/') && existsSync(asPath)) return { path: asPath }
+  const found = findDriveFolders(String(q ?? '').split('/').filter(Boolean).pop() ?? '')
+  if (found.length === 1) return { path: found[0] }
+  return { candidates: found }
 }
 
 /** Every video and photo under a folder, subfolders included, newest first. */
@@ -178,7 +199,32 @@ export function rawServer() {
           }
           const found = findDriveFolders(name, roots)
           if (!found.length) return ok(`No folder called "${name}" in Drive (looked in ${roots.map(toHome).join(', ')}). Ask the owner for the exact name.`)
-          return ok(`Folders that match:\n${found.map((p) => `- ${toHome(p)}`).join('\n')}\nConfirm with the owner which one is the raw footage of which brand.`)
+          const rows = found.map((p) => {
+            const kids = subfolders(p)
+            return `- ${toHome(p)}${kids.length ? `\n    subfolders: ${kids.slice(0, 15).join(', ')}${kids.length > 15 ? '…' : ''}` : ''}`
+          })
+          return ok(`Folders that match:\n${rows.join('\n')}\nUse browse_drive_folder to look inside one. Confirm with the owner which one is the raw footage of which brand.`)
+        },
+      ),
+
+      tool(
+        'browse_drive_folder',
+        "Look inside a folder of the owner's Google Drive: its subfolders and how many videos and photos it holds. " +
+          'Use it to find the right folder yourself instead of asking the owner for paths.',
+        { folder: z.string().describe('A path from find_drive_folder or this tool, or a folder name.') },
+        async ({ folder }) => {
+          const r = resolveDriveFolder(folder)
+          if (!r.path) {
+            return r.candidates?.length
+              ? ok(`Several folders match:\n${r.candidates.map((p) => `- ${toHome(p)}`).join('\n')}`)
+              : refuse(`No folder called "${folder}" in Drive.`)
+          }
+          const kids = subfolders(r.path)
+          const media = listMedia(r.path)
+          return ok(
+            `${toHome(r.path)} — ${media.filter((m) => m.kind === 'video').length} videos and ${media.filter((m) => m.kind === 'foto').length} photos inside (subfolders included).\n` +
+              (kids.length ? `Subfolders:\n${kids.map((k) => `- ${toHome(join(r.path, k))}`).join('\n')}` : 'No subfolders.'),
+          )
         },
       ),
 
@@ -188,12 +234,20 @@ export function rawServer() {
           'content. Only when the owner says which folder is which brand. The owner approves it with a tap.',
         {
           brand: z.string(),
-          folder: z.string().describe('The folder path from find_drive_folder.'),
+          folder: z.string().describe('The folder path from find_drive_folder or browse_drive_folder (or its exact name).'),
         },
         async ({ brand, folder }) => {
           const b = findBrand(brand)
           if (!b) return refuse(`There is no brand called ${brand}.`)
-          const p = fromHome(folder)
+          const r = resolveDriveFolder(folder)
+          if (!r.path) {
+            return refuse(
+              r.candidates?.length
+                ? `Several folders match; pass the full path of the right one:\n${r.candidates.map((p) => `- ${toHome(p)}`).join('\n')}`
+                : `No folder "${folder}" in Drive. Use find_drive_folder or browse_drive_folder.`,
+            )
+          }
+          const p = r.path
           let real
           try {
             real = realpathSync(p)
