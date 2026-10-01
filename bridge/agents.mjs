@@ -32,6 +32,7 @@ const BRAND_TOOLS = ['mcp__jarvis_brands__read_brand', 'mcp__jarvis_brands__list
 /** The editor's tools: the workshop, the folders, and its own eyes. */
 const VIDEO_TOOLS = [
   'mcp__jarvis_video__list_videos',
+  'mcp__jarvis_crudo__list_raw',
   ...['add_to_project', 'ffmpeg', 'media_info', 'remove_silences', 'transcribe', 'look_at', 'write_project_text', 'export_video'].map(
     (t) => `mcp__jarvis_taller__${t}`,
   ),

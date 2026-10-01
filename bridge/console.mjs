@@ -71,6 +71,8 @@ const ALWAYS_APPROVAL = new Set([
   'jarvis_rutinas__create_routine',
   'jarvis_rutinas__update_routine',
   'jarvis_rutinas__remove_routine',
+  // Which Drive folder is which brand's raw footage.
+  'jarvis_crudo__link_raw_folder',
 ])
 
 const clip = (v) => {

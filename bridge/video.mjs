@@ -8,6 +8,7 @@ import { basename, extname, join, sep } from 'node:path'
 import { activeBrand, findBrand, readLogo, readManual } from './brands.mjs'
 import { vetTarget } from './net.mjs'
 import { REFS, fetchReference } from './reference.mjs'
+import { rawRoots } from './raw.mjs'
 
 /**
  * Nexy's video editor: the everyday edits, done by FFmpeg on this Mac.
@@ -124,7 +125,8 @@ function allowedRoots() {
       // Not created yet.
     }
   }
-  return out
+  // Each brand's raw footage folder in Drive (see raw.mjs), read only.
+  return [...out, ...rawRoots()]
 }
 
 /** A local source inside the Nexy folders, or a public https link downloaded to `work`. */

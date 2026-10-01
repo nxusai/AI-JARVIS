@@ -45,9 +45,12 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_rutinas__create_routine',
   'mcp__jarvis_rutinas__update_routine',
   'mcp__jarvis_rutinas__remove_routine',
+  // Which Drive folder is which brand's raw footage.
+  'mcp__jarvis_crudo__link_raw_folder',
 ])
 import { startTelegram } from './telegram.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
+import { rawServer } from './raw.mjs'
 import { filesServer } from './files.mjs'
 import { findFfmpeg, videoServer } from './video.mjs'
 import { workshopServer } from './workshop.mjs'
@@ -221,7 +224,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo']
 hub.setServers([...Object.keys(MCP_SERVERS), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -361,6 +364,9 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_rutinas__update_routine',
   'jarvis_rutinas__remove_routine',
   'jarvis_rutinas__run_routine_now',
+  // Raw footage: linking a folder is held for the owner's tap; the ledger is a file on this Mac (see raw.mjs).
+  'jarvis_crudo__link_raw_folder',
+  'jarvis_crudo__mark_raw_used',
 ])
 
 /**
@@ -734,6 +740,18 @@ Ads (Meta):
   linked to each brand is a separate question (read_brand).
 - For results, read the insights and answer with what matters: spend,
   results, cost per result, CTR, and ROAS when there are purchases.
+
+Raw footage (Google Drive):
+- Each brand can have its folder of raw videos and photos in Drive, subfolders
+  included. When the owner says which folder is which brand: find_drive_folder,
+  confirm, link_raw_folder (they approve it).
+- To make content from real footage: list_raw for that brand, prefer files
+  marked NEW; look at them (the editor can watch and transcribe) and pick what
+  fits. When nothing new fits, recycle used footage in a different way —
+  another moment of the clip, another hook, format, text or style — never the
+  same piece again. After the piece is finished, mark_raw_used with what it was.
+- Only ever use a brand's own raw footage for that brand. The folders are read
+  only: never move, rename or delete anything in them.
 
 Routines:
 - The owner can leave you work to do on your own at set times ("todos los
@@ -1427,6 +1445,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_taller: workshopServer(elevenKey),
       // Work the owner left scheduled, at set times (see routines.mjs).
       jarvis_rutinas: routinesServer(TIME_ZONE),
+      // Each brand's raw footage in Google Drive, read only (see raw.mjs).
+      jarvis_crudo: rawServer(),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
@@ -1543,7 +1563,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       if (ok && (needsApproval(toolName) || invites) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
         // A brand tool acts on the brand it names, not the one Nexy is working in.
-        const named = (svc === 'jarvis_brands' || svc === 'jarvis_rutinas') && typeof input?.brand === 'string' ? findBrand(input.brand) : null
+        const named = (svc === 'jarvis_brands' || svc === 'jarvis_rutinas' || svc === 'jarvis_crudo') && typeof input?.brand === 'string' ? findBrand(input.brand) : null
         const answer = await hub.requestApproval(currentTask(), toolName, input, { account, brand: named?.id })
         console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
         if (!answer.approved) {
