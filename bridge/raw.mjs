@@ -1,6 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { activeBrand, findBrand, fold, MANUALS_DIR, readBrands } from './brands.mjs'
@@ -116,6 +116,39 @@ export function findDriveFolders(name, roots = driveRoots(), limit = 12, budgetM
     queue = next
   }
   return found.slice(0, limit)
+}
+
+/**
+ * How much of a file is actually on this Mac. Drive's "stream files" keeps
+ * only a placeholder until the file is opened, and opening a multi-gigabyte
+ * video downloads all of it first — minutes, during which an edit looks stuck.
+ * A placeholder occupies no disk blocks.
+ */
+export function onDisk(path) {
+  try {
+    const st = statSync(path)
+    if (!st.size) return 1
+    if (typeof st.blocks !== 'number') return 1
+    return Math.min(1, (st.blocks * 512) / st.size)
+  } catch {
+    return 1
+  }
+}
+
+const fetching = new Map()
+/**
+ * Start bringing a cloud-only file down in the background (once), so it is
+ * ready on a later try. Returns how much is already here.
+ */
+export function prefetch(path) {
+  const have = onDisk(path)
+  if (have >= 0.98 || fetching.has(path)) return have
+  const stream = createReadStream(path)
+  fetching.set(path, stream)
+  stream.on('data', () => {})
+  stream.on('error', () => fetching.delete(path))
+  stream.on('close', () => fetching.delete(path))
+  return have
 }
 
 /** The folders directly inside a folder. */
@@ -310,7 +343,8 @@ export function rawServer() {
           const rows = media.slice(0, Math.min(Math.max(Number(limit) || 60, 1), 300)).map((m) => {
             const u = uses.get(m.rel) ?? []
             const last = u.at(-1)
-            return `- ${m.path} [${m.kind}, ${m.mb.toFixed(1)} MB, added ${day(m.added)}] ${u.length ? `used ${u.length}× (last ${last.fecha?.slice(0, 10)}: ${last.pieza})` : 'NEW'}`
+            const cloud = m.mb > 20 && onDisk(m.path) < 0.98 ? ' ☁️ in the cloud, not downloaded yet' : ''
+            return `- ${m.path} [${m.kind}, ${m.mb.toFixed(1)} MB, added ${day(m.added)}${cloud}] ${u.length ? `used ${u.length}× (last ${last.fecha?.slice(0, 10)}: ${last.pieza})` : 'NEW'}`
           })
           return ok(`${b.nombre} raw footage in ${toHome(root)}: ${total} files, ${fresh} never used.\n${rows.join('\n') || '(none)'}`)
         },

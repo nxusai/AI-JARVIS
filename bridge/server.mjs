@@ -763,6 +763,10 @@ Raw footage (Google Drive):
   fits. When nothing new fits, recycle used footage in a different way —
   another moment of the clip, another hook, format, text or style — never the
   same piece again. After the piece is finished, mark_raw_used with what it was.
+- Files marked ☁️ are still in the cloud: big ones take minutes to come down.
+  Prefer files already on the Mac; if you need a ☁️ one, add_to_project starts
+  its download, and you tell the owner it is downloading (and that marking the
+  folder "Make available offline" in Finder avoids the wait).
 - Only ever use a brand's own raw footage for that brand. The folders are read
   only: never move, rename or delete anything in them.
 
