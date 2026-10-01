@@ -219,6 +219,11 @@ function configuredServers() {
 
 const MCP_SERVERS = configuredServers()
 
+// Every connector Nexy has, on the console from the start: the ones in the
+// Claude config and her own. Each session confirms their state when it opens.
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas']
+hub.setServers([...Object.keys(MCP_SERVERS), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
+
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
 const mcpServerOf = (toolName) =>
   toolName.startsWith('mcp__') ? toolName.split('__')[1] : null

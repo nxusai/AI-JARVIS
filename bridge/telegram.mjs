@@ -322,6 +322,10 @@ function conversation({ agentOptions, onAnswer, runQuery, local }) {
         if (msg.session_id && (msg.type === 'result' || (msg.type === 'system' && msg.subtype === 'init'))) {
           saveSession('telegram', msg.session_id)
         }
+        // Which connectors are up, for the console, as the voice session does.
+        if (msg.type === 'system' && msg.subtype === 'init' && Array.isArray(msg.mcp_servers)) {
+          hub.setServers(msg.mcp_servers.map((s) => ({ name: s.name, status: s.status })))
+        }
         if (msg.type === 'assistant') {
           for (const block of msg.message?.content ?? []) {
             if (block.type === 'tool_use') {

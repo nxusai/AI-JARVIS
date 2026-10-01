@@ -152,6 +152,13 @@ export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa
   }
   for (const t of tasks) {
     const brand = t.brand ?? activa ?? ''
+    // Whatever she was asked — even a plain "hola" — Nexy herself is working
+    // while she answers, in the brand the task belongs to.
+    const answering = t.status === 'running' || (t.endedAt && now - t.endedAt < AFTERGLOW_MS)
+    if (answering) {
+      mark('core', 'active')
+      if (byId.has(`${brand}:brand`) && t.steps.length) mark(`${brand}:brand`, 'active')
+    }
     for (const s of t.steps) {
       const state = s.status === 'waiting' ? 'waiting' : s.status === 'running' || (s.endedAt && now - s.endedAt < AFTERGLOW_MS) ? 'active' : null
       if (!state) continue

@@ -265,8 +265,18 @@ function createHub() {
       settle(id, approved === true, note)
     },
 
+    /**
+     * What each session reports about its connectors, merged by name: the
+     * voice and Telegram sessions each see some of their own, and a server
+     * one of them has not loaded is still Nexy's.
+     */
     setServers(list) {
-      servers = list.map((s) => (typeof s === 'string' ? { name: s, status: 'connected' } : s))
+      const byName = new Map(servers.map((s) => [s.name, s]))
+      for (const s of list) {
+        const next = typeof s === 'string' ? { name: s, status: 'connected' } : s
+        if (next?.name) byName.set(next.name, next)
+      }
+      servers = [...byName.values()]
       broadcast({ type: 'servers', servers })
     },
 
