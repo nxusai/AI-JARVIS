@@ -86,29 +86,36 @@ export function driveRoots() {
   }
 }
 
-/** Folders in Drive whose name matches, a few levels deep. */
-export function findDriveFolders(name, roots = driveRoots(), limit = 12) {
+/**
+ * Folders in Drive whose name matches, shallowest first. Drive streams its
+ * folders over the network, so the search stops after a few seconds rather
+ * than walk a large Drive for minutes.
+ */
+export function findDriveFolders(name, roots = driveRoots(), limit = 12, budgetMs = 12_000) {
   const want = fold(name)
   const found = []
-  let seen = 0
-  const walk = (dir, depth) => {
-    if (found.length >= limit || depth > 8 || seen > 20000) return
-    let entries = []
-    try {
-      entries = readdirSync(dir, { withFileTypes: true })
-    } catch {
-      return
+  const until = Date.now() + budgetMs
+  let queue = roots.map((r) => [r, 0])
+  while (queue.length && found.length < limit && Date.now() < until) {
+    const next = []
+    for (const [dir, depth] of queue) {
+      if (found.length >= limit || Date.now() >= until) break
+      let entries = []
+      try {
+        entries = readdirSync(dir, { withFileTypes: true })
+      } catch {
+        continue
+      }
+      for (const e of entries) {
+        if (!e.isDirectory() || e.name.startsWith('.')) continue
+        const p = join(dir, e.name)
+        if (fold(e.name).includes(want)) found.push(p)
+        if (depth < 8) next.push([p, depth + 1])
+      }
     }
-    for (const e of entries) {
-      if (!e.isDirectory() || e.name.startsWith('.')) continue
-      seen++
-      const p = join(dir, e.name)
-      if (fold(e.name).includes(want)) found.push(p)
-      walk(p, depth + 1)
-    }
+    queue = next
   }
-  for (const r of roots) walk(r, 0)
-  return found
+  return found.slice(0, limit)
 }
 
 /** The folders directly inside a folder. */
@@ -133,10 +140,11 @@ export function resolveDriveFolder(q) {
 }
 
 /** Every video and photo under a folder, subfolders included, newest first. */
-export function listMedia(root) {
+export function listMedia(root, budgetMs = 25_000) {
   const out = []
+  const until = Date.now() + budgetMs
   const walk = (dir, depth) => {
-    if (depth > MAX_DEPTH || out.length >= MAX_FILES) return
+    if (depth > MAX_DEPTH || out.length >= MAX_FILES || Date.now() > until) return
     let entries = []
     try {
       entries = readdirSync(dir, { withFileTypes: true })
