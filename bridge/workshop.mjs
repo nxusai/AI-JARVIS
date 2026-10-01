@@ -1,6 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, copyFileSync, mkdirSync, openSync, readSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
 import { DONE, VIDEO_DIR, findFfmpeg, probe, resolveSource, run, transcribeWords } from './video.mjs'
@@ -160,9 +161,18 @@ export function workshopServer(elevenKey) {
               let name = `${safeName(file, `clip${i + 1}`)}${ext}`
               for (let n = 2; readdirSync(dir).includes(name); n++) name = `${safeName(file, 'clip')}-${n}${ext}`
               // A playlist dressed up as a video could point FFmpeg at other files.
-              const head = readFileSync(file).subarray(0, 16).toString('latin1')
-              if (/^#EXT(M3U|INF)/i.test(head)) throw new Error(`${src} is a playlist, not a media file`)
-              copyFileSync(file, join(dir, name))
+              // Only the first bytes: raw footage can be gigabytes.
+              const head = Buffer.alloc(16)
+              const fd = openSync(file, 'r')
+              try {
+                readSync(fd, head, 0, 16, 0)
+              } finally {
+                closeSync(fd)
+              }
+              if (/^#EXT(M3U|INF)/i.test(head.toString('latin1'))) throw new Error(`${src} is a playlist, not a media file`)
+              // Copied without blocking: a large file from Drive downloads as it
+              // copies, and Nexy must keep answering meanwhile.
+              await copyFile(file, join(dir, name))
               const info = await probe(ffmpeg, join(dir, name))
               added.push(`${name}${info.duration ? ` — ${info.duration.toFixed(1)} s` : ''}${info.width ? `, ${info.width}x${info.height}` : ''}${info.audio ? ', with sound' : ''}`)
             }

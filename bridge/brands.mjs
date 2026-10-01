@@ -397,31 +397,57 @@ const manualBody = (b) => {
 }
 
 const stylesFile = (id) => join(MANUALS_DIR, id, 'estilos.json')
+/** Styles for every brand: the owner wants what Nexy learns to serve them all. */
+const SHARED_STYLES = join(MANUALS_DIR, 'estilos-todas.json')
 const MAX_STYLES = 20
 
-/**
- * A brand's editing styles: how its videos are cut, titled and paced, learned
- * from examples the owner showed, each under a name they can ask for.
- */
-export function readEditStyles(id) {
+const readStyleFile = (file) => {
   try {
-    const list = JSON.parse(readFileSync(stylesFile(id), 'utf8'))
+    const list = JSON.parse(readFileSync(file, 'utf8'))
     return Array.isArray(list) ? list.filter((s) => s && typeof s.nombre === 'string' && typeof s.ficha === 'string') : []
   } catch {
     return []
   }
 }
+const writeStyleFile = (file, list) => {
+  mkdirSync(join(file, '..'), { recursive: true })
+  writeFileSync(file, JSON.stringify(list, null, 2) + '\n')
+}
 
-function writeEditStyles(id, list) {
-  mkdirSync(join(MANUALS_DIR, id), { recursive: true })
-  writeFileSync(stylesFile(id), JSON.stringify(list, null, 2) + '\n')
+/**
+ * Styles saved before they were shared went to one brand; the first time the
+ * shared list is read, they move into it.
+ */
+function sharedStyles() {
+  if (!existsSync(SHARED_STYLES)) {
+    const moved = []
+    for (const b of readBrands().marcas) {
+      for (const st of readStyleFile(stylesFile(b.id))) if (!moved.some((m) => fold(m.nombre) === fold(st.nombre))) moved.push(st)
+      rmSync(stylesFile(b.id), { force: true })
+    }
+    try {
+      writeStyleFile(SHARED_STYLES, moved)
+    } catch {
+      return moved
+    }
+  }
+  return readStyleFile(SHARED_STYLES)
+}
+
+/**
+ * The editing styles a brand can use: the shared ones, then any kept for that
+ * brand alone — how its videos are cut, titled and paced, learned from
+ * examples the owner showed, each under a name they can ask for.
+ */
+export function readEditStyles(id) {
+  return [...sharedStyles(), ...readStyleFile(stylesFile(id)).map((s) => ({ ...s, soloMarca: true }))]
 }
 
 const stylesText = (b) => {
   const styles = readEditStyles(b.id)
   return styles.length
-    ? `\n\nEditing styles for ${b.nombre} — follow the named one exactly when asked to edit "con el estilo …", and pass its whole description to the editor:\n` +
-        styles.map((s) => `### ${s.nombre}${s.fuente ? ` (learned from ${s.fuente})` : ''}\n${s.ficha}`).join('\n\n')
+    ? `\n\nEditing styles ${b.nombre} can use (shared by every brand unless marked) — follow the named one exactly when asked to edit "con el estilo …", and pass its whole description to the editor:\n` +
+        styles.map((s) => `### ${s.nombre}${s.soloMarca ? ` (only ${b.nombre})` : ''}${s.fuente ? ` (learned from ${s.fuente})` : ''}\n${s.ficha}`).join('\n\n')
     : ''
 }
 
@@ -559,9 +585,10 @@ export function brandsServer() {
 
       tool(
         'save_edit_style',
-        "Keep an editing style for a brand under a name, so its videos can be edited that way again: the description " +
-          'of a reference video the editor analysed (or the owner described). Only when the owner asks to keep or learn ' +
-          'a style. Saving under an existing name replaces it.',
+        'Keep an editing style under a name, so videos can be edited that way again: the description of a reference ' +
+          'video the editor analysed (or the owner described). Only when the owner asks to keep or learn a style. Styles ' +
+          'are for every brand; pass only_brand only when the owner says it is for one brand alone. Saving under an ' +
+          'existing name replaces it.',
         {
           name: z.string().describe('What the owner calls it, e.g. "Reel dinámico".'),
           style: z
@@ -572,37 +599,41 @@ export function brandsServer() {
                 'screen, zooms and transitions, colour look, music and sound, logo and call to action.',
             ),
           source: z.string().optional().describe('Where it came from: the link or file of the example.'),
-          brand: z.string().optional().describe('The brand; the active one when left out.'),
+          only_brand: z.string().optional().describe('Only when the owner says this style is for one brand alone.'),
         },
-        async ({ name, style, source, brand }) => {
-          const b = brand ? findBrand(brand) : activeBrand()
-          if (!b) return notFound(brand)
+        async ({ name, style, source, only_brand }) => {
+          const b = only_brand ? findBrand(only_brand) : null
+          if (only_brand && !b) return notFound(only_brand)
           const nombre = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, 60)
           const ficha = String(style ?? '').trim().slice(0, 4000)
           if (!nombre || ficha.length < 40) return refuse('Give the style a name and describe it in detail.')
-          const list = readEditStyles(b.id).filter((s) => fold(s.nombre) !== fold(nombre))
-          if (list.length >= MAX_STYLES) return refuse(`${b.nombre} already has ${MAX_STYLES} styles; remove one first.`)
+          const file = b ? stylesFile(b.id) : SHARED_STYLES
+          const list = (b ? readStyleFile(file) : sharedStyles()).filter((s) => fold(s.nombre) !== fold(nombre))
+          if (list.length >= MAX_STYLES) return refuse(`There are already ${MAX_STYLES} styles there; remove one first.`)
           list.push({ nombre, ficha, fuente: String(source ?? '').trim().slice(0, 300) || null, fecha: new Date().toISOString() })
-          writeEditStyles(b.id, list)
-          console.log(`[jarvis] brand: editing style "${nombre}" saved for ${b.id}`)
+          writeStyleFile(file, list)
+          console.log(`[jarvis] editing style "${nombre}" saved for ${b ? b.id : 'every brand'}`)
           changed()
-          return ok(`Saved the editing style "${nombre}" for ${b.nombre}. Ask for it any time: "edítalo con el estilo ${nombre}".`)
+          return ok(`Saved the editing style "${nombre}" for ${b ? `${b.nombre} only` : 'every brand'}. Ask for it any time: "edítalo con el estilo ${nombre}".`)
         },
       ),
 
       tool(
         'remove_edit_style',
-        "Forget one of a brand's editing styles — only when the owner asks.",
-        { name: z.string(), brand: z.string().optional() },
-        async ({ name, brand }) => {
-          const b = brand ? findBrand(brand) : activeBrand()
-          if (!b) return notFound(brand)
-          const list = readEditStyles(b.id)
-          const keep = list.filter((s) => fold(s.nombre) !== fold(name))
-          if (keep.length === list.length) return refuse(`${b.nombre} has no style called ${name}.`)
-          writeEditStyles(b.id, keep)
-          changed()
-          return ok(`Removed the style "${name}" from ${b.nombre}.`)
+        'Forget an editing style — only when the owner asks.',
+        { name: z.string() },
+        async ({ name }) => {
+          const files = [SHARED_STYLES, ...readBrands().marcas.map((b) => stylesFile(b.id))]
+          for (const file of files) {
+            const list = file === SHARED_STYLES ? sharedStyles() : readStyleFile(file)
+            const keep = list.filter((s) => fold(s.nombre) !== fold(name))
+            if (keep.length !== list.length) {
+              writeStyleFile(file, keep)
+              changed()
+              return ok(`Removed the style "${name}".`)
+            }
+          }
+          return refuse(`There is no style called ${name}.`)
         },
       ),
 

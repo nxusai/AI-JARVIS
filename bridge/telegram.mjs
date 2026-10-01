@@ -51,7 +51,9 @@ const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'we
  */
 const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
 /** Waiting on a video render is slow by nature; it gets longer. */
-const SLOW_STEP = /wait|video|render|taller|editor/i
+const SLOW_STEP = /wait|video|render|taller|editor|crudo/i
+/** After this long on one request, she tells the owner she is still on it. */
+const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || 90_000
 
 /** A message older than this when Nexy starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
@@ -280,7 +282,7 @@ const stepName = (name) => {
   return who ?? (server ? server : tool)
 }
 
-function conversation({ agentOptions, onAnswer, runQuery, local }) {
+function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local }) {
   const inbox = []
   const jobs = []
   let deliver = null
@@ -317,6 +319,11 @@ function conversation({ agentOptions, onAnswer, runQuery, local }) {
       return
     }
     const step = hub.runningStepName(job.taskId)
+    // A long job says so once, so the owner never wonders whether she stopped.
+    if (!job.toldSlow && Date.now() - (job.started ?? Date.now()) > SLOW_NOTICE_MS) {
+      job.toldSlow = true
+      onSlow(job, step)
+    }
     if (Date.now() - lastSign < (step && SLOW_STEP.test(step) ? STUCK_MS * 3 : STUCK_MS)) return
     console.log(`[jarvis] telegram: turn stuck${step ? ` on ${step}` : ''}; stopping it`)
     job.stopped = `Me quedé atorada${step ? ` esperando a ${stepName(step)}` : ''} y lo detuve. ¿Lo intento otra vez?`
@@ -384,6 +391,7 @@ function conversation({ agentOptions, onAnswer, runQuery, local }) {
     },
     /** `content` is the owner's words, or a list of image and text blocks. */
     ask(content, job) {
+      job.started = Date.now()
       jobs.push(job)
       if (deliver) {
         const r = deliver
@@ -628,7 +636,24 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
   let convo = null
   const talk = () => {
-    if (!convo || convo.closed) convo = conversation({ agentOptions, onAnswer: answer, runQuery, local: { jarvis_telegram: filesToOwner() } })
+    if (!convo || convo.closed) {
+      convo = conversation({
+        agentOptions,
+        onAnswer: answer,
+        onSlow: (job, step) => {
+          const what = /taller|video|editor/i.test(step ?? '')
+            ? 'editando el video (los videos de Drive se bajan primero, y eso tarda)'
+            : /crudo|drive/i.test(step ?? '')
+              ? 'revisando tu Drive'
+              : /higgsfield/i.test(step ?? '')
+                ? 'generando en Higgsfield'
+                : 'en eso'
+          void say(job.chatId, `⏳ Sigo trabajando, ${what}. Te aviso en cuanto termine. Si quieres que pare: /cancelar`)
+        },
+        runQuery,
+        local: { jarvis_telegram: filesToOwner() },
+      })
+    }
     return convo
   }
 
