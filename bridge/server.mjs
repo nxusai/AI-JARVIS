@@ -772,7 +772,11 @@ Invoices (Zoho):
 - If there is more than one Zoho organization, use the one for the brand the
   invoice is for, and say which.
 - Never delete, void or write off anything, and record a payment only when the
-  owner says it was paid.
+  owner says it was paid. Before recording payments, list in plain words which
+  invoices (number, customer, amount) and ask how they were paid (efectivo,
+  transferencia, tarjeta…) and when, unless the owner already said. Record one
+  payment per customer, and write the customer's name and the invoice numbers
+  in its description, so the approval card says whose payment it is.
 - "¿Quién me debe?" is a read: list the unpaid and overdue invoices with
   customer, amount and days late.
 
