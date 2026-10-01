@@ -76,6 +76,7 @@ const HELP =
   '/texto — contestarte siempre por escrito\n' +
   '/auto — voz si me hablas, texto si me escribes\n' +
   '/nuevo — empezar una conversación nueva\n' +
+  '/estado — qué estoy haciendo ahora\n' +
   '/cancelar — detener lo que estoy haciendo\n' +
   'También puedes mandarme fotos, videos, música, o un contacto de tu agenda para que lo guarde.\n' +
   '/ayuda — ver esto otra vez'
@@ -278,7 +279,21 @@ async function speak(key, voiceId, text) {
 /** A tool's name as the owner would say it. */
 const stepName = (name) => {
   const [, server = '', tool = name] = String(name).match(/^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/) ?? []
-  const who = { higgsfield: 'Higgsfield', metricool: 'Metricool', gmail: 'Gmail', notion: 'Notion', 'google-calendar': 'el calendario' }[server]
+  if (!server && /^(Agent|Task)$/.test(name)) return 'trabajando con su equipo de agentes'
+  const who = {
+    higgsfield: 'Higgsfield',
+    metricool: 'Metricool',
+    gmail: 'Gmail',
+    notion: 'Notion',
+    'google-calendar': 'el calendario',
+    canva: 'Canva',
+    zoho: 'Zoho',
+    'meta-ads': 'Meta Ads',
+    jarvis_taller: 'editando el video',
+    jarvis_video: 'el editor de video',
+    jarvis_crudo: 'revisando tu Drive',
+    jarvis_brands: 'revisando la marca',
+  }[server]
   return who ?? (server ? server : tool)
 }
 
@@ -389,6 +404,12 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
     get busy() {
       return jobs.length > 0
     },
+    /** What she is on right now, for a status line while the owner waits. */
+    status() {
+      const job = jobs[0]
+      if (!job) return null
+      return { what: job.what ?? '', started: job.started ?? Date.now(), step: hub.runningStepName(job.taskId), waiting: jobs.length - 1 }
+    },
     /** `content` is the owner's words, or a list of image and text blocks. */
     ask(content, job) {
       job.started = Date.now()
@@ -415,6 +436,19 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
       return done
     },
   }
+}
+
+/** "Sigo con X (4 min, ahora: editando el video)". */
+function busyLine(st, queued) {
+  if (!st) return 'Estoy libre. ¿Qué hacemos?'
+  const mins = Math.max(1, Math.round((Date.now() - st.started) / 60_000))
+  const now = st.step ? stepName(st.step) : null
+  const what = st.what ? `«${String(st.what).slice(0, 80)}${String(st.what).length > 80 ? '…' : ''}»` : 'lo que me pediste'
+  return (
+    `⏳ Sigo trabajando en ${what} (${mins} min${now ? `, ahora: ${now}` : ''}).` +
+    (queued ? ' Tu mensaje queda en fila y lo atiendo en cuanto termine.' : st.waiting ? ` Tengo ${st.waiting} mensaje${st.waiting === 1 ? '' : 's'} en fila.` : '') +
+    ' Para parar lo actual: /cancelar'
+  )
 }
 
 /**
@@ -796,6 +830,9 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       writeTelegram(cfg)
       return say(chatId, { siempre: 'Te contesto siempre con nota de voz.', nunca: 'Te contesto siempre por escrito.', auto: 'Nota de voz si me hablas, texto si me escribes.' }[voice])
     }
+    if (text === '/estado') {
+      return say(chatId, convo?.busy ? busyLine(convo.status(), false) : 'Estoy libre. ¿Qué hacemos?')
+    }
     if (text === '/cancelar' || text === '/parar') {
       if (!convo?.stop('Listo, lo detuve.')) return say(chatId, 'No estoy haciendo nada en este momento.')
       return
@@ -841,8 +878,10 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     }
 
     const voice = cfg.voice === 'siempre' || (cfg.voice !== 'nunca' && Boolean(audio))
+    // Busy with something long: answer now with where she is, and queue this.
+    if (convo?.busy) await say(chatId, busyLine(convo.status(), true))
     const taskId = hub.startTask(request, undefined, 'telegram')
-    talk().ask(request, { taskId, chatId, voice })
+    talk().ask(request, { taskId, chatId, voice, what: request })
     keepTyping(chatId, voice)
   }
 
