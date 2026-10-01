@@ -393,6 +393,7 @@ const NOTION_WRITE = new Set([
 
 /** Image, video and social-publishing services, and what they may never do. */
 const CONTENT_SERVERS = new Set(['higgsfield', 'metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads', 'canva'])
+const ZOHO_REFUSED = /(delete|remove|void|write[_-]?off|refund|bulk|purchase|billing|subscri|upgrade|invite|user|role|permission)/i
 const CONTENT_REFUSED = /(delete|remove|purchase|buy|pay|billing|subscri|top[_-]?up|upgrade|invite)/i
 
 function decideTool(name) {
@@ -407,6 +408,9 @@ function decideTool(name) {
     // here rather than left to the verb rules below, which read `ui_theme` as
     // a write and would hold the whole surface back behind ALLOW_WRITES.
     if (server === 'jarvis' || server === 'jarvis_ui') return true
+    // Invoices: reading, creating and sending (each send held for the owner's
+    // tap, see console.mjs); never deleting, voiding or writing anything off.
+    if (server === 'zoho') return !ZOHO_REFUSED.test(name)
 
     // The browser server gates itself, at construction: chromeServer() only
     // builds the acting tools — click, type, form input, close tab — when
@@ -759,6 +763,18 @@ Raw footage (Google Drive):
   same piece again. After the piece is finished, mark_raw_used with what it was.
 - Only ever use a brand's own raw footage for that brand. The folders are read
   only: never move, rename or delete anything in them.
+
+Invoices (Zoho):
+- Create, send and follow up invoices with the zoho tools when the owner asks.
+  Before creating one, find the customer (create them only with details the
+  owner gave), and say back the customer, email, items, amounts, currency and
+  due date. The owner approves every create and every send with a tap.
+- If there is more than one Zoho organization, use the one for the brand the
+  invoice is for, and say which.
+- Never delete, void or write off anything, and record a payment only when the
+  owner says it was paid.
+- "¿Quién me debe?" is a read: list the unpaid and overdue invoices with
+  customer, amount and days late.
 
 Routines:
 - The owner can leave you work to do on your own at set times ("todos los

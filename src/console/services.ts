@@ -44,6 +44,7 @@ export const SERVICES: Record<string, Service> = {
   heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'marketing' },
   higgsfield: { label: 'Higgsfield', icon: '🎥', dept: 'marketing' },
   canva: { label: 'Canva', icon: '🎨', dept: 'marketing' },
+  zoho: { label: 'Zoho Invoice', icon: '🧾', dept: 'ventas' },
   zernio: { label: 'Zernio', icon: '🗓️', dept: 'marketing' },
   'meta-ads': { label: 'Meta Ads', icon: '📢', dept: 'publicidad' },
   fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'marketing' },

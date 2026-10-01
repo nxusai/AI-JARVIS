@@ -125,6 +125,8 @@ export function needsApproval(name) {
   const { server, tool } = splitTool(name)
   if (ALWAYS_APPROVAL.has(`${server}__${tool}`)) return true
   if (PUBLISHERS.has(server)) return !isReadCall(server, tool)
+  // Invoices: anything but a read goes to the owner first.
+  if (server === 'zoho') return !/(^|[_-])(list|get|search|fetch|retrieve|view|read|report|find)/i.test(tool)
   // Designs stay in the owner's own Canva; only sharing them with others is held.
   if (server === 'canva') return /share|publish|invite|collaborat/i.test(tool)
   if (server === 'higgsfield') return /video|animate|motion/i.test(tool) && !PLAIN_READ.test(tool)

@@ -211,6 +211,7 @@ export function describeApproval(view) {
   if (view.account) lines.push(`📍 Cuenta: ${view.account}`)
   if (spendsMoney(view.server, view.tool, view.input)) lines.push('💸 OJO: esto puede empezar a gastar dinero de la cuenta publicitaria.')
   else if (view.server === 'meta-ads' && /create|duplicate|copy/i.test(view.tool)) lines.push('⏸️ Se crea en PAUSA: no gasta hasta que la actives.')
+  if (view.server === 'zoho') lines.push('🧾 Factura: revisa cliente, correo y montos antes de aprobar.')
   lines.push(`➡️ ${TOOL_LABEL[key] ?? adsLabel(view) ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
   const input = view.input && typeof view.input === 'object' ? view.input : {}
   // A post reads as a post: when, where, and the caption exactly as it will go out.
