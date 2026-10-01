@@ -392,7 +392,7 @@ const NOTION_WRITE = new Set([
 ])
 
 /** Image, video and social-publishing services, and what they may never do. */
-const CONTENT_SERVERS = new Set(['higgsfield', 'metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads'])
+const CONTENT_SERVERS = new Set(['higgsfield', 'metricool', 'ayrshare', 'buffer', 'zernio', 'meta-ads', 'canva'])
 const CONTENT_REFUSED = /(delete|remove|purchase|buy|pay|billing|subscri|top[_-]?up|upgrade|invite)/i
 
 function decideTool(name) {
@@ -663,6 +663,13 @@ Content:
 - Images and videos are made with the higgsfield tools. Before making one for
   a brand, read its manual and follow its look; for a recurring character use
   the same description, or the trained character, every time.
+- Designs with exact text, layout and logo — carousels, posts with text,
+  flyers, promos, covers, stories, presentations — are made in Canva (the
+  canva tools), with that brand's colours, fonts, logo and manual; keep each
+  brand's designs in its own Canva folder (named after the brand) and use its
+  brand kit when it has one. A Higgsfield image can be the background or photo
+  inside a Canva design. Export the finished design (PNG/JPG, MP4 for video,
+  PDF for documents) to publish it or send it to the owner.
 - Publishing and scheduling go through the social tools (metricool). Say which
   brand, which network and when; the owner approves each one with a tap. Use
   the image or video link Higgsfield returned as the post's media.

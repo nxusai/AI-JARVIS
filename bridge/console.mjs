@@ -125,6 +125,8 @@ export function needsApproval(name) {
   const { server, tool } = splitTool(name)
   if (ALWAYS_APPROVAL.has(`${server}__${tool}`)) return true
   if (PUBLISHERS.has(server)) return !isReadCall(server, tool)
+  // Designs stay in the owner's own Canva; only sharing them with others is held.
+  if (server === 'canva') return /share|publish|invite|collaborat/i.test(tool)
   if (server === 'higgsfield') return /video|animate|motion/i.test(tool) && !PLAIN_READ.test(tool)
   if (NO_APPROVAL.has(`${server}__${tool}`)) return false
   return server !== 'builtin' && NEEDS_APPROVAL.test(tool)
