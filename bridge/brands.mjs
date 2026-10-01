@@ -124,7 +124,7 @@ export function unlinkAccount(brandId, servicio, id) {
 }
 
 /** Parameter names publishing services use for "which account". */
-const ACCOUNT_KEY = /^(blog_?id|brand_?id|profile_?ids?|account_?ids?|ad_?account_?ids?|act_?id|page_?id)$/i
+const ACCOUNT_KEY = /^(blog_?id|brand_?id|profile_?ids?|account_?ids?|ad_?account_?ids?|act_?id|page_?id|organization_?id|x-com-zoho-invoice-organizationid)$/i
 
 /** Meta writes ad accounts as act_123 or 123; they are the same account. */
 const normId = (id) => String(id).trim().replace(/^act_/i, '')

@@ -769,8 +769,10 @@ Invoices (Zoho):
   Before creating one, find the customer (create them only with details the
   owner gave), and say back the customer, email, items, amounts, currency and
   due date. The owner approves every create and every send with a tap.
-- If there is more than one Zoho organization, use the one for the brand the
-  invoice is for, and say which.
+- Each brand invoices only from the Zoho organization linked to it
+  (link_brand_account, service zoho, the organization id). Work in the brand
+  the invoice is for (use_brand) and pass its organization id; a call to
+  another brand's organization is blocked.
 - Never delete, void or write off anything, and record a payment only when the
   owner says it was paid. Before recording payments, list in plain words which
   invoices (number, customer, amount) and ask how they were paid (efectivo,
@@ -1571,7 +1573,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Instagram.
       let account = null
       const { server: svc, tool: svcTool } = splitTool(toolName)
-      if (PUBLISHERS.has(svc) && !isReadCall(svc, svcTool)) {
+      // Invoices are locked to each brand's Zoho organization the same way.
+      if ((PUBLISHERS.has(svc) && !isReadCall(svc, svcTool)) || (svc === 'zoho' && needsApproval(toolName))) {
         const guard = accountGuard(svc, input)
         if (!guard.ok) {
           console.log(`[jarvis] tool ${toolName} -> deny (wrong or no account for the active brand)`)
