@@ -6,6 +6,8 @@
 //
 // For the messenger (NEXY_MESSENGER_AGENT_ID) and the agent that calls the
 // owner (NEXY_CALL_AGENT_ID), in ElevenLabs:
+//   - the message ({{nexy_brief}}) written into her instructions, so an
+//     interrupted greeting never loses it;
 //   - turn eagerness "patient": she waits for the person to really finish,
 //     instead of jumping in at every noise;
 //   - the first message cannot be interrupted, so the message is always said
@@ -23,6 +25,9 @@ import { join } from 'node:path'
 const API = 'https://api.elevenlabs.io/v1/convai/agents'
 const WANT = { turn_eagerness: 'patient', disable_first_message_interruptions: true }
 const onlyShow = process.argv[2] === 'ver'
+const MESSAGE_BLOCK = `MENSAJE DE ESTA LLAMADA: {{nexy_brief}}
+- Ese es el mensaje que tienes que dar en esta llamada. Si te interrumpen, si hubo ruido o si te piden que lo repitas, dilo otra vez completo y con calma.
+- Ignora ruidos, sonidos, palabras sueltas o frases sin sentido: no les respondas y nunca digas que no tienes mensaje.`
 
 function key() {
   if (process.env.ELEVENLABS_API_KEY) return process.env.ELEVENLABS_API_KEY.trim()
@@ -76,9 +81,16 @@ async function fix(label, id, apiKey) {
       changes++
     }
   }
-  const prompt = String(get(conv, ['agent', 'prompt', 'prompt']) ?? '')
-  if (!/\{\{\s*nexy_brief\s*\}\}/.test(prompt)) {
-    console.log('  ⚠️  Su system prompt no tiene {{nexy_brief}}: si la interrumpen, no sabrá el recado. Pega el prompt nuevo que te pasó Claude.')
+  // The message has to be in her instructions, not only in her greeting: a
+  // greeting cut short by a noise or an interruption is otherwise lost.
+  const promptObj = get(conv, ['agent', 'prompt'])
+  const prompt = String(promptObj?.prompt ?? '')
+  if (promptObj && !/\{\{\s*nexy_brief\s*\}\}/.test(prompt)) {
+    console.log(`  ${onlyShow ? '•' : '🔧'} system prompt: le agrego el mensaje ({{nexy_brief}}) para que nunca lo olvide`)
+    setIn(patch, ['agent', 'prompt'], { ...promptObj, prompt: `${prompt.trim()}\n\n${MESSAGE_BLOCK}` })
+    changes++
+  } else if (promptObj) {
+    console.log('  ✅ system prompt ya tiene el mensaje ({{nexy_brief}})')
   }
   const llm = get(conv, ['agent', 'prompt', 'llm'])
   if (llm) console.log(`  ℹ️  Modelo: ${llm}${/haiku/i.test(String(llm)) ? ' (recomendado: cambiar a Claude Sonnet en ElevenLabs)' : ''}`)
