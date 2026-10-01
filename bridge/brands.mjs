@@ -380,7 +380,7 @@ const manualText = (b) => {
   const links = b.conexiones.length
     ? `\n\nAccounts linked to ${b.nombre} (publish only to these): ${b.conexiones.map((c) => `${c.servicio} id ${c.id}${c.nombre ? ` (${c.nombre})` : ''}`).join('; ')}.`
     : `\n\n${b.nombre} has no publishing accounts linked yet.`
-  return manualBody(b) + links
+  return manualBody(b) + stylesText(b) + links
 }
 
 const manualBody = (b) => {
@@ -394,6 +394,35 @@ const manualBody = (b) => {
   return refs.length
     ? `${withLogo}\n\nVisual references for ${b.nombre} — images the owner chose as its look. Open them with the Read tool when making anything visual, and match their colours, typography and layout:\n${refs.map((r) => `- ${r}`).join('\n')}`
     : withLogo
+}
+
+const stylesFile = (id) => join(MANUALS_DIR, id, 'estilos.json')
+const MAX_STYLES = 20
+
+/**
+ * A brand's editing styles: how its videos are cut, titled and paced, learned
+ * from examples the owner showed, each under a name they can ask for.
+ */
+export function readEditStyles(id) {
+  try {
+    const list = JSON.parse(readFileSync(stylesFile(id), 'utf8'))
+    return Array.isArray(list) ? list.filter((s) => s && typeof s.nombre === 'string' && typeof s.ficha === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writeEditStyles(id, list) {
+  mkdirSync(join(MANUALS_DIR, id), { recursive: true })
+  writeFileSync(stylesFile(id), JSON.stringify(list, null, 2) + '\n')
+}
+
+const stylesText = (b) => {
+  const styles = readEditStyles(b.id)
+  return styles.length
+    ? `\n\nEditing styles for ${b.nombre} — follow the named one exactly when asked to edit "con el estilo …", and pass its whole description to the editor:\n` +
+        styles.map((s) => `### ${s.nombre}${s.fuente ? ` (learned from ${s.fuente})` : ''}\n${s.ficha}`).join('\n\n')
+    : ''
 }
 
 const notFound = (q) => {
@@ -525,6 +554,55 @@ export function brandsServer() {
           console.log(`[jarvis] brand: logo saved for ${b.id}`)
           changed()
           return ok(`Saved as the ${b.nombre} logo${ext === 'png' ? '' : ' (no transparency: ask for a PNG file for a cleaner look)'}.`)
+        },
+      ),
+
+      tool(
+        'save_edit_style',
+        "Keep an editing style for a brand under a name, so its videos can be edited that way again: the description " +
+          'of a reference video the editor analysed (or the owner described). Only when the owner asks to keep or learn ' +
+          'a style. Saving under an existing name replaces it.',
+        {
+          name: z.string().describe('What the owner calls it, e.g. "Reel dinámico".'),
+          style: z
+            .string()
+            .describe(
+              'The style, concrete enough to reproduce: length, pace (seconds per shot, cuts on what), hook in the first ' +
+                'seconds, structure, subtitles (font, size, position, colours, highlighted words, animation), text on ' +
+                'screen, zooms and transitions, colour look, music and sound, logo and call to action.',
+            ),
+          source: z.string().optional().describe('Where it came from: the link or file of the example.'),
+          brand: z.string().optional().describe('The brand; the active one when left out.'),
+        },
+        async ({ name, style, source, brand }) => {
+          const b = brand ? findBrand(brand) : activeBrand()
+          if (!b) return notFound(brand)
+          const nombre = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, 60)
+          const ficha = String(style ?? '').trim().slice(0, 4000)
+          if (!nombre || ficha.length < 40) return refuse('Give the style a name and describe it in detail.')
+          const list = readEditStyles(b.id).filter((s) => fold(s.nombre) !== fold(nombre))
+          if (list.length >= MAX_STYLES) return refuse(`${b.nombre} already has ${MAX_STYLES} styles; remove one first.`)
+          list.push({ nombre, ficha, fuente: String(source ?? '').trim().slice(0, 300) || null, fecha: new Date().toISOString() })
+          writeEditStyles(b.id, list)
+          console.log(`[jarvis] brand: editing style "${nombre}" saved for ${b.id}`)
+          changed()
+          return ok(`Saved the editing style "${nombre}" for ${b.nombre}. Ask for it any time: "edítalo con el estilo ${nombre}".`)
+        },
+      ),
+
+      tool(
+        'remove_edit_style',
+        "Forget one of a brand's editing styles — only when the owner asks.",
+        { name: z.string(), brand: z.string().optional() },
+        async ({ name, brand }) => {
+          const b = brand ? findBrand(brand) : activeBrand()
+          if (!b) return notFound(brand)
+          const list = readEditStyles(b.id)
+          const keep = list.filter((s) => fold(s.nombre) !== fold(name))
+          if (keep.length === list.length) return refuse(`${b.nombre} has no style called ${name}.`)
+          writeEditStyles(b.id, keep)
+          changed()
+          return ok(`Removed the style "${name}" from ${b.nombre}.`)
         },
       ),
 

@@ -335,6 +335,9 @@ const WRITE_ALLOWLIST = new Set([
   // Edits into ~/Movies/Nexy only, from the Nexy folders or public links (see video.mjs).
   'jarvis_video__edit_video',
   'jarvis_brands__save_brand_logo',
+  // A brand's editing styles: a file on this Mac (see brands.mjs).
+  'jarvis_brands__save_edit_style',
+  'jarvis_brands__remove_edit_style',
   // Sends a finished file to the owner's own Telegram chat, nothing else.
   'jarvis_telegram__send_file',
   // Cancels only calls Nexy herself booked for contacts (see contacts.mjs).
@@ -679,6 +682,18 @@ Video:
   the editor agent. Tell it the files (paths from list_videos or the owner's
   message, or links), the brand and exactly what the owner asked. When it
   returns an exported file, send it to the owner to watch.
+- A link to a video (Instagram, TikTok, YouTube, Facebook, X, Threads, Vimeo)
+  that the owner sends to show you something: get_reference_video downloads it
+  so you can actually watch it. If it fails because the site wants a login,
+  ask them to save it on their phone and send it on Telegram.
+- To learn or copy the style of a reference ("edita así", "guarda este
+  estilo"): ask the editor agent to analyse it and return a style description
+  (what save_edit_style asks for). If the owner wants it kept, save it with
+  save_edit_style under the name they give, for the brand it is for. To edit
+  "con el estilo X", read_brand and hand the editor that style's whole text
+  with the footage.
+- A reference is someone else's work: study it, never publish it or reuse its
+  footage, music or text.
 - AI scenes of the owner inside a real edit: first look at the real footage
   (the editor can describe it) so the new scenes match its framing, light,
   wardrobe and 9:16 format. Generate them with Higgsfield using the owner's

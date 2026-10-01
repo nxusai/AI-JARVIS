@@ -7,6 +7,7 @@ import { homedir, tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
 import { activeBrand, findBrand, readLogo, readManual } from './brands.mjs'
 import { vetTarget } from './net.mjs'
+import { REFS, fetchReference } from './reference.mjs'
 
 /**
  * Nexy's video editor: the everyday edits, done by FFmpeg on this Mac.
@@ -20,6 +21,7 @@ import { vetTarget } from './net.mjs'
  *   ~/Movies/Nexy/entrada   the owner's own videos (AirDrop them here)
  *   ~/Movies/Nexy/musica    music the owner has the right to use
  *   ~/Movies/Nexy/listos    finished videos
+ *   ~/Movies/Nexy/referencias  videos the owner pointed at to show a style (see reference.mjs)
  *
  * FFmpeg is the Homebrew one when installed, otherwise the copy npm put in
  * node_modules (ffmpeg-static), or NEXY_FFMPEG.
@@ -269,7 +271,7 @@ const EDIT_DESCRIPTION =
   'file; show it to the owner before publishing it.'
 
 export function videoServer(elevenKey, voiceId) {
-  for (const d of [INBOX, MUSIC, DONE]) {
+  for (const d of [INBOX, MUSIC, DONE, REFS]) {
     try {
       mkdirSync(d, { recursive: true })
     } catch {
@@ -291,9 +293,31 @@ export function videoServer(elevenKey, voiceId) {
           ...(list(MUSIC, AUDIO_EXT).length ? list(MUSIC, AUDIO_EXT) : ['(empty)']),
           `Finished (${DONE}):`,
           ...(list(DONE, VIDEO_EXT).length ? list(DONE, VIDEO_EXT) : ['(empty)']),
+          `Style references, never to publish (${REFS}):`,
+          ...(list(REFS, VIDEO_EXT).length ? list(REFS, VIDEO_EXT) : ['(empty)']),
         ]
         return ok(parts.join('\n'))
       }),
+
+      tool(
+        'get_reference_video',
+        'Download the video at an Instagram, TikTok, YouTube, Facebook, X, Threads or Vimeo link the owner sent, so it ' +
+          'can be watched and studied (its editing style, structure, subtitles). It is a reference only: never publish ' +
+          'it or reuse its footage. The first time, this fetches the downloader (yt-dlp) and takes a little longer.',
+        { url: z.string().describe('The link exactly as the owner sent it.') },
+        async ({ url }) => {
+          try {
+            const r = await fetchReference(url, { ffmpeg: findFfmpeg() })
+            return ok(
+              `Downloaded to ${r.path} (${r.mb} MB${r.duration ? `, ${Math.round(r.duration)} s` : ''})` +
+                `${r.title ? `. Title: ${r.title}` : ''}${r.uploader ? `. By: ${r.uploader}` : ''}. ` +
+                'Reference only, not for publishing. Give this path to the editor agent to study.',
+            )
+          } catch (err) {
+            return refuse(`Could not get that video: ${err?.message ?? err}`)
+          }
+        },
+      ),
 
       tool(
         'edit_video',

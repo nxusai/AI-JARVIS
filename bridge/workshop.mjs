@@ -200,19 +200,31 @@ export function workshopServer(elevenKey) {
 
       tool(
         'media_info',
-        'Duration, size, frame rate and streams of a file in a project. Add silences:true to list its silent stretches.',
+        'Duration, size, frame rate and streams of a file in a project. Add silences:true to list its silent stretches, ' +
+          'and cuts:true to find every cut (shot change) with its time and the average shot length — the rhythm of an edit.',
         {
           project: z.string(),
           file: z.string(),
           silences: z.boolean().optional(),
           threshold_db: z.number().optional().describe('Silence threshold in dB, default -35.'),
+          cuts: z.boolean().optional(),
         },
-        guard(async ({ project, file, silences, threshold_db }) => {
+        guard(async ({ project, file, silences, threshold_db, cuts }) => {
           const ffmpeg = need()
           const dir = projectDir(project)
           const path = projectFile(dir, file)
           const report = await run(ffmpeg, ['-i', basename(path)], 30_000, true, dir)
-          const lines = report.split('\n').filter((l) => /Duration|Stream/.test(l)).join('\n')
+          let lines = report.split('\n').filter((l) => /Duration|Stream/.test(l)).join('\n')
+          if (cuts) {
+            const log = await run(ffmpeg, ['-i', basename(path), '-an', '-vf', "select='gt(scene,0.3)',showinfo", '-f', 'null', '-'], 10 * 60_000, true, dir)
+            const times = [...log.matchAll(/pts_time:([\d.]+)/g)].map((m) => Number(m[1]))
+            const d = log.match(/Duration: (\d+):(\d+):([\d.]+)/)
+            const total = d ? Number(d[1]) * 3600 + Number(d[2]) * 60 + Number(d[3]) : 0
+            const shots = times.length + 1
+            lines +=
+              `\nCuts (${times.length}): ${times.map((t) => t.toFixed(2)).join(', ') || 'none — one continuous shot'}` +
+              (total ? `\nAverage shot: ${(total / shots).toFixed(2)} s over ${total.toFixed(1)} s` : '')
+          }
           if (!silences) return ok(lines)
           const log = await run(ffmpeg, ['-i', basename(path), '-af', `silencedetect=n=${threshold_db ?? -35}dB:d=0.35`, '-f', 'null', '-'], 10 * 60_000, true, dir)
           const found = [...log.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/g)].map((m) => `${Number(m[1]).toFixed(2)}–${Number(m[2]).toFixed(2)} s`)

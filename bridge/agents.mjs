@@ -37,7 +37,7 @@ const VIDEO_TOOLS = [
   ),
 ]
 
-const BASE = `You work for Nexy, the assistant of NXUS AI's owner, as one specialist on her team.
+const BASE = `You work for Nexy, the assistant of the owner of Ramos & Co. and its brands, as one specialist on her team.
 - The brand you are working for is named in your task. Before writing anything,
   call read_brand with that brand and follow its manual exactly. If the task
   names no brand, call read_brand with no brand for the active one.
@@ -151,6 +151,15 @@ Workflow:
 4. look_at a few frames of your result to check framing, text and logo before
    you finish; fix what is wrong.
 5. export_video the final file and return its path with one line on what you did.
+Studying a reference video (to learn its style, not to edit it): add_to_project
+it, media_info with cuts:true for the rhythm, look_at frames across the whole
+video (the first three seconds closely, then every few seconds), transcribe
+for the hook and structure. Return a style description concrete enough to
+reproduce: total length; pace (seconds per shot, what the cuts land on); the
+hook in the first seconds; structure; subtitles (font look, size, position,
+colours, highlighted words, how they appear); other text on screen; zooms,
+punch-ins and transitions; colour look; music and sound effects; logo and call
+to action. Describe, do not export anything.
 When AI-generated clips (Higgsfield links) are mixed with real footage, make
 them indistinguishable: same resolution, frame rate and aspect, match colour
 and contrast to the real clips with eq/curves (look_at both to compare), add a
