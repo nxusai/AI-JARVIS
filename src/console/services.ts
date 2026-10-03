@@ -126,6 +126,8 @@ const STEPS: Record<string, string> = {
   'jarvis_ventas__schedule_sales_call': 'Programar llamada de Ana Sofi',
   'jarvis_ventas__cancel_sales_call': 'Cancelar llamada de Ana Sofi',
   'jarvis_ventas__log_sales_meeting': 'Anotar videollamada en el Sheet',
+  'jarvis_ventas__ana_sofi_dice': 'Ana Sofi',
+  'jarvis_ventas__cliente_dice': 'Cliente',
   'jarvis_rutinas__create_routine': 'Programar rutina',
   'jarvis_rutinas__update_routine': 'Cambiar rutina',
   'jarvis_rutinas__remove_routine': 'Borrar rutina',

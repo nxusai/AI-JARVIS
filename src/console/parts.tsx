@@ -186,6 +186,10 @@ export function TaskView({
           <span className="via" title="Rutina programada">
             ⏰ Rutina
           </span>
+        ) : task.via === 'llamada' ? (
+          <span className="via" title="Llamada de Ana Sofi, en vivo">
+            📞 Llamada
+          </span>
         ) : null}
         <span className="ask">“{task.text}”</span>
         <span className={`badge ${task.status}`}>{TASK_WORD[task.status]}</span>

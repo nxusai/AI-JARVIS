@@ -4,6 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'n
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { z } from 'zod'
+import { hub } from './console.mjs'
 import { resolveWhen } from './phone.mjs'
 import { runJob } from './routines.mjs'
 
@@ -558,6 +559,22 @@ export function startSales({ elevenKey, zone }) {
   const clock = setInterval(tick, TICK_MS)
   clock.unref?.()
   setTimeout(tick, 15_000).unref?.()
+  // Ana Sofi's calls as they happen, in the console's Mi Semago section.
+  let watching = false
+  const look = async () => {
+    const key = elevenKey()
+    if (watching || !key) return
+    watching = true
+    try {
+      await watchLive(key, readSalesConfig())
+    } catch (err) {
+      console.log(`[jarvis] ventas en vivo: ${err?.message ?? err}`)
+    } finally {
+      watching = false
+    }
+  }
+  const eyes = setInterval(look, LIVE_MS)
+  eyes.unref?.()
   console.log('[jarvis] ventas Mi Semago on: Ana Sofi calls the leads in the Sheet')
 }
 
@@ -566,6 +583,7 @@ export async function salesTick({ elevenKey, zone }) {
   const key = elevenKey()
   if (!key) return console.log('[jarvis] ventas: no encuentro la llave de ElevenLabs')
   const leads = await readLeads(cfg)
+  leadCache = leads
   const state = readState()
   const now = Date.now()
 
@@ -690,6 +708,96 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
   s.stage = 'cerrado'
   await writeLead(cfg, lead, { Estado: label })
   tell(`📞 Llamada de Ana Sofi con ${who} (Mi Semago): ${label}${details ? ` · ${details}` : ''}.${outcome.notas ? `\n${outcome.notas.slice(0, 600)}` : ''}`)
+}
+
+// ── calls as they happen ─────────────────────────────────────────────────
+
+/*
+ * The calls themselves happen in ElevenLabs, not on this Mac, so the console
+ * would only hear of one minutes after it ended. Every few seconds Nexy asks
+ * ElevenLabs which of Ana Sofi's calls are on, opens a task for each in the
+ * Mi Semago section, adds what each side says as it comes, and closes it with
+ * how the call went.
+ */
+
+const LIVE_MS = 15_000
+const live = new Map() // conversation id → { taskId, shown, done, at }
+let leadCache = []
+
+function whoIs(conv, inbound) {
+  const vars = conv?.conversation_initiation_client_data?.dynamic_variables ?? {}
+  if (!inbound && vars.contact_name && vars.contact_name !== '-') {
+    return vars.empresa && vars.empresa !== '-' ? `${vars.contact_name} (${vars.empresa})` : vars.contact_name
+  }
+  const phone = conv?.metadata?.phone_call?.external_number ?? vars.system__caller_id ?? ''
+  const lead = usPhone(phone) ? leadCache.filter((l) => usPhone(l.telefono) === usPhone(phone)).pop() : null
+  if (lead) return [lead.nombre, lead.empresa && `(${lead.empresa})`].filter(Boolean).join(' ')
+  return phone || (inbound ? 'alguien' : 'un lead')
+}
+
+function showTurns(entry, conv) {
+  const turns = Array.isArray(conv?.transcript) ? conv.transcript : []
+  for (let i = entry.shown; i < turns.length; i++) {
+    const text = String(turns[i]?.message ?? '').trim()
+    if (!text) continue
+    const id = `${entry.convId}:${i}`
+    const name = turns[i].role === 'agent' ? 'mcp__jarvis_ventas__ana_sofi_dice' : 'mcp__jarvis_ventas__cliente_dice'
+    hub.startStep(entry.taskId, id, name, { message: text })
+    hub.endStep(id, false, '')
+  }
+  entry.shown = Math.max(entry.shown, turns.length)
+}
+
+function howItWent(conv) {
+  const dc = conv?.analysis?.data_collection_results ?? {}
+  const r = fold(valueOf(dc, 'resultado') ?? valueOf(dc, 'tipo_llamada') ?? '').replace(/\s+/g, '_')
+  const label = OUTCOMES[r] ?? INBOUND_LABELS[r] ?? ''
+  const summary = String(valueOf(dc, 'notas') ?? valueOf(dc, 'resumen') ?? conv?.analysis?.transcript_summary ?? '').trim()
+  return [label, summary].filter(Boolean).join(' — ') || 'Llamada terminada.'
+}
+
+const INBOUND_LABELS = {
+  cambio_reunion: 'Pidió mover la videollamada',
+  agendar_reunion: 'Pidió agendar videollamada',
+  cancelar_reunion: 'Canceló la videollamada',
+  pregunta: 'Tenía dudas',
+  nuevo_prospecto: 'Prospecto nuevo',
+}
+
+export async function watchLive(key, cfg) {
+  const agents = [
+    [cfg.agentId, false],
+    [cfg.inboundAgentId, true],
+  ].filter(([a]) => /^agent_\w+$/.test(a))
+  const now = Date.now()
+  for (const [agent, inbound] of agents) {
+    const list = await eleven(key, `/conversations?agent_id=${encodeURIComponent(agent)}&page_size=10`)
+    if (list.error) continue
+    for (const c of list.data.conversations ?? []) {
+      const id = c.conversation_id
+      if (!id) continue
+      let entry = live.get(id)
+      const on = /in.?progress|initiated|processing/.test(fold(c.status))
+      const recent = now - (c.start_time_unix_secs ?? 0) * 1000 < 30 * 60_000
+      if (!entry && !(on && recent)) continue
+      if (entry?.done) continue
+      const d = await eleven(key, `/conversations/${id}`)
+      if (d.error) continue
+      if (!entry) {
+        const who = whoIs(d.data, inbound)
+        const title = inbound ? `📞 ${who} está llamando a Ana Sofi` : `📞 Ana Sofi en llamada con ${who}`
+        entry = { convId: id, taskId: hub.startTask(title, 'mi-semago', 'llamada'), shown: 0, done: false, at: now }
+        live.set(id, entry)
+      }
+      showTurns(entry, d.data)
+      const st = fold(d.data.status)
+      if (st === 'done' || st === 'failed') {
+        entry.done = true
+        hub.endTask(entry.taskId, st === 'failed' ? 'error' : 'done', howItWent(d.data))
+      }
+    }
+  }
+  for (const [id, e] of live) if (e.done && now - e.at > 2 * 60 * 60_000) live.delete(id)
 }
 
 // ── calls coming in ──────────────────────────────────────────────────────
