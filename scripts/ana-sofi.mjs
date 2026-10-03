@@ -7,6 +7,7 @@
 //   node scripts/ana-sofi.mjs script     only copies the Sheet script again
 //   node scripts/ana-sofi.mjs estado     what is set up, and the leads it can see
 //   node scripts/ana-sofi.mjs revisar    why each lead was or was not called, piece by piece
+//   node scripts/ana-sofi.mjs entrantes  lets leads call Ana Sofi back: makes her inbound twin and gives it the number
 //
 // The Sheet script answers only to a long random key made here, kept in
 // ~/.nexy/ventas.json (readable by this user only) and inside the script in
@@ -16,12 +17,22 @@
 
 import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
-import { existsSync, readFileSync } from 'node:fs'
-import { readLeads, readSalesConfig, readSalesState, salesMissing, sheetVersion, usPhone, wantsCall, writeSalesConfig } from '../bridge/ventas.mjs'
+import {
+  assignInbound,
+  createInboundAgent,
+  readLeads,
+  readSalesConfig,
+  readSalesState,
+  salesMissing,
+  sheetVersion,
+  usPhone,
+  wantsCall,
+  writeSalesConfig,
+} from '../bridge/ventas.mjs'
 import { readTelegram } from '../bridge/telegram-config.mjs'
 
 const say = (s = '') => console.log(s)
@@ -200,7 +211,14 @@ async function revisar() {
     else {
       good(`Número: ${p.data.phone_number ?? cfg.phoneId}`)
       const assigned = p.data.assigned_agent?.agent_id
-      if (assigned && assigned !== cfg.agentId) bad('Ese número tiene asignado OTRO agente, no a Ana Sofi')
+      const want = cfg.inboundAgentId || cfg.agentId
+      if (assigned && assigned !== want) bad(`Las llamadas que entran a ese número las contesta OTRO agente. Corre: node scripts/ana-sofi.mjs entrantes`)
+      else if (cfg.inboundAgentId && assigned === want) good('Llamadas entrantes: las contesta "Ana Sofi · Llamadas entrantes"')
+    }
+    if (!cfg.inboundAgentId) say('  • Llamadas entrantes: todavía no. Para activarlas: node scripts/ana-sofi.mjs entrantes')
+    else {
+      const i = await eleven(key, `/agents/${cfg.inboundAgentId}`)
+      if (i.error) bad(`ElevenLabs no encuentra el agente de llamadas entrantes (${i.error}). Corre: node scripts/ana-sofi.mjs entrantes`)
     }
   }
 
@@ -238,6 +256,30 @@ async function revisar() {
   say()
 }
 
+async function entrantes() {
+  const cfg = readSalesConfig()
+  const missing = salesMissing(cfg)
+  if (missing.length) return say(`\n✋ Primero conecta a Ana Sofi (falta ${missing.join(', ')}): node scripts/ana-sofi.mjs\n`)
+  const key = elevenKey()
+  if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
+  let id = cfg.inboundAgentId
+  if (id && !(await eleven(key, `/agents/${id}`)).error) {
+    say('\n✅ "Ana Sofi · Llamadas entrantes" ya existe.')
+  } else {
+    say('\nCreo "Ana Sofi · Llamadas entrantes" con la voz, el modelo, los idiomas y el catálogo de Ana Sofi…')
+    const made = await createInboundAgent(key, cfg)
+    if (made.error) return say(`\n✋ ${made.error}. Mándame foto de este mensaje.\n`)
+    id = made.id
+    writeSalesConfig({ inboundAgentId: id })
+    say(`✅ Agente creado: ${id}`)
+  }
+  const a = await assignInbound(key, cfg, id)
+  if (a.error) return say(`\n✋ No pude darle el número (error ${a.error}). Hazlo a mano: en ElevenLabs, tu número → Agent → "Ana Sofi · Llamadas entrantes".\n`)
+  say('✅ Las llamadas que entran al número de Ana Sofi ahora las contesta ella, sabiendo quién llama.')
+  say('   Las llamadas que Ana Sofi hace a los leads siguen saliendo igual.')
+  say('\nReinicia a Nexy (Ctrl + C y npm start) para que empiece a leer esas llamadas.\n')
+}
+
 async function estado() {
   const cfg = readSalesConfig()
   const missing = salesMissing(cfg)
@@ -256,4 +298,5 @@ else if (cmd === 'script') {
   copyScript(readSalesConfig().token)
 } else if (cmd === 'estado') await estado()
 else if (cmd === 'revisar') await revisar()
-else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar]\n')
+else if (cmd === 'entrantes') await entrantes()
+else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes]\n')
