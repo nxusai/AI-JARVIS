@@ -187,6 +187,22 @@ export function setRoutineRunner(fn) {
 }
 
 /**
+ * One job handed to Nexy outside any routine — the sales line uses it for a
+ * new lead — run the same way and reported the same way. `aviso` is the line
+ * the owner sees when it starts. False when nothing can run it yet.
+ */
+export function runJob(nombre, marca, prompt, aviso) {
+  if (!runner) return false
+  try {
+    runner({ id: 'job', nombre, marca, aviso }, prompt)
+    return true
+  } catch (err) {
+    console.log(`[jarvis] job «${nombre}» could not start: ${err?.message ?? err}`)
+    return false
+  }
+}
+
+/**
  * Start the clock. While any routine is active on a Mac, it also keeps the
  * Mac from dozing off on its own (the built-in caffeinate, only while Nexy
  * runs); closing the lid still puts it to sleep.

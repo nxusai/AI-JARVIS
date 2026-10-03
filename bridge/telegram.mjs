@@ -10,6 +10,7 @@ import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
 import { country, toE164 } from './contact-book.mjs'
 import { setRoutineRunner } from './routines.mjs'
+import { setSalesNotifier } from './ventas.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
 
 /**
@@ -710,11 +711,18 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   // asked; the report comes back to this chat.
   setRoutineRunner((routine, prompt) => {
     const owner = readTelegram()?.owner
-    if (!owner) return console.log(`[jarvis] routine ${routine.id} not run: Telegram is not paired`)
-    void say(owner.id, `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
-    const taskId = hub.startTask(`⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
+    if (!owner) throw new Error('Telegram is not paired')
+    void say(owner.id, routine.aviso ?? `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
+    const taskId = hub.startTask(routine.aviso ? routine.nombre : `⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
     talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre' })
     keepTyping(owner.id, false)
+  })
+
+  // The sales line's plain news (a call that went nowhere, a lead outside the
+  // US) comes straight here, without a turn of Nexy's.
+  setSalesNotifier((text) => {
+    const owner = readTelegram()?.owner
+    if (owner) void say(owner.id, text)
   })
 
   async function answer(job, text) {
