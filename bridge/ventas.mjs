@@ -106,6 +106,7 @@ export function salesMissing(cfg = readSalesConfig()) {
 }
 
 const readState = () => readJson(STATE, {})
+export const readSalesState = readState
 const writeState = (s) => writeJson(STATE, s)
 
 // ── the Sheet ────────────────────────────────────────────────────────────
@@ -480,12 +481,27 @@ export function startSales({ elevenKey, zone }) {
 export async function salesTick({ elevenKey, zone }) {
   const cfg = readSalesConfig()
   const key = elevenKey()
-  if (!key) return
+  if (!key) return console.log('[jarvis] ventas: no encuentro la llave de ElevenLabs')
   const leads = await readLeads(cfg)
   const state = readState()
   const now = Date.now()
 
   for (const lead of leads) {
+    try {
+      await stepLead({ cfg, key, lead, state, zone, now })
+    } catch (err) {
+      console.log(`[jarvis] ventas: fila ${lead.row}: ${err?.message ?? err}`)
+    }
+    writeState(state)
+  }
+}
+
+/**
+ * One lead, one tick. The state is saved before anything is written to the
+ * Sheet, so a Sheet that refuses a write can never get a lead handed out twice.
+ */
+async function stepLead({ cfg, key, lead, state, zone, now }) {
+  {
     const s = state[lead.key]
     if (s) s.row = lead.row // rows move when one above is deleted
 
@@ -495,18 +511,23 @@ export async function salesTick({ elevenKey, zone }) {
     if (fresh) {
       const phone = usPhone(lead.telefono)
       if (!phone) {
-        await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' })
         state[lead.key] = { stage: 'fuera', row: lead.row }
+        writeState(state)
         tell(`📋 Lead nuevo de Mi Semago con número fuera de EE.UU.: ${lead.nombre || '-'} (${lead.empresa || '-'}), ${lead.telefono || 'sin número'}. Ana Sofi no lo llama; quedó en el Sheet.`)
-        continue
+        await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' })
+        return
       }
       const handed = runJob('Ana Sofi · lead nuevo', 'mi-semago', scheduleJob(lead, now, zone), `📋 Lead nuevo de Mi Semago: ${lead.empresa || lead.nombre || 'sin nombre'}. Programo la llamada de Ana Sofi.`)
-      if (!handed) continue // Telegram not ready yet: next tick
-      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — Nexy programa la llamada' })
+      if (!handed) {
+        console.log('[jarvis] ventas: lead nuevo esperando a que Telegram esté listo')
+        return
+      }
       state[lead.key] = { stage: 'nuevo', row: lead.row, since: now, jobAt: now, jobTries: 1, attempts: 0 }
-      continue
+      writeState(state)
+      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — Nexy programa la llamada' })
+      return
     }
-    if (!s) continue
+    if (!s) return
 
     // Handed to Nexy but no call booked yet: hand it again, then give up and say so.
     if ((s.stage === 'nuevo' || s.stage === 'callback') && now - (s.jobAt ?? 0) > JOB_STALE_MS) {
@@ -518,19 +539,19 @@ export async function salesTick({ elevenKey, zone }) {
         }
       } else {
         s.stage = 'atorado'
+        writeState(state)
         await writeLead(cfg, lead, { Estado: 'Sin programar — revisar' })
         tell(`⚠️ No pude programar la llamada de Ana Sofi para ${lead.empresa || lead.nombre || 'un lead'} de Mi Semago. Quedó marcado en el Sheet para revisarlo.`)
       }
-      continue
+      return
     }
 
     if (s.stage === 'programada' && s.batchId && now > (s.at ?? 0)) {
       const outcome = await callOutcome(key, s)
-      if (!outcome) continue
+      if (!outcome) return
       await handleOutcome({ cfg, key, lead, s, outcome, zone, now })
     }
   }
-  writeState(state)
 }
 
 async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
