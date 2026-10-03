@@ -135,12 +135,26 @@ const COLUMNS = {
   notas: 'notas',
 }
 
+/**
+ * The field a Sheet header holds. Titles may carry more words than the
+ * short name ("Horario llamada", "Resultado llamada", "Volumen (lb)"), so a
+ * header that starts with a known name counts as that column.
+ */
+export function columnOf(header) {
+  const h = fold(header).replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (COLUMNS[h]) return COLUMNS[h]
+  const name = Object.keys(COLUMNS)
+    .sort((a, b) => b.length - a.length)
+    .find((k) => h.startsWith(`${k} `))
+  return name ? COLUMNS[name] : null
+}
+
 /** One Sheet row, as the Apps Script sends it, with plain field names. */
 export function leadFrom(raw) {
   const lead = { row: Number(raw.row) }
   for (const [header, value] of Object.entries(raw)) {
-    const field = COLUMNS[fold(header)]
-    if (field) lead[field] = String(value ?? '').trim()
+    const field = columnOf(header)
+    if (field && lead[field] === undefined) lead[field] = String(value ?? '').trim()
   }
   lead.key = lead.contacto ? `id:${lead.contacto}` : `fila:${lead.row}`
   return lead
@@ -171,6 +185,15 @@ async function sheetCall(cfg, params) {
   }
   if (data.error) throw new Error(`the Sheet refused: ${data.error}`)
   return data
+}
+
+/** Which version of the Sheet script is published; 1 for the first one, which had no version. */
+export async function sheetVersion(cfg = readSalesConfig()) {
+  try {
+    return Number((await sheetCall(cfg, { action: 'version' })).version) || 1
+  } catch {
+    return 1
+  }
 }
 
 export async function readLeads(cfg = readSalesConfig()) {

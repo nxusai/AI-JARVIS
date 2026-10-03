@@ -21,7 +21,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { existsSync, readFileSync } from 'node:fs'
-import { readLeads, readSalesConfig, readSalesState, salesMissing, usPhone, wantsCall, writeSalesConfig } from '../bridge/ventas.mjs'
+import { readLeads, readSalesConfig, readSalesState, salesMissing, sheetVersion, usPhone, wantsCall, writeSalesConfig } from '../bridge/ventas.mjs'
 import { readTelegram } from '../bridge/telegram-config.mjs'
 
 const say = (s = '') => console.log(s)
@@ -33,6 +33,7 @@ const TOKEN = '${token}';
 const SHEET_NAME = 'Leads';
 // Las únicas columnas que Nexy puede escribir.
 const WRITABLE = ['Fecha', 'Estado', 'Llamada programada', 'Resultado', 'Reunión', 'Notas'];
+const VERSION = 2;
 
 function norm_(s) {
   return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
@@ -53,6 +54,8 @@ function doGet(e) {
   if (!sh) return out_({ error: 'no encuentro la pestaña ' + SHEET_NAME });
   const values = sh.getDataRange().getDisplayValues();
   const headers = values[0] || [];
+
+  if (p.action === 'version') return out_({ version: VERSION });
 
   if (p.action === 'leads') {
     const rows = [];
@@ -79,7 +82,9 @@ function doGet(e) {
       }
       Object.keys(fields).forEach(function (k) {
         if (!WRITABLE.some(function (w) { return norm_(w) === norm_(k); })) return;
-        const col = headers.findIndex(function (h) { return norm_(h) === norm_(k); });
+        // El título puede traer más palabras: "Resultado llamada", "Reunión agendada".
+        let col = headers.findIndex(function (h) { return norm_(h) === norm_(k); });
+        if (col < 0) col = headers.findIndex(function (h) { return norm_(h).indexOf(norm_(k) + ' ') === 0; });
         if (col >= 0) sh.getRange(row, col + 1).setValue(safe_(fields[k]));
       });
     } finally {
@@ -213,6 +218,8 @@ async function revisar() {
   try {
     leads = await readLeads(cfg)
     good(`Leí el Sheet: ${leads.length} fila(s)`)
+    if ((await sheetVersion(cfg)) < 2) bad('El script del Sheet es la versión vieja. Actualízalo: node scripts/ana-sofi.mjs script, pégalo en Apps Script y publica una versión nueva')
+    else good('Script del Sheet al día')
   } catch (err) {
     bad(`No pude leer el Sheet: ${err.message}`)
   }
