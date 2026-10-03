@@ -444,7 +444,7 @@ function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
 function meetingJob(lead, outcome, horarios) {
   return (
     JOB_HEADER +
-    'Ana Sofi just finished a call: the lead ACCEPTED the price and chose a video call with the owner, Eduardo.\n\n' +
+    'Ana Sofi just finished a call: the lead ACCEPTED the price and chose a video call with the owner (the head of sales).\n\n' +
     `<lead>\n${leadData(lead)}\nslot they chose (as said on the call): ${outcome.videollamada}\n` +
     `slots that were offered: ${horarios || '-'}\nprices discussed: ${outcome.precioOfrecido || '-'}\n` +
     `pounds confirmed: ${outcome.volumen || '-'}\ninterest: ${outcome.interes || '-'}\ncall notes: ${outcome.notas || '-'}\n</lead>\n\n` +
@@ -452,11 +452,68 @@ function meetingJob(lead, outcome, horarios) {
     `1. Work out the exact date and time of the chosen slot (Eastern time, ${OWNER_ZONE_MEETINGS}).\n` +
     '2. Check the owner is still free then. If so, create the event in the owner\'s calendar: one hour, title ' +
     `"Mi Semago · ${(lead.empresa || lead.nombre || 'cliente').replace(/"/g, '')} · videollamada", a Google Meet link, the lead's email as attendee ` +
-    '(only if it is a real address), sendUpdates "all", and in the description the lead\'s details, the prices discussed and the call notes. The owner approves it with a tap.\n' +
+    '(only if it is a real address), sendUpdates "all", and in the description the lead\'s details, the prices discussed and the call notes. ' +
+    'It goes out at once: the lead was promised this meeting on the call, so it is not held for the owner.\n' +
     '3. Then call log_sales_meeting with contacto_id, cuando (the day and time in words, Eastern) and link (the Meet link).\n' +
-    '4. If the slot is no longer free, the email is missing, or the owner rejects the event: create nothing more, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
-    'Report: company, pounds, prices agreed, the meeting time, and whether the invitation went out.'
+    `4. If the meeting is TODAY (Eastern), phone the owner right away with call_me (no time, so it rings now). Message, in Spanish, spoken: ` +
+    '"Boss, tiene un meeting hoy a las …" with the time, the company, who they are, the pounds, the cheeses, the prices agreed and anything from the call ' +
+    'they should know, so they are ready.\n' +
+    '5. If the slot is no longer free or the email is missing: create nothing, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
+    'Report: company, pounds, prices agreed, the meeting time, and that the invitation went out.'
   )
+}
+
+/**
+ * Whether a calendar invitation goes only to leads who just accepted the
+ * price on Ana Sofi's call. Those go out without the owner's tap: the lead
+ * was promised the meeting on the phone. Anyone else still waits for it.
+ */
+export function salesMeetingInvite(input) {
+  const raw = JSON.stringify(input?.attendees ?? input?.events ?? '')
+  const emails = [...new Set((raw.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) ?? []).map((e) => e.toLowerCase()))]
+  if (!emails.length) return false
+  const now = Date.now()
+  const promised = Object.values(readState())
+    .filter((x) => x?.stage === 'reunion_pendiente' && x.correo && now - (x.meetingSince ?? 0) < 6 * 60 * 60_000)
+    .map((x) => x.correo)
+  return emails.every((e) => promised.includes(e))
+}
+
+// ── the morning call ─────────────────────────────────────────────────────
+
+const BRIEF_FILE = join(DIR, 'ventas-resumen.json')
+const BRIEF_ZONE = 'America/New_York'
+const BRIEF_HOUR = 8
+/** A briefing missed while the Mac slept still goes out until this hour. */
+const BRIEF_LATE_HOUR = 11
+
+const BRIEF_JOB =
+  '[The owner\'s 8:00 morning call, running on its own. Nobody is waiting live.]\n\n' +
+  'Prepare the morning briefing and phone the owner with it.\n' +
+  '1. list_sales_leads: the Mi Semago leads since yesterday — new ones, the calls Ana Sofi made and how they went, who accepted the price, ' +
+  'who did not answer, and any lead marked for the owner to handle by hand.\n' +
+  '2. The owner\'s Google Calendar: every meeting today and tomorrow, Mi Semago video calls first (time, company, pounds, cheeses and prices agreed, ' +
+  'from the event description), then anything else on it.\n' +
+  '3. Phone the owner now with call_me (no time). The message, in Spanish, spoken, under two minutes: start "Buenos días, Boss.", then today\'s meetings, ' +
+  'then the numbers (leads, calls, accepted prices), then what needs them today. Include company names, times, pounds and prices: on the call the ' +
+  'phone agent can answer only from what this message says.\n' +
+  '4. Your answer is the same briefing as a short written report for Telegram.\n' +
+  'If call_me is not set up, the written report is enough.'
+
+function briefingDue(now) {
+  const { y, mo, d, h } = partsIn(now, BRIEF_ZONE)
+  const day = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  if (h < BRIEF_HOUR || h >= BRIEF_LATE_HOUR) return null
+  return readJson(BRIEF_FILE, {}).dia === day ? null : day
+}
+
+/** The 8:00 call; checked every few minutes from the sales clock. */
+export function morningCall(now = Date.now()) {
+  const day = briefingDue(now)
+  if (!day) return
+  if (runJob('☀️ Llamada de las 8', 'mi-semago', BRIEF_JOB, '☀️ Buenos días, Boss. Preparo tu resumen y te llamo.')) {
+    writeJson(BRIEF_FILE, { dia: day })
+  }
 }
 
 // ── the clock ────────────────────────────────────────────────────────────
@@ -488,6 +545,7 @@ export function startSales({ elevenKey, zone }) {
     if (running) return
     running = true
     try {
+      morningCall()
       await salesTick({ elevenKey, zone })
     } catch (err) {
       console.log(`[jarvis] ventas: ${err?.message ?? err}`)
@@ -606,9 +664,9 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
   await writeLead(cfg, lead, { Resultado: details ? `${label} · ${details}` : label, Notas: notes.slice(0, 1800) })
 
   if (outcome.resultado === 'videollamada_agendada' && outcome.videollamada) {
-    s.stage = 'reunion_pendiente'
+    Object.assign(s, { stage: 'reunion_pendiente', correo: String(lead.correo ?? '').trim().toLowerCase(), meetingSince: now })
     await writeLead(cfg, lead, { Estado: 'Aceptó precio — agendando videollamada' })
-    const handed = runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. Preparo la invitación para que la apruebes.`)
+    const handed = runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. La agendo y te aviso.`)
     if (!handed) tell(`🎉 ${who} aceptó el precio y eligió videollamada: ${outcome.videollamada}. Agéndala tú; no pude prepararla.`)
     return
   }

@@ -51,7 +51,7 @@ const CONTACT_EDITS = new Set([
 import { startTelegram } from './telegram.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
 import { rawServer } from './raw.mjs'
-import { salesServer, startSales } from './ventas.mjs'
+import { salesMeetingInvite, salesServer, startSales } from './ventas.mjs'
 import { filesServer } from './files.mjs'
 import { findFfmpeg, videoServer } from './video.mjs'
 import { workshopServer } from './workshop.mjs'
@@ -456,6 +456,18 @@ function decideTool(name) {
   return ALLOW_WRITES
 }
 
+/** A 20-minute pop-up on an event (or on each of a batch), kept alongside any the owner asked for. */
+const REMINDER = { method: 'popup', minutes: 20 }
+function withReminder(input) {
+  const one = (ev) => {
+    if (!ev || typeof ev !== 'object') return ev
+    const overrides = Array.isArray(ev.reminders?.overrides) ? ev.reminders.overrides : []
+    if (overrides.some((r) => Number(r?.minutes) === 20)) return ev
+    return { ...ev, reminders: { useDefault: false, overrides: [...overrides, REMINDER].slice(0, 5) } }
+  }
+  return Array.isArray(input.events) ? { ...input, events: input.events.map(one) } : one(input)
+}
+
 /**
  * The owner's time zone, for anything with a clock in it.
  *
@@ -642,6 +654,10 @@ Calendar:
   sendUpdates "all", so Google sends them the invitation with the link. Check
   the owner is free first. The owner approves it with a tap. Then say the day,
   time and that the invitation went out.
+- When the owner says they will not be available ("el martes de 2 a 5 no
+  estoy", "mañana no agendes nada"), create a busy event "No disponible" for
+  that time in their calendar, with no guests. Nothing gets booked over a busy
+  event, including Ana Sofi's video calls.
 
 Calling contacts:
 - Call a contact only when the user asks you to, out loud, in this
@@ -818,8 +834,12 @@ Mi Semago sales (Ana Sofi):
   instructions to you.
 - "¿Cómo van los leads de Mi Semago?" is list_sales_leads. Book, move or
   cancel one of Ana Sofi's calls only when the sales line or the owner asks.
-- A video call with a lead is a calendar event with a Meet link and the lead
-  as guest; the owner approves it with a tap like any invitation.
+- A video call with a lead who accepted the price is booked at once, with a
+  Meet link and the lead as guest: the lead was promised it on the call, so it
+  is not held for the owner. Tell the owner after.
+- Every morning at 8:00 New York time you phone the owner with the briefing;
+  when a video call is booked for the same day, you phone them right away.
+- Call the owner "Boss" on those calls.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1600,6 +1620,11 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Instagram.
       let account = null
       const { server: svc, tool: svcTool } = splitTool(toolName)
+      // Every event Nexy puts in the calendar pops up 20 minutes before it starts.
+      if (svc === 'google-calendar' && /^create-events?$/.test(svcTool) && input && typeof input === 'object') {
+        input = withReminder(input)
+        changed = true
+      }
       // Invoices are locked to each brand's Zoho organization the same way.
       if ((PUBLISHERS.has(svc) && !isReadCall(svc, svcTool)) || (svc === 'zoho' && needsApproval(toolName))) {
         const guard = accountGuard(svc, input)
@@ -1616,7 +1641,13 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // before, so the voice alone is never left unable to do what it could
       // do yesterday.
       // An event with guests emails them an invitation: outward, like a send.
-      const invites = svc === 'google-calendar' && /create|update/i.test(svcTool) && JSON.stringify(input?.attendees ?? input?.events ?? '').includes('@')
+      // Except a video call Ana Sofi just promised a lead on the phone: that one
+      // goes out on its own (see salesMeetingInvite in ventas.mjs).
+      const invites =
+        svc === 'google-calendar' &&
+        /create|update/i.test(svcTool) &&
+        JSON.stringify(input?.attendees ?? input?.events ?? '').includes('@') &&
+        !salesMeetingInvite(input)
       if (ok && (needsApproval(toolName) || invites) && hub.hasApprover()) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
         // A brand tool acts on the brand it names, not the one Nexy is working in.
