@@ -150,7 +150,7 @@ const TOOL_LABEL = {
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
   'google-calendar__create-event': 'Agendar en tu calendario (con invitados, les llega invitación)',
   'google-calendar__update-event': 'Cambiar un evento (a los invitados les llega el cambio)',
-  jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo de Drive a la marca',
+  jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo (Drive o memoria) a la marca',
   jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
   jarvis_rutinas__update_routine: 'Cambiar una rutina',
   jarvis_rutinas__remove_routine: 'Borrar una rutina',
