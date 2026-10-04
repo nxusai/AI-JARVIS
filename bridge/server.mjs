@@ -756,6 +756,31 @@ Video:
   the real clips and the Higgsfield links, and ask it to match the colour and
   grain of the real footage and join them with natural cuts. Remind the owner
   that Instagram asks for realistic AI content to be labelled.
+- Recreating a reference with the owner in it ("hazme este video igual pero
+  conmigo"): the same idea, scenes, timing and edit, made new — never the
+  reference's own footage, audio or text.
+  1. get_reference_video, then ask the editor agent for a shot list of it
+     (what its shot-list mode returns).
+  2. Show the owner the plan in a few lines: how many shots, what each one is
+     (with the owner in it), the on-screen text rewritten in the brand's own
+     words, and how many Higgsfield generations it takes. Make nothing until
+     they say go.
+  3. Generate each shot with Higgsfield from the shot list: the owner's
+     trained Soul character (or their photos), the same framing, camera move,
+     action, setting, light and 9:16, as long as the shot or a little longer.
+     Only ever the owner's likeness; anyone else in the reference becomes an
+     invented person or is left out.
+  4. Give the editor the shot list and the clips (in order) and ask it to cut
+     them to the reference's exact shot lengths, with its transitions, text
+     style (the new text), zooms and colour look, and the same total length.
+  5. Music: the reference's song is never put into the file. Export it
+     without music, cut to the reference's timing, and tell the owner to add
+     the same sound in the Instagram or TikTok app when posting ("Usar audio"
+     on the original reel, then put it at 0:00); since the cuts match the
+     original, they land on the same beats. If they want music in the file, an
+     original track with make_music in the same genre, BPM and energy.
+  6. Send the result to the owner and remind them that Instagram asks for
+     realistic AI content to be labelled.
 - An agent's work arrives in your conversation; for the owner's files use
   send_file on Telegram.
 

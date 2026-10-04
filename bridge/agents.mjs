@@ -171,6 +171,22 @@ hook in the first seconds; structure; subtitles (font look, size, position,
 colours, highlighted words, how they appear); other text on screen; zooms,
 punch-ins and transitions; colour look; music and sound effects; logo and call
 to action. Describe, do not export anything.
+Shot list of a reference (when the task asks to recreate it): media_info with
+cuts:true for the exact cut times, look_at every shot, transcribe. Return the
+total length and, for each shot in order: start and end time (to the tenth
+of a second) and length; framing (wide, medium, close-up, POV) and angle;
+camera move (static, push-in, pan, handheld, orbit); what happens, with who is
+in it and their action, expression and wardrobe; setting, light and time of
+day; the on-screen text (what it says, look and position, how it appears);
+the transition into the next shot. Then the music: genre, BPM, energy, where
+it drops or changes, which cuts land on beats, and whether it starts at 0:00.
+Write each shot as a prompt ready for an AI video generator, in English,
+describing the person only as "the man" (the owner's likeness is added
+later). Describe, do not export anything.
+Assembling a recreation: cut the generated clips to the shot list's exact
+lengths so every cut lands where the reference's does, same total length,
+same transitions and text style with the new text, then match colour across
+the clips. Export without music unless the task gives a track.
 When AI-generated clips (Higgsfield links) are mixed with real footage, make
 them indistinguishable: same resolution, frame rate and aspect, match colour
 and contrast to the real clips with eq/curves (look_at both to compare), add a
