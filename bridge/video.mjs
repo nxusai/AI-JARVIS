@@ -252,6 +252,16 @@ async function speak(key, voiceId, text, out) {
   writeFileSync(out, Buffer.from(await res.arrayBuffer()))
 }
 
+/** A file name from free text: lowercase words and dashes. */
+const safeFile = (s) =>
+  String(s ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'musica'
+
 const list = (dir, pattern) => {
   try {
     return readdirSync(dir)
@@ -269,7 +279,8 @@ const EDIT_DESCRIPTION =
   'Edit a video: join clips (each optionally cut to a part), set the format, burn in subtitles transcribed from ' +
   "its speech, add background music and/or a voice-over in the owner's voice, and put the brand's logo on it. " +
   'Clips can be videos or still images, from the Nexy folders (list_videos) or public https links (for example ' +
-  'Higgsfield results). Use music only from the owner’s music folder or links they gave. Returns the finished ' +
+  'Higgsfield results). Use music only from the owner’s music folder (which includes tracks made with make_music) or links ' +
+  'they gave. Returns the finished ' +
   'file; show it to the owner before publishing it.'
 
 export function videoServer(elevenKey, voiceId) {
@@ -300,6 +311,46 @@ export function videoServer(elevenKey, voiceId) {
         ]
         return ok(parts.join('\n'))
       }),
+
+      tool(
+        'make_music',
+        'Compose an original instrumental track (ElevenLabs Music) to fit a video\'s vibe, as long as the video, and save it ' +
+          'in the owner\'s music folder for edit_video or the editor. Original, so it is free of copyright claims on Instagram, ' +
+          'TikTok and YouTube. Describe the music, never an artist, band or song (those are refused): genre, mood, energy, ' +
+          'tempo in BPM, instruments, how it builds and ends. It uses ElevenLabs credits, so make one track per video and ' +
+          'reuse it on re-edits.',
+        {
+          vibe: z
+            .string()
+            .describe(
+              'What the music sounds like, in English, e.g. "upbeat Latin house, 122 BPM, warm bass, congas and bright piano stabs, ' +
+                'confident and sunny, light intro, steady groove, clean ending on the beat".',
+            ),
+          seconds: z.number().describe('How long: the length of the finished video, in seconds (5 to 300).'),
+          name: z.string().optional().describe('Short file name, e.g. "reel-mi-semago-latin-house".'),
+        },
+        async ({ vibe, seconds, name }) => {
+          const key = elevenKey()
+          if (!key) return refuse('No ElevenLabs key is set up, so music cannot be made. Use a track from the owner\'s music folder.')
+          const ms = Math.round(Math.min(300, Math.max(5, Number(seconds) || 30)) * 1000)
+          const res = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
+            method: 'POST',
+            headers: { 'xi-api-key': key, 'content-type': 'application/json' },
+            body: JSON.stringify({ prompt: String(vibe ?? '').slice(0, 2000), music_length_ms: ms, force_instrumental: true }),
+          }).catch((err) => ({ ok: false, status: 0, text: async () => String(err?.message ?? err) }))
+          if (!res.ok) {
+            const why = (await res.text().catch(() => '')).slice(0, 500)
+            return refuse(
+              `ElevenLabs could not make the music (HTTP ${res.status}): ${why}` +
+                (res.status === 401 || res.status === 403 ? ' Music may not be included in the owner\'s ElevenLabs plan.' : '') +
+                ' If it names a suggested prompt, try again with that.',
+            )
+          }
+          const file = join(MUSIC, `${safeFile(name || vibe)}-${Date.now().toString(36)}.mp3`)
+          writeFileSync(file, Buffer.from(await res.arrayBuffer()))
+          return ok(`Music ready: ${file} (${ms / 1000} s, instrumental, original). Use it as edit_video's music or give it to the editor.`)
+        },
+      ),
 
       tool(
         'get_reference_video',

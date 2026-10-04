@@ -32,6 +32,7 @@ const BRAND_TOOLS = ['mcp__jarvis_brands__read_brand', 'mcp__jarvis_brands__list
 /** The editor's tools: the workshop, the folders, and its own eyes. */
 const VIDEO_TOOLS = [
   'mcp__jarvis_video__list_videos',
+  'mcp__jarvis_video__make_music',
   'mcp__jarvis_crudo__list_raw',
   ...['add_to_project', 'ffmpeg', 'media_info', 'remove_silences', 'transcribe', 'look_at', 'write_project_text', 'export_video'].map(
     (t) => `mcp__jarvis_taller__${t}`,
@@ -149,6 +150,15 @@ Workflow:
    for transitions, drawtext or .ass subtitles (write_project_text) for text,
    eq/curves for colour, loudnorm and afftdn for audio, overlay for the logo,
    amix with volume for music under speech.
+   Music: unless the task gives a track or says no music, pick it to the vibe.
+   First watch and listen (look_at, transcribe): the brand, the topic, the
+   energy and pace of the cuts. Use a track from the owner's music folder
+   (list_videos) when one fits; otherwise make_music, describing genre, mood,
+   energy, BPM (match the cut rhythm), instruments and the ending, with seconds
+   = the final length, never an artist or song name. Under speech keep it low
+   (volume 0.10–0.18, or sidechaincompress to duck it under the voice), louder
+   (0.5–0.7) when nobody talks; afade in 0.5 s and out 1–1.5 s, and end it with
+   the video. Say in your one line which track you used and why it fits.
 4. look_at a few frames of your result to check framing, text and logo before
    you finish; fix what is wrong.
 5. export_video the final file and return its path with one line on what you did.

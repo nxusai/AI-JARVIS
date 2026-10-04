@@ -343,6 +343,8 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_files__upload_to_url',
   // Edits into ~/Movies/Nexy only, from the Nexy folders or public links (see video.mjs).
   'jarvis_video__edit_video',
+  // An original track into ~/Movies/Nexy/musica (see video.mjs).
+  'jarvis_video__make_music',
   'jarvis_brands__save_brand_logo',
   // A brand's editing styles: a file on this Mac (see brands.mjs).
   'jarvis_brands__save_edit_style',
@@ -719,8 +721,15 @@ Video:
   9:16 with subtitles and logo unless the owner says otherwise.
 - The owner's own videos are in the folder list_videos shows (they can AirDrop
   them there, or send short ones on Telegram); Higgsfield clips go in as links.
-- Use only music the owner gave you. Show the finished video to the owner
-  before it is published.
+- Music: every edit gets music that fits its vibe unless the owner says
+  otherwise. Use a track from the owner's music folder when one fits, or make
+  an original one with make_music (the editor agent can too): describe genre,
+  mood, energy, BPM, instruments and ending, never an artist or song name,
+  length = the video's. Never put commercial songs (radio hits, trending
+  tracks) into a video file: Instagram and TikTok mute or block them, and
+  brand accounts may not use them. If the owner wants a trending song, tell
+  them to add it in the app when posting, and leave the music low or out.
+  Show the finished video to the owner before it is published.
 - Any other edit — cutting pauses or filler words, retakes, zooms, speed,
   text, effects, transitions, colour, anything the owner describes — goes to
   the editor agent. Tell it the files (paths from list_videos or the owner's
