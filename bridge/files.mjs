@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { readFileSync, realpathSync, statSync } from 'node:fs'
 import { extname, sep } from 'node:path'
 import { MANUALS_DIR, RECEIVED_DIR } from './brands.mjs'
+import { VOICE_LINES } from './video.mjs'
 import { vetTarget } from './net.mjs'
 
 /**
@@ -18,6 +19,8 @@ import { vetTarget } from './net.mjs'
 
 const MAX_BYTES = 30 * 1024 * 1024
 const TYPES = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' }
+/** Lines in the owner's own cloned voice (see video.mjs), for a lip-sync. */
+const AUDIO_TYPES = { '.mp3': 'audio/mpeg' }
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
@@ -43,7 +46,15 @@ export function allowedImage(path) {
   } catch {
     return null
   }
-  if (!TYPES[extname(real).toLowerCase()]) return null
+  const ext = extname(real).toLowerCase()
+  if (AUDIO_TYPES[ext]) {
+    try {
+      return real.startsWith(realpathSync(VOICE_LINES) + sep) ? real : null
+    } catch {
+      return null
+    }
+  }
+  if (!TYPES[ext]) return null
   return roots().some((r) => real.startsWith(r)) ? real : null
 }
 
@@ -57,6 +68,7 @@ export function filesServer() {
       tool(
         'upload_to_url',
         'Upload one of the owner’s brand images — a visual reference listed by read_brand, or an image the owner sent you — ' +
+          "or a line in the owner's voice made with speak_as_owner (for a lip-sync) " +
           'to an https upload link a service gave you (for example the link from higgsfield media_upload). Use this instead of ' +
           'any shell command. Afterwards, confirm the upload with that service as it asks.',
         {
@@ -80,7 +92,7 @@ export function filesServer() {
           try {
             const res = await fetch(url, {
               method: method ?? 'PUT',
-              headers: { 'content-type': content_type || TYPES[extname(real).toLowerCase()] },
+              headers: { 'content-type': content_type || TYPES[extname(real).toLowerCase()] || AUDIO_TYPES[extname(real).toLowerCase()] },
               body: readFileSync(real),
               redirect: 'error',
             })

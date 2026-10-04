@@ -96,6 +96,8 @@ const STEPS: Record<string, string> = {
   'jarvis_video__edit_video': 'Editar video',
   'jarvis_video__list_videos': 'Ver videos y música',
   'jarvis_video__make_music': 'Crear música para el video',
+  'jarvis_video__clone_owner_voice': 'Clonar tu voz',
+  'jarvis_video__speak_as_owner': 'Decir una línea con tu voz',
   'jarvis_video__get_reference_video': 'Bajar video de referencia',
   'jarvis_brands__save_edit_style': 'Guardar estilo de edición',
   'jarvis_brands__remove_edit_style': 'Borrar estilo de edición',

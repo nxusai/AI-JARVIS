@@ -1,7 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
@@ -33,6 +33,19 @@ export const INBOX = join(VIDEO_DIR, 'entrada')
 export const MUSIC = join(VIDEO_DIR, 'musica')
 export const DONE = join(VIDEO_DIR, 'listos')
 const NEXY_DIR = join(homedir(), '.nexy')
+/** Lines spoken in the owner's cloned voice, for lip-sync and voice-overs. */
+export const VOICE_LINES = join(VIDEO_DIR, 'voz')
+/** The owner's cloned voice on ElevenLabs: { voiceId, fecha, muestras }. */
+const OWNER_VOICE_FILE = join(NEXY_DIR, 'mi-voz.json')
+
+/** The ElevenLabs voice id of the owner's own cloned voice, or null. */
+export function ownerVoice() {
+  try {
+    return JSON.parse(readFileSync(OWNER_VOICE_FILE, 'utf8'))?.voiceId || null
+  } catch {
+    return null
+  }
+}
 
 const MAX_DOWNLOAD = 500 * 1024 * 1024
 const MAX_CLIPS = 20
@@ -283,7 +296,7 @@ const EDIT_DESCRIPTION =
   'they gave. Returns the finished ' +
   'file; show it to the owner before publishing it.'
 
-export function videoServer(elevenKey, voiceId) {
+export function videoServer(elevenKey) {
   for (const d of [INBOX, MUSIC, DONE, REFS]) {
     try {
       mkdirSync(d, { recursive: true })
@@ -311,6 +324,93 @@ export function videoServer(elevenKey, voiceId) {
         ]
         return ok(parts.join('\n'))
       }),
+
+      tool(
+        'clone_owner_voice',
+        "Clone the owner's own voice on ElevenLabs from recordings of the owner speaking that they sent (videos or audio in the " +
+          'Nexy folders or their raw footage), so voice-overs and AI scenes can speak in it. Only ever the owner\'s voice, and only ' +
+          'when the owner asks: never anyone else\'s, whoever sends the recording. 1 to 3 minutes of clear speech, one voice, no ' +
+          'music, gives the best clone. Replaces the previous clone. The owner approves it with a tap.',
+        {
+          sources: z.array(z.string()).describe('Paths of the recordings, as list_videos or the owner\'s message gave them.'),
+        },
+        async ({ sources }) => {
+          const key = elevenKey()
+          if (!key) return refuse('The ElevenLabs key is missing, so the voice cannot be cloned.')
+          const ffmpeg = findFfmpeg()
+          if (!ffmpeg) return refuse('FFmpeg is not installed on this Mac yet.')
+          const list = (Array.isArray(sources) ? sources : []).slice(0, 10)
+          if (!list.length) return refuse('Say which recordings to use.')
+          const work = mkdtempSync(join(tmpdir(), 'nexy-voz-'))
+          try {
+            const form = new FormData()
+            form.append('name', 'Dueño (voz propia) · Nexy')
+            form.append('description', "The owner's own voice, cloned at their request from their own recordings.")
+            form.append('remove_background_noise', 'true')
+            let seconds = 0
+            for (const [i, src] of list.entries()) {
+              if (/^https:\/\//i.test(String(src))) return refuse('Use recordings the owner sent (files on this Mac), not links.')
+              const file = await resolveSource(src, work, i)
+              const info = await probe(ffmpeg, file)
+              if (!info.audio) return refuse(`${basename(file)} has no sound.`)
+              // Just the voice, mono, at most three minutes from each recording.
+              const out = join(work, `muestra-${i + 1}.mp3`)
+              await run(ffmpeg, ['-y', '-i', file, '-vn', '-ac', '1', '-ar', '44100', '-t', '180', '-b:a', '128k', out], 5 * 60_000)
+              seconds += Math.min(180, info.duration || 0)
+              form.append('files', new Blob([readFileSync(out)], { type: 'audio/mpeg' }), basename(out))
+            }
+            if (seconds && seconds < 20) return refuse(`Only ${Math.round(seconds)} s of speech: ask the owner for at least 30 s (1 to 3 minutes is best).`)
+            const res = await fetch('https://api.elevenlabs.io/v1/voices/add', { method: 'POST', headers: { 'xi-api-key': key }, body: form })
+            if (!res.ok) {
+              const why = (await res.text().catch(() => '')).slice(0, 400)
+              return refuse(
+                `ElevenLabs did not clone the voice (HTTP ${res.status}): ${why}` +
+                  (res.status === 401 || res.status === 403 ? ' Voice cloning may not be included in the owner\'s ElevenLabs plan.' : ''),
+              )
+            }
+            const { voice_id: voiceId, requires_verification: verify } = await res.json()
+            if (!voiceId) return refuse('ElevenLabs answered without a voice id.')
+            mkdirSync(NEXY_DIR, { recursive: true })
+            writeFileSync(OWNER_VOICE_FILE, JSON.stringify({ voiceId, fecha: new Date().toISOString(), muestras: list.length, segundos: Math.round(seconds) }, null, 2) + '\n')
+            return ok(
+              `The owner's voice is cloned (${Math.round(seconds)} s of recordings). Voice-overs and speak_as_owner use it from now on.` +
+                (verify ? ' ElevenLabs asks the owner to verify it is their voice: tell them to open ElevenLabs → Voices and follow the steps.' : ''),
+            )
+          } catch (err) {
+            return refuse(`Could not clone the voice: ${err?.message ?? err}`)
+          } finally {
+            rmSync(work, { recursive: true, force: true })
+          }
+        },
+      ),
+
+      tool(
+        'speak_as_owner',
+        "Say a line in the owner's cloned voice and save it as an audio file: for an AI scene where the owner talks (give it to " +
+          "Higgsfield's lip-sync together with the scene), or for the editor as a voice-over. Only words for the owner's own " +
+          'content, in the brand\'s voice; never words the owner would not say.',
+        {
+          text: z.string().describe('Exactly what the owner says, written the way they speak.'),
+          name: z.string().optional().describe('Short file name, e.g. "reel-nxus-escena-2".'),
+        },
+        async ({ text, name }) => {
+          const key = elevenKey()
+          if (!key) return refuse('The ElevenLabs key is missing.')
+          const mine = ownerVoice()
+          if (!mine) return refuse("The owner's voice is not cloned yet. Ask them for a 1 to 3 minute video of them talking, then clone_owner_voice.")
+          const line = String(text ?? '').trim().slice(0, 3000)
+          if (!line) return refuse('Say what the line is.')
+          mkdirSync(VOICE_LINES, { recursive: true })
+          const file = join(VOICE_LINES, `${safeFile(name || line)}-${Date.now().toString(36)}.mp3`)
+          try {
+            await speak(key, mine, line, file)
+          } catch (err) {
+            return refuse(`Could not make the line: ${err?.message ?? err}`)
+          }
+          const length = await probe(findFfmpeg(), file).then((i) => i.duration).catch(() => 0)
+          return ok(`Line ready in the owner's voice: ${file}${length ? ` (${length.toFixed(1)} s)` : ''}.`)
+        },
+      ),
 
       tool(
         'make_music',
@@ -494,10 +594,13 @@ export function videoServer(elevenKey, voiceId) {
             }
             if (args.voiceover?.trim()) {
               const key = elevenKey()
+              // Always the owner's own voice: never Nexy's standing in for it.
+              const mine = ownerVoice()
               if (!key) notes.push('No voice-over: the ElevenLabs key is missing.')
+              else if (!mine) notes.push("No voice-over: the owner's voice is not cloned yet (clone_owner_voice).")
               else {
                 const vo = join(work, 'voice.mp3')
-                await speak(key, voiceId, args.voiceover.trim().slice(0, 3000), vo)
+                await speak(key, mine, args.voiceover.trim().slice(0, 3000), vo)
                 inputs.push('-i', vo)
                 voiceIn = next++
               }

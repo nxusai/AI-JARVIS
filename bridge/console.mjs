@@ -73,6 +73,8 @@ const ALWAYS_APPROVAL = new Set([
   'jarvis_rutinas__remove_routine',
   // Which memory folder is which brand's raw footage.
   'jarvis_crudo__link_raw_folder',
+  // A clone of the owner's own voice on ElevenLabs.
+  'jarvis_video__clone_owner_voice',
 ])
 
 const clip = (v) => {

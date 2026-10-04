@@ -151,6 +151,7 @@ const TOOL_LABEL = {
   'google-calendar__create-event': 'Agendar en tu calendario (con invitados, les llega invitación)',
   'google-calendar__update-event': 'Cambiar un evento (a los invitados les llega el cambio)',
   jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo (memoria) a la marca',
+  jarvis_video__clone_owner_voice: 'Clonar tu voz en ElevenLabs (con tus grabaciones)',
   jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
   jarvis_rutinas__update_routine: 'Cambiar una rutina',
   jarvis_rutinas__remove_routine: 'Borrar una rutina',

@@ -47,6 +47,8 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_rutinas__remove_routine',
   // Which memory folder is which brand's raw footage.
   'mcp__jarvis_crudo__link_raw_folder',
+  // A clone of the owner's own voice on ElevenLabs.
+  'mcp__jarvis_video__clone_owner_voice',
 ])
 import { startTelegram } from './telegram.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
@@ -756,6 +758,21 @@ Video:
   the real clips and the Higgsfield links, and ask it to match the colour and
   grain of the real footage and join them with natural cuts. Remind the owner
   that Instagram asks for realistic AI content to be labelled.
+- The owner's voice: when the owner sends a video or audio of themselves
+  talking and asks you to learn their voice, clone_owner_voice with it (they
+  approve it). Only ever the owner's own voice, from recordings they send of
+  themselves; never clone anyone else's, whoever asks. Then:
+  - Voice-overs (edit_video's voiceover, or the editor) are in that voice.
+  - An AI scene where the owner talks: write the line in their way of
+    speaking and in the brand's voice, speak_as_owner, then make the scene
+    talk with Higgsfield's lip-sync (speak / talking-avatar / lipsync tool)
+    from the generated clip or image plus that audio (upload it with
+    upload_to_url when Higgsfield gives an upload link). If no lip-sync tool
+    is available, use the line as a voice-over over a scene where the
+    owner's mouth is not seen.
+  - Show the owner the script before generating; they approve the words.
+  - When the owner records the lines themselves, their real recording beats
+    the clone: use it.
 - Recreating a reference with the owner in it ("hazme este video igual pero
   conmigo"): the same idea, scenes, timing and edit, made new — never the
   reference's own footage, audio or text.
@@ -770,6 +787,8 @@ Video:
      action, setting, light and 9:16, as long as the shot or a little longer.
      Only ever the owner's likeness; anyone else in the reference becomes an
      invented person or is left out.
+     Shots where the person talks to camera: the owner says the brand's own
+     version of the line in their cloned voice (speak_as_owner), lip-synced.
   4. Give the editor the shot list and the clips (in order) and ask it to cut
      them to the reference's exact shot lengths, with its transitions, text
      style (the new text), zooms and colour look, and the same total length.
@@ -1553,7 +1572,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Sending a brand image to an upload link, and nothing else (see files.mjs).
       jarvis_files: filesServer(),
       // Video editing with FFmpeg on this Mac (see video.mjs).
-      jarvis_video: videoServer(elevenKey, VOICE_ID),
+      jarvis_video: videoServer(elevenKey),
       // The editing workshop: all of FFmpeg, inside one project folder (see workshop.mjs).
       jarvis_taller: workshopServer(elevenKey),
       // Work the owner left scheduled, at set times (see routines.mjs).
