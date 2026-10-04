@@ -1,26 +1,25 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join, relative, sep } from 'node:path'
 import { activeBrand, findBrand, fold, MANUALS_DIR, readBrands } from './brands.mjs'
 
 /**
- * Raw footage: each brand's folder of unedited videos and photos, either in
- * the owner's Google Drive, which Drive for desktop puts on this Mac under
- * ~/Library/CloudStorage, or on an external memory (SSD, USB drive) that the
- * Mac mounts under /Volumes while it is plugged in. Nexy lists what is there (subfolders included),
+ * Raw footage: each brand's folder of unedited videos and photos on the
+ * owner's external memory (SSD, USB drive), which the Mac mounts under
+ * /Volumes while it is plugged in. Google Drive is not used: streaming big
+ * videos from it took minutes. Nexy lists what is there (subfolders included),
  * picks from it, edits copies, and keeps a ledger of what she has used and
  * for what — so she prefers new footage and, when there is none, recycles old
  * footage in a different way instead of repeating a piece.
  *
  * The folders are only ever read. Each brand sees only its own folder.
- * Paths are kept relative to the home folder, so they survive a move to
- * another Mac.
+ * A folder is kept by the memory's name and the path inside it, so it is
+ * found again however and wherever the memory is plugged in.
  */
 
 const FILE = join(homedir(), '.nexy', 'crudo.json')
-const CLOUD = join(homedir(), 'Library', 'CloudStorage')
 const VOLUMES = process.env.NEXY_VOLUMES || '/Volumes'
 const VIDEO = /\.(mp4|mov|m4v|webm|avi|mts|mkv)$/i
 const PHOTO = /\.(jpe?g|png|heic|webp|tiff?)$/i
@@ -30,8 +29,6 @@ const MAX_FILES = 2000
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
 
-const toHome = (p) => (p.startsWith(homedir() + sep) ? `~/${relative(homedir(), p)}` : p)
-const fromHome = (p) => (String(p).startsWith('~/') ? join(homedir(), String(p).slice(2)) : String(p))
 
 function readLinks() {
   try {
@@ -97,15 +94,15 @@ function externalOf(p) {
   return null
 }
 
-/** Where a brand's raw footage lives: { path, disco } — disco is the memory's name when it is on one. */
+/**
+ * Where a brand's raw footage lives: { path, disco, conectada }. Only folders
+ * on a memory count; a folder linked back when Google Drive was used is ignored.
+ */
 export function rawLocation(id) {
   const v = readLinks()[id]
-  if (!v?.carpeta) return null
-  if (v.disco) {
-    const mount = mountOf(v.disco)
-    return { path: join(mount ?? join(VOLUMES, v.disco), v.ruta ?? ''), disco: v.disco, conectada: Boolean(mount) }
-  }
-  return { path: fromHome(v.carpeta), disco: null, conectada: true }
+  if (!v?.disco) return null
+  const mount = mountOf(v.disco)
+  return { path: join(mount ?? join(VOLUMES, v.disco), v.ruta ?? ''), disco: v.disco, conectada: Boolean(mount) }
 }
 
 /** A brand's raw-footage folder on this Mac, or null. */
@@ -138,38 +135,14 @@ export function rawRoots() {
     try {
       out.push(realpathSync(p) + sep)
     } catch {
-      // Drive not running or folder moved: just not available now.
+      // Memory unplugged or folder moved: just not available now.
     }
   }
   return out
 }
 
-/** Where Google Drive for desktop keeps each signed-in account's drives. */
-export function driveRoots() {
-  try {
-    return readdirSync(CLOUD)
-      .filter((d) => /^GoogleDrive-/i.test(d))
-      .flatMap((d) => {
-        const base = join(CLOUD, d)
-        try {
-          return readdirSync(base)
-            .filter((x) => !x.startsWith('.'))
-            .map((x) => join(base, x))
-        } catch {
-          return []
-        }
-      })
-  } catch {
-    return []
-  }
-}
-
-/**
- * Folders in Drive whose name matches, shallowest first. Drive streams its
- * folders over the network, so the search stops after a few seconds rather
- * than walk a large Drive for minutes.
- */
-export function findDriveFolders(name, roots = driveRoots(), limit = 12, budgetMs = 12_000) {
+/** Folders on the plugged-in memories whose name matches, shallowest first. */
+export function findFolders(name, roots = externalRoots(), limit = 12, budgetMs = 12_000) {
   const want = fold(name)
   const found = []
   const until = Date.now() + budgetMs
@@ -196,41 +169,6 @@ export function findDriveFolders(name, roots = driveRoots(), limit = 12, budgetM
   return found.slice(0, limit)
 }
 
-/**
- * How much of a file is actually on this Mac. Drive's "stream files" keeps
- * only a placeholder until the file is opened, and opening a multi-gigabyte
- * video downloads all of it first — minutes, during which an edit looks stuck.
- * A placeholder occupies no disk blocks.
- */
-export function onDisk(path) {
-  // A file on a plugged-in memory is all there; only Drive keeps placeholders.
-  if (String(path).startsWith(VOLUMES + sep)) return 1
-  try {
-    const st = statSync(path)
-    if (!st.size) return 1
-    if (typeof st.blocks !== 'number') return 1
-    return Math.min(1, (st.blocks * 512) / st.size)
-  } catch {
-    return 1
-  }
-}
-
-const fetching = new Map()
-/**
- * Start bringing a cloud-only file down in the background (once), so it is
- * ready on a later try. Returns how much is already here.
- */
-export function prefetch(path) {
-  const have = onDisk(path)
-  if (have >= 0.98 || fetching.has(path)) return have
-  const stream = createReadStream(path)
-  fetching.set(path, stream)
-  stream.on('data', () => {})
-  stream.on('error', () => fetching.delete(path))
-  stream.on('close', () => fetching.delete(path))
-  return have
-}
-
 /** The folders directly inside a folder. */
 export function subfolders(dir) {
   try {
@@ -243,11 +181,11 @@ export function subfolders(dir) {
   }
 }
 
-/** A folder the owner named, as a path: an existing path, or the one Drive or memory folder with that name. */
-export function resolveDriveFolder(q) {
-  const asPath = fromHome(String(q ?? '').trim().replace(/^['"]|['"]$/g, ''))
-  if (asPath.startsWith('/') && existsSync(asPath)) return { path: asPath }
-  const found = findDriveFolders(String(q ?? '').split('/').filter(Boolean).pop() ?? '', [...driveRoots(), ...externalRoots()])
+/** A folder the owner named, as a path: a path on a memory, or the one memory folder with that name. */
+export function resolveFolder(q) {
+  const asPath = String(q ?? '').trim().replace(/^['"]|['"]$/g, '')
+  if (asPath.startsWith('/') && existsSync(asPath) && externalOf(asPath)) return { path: asPath }
+  const found = findFolders(asPath.split('/').filter(Boolean).pop() ?? '')
   if (found.length === 1) return { path: found[0] }
   return { candidates: found }
 }
@@ -306,112 +244,95 @@ export function rawServer() {
   return createSdkMcpServer({
     name: 'jarvis_crudo',
     version: '1.0.0',
-    instructions: "Each brand's raw footage folder (in the owner's Google Drive or on an external memory), and what has been used from it.",
+    instructions: "Each brand's raw footage folder on the owner's external memory, and what has been used from it.",
     alwaysLoad: true,
     tools: [
       tool(
-        'find_drive_folder',
-        "Find a folder by its name in the owner's Google Drive (on this Mac through Drive for desktop) or on an external memory " +
-          '(SSD, USB drive) plugged into this Mac, to link it as a brand\'s raw footage. Leave the name empty to list the memories plugged in.',
+        'find_raw_folder',
+        'Find a folder by its name on the external memory (SSD, USB drive) plugged into this Mac, to link it as a brand\'s raw footage. ' +
+          'Leave the name empty to list the memories plugged in and their folders.',
         { name: z.string().describe('The folder name, or part of it, as the owner says it; empty to list the memories plugged in.') },
         async ({ name }) => {
           const memories = externalRoots()
-          const roots = [...driveRoots(), ...memories]
+          if (!memories.length) return refuse('No external memory is plugged into this Mac right now. Ask the owner to connect it.')
           if (!String(name ?? '').trim()) {
-            if (!memories.length) return ok('No external memory is plugged into this Mac right now. Ask the owner to connect it.')
             return ok(
               `Memories plugged in:\n${memories.map((m) => `- ${m}${blocked(m) ? ' (macOS blocks reading it)' : ''}\n    folders: ${subfolders(m).slice(0, 20).join(', ') || '(none)'}`).join('\n')}\n` +
-                'Use browse_drive_folder to look inside.',
+                'Use browse_raw_folder to look inside.',
             )
           }
-          if (!roots.length) {
-            return refuse('Neither Google Drive for desktop nor an external memory is on this Mac. Ask the owner to connect the memory (or sign in to Drive).')
-          }
           const want = fold(name)
-          const found = [...memories.filter((m) => fold(basename(m)).includes(want)), ...findDriveFolders(name, roots)]
+          const found = [...memories.filter((m) => fold(basename(m)).includes(want)), ...findFolders(name, memories)]
           if (!found.length) {
             const why = memories.map(blocked).find(Boolean)
-            return why ? refuse(why) : ok(`No folder called "${name}" in Drive or on a plugged-in memory. Ask the owner for the exact name, or whether the memory is connected.`)
+            return why ? refuse(why) : ok(`No folder called "${name}" on the memory. Ask the owner for the exact name.`)
           }
           const rows = found.map((p) => {
             const kids = subfolders(p)
-            const where = externalOf(p) ? ` (memory «${externalOf(p).name}»)` : ' (Google Drive)'
-            return `- ${toHome(p)}${where}${kids.length ? `\n    subfolders: ${kids.slice(0, 15).join(', ')}${kids.length > 15 ? '…' : ''}` : ''}`
+            return `- ${p} (memory «${externalOf(p)?.name}»)${kids.length ? `\n    subfolders: ${kids.slice(0, 15).join(', ')}${kids.length > 15 ? '…' : ''}` : ''}`
           })
-          return ok(`Folders that match:\n${rows.join('\n')}\nUse browse_drive_folder to look inside one. Confirm with the owner which one is the raw footage of which brand.`)
+          return ok(`Folders that match:\n${rows.join('\n')}\nUse browse_raw_folder to look inside one. Confirm with the owner which one is the raw footage of which brand.`)
         },
       ),
 
       tool(
-        'browse_drive_folder',
-        "Look inside a folder of the owner's Google Drive or of a plugged-in memory: its subfolders and how many videos and photos it holds. " +
+        'browse_raw_folder',
+        'Look inside a folder of the plugged-in memory: its subfolders and how many videos and photos it holds. ' +
           'Use it to find the right folder yourself instead of asking the owner for paths.',
-        { folder: z.string().describe('A path from find_drive_folder or this tool, or a folder name.') },
+        { folder: z.string().describe('A path from find_raw_folder or this tool, or a folder name.') },
         async ({ folder }) => {
-          const r = resolveDriveFolder(folder)
+          const r = resolveFolder(folder)
           if (!r.path) {
             return r.candidates?.length
-              ? ok(`Several folders match:\n${r.candidates.map((p) => `- ${toHome(p)}`).join('\n')}`)
-              : refuse(`No folder called "${folder}" in Drive or on a plugged-in memory.`)
+              ? ok(`Several folders match:\n${r.candidates.map((p) => `- ${p}`).join('\n')}`)
+              : refuse(`No folder called "${folder}" on a plugged-in memory.`)
           }
           const why = blocked(r.path)
           if (why) return refuse(why)
           const kids = subfolders(r.path)
           const media = listMedia(r.path)
           return ok(
-            `${toHome(r.path)} — ${media.filter((m) => m.kind === 'video').length} videos and ${media.filter((m) => m.kind === 'foto').length} photos inside (subfolders included).\n` +
-              (kids.length ? `Subfolders:\n${kids.map((k) => `- ${toHome(join(r.path, k))}`).join('\n')}` : 'No subfolders.'),
+            `${r.path} — ${media.filter((m) => m.kind === 'video').length} videos and ${media.filter((m) => m.kind === 'foto').length} photos inside (subfolders included).\n` +
+              (kids.length ? `Subfolders:\n${kids.map((k) => `- ${join(r.path, k)}`).join('\n')}` : 'No subfolders.'),
           )
         },
       ),
 
       tool(
         'link_raw_folder',
-        "Make a folder (in Drive or on an external memory) a brand's raw footage: Nexy picks from it, and from no other brand's, when making that brand's " +
+        "Make a folder on the external memory a brand's raw footage: Nexy picks from it, and from no other brand's, when making that brand's " +
           'content. Only when the owner says which folder is which brand. The owner approves it with a tap.',
         {
           brand: z.string(),
-          folder: z.string().describe('The folder path from find_drive_folder or browse_drive_folder (or its exact name).'),
+          folder: z.string().describe('The folder path from find_raw_folder or browse_raw_folder (or its exact name).'),
         },
         async ({ brand, folder }) => {
           const b = findBrand(brand)
           if (!b) return refuse(`There is no brand called ${brand}.`)
-          const r = resolveDriveFolder(folder)
+          const r = resolveFolder(folder)
           if (!r.path) {
             return refuse(
               r.candidates?.length
-                ? `Several folders match; pass the full path of the right one:\n${r.candidates.map((p) => `- ${toHome(p)}`).join('\n')}`
-                : `No folder "${folder}" in Drive or on a plugged-in memory. Use find_drive_folder or browse_drive_folder.`,
+                ? `Several folders match; pass the full path of the right one:\n${r.candidates.map((p) => `- ${p}`).join('\n')}`
+                : `No folder "${folder}" on a plugged-in memory. Use find_raw_folder or browse_raw_folder.`,
             )
           }
           const p = r.path
-          let real
-          try {
-            real = realpathSync(p)
-          } catch {
-            return refuse('That folder does not exist on this Mac.')
-          }
-          const inDrive = driveRoots().some((r) => {
-            try {
-              return real.startsWith(realpathSync(r) + sep) || real === realpathSync(r)
-            } catch {
-              return false
-            }
-          })
-          const memory = inDrive ? null : externalOf(p)
-          if (!inDrive && !memory) return refuse('Only folders inside Google Drive or on an external memory plugged into this Mac can be linked as raw footage.')
+          const memory = externalOf(p)
+          if (!memory) return refuse('Only folders on an external memory plugged into this Mac can be linked as raw footage.')
           const why = blocked(p)
           if (why) return refuse(why)
-          const links = readLinks()
+          // Folders linked back when Drive was used are dropped for good.
+          const links = Object.fromEntries(Object.entries(readLinks()).filter(([, v]) => v?.disco))
           const taken = Object.entries(links).find(([id]) => id !== b.id && rawFolder(id) === p)
           if (taken) return refuse(`That folder is already the raw footage of ${findBrand(taken[0])?.nombre ?? taken[0]}.`)
-          // On a memory the folder is kept by the memory's name and the path inside it,
-          // so it is found again however and wherever the memory is plugged in.
-          links[b.id] = memory ? { carpeta: p, disco: memory.name, ruta: memory.rel } : { carpeta: toHome(p) }
+          // Kept by the memory's name and the path inside it, so it is found
+          // again however and wherever the memory is plugged in.
+          links[b.id] = { carpeta: p, disco: memory.name, ruta: memory.rel }
           writeLinks(links)
           const media = listMedia(p)
           return ok(
-            `Linked: ${b.nombre}'s raw footage is ${toHome(p)}${memory ? ` on the memory «${memory.name}» (it has to be plugged in when you edit)` : ''} — ` +
+            `Linked: ${b.nombre}'s raw footage is ${p} on the memory «${memory.name}» (it has to be plugged in when you edit) — ` +
               `${media.filter((m) => m.kind === 'video').length} videos and ${media.filter((m) => m.kind === 'foto').length} photos, subfolders included.`,
           )
         },
@@ -419,7 +340,7 @@ export function rawServer() {
 
       tool(
         'list_raw',
-        "A brand's raw footage (videos and photos, subfolders included), newest first, each with how many times it has been " +
+        "A brand's raw footage on the memory (videos and photos, subfolders included), newest first, each with how many times it has been " +
           'used and for what. Use it before making content from real footage.',
         {
           brand: z.string().optional().describe('The brand; the active one when left out.'),
@@ -431,17 +352,13 @@ export function rawServer() {
           const b = brandOf(brand)
           if (!b) return refuse(`There is no brand called ${brand}.`)
           const loc = rawLocation(b.id)
-          if (!loc) return refuse(`${b.nombre} has no raw footage folder linked yet. Ask the owner which folder it is (find_drive_folder, then link_raw_folder).`)
+          if (!loc) return refuse(`${b.nombre} has no raw footage folder on the memory yet. Ask the owner which folder it is (find_raw_folder, then link_raw_folder).`)
           const root = loc.path
-          if (loc.disco && !loc.conectada) {
+          if (!loc.conectada) {
             return refuse(`The raw footage of ${b.nombre} is on the external memory «${loc.disco}», which is not plugged in. Ask the owner to connect it, then try again.`)
           }
           if (!existsSync(root)) {
-            return refuse(
-              loc.disco
-                ? `The memory «${loc.disco}» is plugged in but the folder ${loc.path} is not on it any more. Ask the owner whether it was renamed or moved.`
-                : `The raw footage folder of ${b.nombre} is not reachable (${toHome(root)}). Is Google Drive open on this Mac?`,
-            )
+            return refuse(`The memory «${loc.disco}» is plugged in but the folder ${loc.path} is not on it any more. Ask the owner whether it was renamed or moved.`)
           }
           const why = blocked(root)
           if (why) return refuse(why)
@@ -456,10 +373,9 @@ export function rawServer() {
           const rows = media.slice(0, Math.min(Math.max(Number(limit) || 60, 1), 300)).map((m) => {
             const u = uses.get(m.rel) ?? []
             const last = u.at(-1)
-            const cloud = m.mb > 20 && onDisk(m.path) < 0.98 ? ' ☁️ in the cloud, not downloaded yet' : ''
-            return `- ${m.path} [${m.kind}, ${m.mb.toFixed(1)} MB, added ${day(m.added)}${cloud}] ${u.length ? `used ${u.length}× (last ${last.fecha?.slice(0, 10)}: ${last.pieza})` : 'NEW'}`
+            return `- ${m.path} [${m.kind}, ${m.mb.toFixed(1)} MB, added ${day(m.added)}] ${u.length ? `used ${u.length}× (last ${last.fecha?.slice(0, 10)}: ${last.pieza})` : 'NEW'}`
           })
-          return ok(`${b.nombre} raw footage in ${toHome(root)}: ${total} files, ${fresh} never used.\n${rows.join('\n') || '(none)'}`)
+          return ok(`${b.nombre} raw footage in ${root}: ${total} files, ${fresh} never used.\n${rows.join('\n') || '(none)'}`)
         },
       ),
 
@@ -478,7 +394,7 @@ export function rawServer() {
           const root = rawFolder(b.id)
           if (!root) return refuse(`${b.nombre} has no raw footage folder linked.`)
           const rels = (Array.isArray(files) ? files : [])
-            .map((f) => relative(root, fromHome(f)))
+            .map((f) => relative(root, String(f)))
             .filter((r) => r && !r.startsWith('..'))
           if (!rels.length) return refuse(`None of those files are in ${b.nombre}'s raw footage folder.`)
           const ledger = readLedger(b.id)

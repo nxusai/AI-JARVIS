@@ -5,7 +5,6 @@ import { copyFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
 import { DONE, VIDEO_DIR, findFfmpeg, probe, resolveSource, run, transcribeWords } from './video.mjs'
-import { onDisk, prefetch } from './raw.mjs'
 
 /**
  * The editing workshop: any edit the owner can describe, not just a recipe.
@@ -155,17 +154,9 @@ export function workshopServer(elevenKey) {
           const dir = projectDir(project, true)
           const work = mkdtempSync(join(tmpdir(), 'nexy-taller-'))
           const added = []
-          const pending = []
           try {
             for (const [i, src] of (sources ?? []).slice(0, 30).entries()) {
               const file = await resolveSource(src, work, i)
-              // Still in the cloud: start the download and come back, rather
-              // than wait minutes on a copy that downloads it first.
-              const size = statSync(file).size
-              if (size > 50 * 1024 * 1024 && onDisk(file) < 0.98) {
-                pending.push(`${basename(file)} (${Math.round(size / 1048576)} MB, ${Math.round(prefetch(file) * 100)}% downloaded)`)
-                continue
-              }
               const ext = extname(file).toLowerCase() || '.mp4'
               let name = `${safeName(file, `clip${i + 1}`)}${ext}`
               for (let n = 2; readdirSync(dir).includes(name); n++) name = `${safeName(file, 'clip')}-${n}${ext}`
@@ -179,8 +170,8 @@ export function workshopServer(elevenKey) {
                 closeSync(fd)
               }
               if (/^#EXT(M3U|INF)/i.test(head.toString('latin1'))) throw new Error(`${src} is a playlist, not a media file`)
-              // Copied without blocking: a large file from Drive downloads as it
-              // copies, and Nexy must keep answering meanwhile.
+              // Copied without blocking: raw footage can be gigabytes, and Nexy
+              // must keep answering meanwhile.
               await copyFile(file, join(dir, name))
               const info = await probe(ffmpeg, join(dir, name))
               added.push(`${name}${info.duration ? ` — ${info.duration.toFixed(1)} s` : ''}${info.width ? `, ${info.width}x${info.height}` : ''}${info.audio ? ', with sound' : ''}`)
@@ -188,12 +179,7 @@ export function workshopServer(elevenKey) {
           } finally {
             rmSync(work, { recursive: true, force: true })
           }
-          const wait = pending.length
-            ? `\nNot added yet — still downloading from Google Drive, which takes a while for big videos: ${pending.join('; ')}. ` +
-              'Tell the owner, and suggest they right-click the raw footage folder in Finder → "Make available offline" so Drive keeps it on the Mac. ' +
-              'Try these files again in a few minutes, or work with the files already added.'
-            : ''
-          return ok(`Project ${project}:\n${added.map((a) => `- ${a}`).join('\n') || '(nothing added yet)'}${wait}\nAll files: ${listing(dir)}`)
+          return ok(`Project ${project}:\n${added.map((a) => `- ${a}`).join('\n') || '(nothing added yet)'}\nAll files: ${listing(dir)}`)
         }),
       ),
 

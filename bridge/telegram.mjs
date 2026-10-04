@@ -150,7 +150,7 @@ const TOOL_LABEL = {
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
   'google-calendar__create-event': 'Agendar en tu calendario (con invitados, les llega invitación)',
   'google-calendar__update-event': 'Cambiar un evento (a los invitados les llega el cambio)',
-  jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo (Drive o memoria) a la marca',
+  jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo (memoria) a la marca',
   jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
   jarvis_rutinas__update_routine: 'Cambiar una rutina',
   jarvis_rutinas__remove_routine: 'Borrar una rutina',
@@ -292,7 +292,7 @@ const stepName = (name) => {
     'meta-ads': 'Meta Ads',
     jarvis_taller: 'editando el video',
     jarvis_video: 'el editor de video',
-    jarvis_crudo: 'revisando tu Drive',
+    jarvis_crudo: 'revisando tu memoria',
     jarvis_brands: 'revisando la marca',
   }[server]
   return who ?? (server ? server : tool)
@@ -677,9 +677,9 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         onAnswer: answer,
         onSlow: (job, step) => {
           const what = /taller|video|editor/i.test(step ?? '')
-            ? 'editando el video (los videos de Drive se bajan primero, y eso tarda)'
-            : /crudo|drive/i.test(step ?? '')
-              ? 'revisando tu Drive'
+            ? 'editando el video'
+            : /crudo|memoria/i.test(step ?? '')
+              ? 'revisando tu memoria'
               : /higgsfield/i.test(step ?? '')
                 ? 'generando en Higgsfield'
                 : 'en eso'

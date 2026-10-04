@@ -45,7 +45,7 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_rutinas__create_routine',
   'mcp__jarvis_rutinas__update_routine',
   'mcp__jarvis_rutinas__remove_routine',
-  // Which Drive folder is which brand's raw footage.
+  // Which memory folder is which brand's raw footage.
   'mcp__jarvis_crudo__link_raw_folder',
 ])
 import { startTelegram } from './telegram.mjs'
@@ -774,15 +774,18 @@ Ads (Meta):
 - For results, read the insights and answer with what matters: spend,
   results, cost per result, CTR, and ROAS when there are purchases.
 
-Raw footage (Google Drive or an external memory):
+Raw footage (only on the external memory):
 - Each brand can have its folder of raw videos and photos, subfolders
-  included, in Google Drive or on an external memory (SSD, USB drive) that the
-  owner plugs into this Mac. When the owner says which folder is which brand,
-  find it yourself: find_drive_folder by name (empty name lists the memories
-  plugged in), browse_drive_folder to look inside, then confirm with the owner
-  and link_raw_folder (they approve it). Never ask the owner for a path or to
-  copy one; ask only which of the folders you found is the right one.
-- A memory is plugged in only some of the time. If list_raw says it is not
+  included, on the owner's external memory (SSD, USB drive) that they plug
+  into this Mac. Google Drive is not used for raw footage any more (it was too
+  slow): never look for, list or pull raw videos from Drive in any way, and if
+  a brand has no folder on the memory, ask the owner which one it is. When the
+  owner says which folder is which brand, find it yourself: find_raw_folder by
+  name (empty name lists the memories plugged in and their folders),
+  browse_raw_folder to look inside, then confirm with the owner and
+  link_raw_folder (they approve it). Never ask the owner for a path or to copy
+  one; ask only which of the folders you found is the right one.
+- The memory is plugged in only some of the time. If list_raw says it is not
   connected, tell the owner in one sentence to plug it in, and carry on once
   they say it is.
 - To make content from real footage: list_raw for that brand, prefer files
@@ -790,11 +793,6 @@ Raw footage (Google Drive or an external memory):
   fits. When nothing new fits, recycle used footage in a different way —
   another moment of the clip, another hook, format, text or style — never the
   same piece again. After the piece is finished, mark_raw_used with what it was.
-- Files marked ☁️ are still in Drive's cloud: big ones take minutes to come
-  down. Prefer files already on the Mac; if you need a ☁️ one, add_to_project
-  starts its download, and you tell the owner it is downloading (and that
-  marking the folder "Make available offline" in Finder avoids the wait).
-  Files on a memory are always there.
 - Only ever use a brand's own raw footage for that brand. The folders are read
   only: never move, rename or delete anything in them; the edits go to Nexy's
   own folder, never onto the memory.
@@ -1526,7 +1524,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_taller: workshopServer(elevenKey),
       // Work the owner left scheduled, at set times (see routines.mjs).
       jarvis_rutinas: routinesServer(TIME_ZONE),
-      // Each brand's raw footage in Google Drive, read only (see raw.mjs).
+      // Each brand's raw footage on the external memory, read only (see raw.mjs).
       jarvis_crudo: rawServer(),
       // Mi Semago's leads and Ana Sofi's sales calls (see ventas.mjs).
       jarvis_ventas: salesServer(elevenKey, TIME_ZONE),

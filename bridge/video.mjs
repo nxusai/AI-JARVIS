@@ -125,7 +125,7 @@ function allowedRoots() {
       // Not created yet.
     }
   }
-  // Each brand's raw footage folder in Drive (see raw.mjs), read only.
+  // Each brand's raw footage folder on the external memory (see raw.mjs), read only.
   return [...out, ...rawRoots()]
 }
 
