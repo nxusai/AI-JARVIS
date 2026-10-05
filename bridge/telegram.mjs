@@ -51,8 +51,12 @@ const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'we
  * the owner's approval doesn't count.
  */
 const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
-/** Waiting on a video render is slow by nature; it gets longer. */
-const SLOW_STEP = /wait|video|render|taller|editor|crudo/i
+/**
+ * Slow by nature, so they get longer: renders and edits, AI images and videos
+ * (Higgsfield takes minutes per clip), music, cloning the owner's voice, and
+ * an agent working through a long job.
+ */
+const SLOW_STEP = /wait|video|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
 /** After this long on one request, she tells the owner she is still on it. */
 const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || 90_000
 
