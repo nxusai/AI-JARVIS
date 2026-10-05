@@ -39,6 +39,8 @@ import { runJob } from './routines.mjs'
 const DIR = join(homedir(), '.nexy')
 const CONFIG = join(DIR, 'ventas.json')
 const STATE = join(DIR, 'ventas-estado.json')
+/** WhatsApp requests already acted on, per lead: the request as it read. */
+const WHATSAPP_FILE = join(DIR, 'ventas-whatsapp.json')
 const API = 'https://api.elevenlabs.io/v1/convai'
 const TICK_MS = 3 * 60_000
 /** Calls ring only between these hours, in the lead's own time zone. */
@@ -136,6 +138,10 @@ const COLUMNS = {
   resultado: 'resultado',
   reunion: 'reunion',
   notas: 'notas',
+  // What the lead asked for on WhatsApp after the funnel (ManyChat writes these).
+  solicitud: 'solicitud',
+  'nuevo horario': 'nuevoHorario',
+  motivo: 'motivo',
 }
 
 /**
@@ -596,6 +602,13 @@ export async function salesTick({ elevenKey, zone }) {
     writeState(state)
   }
 
+  try {
+    await whatsappTick({ cfg, leads, state, zone, now })
+  } catch (err) {
+    console.log(`[jarvis] ventas whatsapp: ${err?.message ?? err}`)
+  }
+  writeState(state)
+
   if (/^agent_\w+$/.test(cfg.inboundAgentId)) {
     try {
       await inboundTick({ cfg, key, leads, state, zone, now })
@@ -973,11 +986,12 @@ async function syncDirectory(key, cfg, leads, ent) {
   if (!r.error) ent.hash = hash
 }
 
-function changeJob(lead, kind, horario, correo, resumen) {
+function changeJob(lead, kind, horario, correo, resumen, via = 'call') {
   const moving = kind === 'cambio_reunion'
+  const how = via === 'whatsapp' ? 'wrote to Mi Semago on WhatsApp' : 'called Ana Sofi back'
   return (
     JOB_HEADER +
-    `The lead called Ana Sofi back and asked to ${moving ? 'MOVE their video call' : 'BOOK a video call'} with the owner (the head of sales).\n\n` +
+    `The lead ${how} and asked to ${moving ? 'MOVE their video call' : 'BOOK a video call'} with the owner (the head of sales).\n\n` +
     `<lead>\n${leadData({ ...lead, correo: correo || lead.correo })}\nvideo call they have now: ${lead.reunion || 'none'}\n` +
     `time they asked for: ${horario}\nwhat the call was about: ${resumen || '-'}\n</lead>\n\n` +
     'Do this:\n' +
@@ -992,14 +1006,14 @@ function changeJob(lead, kind, horario, correo, resumen) {
     '4. Call log_sales_meeting with contacto_id, cuando (day and time in words, Eastern) and link.\n' +
     '5. If the new time is TODAY (Eastern), phone the owner now with call_me: "Boss, tiene un meeting hoy a las …" and everything to be ready.\n' +
     'If nothing is free that week or there is no email, change nothing and say what is needed.\n\n' +
-    'Report: who called, what they asked, and the new meeting time.'
+    `Report: who ${via === 'whatsapp' ? 'wrote' : 'called'}, what they asked, and the new meeting time.`
   )
 }
 
-function cancelJob(lead, resumen) {
+function cancelJob(lead, resumen, via = 'call') {
   return (
     JOB_HEADER +
-    'The lead called Ana Sofi back and CANCELLED their video call with the owner.\n\n' +
+    `The lead ${via === 'whatsapp' ? 'wrote to Mi Semago on WhatsApp' : 'called Ana Sofi back'} and CANCELLED their video call with the owner.\n\n` +
     `<lead>\n${leadData(lead)}\nvideo call: ${lead.reunion || '-'}\nwhat the call was about: ${resumen || '-'}\n</lead>\n\n` +
     'Do this:\n' +
     '1. Find their Mi Semago video call in the owner\'s calendar.\n' +
@@ -1059,6 +1073,67 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
   }
   await writeLead(cfg, lead, { Notas: notes })
   tell(`📞 ${who} llamó a Ana Sofi.${resumen ? `\n${resumen.slice(0, 700)}` : ''}`)
+}
+
+/**
+ * Requests a lead makes on WhatsApp after the funnel — move, book or cancel
+ * the video call — which ManyChat writes into the Solicitud, Nuevo horario and
+ * Motivo columns. Each one is acted on once: what the columns said is
+ * remembered, and only a change counts as a new request. The first run only
+ * takes note of what is already there.
+ */
+export async function whatsappTick({ cfg, leads, state, zone, now }) {
+  const seen = readJson(WHATSAPP_FILE, {})
+  const sig = (l) => [l.solicitud, l.nuevoHorario, l.motivo].map((v) => String(v ?? '').trim()).join(' | ')
+  if (!seen.__desde) {
+    for (const l of leads) if (String(l.solicitud ?? '').trim()) seen[l.key] = sig(l)
+    seen.__desde = now
+    return writeJson(WHATSAPP_FILE, seen)
+  }
+  for (const lead of leads) {
+    const ask = fold(lead.solicitud)
+    if (!ask || seen[lead.key] === sig(lead)) continue
+    seen[lead.key] = sig(lead)
+    writeJson(WHATSAPP_FILE, seen) // noted before acting, so a crash never acts on one request twice
+    const tipo = /cancel/.test(ask)
+      ? 'cancelar_reunion'
+      : /cambi|mover|move|reprogram|reschedul|change/.test(ask)
+        ? 'cambio_reunion'
+        : /agend|book|schedul|reunion|meeting|videollamada/.test(ask)
+          ? 'agendar_reunion'
+          : 'otro'
+    const horario = String(lead.nuevoHorario ?? '').trim()
+    const motivo = String(lead.motivo ?? '').trim()
+    const who = lead.empresa || lead.nombre || 'un cliente'
+    const resumen = `Por WhatsApp: ${lead.solicitud}${horario ? `; nuevo horario: ${horario}` : ''}${motivo ? `; motivo: ${motivo}` : ''}`
+    const notes = `${lead.notas ? `${lead.notas}\n` : ''}[WhatsApp ${when(now, zone)}] ${resumen}`.slice(-1800)
+    const s = state[lead.key]
+    try {
+      if ((tipo === 'cambio_reunion' || tipo === 'agendar_reunion') && horario) {
+        if (s) Object.assign(s, { stage: 'reunion_pendiente', meetingSince: now })
+        writeState(state)
+        await writeLead(cfg, lead, { Estado: tipo === 'cambio_reunion' ? 'Pidió cambiar la videollamada (WhatsApp)' : 'Pidió videollamada (WhatsApp)', Notas: notes })
+        const done = runJob(
+          'WhatsApp · cambio de videollamada',
+          'mi-semago',
+          changeJob(lead, tipo, horario, '', resumen, 'whatsapp'),
+          `💬 ${who} escribió por WhatsApp: ${tipo === 'cambio_reunion' ? 'quiere mover su videollamada' : 'quiere agendar videollamada'} (${horario}). Lo arreglo y te aviso.`,
+        )
+        if (!done) tell(`💬 ${who} pidió por WhatsApp ${tipo === 'cambio_reunion' ? 'mover' : 'agendar'} la videollamada: ${horario}. No pude hacerlo solo; revísalo.`)
+      } else if (tipo === 'cancelar_reunion') {
+        if (s) s.stage = 'cerrado'
+        writeState(state)
+        await writeLead(cfg, lead, { Estado: 'Canceló la videollamada (WhatsApp)', Notas: notes })
+        const done = runJob('WhatsApp · videollamada cancelada', 'mi-semago', cancelJob(lead, resumen, 'whatsapp'), `💬 ${who} canceló su videollamada por WhatsApp. La marco en tu calendario.`)
+        if (!done) tell(`💬 ${who} canceló su videollamada por WhatsApp.${motivo ? ` Motivo: ${motivo}` : ''}`)
+      } else {
+        await writeLead(cfg, lead, { Notas: notes })
+        tell(`💬 ${who} escribió por WhatsApp: ${lead.solicitud}${motivo ? ` (${motivo})` : ''}${tipo === 'otro' ? '' : '. No dijo para cuándo: hay que preguntarle.'}`)
+      }
+    } catch (err) {
+      console.log(`[jarvis] ventas whatsapp: fila ${lead.row}: ${err?.message ?? err}`)
+    }
+  }
 }
 
 async function inboundTick({ cfg, key, leads, state, zone, now }) {
