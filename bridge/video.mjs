@@ -627,7 +627,7 @@ export function videoServer(elevenKey) {
               mix.push(`[${voiceIn}:a]volume=1.0[av]`)
               mixIn.push('[av]')
             }
-            graph.push(...mix, `${mixIn.join('')}amix=inputs=${mixIn.length}:duration=first:dropout_transition=0:normalize=0[aout]`)
+            graph.push(...mix, `${mixIn.join('')}amix=inputs=${mixIn.length}:duration=first:dropout_transition=0:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[aout]`)
 
             const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
             const safeName = String(args.name ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)

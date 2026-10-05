@@ -385,7 +385,11 @@ export function workshopServer(elevenKey) {
           const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
           mkdirSync(DONE, { recursive: true })
           const out = join(DONE, `${stamp}-${safeName(name || project, 'video')}${ext}`)
-          copyFileSync(src, out)
+          // Reels play at about -14 LUFS: a quieter export sounds weak next to
+          // everything else in the feed. Only the sound is redone; the picture is copied.
+          if ((await probe(ffmpeg, src)).audio) {
+            await run(ffmpeg, ['-y', '-i', src, '-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', out], 15 * 60_000)
+          } else copyFileSync(src, out)
           const info = await probe(ffmpeg, out)
           console.log(`[jarvis] taller: exported ${basename(out)}`)
           return ok(`Exported: ${out}\n${info.duration.toFixed(1)} s, ${info.width}x${info.height}, ${(statSync(out).size / 1048576).toFixed(1)} MB.`)

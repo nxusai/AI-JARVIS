@@ -184,6 +184,14 @@ it drops or changes, which cuts land on beats, and whether it starts at 0:00.
 Write each shot as a prompt ready for an AI video generator, in English,
 describing the person only as "the man" (the owner's likeness is added
 later). Describe, do not export anything.
+AI reels of the owner: cut on the sentence, not every few words; keep each
+talking shot whole while the line plays. Captions as one layer of 2 to 4
+words, large, lower third (around 70% down the frame, above Instagram's
+buttons), key word in the brand colour; no second layer of titles beyond a
+2 s hook. Check with look_at frames from every shot that the face matches,
+clothes match, hands and eyes have no artefacts and the mouth moves with the
+words; report any shot that fails instead of exporting it. export_video
+levels the sound for Instagram.
 Assembling a recreation: cut the generated clips to the shot list's exact
 lengths so every cut lands where the reference's does, same total length,
 same transitions and text style with the new text, then match colour across
