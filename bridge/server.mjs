@@ -26,6 +26,7 @@ import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
+import { invoicesServer } from './invoice-pdf.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
@@ -323,6 +324,8 @@ const VETO_EXEMPT = new Set([
  * Full `server__tool` keys, like VETO_EXEMPT, so nothing leaks across servers.
  */
 const WRITE_ALLOWLIST = new Set([
+  // Draws a PDF into ~/Documents/Nexy/facturas, nothing else (see invoice-pdf.mjs).
+  'jarvis_facturas__invoice_pdf',
   'google-calendar__create-event',
   'google-calendar__create-events',
   'google-calendar__update-event',
@@ -936,6 +939,12 @@ Invoices (Zoho):
   they did not say: client, concept, amount, currency, due date ("Due by"),
   who it is sent to and payment terms. Never assume a due date. Then show the
   whole invoice in a few lines and create it only after they say go.
+- The invoice as a PDF: when the owner asks to see an invoice that exists in
+  Zoho ("mándame el PDF", before it goes to the client), read it from Zoho
+  (its number, status, client, dates, every line, tax and total), draw it with
+  invoice_pdf passing that data exactly, and send it with send_file. If the
+  invoice details include an invoice_url, add that link too: it opens Zoho's
+  own page for it. Sending it to the client is a separate step they approve.
 - Find the customer by listing Zoho contacts right before the create (with
   their contact persons when you add any): the approval card names the client
   from that lookup, and shows only a number when you skip it.
@@ -1673,6 +1682,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_crudo: rawServer(),
       // Mi Semago's leads and Ana Sofi's sales calls (see ventas.mjs).
       jarvis_ventas: salesServer(elevenKey, TIME_ZONE),
+      // An invoice drawn as a PDF for the owner to look at (see invoice-pdf.mjs).
+      jarvis_facturas: invoicesServer(),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),

@@ -5,6 +5,7 @@ import { basename, extname, join, sep } from 'node:path'
 import { DONE, INBOX, MUSIC, VIDEO_DIR } from './video.mjs'
 import { hub, spendsMoney } from './console.mjs'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
+import { INVOICES_DIR } from './invoice-pdf.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
@@ -625,8 +626,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       tools: [
         tool(
           'send_file',
-          'Send the owner a finished video or an image in this chat, so they can watch it before it is published. ' +
-            'Only files from the Nexy video folders or images they sent.',
+          'Send the owner a finished video, an image or an invoice PDF in this chat, so they can see it before it is ' +
+            'published or created. Only files from the Nexy video folders, images they sent, or PDFs from invoice_pdf.',
           {
             path: z.string().describe('The file path, as edit_video or list_videos gave it.'),
             caption: z.string().optional().describe('A short line to go with it.'),
@@ -640,7 +641,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
             } catch {
               return { isError: true, content: [{ type: 'text', text: 'That file does not exist.' }] }
             }
-            const roots = [VIDEO_DIR, RECEIVED_DIR].map((d) => {
+            const roots = [VIDEO_DIR, RECEIVED_DIR, INVOICES_DIR].map((d) => {
               try {
                 return realpathSync(d) + sep
               } catch {
@@ -648,7 +649,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
               }
             })
             if (!roots.some((r) => r && real.startsWith(r))) {
-              return { isError: true, content: [{ type: 'text', text: 'Only finished videos and images from the Nexy folders can be sent.' }] }
+              return { isError: true, content: [{ type: 'text', text: 'Only finished videos, images and invoice PDFs from the Nexy folders can be sent.' }] }
             }
             const size = statSync(real).size
             if (size > BOT_UPLOAD_LIMIT) {
