@@ -1772,7 +1772,10 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
         /create|update/i.test(svcTool) &&
         JSON.stringify(input?.attendees ?? input?.events ?? '').includes('@') &&
         !salesMeetingInvite(input)
-      const held = ok && (needsApproval(toolName) || invites) && hub.hasApprover()
+      // Notion during an "aprobar todo por 1 hora" the owner gave (see telegram.mjs).
+      const trusted = svc === 'notion' && hub.trusted('notion')
+      if (trusted && needsApproval(toolName)) console.log(`[jarvis] tool ${toolName} -> allow (Notion approved for the hour)`)
+      const held = ok && (needsApproval(toolName) || invites) && hub.hasApprover() && !trusted
       const already = held ? approvedCalls.get(callKey(toolName, input)) : null
       if (already && Date.now() - already.at < APPROVED_TTL_MS) {
         if (already.retries >= APPROVED_RETRIES) {

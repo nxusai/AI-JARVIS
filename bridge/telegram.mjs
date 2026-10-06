@@ -59,6 +59,8 @@ const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
 const SLOW_STEP = /wait|video|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
 /** After this long on one request, she tells the owner she is still on it. */
 const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || 90_000
+/** How long "Aprobar todo en Notion" lasts. */
+const NOTION_TRUST_MS = 60 * 60_000
 
 /** A message older than this when Nexy starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
@@ -780,6 +782,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
               { text: '✅ Aprobar', callback_data: `ap:${view.id}` },
               { text: '❌ Rechazar', callback_data: `rj:${view.id}` },
             ],
+            // Building a table in Notion is a dozen small writes; one tap covers the hour.
+            ...(view.server === 'notion' ? [[{ text: '✅ Aprobar todo en Notion por 1 hora', callback_data: `at:${view.id}` }]] : []),
           ],
         },
       })
@@ -805,6 +809,13 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       const owner = readTelegram()?.owner
       if (!owner || q.from?.id !== owner.id || q.message?.chat?.id !== owner.id) return
       const [kind, id] = String(q.data ?? '').split(':')
+      if (kind === 'at' && id) {
+        hub.answer(id, true, '')
+        hub.trust('notion', NOTION_TRUST_MS)
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: 'Aprobado: Notion sin preguntar por 1 hora' }).catch(() => {})
+        await say(owner.id, '✅ Listo: por 1 hora no te pido aprobación para Notion (crear o editar páginas, tablas y filas). Borrar sigue bloqueado. Para volver a preguntar antes: /preguntar')
+        return
+      }
       if ((kind === 'ap' || kind === 'rj') && id) {
         hub.answer(id, kind === 'ap', kind === 'rj' ? 'Rechazado desde Telegram.' : '')
         await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: kind === 'ap' ? 'Aprobado' : 'Rechazado' }).catch(() => {})
@@ -846,6 +857,10 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       cfg = { ...cfg, voice }
       writeTelegram(cfg)
       return say(chatId, { siempre: 'Te contesto siempre con nota de voz.', nunca: 'Te contesto siempre por escrito.', auto: 'Nota de voz si me hablas, texto si me escribes.' }[voice])
+    }
+    if (text === '/preguntar') {
+      hub.untrust('notion')
+      return say(chatId, 'Listo: vuelvo a pedirte aprobación para todo en Notion.')
     }
     if (text === '/estado') {
       return say(chatId, convo?.busy ? busyLine(convo.status(), false) : 'Estoy libre. ¿Qué hacemos?')

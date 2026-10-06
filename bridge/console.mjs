@@ -193,6 +193,7 @@ function createHub() {
     return null
   }
 
+  const trustUntil = new Map()
   const settle = (id, approved, note) => {
     const a = approvals.get(id)
     if (!a) return
@@ -275,6 +276,23 @@ function createHub() {
     /** Answer an approval from outside the console. */
     answer(id, approved, note) {
       settle(id, approved === true, note)
+    },
+
+    /**
+     * The owner said "approve everything of this service for a while": calls
+     * to it go through without a card until then, and the cards of it already
+     * waiting are approved now. Only offered for Notion (the owner's own
+     * workspace), where building one table is a dozen small writes.
+     */
+    trust(server, ms) {
+      trustUntil.set(server, Date.now() + ms)
+      for (const [id, a] of [...approvals]) if (a.view.server === server) settle(id, true, '')
+    },
+    trusted(server) {
+      return (trustUntil.get(server) ?? 0) > Date.now()
+    },
+    untrust(server) {
+      trustUntil.delete(server)
     },
 
     /**
