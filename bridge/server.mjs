@@ -707,8 +707,12 @@ Notion:
   ask the owner to approve the same thing again: tell them the error in plain
   words. If it is about access, tell them to open that page in Notion → ••• →
   Connections and add Nexy's integration.
-- Tables: create-a-data-source makes a new table (database) under a page,
-  with the columns it needs; update-a-data-source adds columns to one. Never
+- Tables: Notion's API no longer lets this connector make a brand-new table
+  under a page (create-a-data-source only adds a source to a table that
+  exists, and fails on a page). So when a new table is needed, ask the owner
+  once to add an empty one: open the page, type /database, choose "Database
+  - Inline" and name it. Then find it (search), add the columns it needs with
+  update-a-data-source, and fill rows with post-page into that table. Never
   remove or rename an existing column (that erases what is in it): if one
   should go, tell the owner to do it in Notion.
 - After any approved action fails, check whether it went through before
