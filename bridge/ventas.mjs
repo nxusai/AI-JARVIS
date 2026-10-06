@@ -465,7 +465,7 @@ function meetingJob(lead, outcome, horarios) {
     'It goes out at once: the lead was promised this meeting on the call, so it is not held for the owner.\n' +
     '3. Then call log_sales_meeting with contacto_id, cuando (the day and time in words, Eastern) and link (the Meet link).\n' +
     `4. If the meeting is TODAY (Eastern), phone the owner right away with call_me (no time, so it rings now). Message, in Spanish, spoken: ` +
-    '"Boss, tiene un meeting hoy a las …" with the time, the company, who they are, the pounds, the cheeses, the prices agreed and anything from the call ' +
+    '"Boss tiene un meeting hoy a las …" with the time, the company, who they are, the pounds, the cheeses, the prices agreed and anything from the call ' +
     'they should know, so they are ready.\n' +
     '5. If the slot is no longer free or the email is missing: create nothing, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
     'Report: company, pounds, prices agreed, the meeting time, and that the invitation went out.'
@@ -503,7 +503,7 @@ const BRIEF_JOB =
   'who did not answer, and any lead marked for the owner to handle by hand.\n' +
   '2. The owner\'s Google Calendar: every meeting today and tomorrow, Mi Semago video calls first (time, company, pounds, cheeses and prices agreed, ' +
   'from the event description), then anything else on it.\n' +
-  '3. Phone the owner now with call_me (no time). The message, in Spanish, spoken, under two minutes: start "Buenos días, Boss.", then today\'s meetings, ' +
+  '3. Phone the owner now with call_me (no time). The message, in Spanish, spoken, under two minutes: start "Buenos días Boss.", then today\'s meetings, ' +
   'then the numbers (leads, calls, accepted prices), then what needs them today. Include company names, times, pounds and prices: on the call the ' +
   'phone agent can answer only from what this message says.\n' +
   '4. Your answer is the same briefing as a short written report for Telegram.\n' +
@@ -520,7 +520,7 @@ function briefingDue(now) {
 export function morningCall(now = Date.now()) {
   const day = briefingDue(now)
   if (!day) return
-  if (runJob('☀️ Llamada de las 8', 'mi-semago', BRIEF_JOB, '☀️ Buenos días, Boss. Preparo tu resumen y te llamo.')) {
+  if (runJob('☀️ Llamada de las 8', 'mi-semago', BRIEF_JOB, '☀️ Buenos días Boss. Preparo tu resumen y te llamo.')) {
     writeJson(BRIEF_FILE, { dia: day })
   }
 }
@@ -1004,7 +1004,7 @@ function changeJob(lead, kind, horario, correo, resumen, via = 'call') {
       : `3. Create the event: one hour, title "Mi Semago · ${clean(lead.empresa || lead.nombre || 'cliente')} · videollamada", a Google Meet link, their email as guest, ` +
         'sendUpdates "all", and their details and the call summary in the description. It goes out at once, without the owner\'s tap.\n') +
     '4. Call log_sales_meeting with contacto_id, cuando (day and time in words, Eastern) and link.\n' +
-    '5. If the new time is TODAY (Eastern), phone the owner now with call_me: "Boss, tiene un meeting hoy a las …" and everything to be ready.\n' +
+    '5. If the new time is TODAY (Eastern), phone the owner now with call_me: "Boss tiene un meeting hoy a las …" and everything to be ready.\n' +
     'If nothing is free that week or there is no email, change nothing and say what is needed.\n\n' +
     `Report: who ${via === 'whatsapp' ? 'wrote' : 'called'}, what they asked, and the new meeting time.`
   )

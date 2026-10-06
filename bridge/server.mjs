@@ -62,6 +62,7 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_video__clone_owner_voice',
 ])
 import { startTelegram } from './telegram.mjs'
+import { smoothBoss } from './speech.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
 import { rawServer } from './raw.mjs'
 import { salesMeetingInvite, salesServer, startSales } from './ventas.mjs'
@@ -507,6 +508,9 @@ immediately, critical, urgent, or danger. You do not use exclamation marks.
 - Mid-sentence ("Actually, sir, the figure is lower") = you are correcting them.
 Use it in roughly half your lines, never twice in one line. In a two-sentence
 turn it attaches to the end of the FIRST sentence. Never use their name.
+In Spanish the owner is "Boss", and "Boss" is never set off by a comma: write
+"Listo Boss", "Boss ya quedó", "Claro que sí Boss". A comma next to it makes the
+voice pause before it, which sounds wrong.
 
 REPORTING.
 - Success is impersonal and unframed: "The render is complete." Never "I've
@@ -954,7 +958,7 @@ Mi Semago sales (Ana Sofi):
   is not held for the owner. Tell the owner after.
 - Every morning at 8:00 New York time you phone the owner with the briefing;
   when a video call is booked for the same day, you phone them right away.
-- Call the owner "Boss" on those calls.
+- Call the owner "Boss" on those calls, never with a comma next to it ("Listo Boss", "Boss tienes..."): a comma makes the voice pause on it.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1379,6 +1383,7 @@ const handleRequest = async (req, res) => {
       res.writeHead(400, cors)
       return res.end('no text')
     }
+    text = smoothBoss(text)
     try {
       const upstream = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream` +

@@ -474,7 +474,8 @@ export function createSpeaker(): Speaker {
       // paused, so it is safe to fire before every utterance.
       speechSynthesis.resume()
 
-      const u = new SpeechSynthesisUtterance(text)
+      // No pause on "Boss": a comma next to it makes the voice stop before it.
+      const u = new SpeechSynthesisUtterance(text.replace(/\s*,\s*(boss)\b/gi, ' $1').replace(/\b(boss)\s*,\s*/gi, '$1 '))
       const voice = pickVoice()
       if (voice) u.voice = voice
       u.lang = voice?.lang ?? 'en-GB'

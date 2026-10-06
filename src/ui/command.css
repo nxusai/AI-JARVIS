@@ -145,9 +145,31 @@ html body #root { background: transparent; }
 .ey-hint:hover { color: #fff; }
 
 /* the rest of the HUD on this deck */
-.hud.v2 .log { bottom: 17vh; width: min(560px, 36vw); }
-.hud.v2 .log-jarvis .log-text { text-shadow: 0 0 18px rgba(138, 79, 208, 0.9), 0 0 4px #000; }
-.hud.v2 .caption { bottom: 15vh; }
+/* The conversation lives on the left, under SYSTEMS, so it never covers the
+   eye or the line at the bottom. */
+.hud.v2 .log {
+  left: 3.8vw;
+  right: auto;
+  bottom: 18vh;
+  transform: none;
+  width: min(430px, 26vw);
+  max-height: 30vh;
+  overflow: hidden;
+  gap: 10px;
+}
+.hud.v2 .log-line { font-size: 13px; }
+.hud.v2 .log-who { flex-basis: 44px; }
+.hud.v2 .log-jarvis .log-text { color: #ebf0ff; text-shadow: 0 0 14px rgba(138, 79, 208, 0.8), 0 0 4px #000; }
+.hud.v2 .caption {
+  left: 3.8vw;
+  right: auto;
+  bottom: 13vh;
+  transform: none;
+  max-width: 26vw;
+  text-align: left;
+  font-size: 14px;
+  color: #c9b8ff;
+}
 .hud.v2 .tool-badge { top: 13vh; }
 .hud.v2 .suggest { display: none; }
 .hud.v2 .error { bottom: 4px; }

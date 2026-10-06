@@ -12,6 +12,7 @@ import { country, toE164 } from './contact-book.mjs'
 import { setRoutineRunner } from './routines.mjs'
 import { setSalesNotifier } from './ventas.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
+import { smoothBoss } from './speech.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -131,7 +132,7 @@ export function chunks(text, max = MAX_MESSAGE) {
 
 /** Text as it should be heard: no links, no markup, nothing read out symbol by symbol. */
 export function forSpeech(text) {
-  return String(text ?? '')
+  return smoothBoss(text)
     .replace(/https?:\/\/\S+/g, '')
     .replace(/[*_#`>|~]+/g, '')
     .replace(/[ \t]+/g, ' ')

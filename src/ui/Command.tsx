@@ -46,6 +46,8 @@ function seeded(seed: number) {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646
 }
 
+const easeInOut = (x: number) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2)
+
 /** The voice level, eased; read every frame without re-rendering React. */
 const live = { lvl: 0, px: 0, py: 0 }
 function tickLevel() {
@@ -176,13 +178,83 @@ function Eye() {
       g.stroke()
       g.shadowBlur = 0
 
-      // a blink now and then, the lid a dark band closing over the eye
-      const cycle = s % 9
-      if (cycle < 0.22 && phase !== 'offline') {
-        const k = Math.sin((cycle / 0.22) * Math.PI)
-        g.fillStyle = '#03041a'
-        g.fillRect(CX - R - 10, CY - R - 10, R * 2 + 20, (R + 10) * k)
-        g.fillRect(CX - R - 10, CY + R + 10 - (R + 10) * k, R * 2 + 20, (R + 10) * k)
+      // A crocodile's blink: the nictitating membrane, a translucent third
+      // eyelid, sweeps sideways across the eye from the inner corner and back;
+      // every third blink the lower lid also rises part of the way. The upper
+      // lid stays still. All of it is clipped to the eye, so it is the eye that
+      // blinks, not a box over it.
+      const ex = CX + lookX * 0.35
+      const ey = CY + lookY * 0.35
+      const BLINK_EVERY = 8.5
+      const BLINK_LEN = 0.75
+      const nth = Math.floor(s / BLINK_EVERY)
+      const into = s % BLINK_EVERY
+      if (into < BLINK_LEN && phase !== 'offline') {
+        const u = into / BLINK_LEN
+        // fast across, a beat covered, slower back
+        const k = u < 0.38 ? easeInOut(u / 0.38) : u < 0.5 ? 1 : 1 - easeInOut((u - 0.5) / 0.5)
+        g.save()
+        g.beginPath()
+        g.arc(ex, ey, R, 0, Math.PI * 2)
+        g.clip()
+        // membrane
+        const edge = ex - R - 30 + k * (R * 2 + 60)
+        const bulge = 46
+        const film = g.createLinearGradient(edge - 260, 0, edge + bulge, 0)
+        film.addColorStop(0, 'rgba(150,165,235,.26)')
+        film.addColorStop(0.85, 'rgba(190,200,255,.36)')
+        film.addColorStop(1, 'rgba(230,236,255,.6)')
+        g.fillStyle = film
+        g.beginPath()
+        g.moveTo(ex - R - 40, ey - R - 10)
+        g.lineTo(edge - bulge, ey - R - 10)
+        g.quadraticCurveTo(edge + bulge, ey, edge - bulge, ey + R + 10)
+        g.lineTo(ex - R - 40, ey + R + 10)
+        g.closePath()
+        g.fill()
+        // its fine vessels, and a bright rim on the leading edge
+        g.strokeStyle = 'rgba(120,110,200,.22)'
+        g.lineWidth = 1
+        for (let v = -3; v <= 3; v++) {
+          g.beginPath()
+          g.moveTo(ex - R - 30, ey + v * 60)
+          g.bezierCurveTo(edge - 200, ey + v * 52 + 14, edge - 120, ey + v * 46 - 10, edge - 30, ey + v * 40)
+          g.stroke()
+        }
+        g.strokeStyle = 'rgba(245,248,255,.85)'
+        g.lineWidth = 2
+        g.beginPath()
+        g.moveTo(edge - bulge, ey - R - 10)
+        g.quadraticCurveTo(edge + bulge, ey, edge - bulge, ey + R + 10)
+        g.stroke()
+        // the lower lid, rising on every third blink
+        if (nth % 3 === 0) {
+          const lift = Math.sin(u * Math.PI) * R * 0.85
+          const top = ey + R - lift
+          const lid = g.createLinearGradient(0, top - 20, 0, ey + R)
+          lid.addColorStop(0, '#1a1650')
+          lid.addColorStop(0.15, '#0a0b2e')
+          lid.addColorStop(1, '#03041a')
+          g.fillStyle = lid
+          g.beginPath()
+          g.moveTo(ex - R - 10, ey + R + 10)
+          g.lineTo(ex - R - 10, top + 40)
+          g.quadraticCurveTo(ex, top - 40, ex + R + 10, top + 40)
+          g.lineTo(ex + R + 10, ey + R + 10)
+          g.closePath()
+          g.fill()
+          // scales along its edge
+          g.strokeStyle = 'rgba(138,79,208,.35)'
+          g.lineWidth = 1
+          for (let q = 0; q < 14; q++) {
+            const qx = ex - R + (q / 13) * R * 2
+            const qy = top + 40 - 80 * (1 - ((qx - ex) / (R + 10)) ** 2) * 0.5 + 6
+            g.beginPath()
+            g.arc(qx, qy + 10, 9, Math.PI, Math.PI * 2)
+            g.stroke()
+          }
+        }
+        g.restore()
       }
 
       // glints on the cornea

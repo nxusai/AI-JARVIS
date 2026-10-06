@@ -1,5 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
+import { smoothBoss } from './speech.mjs'
 
 /**
  * `call_me` — ring the owner's phone through an ElevenLabs phone agent, now or
@@ -172,7 +173,7 @@ export function phoneServer(elevenKey, zone) {
         agent_id: s.agent,
         agent_phone_number_id: s.from,
         to_number: s.to,
-        conversation_initiation_client_data: { dynamic_variables: { nexy_brief: message } },
+        conversation_initiation_client_data: { dynamic_variables: { nexy_brief: smoothBoss(message) } },
       }),
     })
     return r.error ? `error ${r.error}` : null
@@ -247,7 +248,7 @@ export function phoneServer(elevenKey, zone) {
                 {
                   phone_number: s.to,
                   conversation_initiation_client_data: {
-                    dynamic_variables: { nexy_brief: message },
+                    dynamic_variables: { nexy_brief: smoothBoss(message) },
                   },
                 },
               ],
