@@ -1847,11 +1847,13 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
 wss.on('connection', (socket, req) => {
   // The console page only watches and approves; it gets no agent session.
   if ((req.url ?? '/').split('?')[0] === '/console') {
-    console.log('[jarvis] console connected')
+    // ?watch=1 is the face's command panels: read only, and not a place to approve.
+    const watch = /[?&]watch=1\b/.test(req.url ?? '')
+    if (!watch) console.log('[jarvis] console connected')
     // Files the owner may have edited by hand since the last look.
     hub.setBrands(readBrands())
     hub.setBrain(buildBrain())
-    hub.addConsole(socket)
+    hub.addConsole(socket, watch)
     return
   }
   console.log('[jarvis] client connected')

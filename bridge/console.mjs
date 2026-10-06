@@ -211,8 +211,14 @@ function createHub() {
   }
 
   return {
-    /** A console page connected. Give it everything, then listen for its answers. */
-    addConsole(socket) {
+    /**
+     * A console page connected. Give it everything, then listen for its
+     * answers. `watch` is Nexy's own face reading the same feed for its
+     * panels: it gets every update but answers nothing, and it does not count
+     * as a console where approvals can be answered.
+     */
+    addConsole(socket, watch = false) {
+      socket.watchOnly = watch
       consoles.add(socket)
       socket.send(
         JSON.stringify({
@@ -226,6 +232,7 @@ function createHub() {
         }),
       )
       socket.on('message', (raw) => {
+        if (watch) return
         let msg
         try {
           msg = JSON.parse(raw.toString())
@@ -245,7 +252,7 @@ function createHub() {
       socket.on('close', () => consoles.delete(socket))
     },
 
-    hasConsole: () => [...consoles].some((s) => s.readyState === s.OPEN),
+    hasConsole: () => [...consoles].some((s) => s.readyState === s.OPEN && !s.watchOnly),
 
     /** Whether anyone can answer an approval right now: a console, or Telegram. */
     hasApprover() {
