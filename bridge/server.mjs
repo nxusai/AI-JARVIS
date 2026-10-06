@@ -26,7 +26,7 @@ import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
-import { accountGuard, brandsPrompt, brandsServer, findBrand, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
+import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
 import { toE164 } from './contact-book.mjs'
@@ -760,18 +760,34 @@ Video:
 - Any other edit — cutting pauses or filler words, retakes, zooms, speed,
   text, effects, transitions, colour, anything the owner describes — goes to
   the editor agent. Tell it the files (paths from list_videos or the owner's
-  message, or links), the brand and exactly what the owner asked. When it
-  returns an exported file, send it to the owner to watch.
+  message, or links), the brand, exactly what the owner asked and the molds
+  to follow (below). When it returns an exported file, send it to the owner
+  to watch.
+- Editing molds (Departamento de Marketing, shared by every brand): every
+  video edit follows at least one of the owner's saved molds; read_brand
+  lists them in one line each. You choose: the mold whose kind of video,
+  energy and length best fit this footage, brand and goal. Mix molds when that
+  serves the video better, saying exactly what comes from each (e.g. pace and
+  hook from one, subtitles and transitions from another). When the owner names
+  a mold, use that one. read_edit_molds for the full text of the ones chosen
+  and give it whole to the editor; the brand's colours, font and logo always
+  replace the mold's. Tell the owner in one line which mold or molds you used
+  and why. Only when no mold exists yet, edit cleanly and tell the owner to
+  send reference videos so there are molds.
+- Every reference video the owner sends (a link, or a file they say is a
+  reference: "edita así", "como este", "guarda este estilo") becomes a mold,
+  without waiting to be asked: get_reference_video, ask the editor agent to
+  analyse it and return a style description, then save_edit_style with a
+  short descriptive name (theirs if they gave one), a one-line summary in
+  Spanish of what videos it suits, and as source the link and the downloaded
+  path. For every brand unless they say it is for one brand only. Tell them
+  the mold's name. list_videos marks reference videos that are not molds
+  yet: when the owner asks to turn their references into molds, analyse and
+  save each of those one by one, and offer it once whenever you see some.
 - A link to a video (Instagram, TikTok, YouTube, Facebook, X, Threads, Vimeo)
   that the owner sends to show you something: get_reference_video downloads it
   so you can actually watch it. If it fails because the site wants a login,
   ask them to save it on their phone and send it on Telegram.
-- To learn or copy the style of a reference ("edita así", "guarda este
-  estilo"): ask the editor agent to analyse it and return a style description
-  (what save_edit_style asks for). If the owner wants it kept, save it with
-  save_edit_style under the name they give, for the brand it is for. To edit
-  "con el estilo X", read_brand and hand the editor that style's whole text
-  with the footage.
 - A reference is someone else's work: study it, never publish it or reuse its
   footage, music or text.
 - AI scenes of the owner inside a real edit: first look at the real footage
@@ -1594,11 +1610,14 @@ const RESULT_FAILURES = {
 }
 
 // What the console shows besides tasks: the brands, the team and the brain.
-hub.setOrg(orgView())
+// The org carries the editing molds too, which the Marketing department shows.
+const orgWithMolds = () => ({ ...orgView(), molds: listMolds() })
+hub.setOrg(orgWithMolds())
 hub.setBrands(readBrands())
 hub.setBrain(buildBrain())
 onBrandsChange((state) => {
   hub.setBrands(state)
+  hub.setOrg(orgWithMolds())
   hub.setBrain(buildBrain())
 })
 hub.onCommand((msg) => {
@@ -1848,6 +1867,7 @@ wss.on('connection', (socket, req) => {
     if (!watch) console.log('[jarvis] console connected')
     // Files the owner may have edited by hand since the last look.
     hub.setBrands(readBrands())
+    hub.setOrg(orgWithMolds())
     hub.setBrain(buildBrain())
     hub.addConsole(socket, watch)
     return

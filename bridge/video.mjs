@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpath
 import { createRequire } from 'node:module'
 import { homedir, tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
-import { activeBrand, findBrand, readLogo, readManual } from './brands.mjs'
+import { activeBrand, findBrand, moldSources, readLogo, readManual } from './brands.mjs'
 import { vetTarget } from './net.mjs'
 import { REFS, fetchReference } from './reference.mjs'
 import { rawRoots } from './raw.mjs'
@@ -275,6 +275,17 @@ const safeFile = (s) =>
     .replace(/^-|-$/g, '')
     .slice(0, 40) || 'musica'
 
+/**
+ * The mold a downloaded reference became, if any. Files are named
+ * "<date>-<site>-<video id>", and a mold keeps the link and the path it came
+ * from, so either the file name or the video id inside the link matches.
+ */
+export function moldOf(file, molds = moldSources()) {
+  const name = basename(file).replace(/\.[^.]+$/, '')
+  const id = name.replace(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-[^-]+-/, '')
+  return molds.find((m) => m.fuente && (m.fuente.includes(name) || (id.length >= 5 && id !== name && m.fuente.includes(id))))?.nombre ?? null
+}
+
 const list = (dir, pattern) => {
   try {
     return readdirSync(dir)
@@ -319,8 +330,17 @@ export function videoServer(elevenKey) {
           ...(list(MUSIC, AUDIO_EXT).length ? list(MUSIC, AUDIO_EXT) : ['(empty)']),
           `Finished (${DONE}):`,
           ...(list(DONE, VIDEO_EXT).length ? list(DONE, VIDEO_EXT) : ['(empty)']),
-          `Style references, never to publish (${REFS}):`,
-          ...(list(REFS, VIDEO_EXT).length ? list(REFS, VIDEO_EXT) : ['(empty)']),
+          `Reference videos, never to publish (${REFS}) — each one becomes an editing mold:`,
+          ...(() => {
+            const refs = list(REFS, VIDEO_EXT)
+            if (!refs.length) return ['(empty)']
+            const molds = moldSources()
+            return refs.map((line) => {
+              const path = line.slice(2).replace(/ \([\d.]+ MB\)$/, '')
+              const mold = moldOf(path, molds)
+              return `${line} ${mold ? `— mold "${mold}"` : '— NOT A MOLD YET'}`
+            })
+          })(),
         ]
         return ok(parts.join('\n'))
       }),
@@ -464,7 +484,8 @@ export function videoServer(elevenKey) {
             return ok(
               `Downloaded to ${r.path} (${r.mb} MB${r.duration ? `, ${Math.round(r.duration)} s` : ''})` +
                 `${r.title ? `. Title: ${r.title}` : ''}${r.uploader ? `. By: ${r.uploader}` : ''}. ` +
-                'Reference only, not for publishing. Give this path to the editor agent to study.',
+                'Reference only, not for publishing. Give this path to the editor agent to study, then save it as an editing ' +
+                'mold with save_edit_style (source: the link and this path).',
             )
           } catch (err) {
             return refuse(`Could not get that video: ${err?.message ?? err}`)

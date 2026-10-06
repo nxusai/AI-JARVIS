@@ -257,7 +257,7 @@ const KIND: Record<BrainNode['kind'], string> = {
   brand: 'Marca',
   note: 'Nota del manual de marca',
   ref: 'Referencia visual de la marca',
-  dept: 'Área',
+  dept: 'Departamento',
   agent: 'Agente',
   person: 'Contacto',
   fact: 'Recuerdo',

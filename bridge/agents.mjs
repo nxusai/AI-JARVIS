@@ -17,17 +17,89 @@
  * instructions. It appears on the console map on the next start.
  */
 
+/**
+ * The departments, as the owner sees them in the console ("Departamento de …")
+ * and as Nexy is told her work is organised. Every brand has the same ones.
+ * `hace` is for the console, in Spanish; `nexy` tells Nexy, in English, what
+ * belongs there and which connections it uses. Dirección is Nexy's own desk:
+ * on the map it is the centre, not a department of a brand.
+ */
 export const DEPARTMENTS = [
-  { id: 'nucleo', label: 'Núcleo', icon: '🧠' },
-  { id: 'marketing', label: 'Marketing', icon: '📣' },
-  { id: 'comunicacion', label: 'Comunicación', icon: '✉️' },
-  { id: 'operaciones', label: 'Operaciones', icon: '🗂️' },
-  { id: 'ventas', label: 'Ventas', icon: '💼' },
-  { id: 'publicidad', label: 'Publicidad', icon: '🎯' },
-  { id: 'llamadas', label: 'Llamadas', icon: '📞' },
+  {
+    id: 'direccion',
+    label: 'Departamento de Dirección',
+    short: 'Dirección',
+    icon: '🧠',
+    hace: 'Nexy coordina todo: tu memoria, los manuales de cada marca, las aprobaciones y qué departamento hace cada cosa.',
+    nexy: 'You yourself: the owner\'s memory, the brand manuals (read_brand), approvals, routing work to the right department.',
+  },
+  {
+    id: 'marketing',
+    label: 'Departamento de Marketing',
+    short: 'Marketing',
+    icon: '📣',
+    hace: 'Estrategia de contenido, ganchos, guiones, captions, dirección visual, edición de video con los moldes de edición, música y publicación en redes.',
+    nexy: 'Content strategy, hooks, scripts, captions, visuals, video editing (always with the editing molds), music, raw footage, brand files, scheduling posts (Metricool), Canva.',
+  },
+  {
+    id: 'publicidad',
+    label: 'Departamento de Publicidad',
+    short: 'Publicidad',
+    icon: '🎯',
+    hace: 'Campañas pagadas en Meta Ads: objetivo, público, presupuesto y los textos de cada anuncio.',
+    nexy: 'Paid campaigns: Meta Ads plans, audiences, budgets and ad copy.',
+  },
+  {
+    id: 'ventas',
+    label: 'Departamento de Ventas',
+    short: 'Ventas',
+    icon: '💼',
+    hace: 'Ana Sofi y los leads de Mi Semago, juntas con prospectos e investigación comercial.',
+    nexy: 'Ana Sofi and the Mi Semago leads (jarvis_ventas), meetings with prospects, WhatsApp lead follow-up, market and prospect research.',
+  },
+  {
+    id: 'finanzas',
+    label: 'Departamento de Finanzas',
+    short: 'Finanzas',
+    icon: '💰',
+    hace: 'Facturas, cotizaciones y cobros en Zoho. Todo lo que sale a un cliente pasa por tu aprobación.',
+    nexy: 'Invoices, estimates and payments in Zoho Invoice; every invoice or estimate that goes out needs the owner\'s approval.',
+  },
+  {
+    id: 'comunicacion',
+    label: 'Departamento de Comunicación',
+    short: 'Comunicación',
+    icon: '✉️',
+    hace: 'Correos (Gmail), Telegram y los mensajes que redacta Nexy para ti.',
+    nexy: 'Email (Gmail), Telegram, drafting emails and messages in each brand\'s voice.',
+  },
+  {
+    id: 'llamadas',
+    label: 'Departamento de Llamadas y Recepción',
+    short: 'Llamadas',
+    icon: '📞',
+    hace: 'La Nexy que te llama, la recepcionista que contesta cuando no puedes, los recados y tus contactos.',
+    nexy: 'Calls to the owner (call_me), calls to approved contacts, the receptionist, messages taken (recados), the contact book.',
+  },
+  {
+    id: 'operaciones',
+    label: 'Departamento de Operaciones',
+    short: 'Operaciones',
+    icon: '🗂️',
+    hace: 'Calendario, Notion, rutinas programadas y seguimiento de tareas.',
+    nexy: 'Calendar, Notion (pages, tables, tasks), scheduled routines, task follow-up.',
+  },
+  {
+    id: 'ia',
+    label: 'Departamento de IA',
+    short: 'IA',
+    icon: '🤖',
+    hace: 'Las herramientas de IA: Higgsfield y tu personaje, tu voz clonada, imágenes con IA, los agentes de ElevenLabs, la cámara y Chrome.',
+    nexy: 'The AI tools other departments use: Higgsfield (the owner\'s Soul character, AI scenes and reels), the owner\'s cloned voice, AI images (fal, Replicate), the ElevenLabs agents, the camera and Chrome.',
+  },
 ]
 
-const BRAND_TOOLS = ['mcp__jarvis_brands__read_brand', 'mcp__jarvis_brands__list_brands']
+const BRAND_TOOLS = ['mcp__jarvis_brands__read_brand', 'mcp__jarvis_brands__list_brands', 'mcp__jarvis_brands__read_edit_molds']
 
 /** The editor's tools: the workshop, the folders, and its own eyes. */
 const VIDEO_TOOLS = [
@@ -163,6 +235,13 @@ Workflow:
 4. look_at a few frames of your result to check framing, text and logo before
    you finish; fix what is wrong.
 5. export_video the final file and return its path with one line on what you did.
+Editing molds: the task names the mold or molds to follow (the owner's saved
+editing styles; read_edit_molds gives their full text when the task only
+names them). Follow them: pace, cuts, hook, structure, subtitles, text, zooms,
+transitions, colour and sound as the mold says. When the task mixes molds, take
+from each exactly what the task says. The brand's own colours, font and logo
+(read_brand) replace any colours or logo the mold describes. Say in your one
+line which mold or molds you followed.
 Studying a reference video (to learn its style, not to edit it): add_to_project
 it, media_info with cuts:true for the rhythm, look_at frames across the whole
 video (the first three seconds closely, then every few seconds), transcribe
@@ -312,18 +391,28 @@ export function agentDefinitions({ notionReadTools = [] } = {}) {
 
 /** The team as the console draws it. */
 export const orgView = () => ({
-  departments: DEPARTMENTS,
+  departments: DEPARTMENTS.map(({ id, label, short, icon, hace }) => ({ id, label, short, icon, hace })),
   agents: AGENTS.map(({ id, label, icon, dept, resumen }) => ({ id, label, icon, dept, description: resumen })),
 })
 
-/** The block appended to the system prompt. */
+/** The block appended to the system prompt: the organisation, by department. */
 export function teamPrompt() {
+  const byDept = DEPARTMENTS.map((d) => {
+    const team = AGENTS.filter((a) => a.dept === d.id)
+    return (
+      `### ${d.label}\n${d.nexy}` +
+      (team.length ? '\nSpecialists:\n' + team.map((a) => `- ${a.id}: ${a.description}`).join('\n') : '\nNo specialist: you do this work yourself.')
+    )
+  })
   return (
-    '\n\nYour team, reached with the Agent tool (subagent_type is the id). ' +
-    'Delegate when the owner wants finished work a specialist does better; answer ' +
-    'quick questions yourself. In the task say the brand, the network and exactly ' +
-    'what the owner asked. Always set run_in_background to false. You can use ' +
-    'several in a row, for example estratega then ganchos then captions.\n' +
-    AGENTS.map((a) => `- ${a.id}: ${a.description}`).join('\n')
+    '\n\n## How the work is organised: departments\n' +
+    'Every brand has the same departments, and the owner sees them in the console with these names. ' +
+    'Place every request in its department (or several, in order: e.g. Marketing writes, IA generates, Marketing edits) ' +
+    'and, when it helps, say which department handled it ("Lo vio el Departamento de Marketing"). ' +
+    'Specialists are reached with the Agent tool (subagent_type is the id). Delegate when the owner wants finished ' +
+    'work a specialist does better; answer quick questions yourself. In the task say the brand, the network and ' +
+    'exactly what the owner asked. Always set run_in_background to false. You can use several in a row, for example ' +
+    'estratega then ganchos then captions.\n\n' +
+    byDept.join('\n\n')
   )
 }

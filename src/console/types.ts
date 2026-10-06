@@ -60,9 +60,10 @@ export type Brand = {
 }
 export type Brands = { grupo?: string; activa: string; marcas: Brand[] }
 
-export type Department = { id: string; label: string; icon: string }
+export type Department = { id: string; label: string; short?: string; icon: string; hace?: string }
+export type Mold = { nombre: string; resumen: string; fuente: string | null; marca: string | null }
 export type Agent = { id: string; label: string; icon: string; dept: string; description: string }
-export type Org = { departments: Department[]; agents: Agent[] }
+export type Org = { departments: Department[]; agents: Agent[]; molds?: Mold[] }
 
 export type BrainNode = {
   id: string

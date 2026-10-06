@@ -57,7 +57,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
 
   // The core: shared services and what Nexy knows about the owner.
   const serviceKeys = [...new Set([...servers.map((s) => s.name), 'web'])].filter((k) => !serviceOf(k).hidden)
-  const coreServices = serviceKeys.filter((k) => deptOf(k) === 'nucleo')
+  const coreServices = serviceKeys.filter((k) => deptOf(k) === 'direccion')
   const facts = (brain?.nodes ?? []).filter((n) => n.kind === 'fact' && !n.brand)
   const people = (brain?.nodes ?? []).filter((n) => n.kind === 'person')
   // Memory is both a service and what it holds: one node, with the facts around it.
@@ -85,7 +85,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
 
   // One galaxy per brand.
   const marcas = brands?.marcas ?? []
-  const depts = (org?.departments ?? []).filter((d) => d.id !== 'nucleo')
+  const depts = (org?.departments ?? []).filter((d) => d.id !== 'direccion')
   marcas.forEach((b, i) => {
     const ba = (i / Math.max(marcas.length, 1)) * TAU - Math.PI / 2
     const bp = polar(0, 0, RB, ba)
@@ -96,7 +96,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
       const da = ba + (j / depts.length) * TAU + Math.PI / depts.length
       const dp = polar(bp.x, bp.y, RD, da)
       const did = `${b.id}:dept:${d.id}`
-      add({ id: did, kind: 'dept', label: d.label, icon: d.icon, ...dp, r: 34, color: b.color, eco: b.id, parent: id })
+      add({ id: did, kind: 'dept', label: d.short ?? d.label, icon: d.icon, ...dp, r: 34, color: b.color, eco: b.id, parent: id })
       const agents = (org?.agents ?? []).filter((a) => a.dept === d.id)
       const svcs = serviceKeys.filter((k) => deptOf(k) === d.id)
       const kids = [
@@ -170,7 +170,7 @@ export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa
       if (!isAgentStep(s)) {
         const home = homeOf(s.server, s.tool)
         if (serviceOf(home).hidden) continue
-        if (deptOf(home) === 'nucleo') mark(byId.has(`core:svc:${home}`) ? `core:svc:${home}` : 'core', state)
+        if (deptOf(home) === 'direccion') mark(byId.has(`core:svc:${home}`) ? `core:svc:${home}` : 'core', state)
         else mark(byId.has(`${brand}:svc:${home}`) ? `${brand}:svc:${home}` : `${brand}:brand`, state)
       }
     }

@@ -190,7 +190,7 @@ export function Boards({
       </div>
 
       <section>
-        <h2>Actividad de hoy por área</h2>
+        <h2>Actividad de hoy por departamento</h2>
         {perDept.size ? (
           <ul className="bars">
             {(org?.departments ?? [])
@@ -198,7 +198,7 @@ export function Boards({
               .map((d) => (
                 <li key={d.id}>
                   <span>
-                    {d.icon} {d.label}
+                    {d.icon} {d.short ?? d.label}
                   </span>
                   <i style={{ width: `${((perDept.get(d.id) ?? 0) / maxDept) * 100}%` }} />
                   <b>{perDept.get(d.id)}</b>

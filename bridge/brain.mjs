@@ -40,7 +40,7 @@ export function buildBrain() {
   }
 
   const { departments, agents } = orgView()
-  for (const d of departments) add({ id: `dept:${d.id}`, label: d.label, icon: d.icon, kind: 'dept' }, 'nexy')
+  for (const d of departments) add({ id: `dept:${d.id}`, label: d.short ?? d.label, icon: d.icon, kind: 'dept' }, 'nexy')
   for (const a of agents) {
     add({ id: `agent:${a.id}`, label: a.label, icon: a.icon, detail: a.description, kind: 'agent' }, `dept:${a.dept}`)
   }

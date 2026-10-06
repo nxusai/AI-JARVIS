@@ -3,7 +3,7 @@
  * the map it hangs from.
  *
  * A server that is not listed here still appears — with its own name and a
- * plug icon, under Núcleo — the moment Nexy connects to it, so nothing breaks
+ * plug icon, under Dirección — the moment Nexy connects to it, so nothing breaks
  * when a new app is added. A line here only makes it look nicer and puts it in
  * the right department. For example:
  *
@@ -22,8 +22,8 @@ export const SERVICES: Record<string, Service> = {
   jarvis_phone: { label: 'Teléfono', icon: '☎️', dept: 'llamadas' },
   jarvis_contacts: { label: 'Contactos', icon: '👥', dept: 'llamadas' },
   jarvis_messages: { label: 'Recados', icon: '📝', dept: 'llamadas' },
-  jarvis_memory: { label: 'Memoria', icon: '💭', dept: 'nucleo' },
-  jarvis_brands: { label: 'Marcas', icon: '🏷️', dept: 'nucleo' },
+  jarvis_memory: { label: 'Memoria', icon: '💭', dept: 'direccion' },
+  jarvis_brands: { label: 'Marcas', icon: '🏷️', dept: 'direccion' },
   jarvis_rutinas: { label: 'Rutinas', icon: '⏰', dept: 'operaciones' },
   jarvis_crudo: { label: 'Crudo (memoria)', icon: '🗂️', dept: 'marketing' },
   jarvis_ventas: { label: 'Ana Sofi (ventas)', icon: '🧀', dept: 'ventas' },
@@ -31,10 +31,10 @@ export const SERVICES: Record<string, Service> = {
   jarvis_video: { label: 'Editor de video', icon: '🎞️', dept: 'marketing' },
   jarvis_taller: { label: 'Taller de edición', icon: '🛠️', dept: 'marketing' },
   jarvis_telegram: { label: 'Telegram', icon: '✈️', dept: 'comunicacion' },
-  jarvis_eyes: { label: 'Cámara', icon: '📷', dept: 'nucleo' },
-  jarvis_chrome: { label: 'Chrome', icon: '🌐', dept: 'nucleo' },
+  jarvis_eyes: { label: 'Cámara', icon: '📷', dept: 'ia' },
+  jarvis_chrome: { label: 'Chrome', icon: '🌐', dept: 'ia' },
   web: { label: 'Internet', icon: '🔎', dept: 'ventas' },
-  elevenlabs: { label: 'ElevenLabs', icon: '🎙️', dept: 'llamadas' },
+  elevenlabs: { label: 'ElevenLabs', icon: '🎙️', dept: 'ia' },
   // Redes y contenido, para cuando se conecten:
   ayrshare: { label: 'Ayrshare', icon: '🗓️', dept: 'marketing' },
   metricool: { label: 'Metricool', icon: '🗓️', dept: 'marketing' },
@@ -42,14 +42,14 @@ export const SERVICES: Record<string, Service> = {
   instagram: { label: 'Instagram', icon: '📸', dept: 'marketing' },
   tiktok: { label: 'TikTok', icon: '🎵', dept: 'marketing' },
   linkedin: { label: 'LinkedIn', icon: '💼', dept: 'marketing' },
-  heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'marketing' },
-  higgsfield: { label: 'Higgsfield', icon: '🎥', dept: 'marketing' },
+  heygen: { label: 'HeyGen', icon: '🧑‍💻', dept: 'ia' },
+  higgsfield: { label: 'Higgsfield', icon: '🎥', dept: 'ia' },
   canva: { label: 'Canva', icon: '🎨', dept: 'marketing' },
-  zoho: { label: 'Zoho Invoice', icon: '🧾', dept: 'ventas' },
+  zoho: { label: 'Zoho Invoice', icon: '🧾', dept: 'finanzas' },
   zernio: { label: 'Zernio', icon: '🗓️', dept: 'marketing' },
   'meta-ads': { label: 'Meta Ads', icon: '📢', dept: 'publicidad' },
-  fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'marketing' },
-  replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'marketing' },
+  fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'ia' },
+  replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'ia' },
   // Nexy's own screen: busy all the time, and not a connection worth watching.
   jarvis: { label: 'Pantalla', icon: '🖥️', hidden: true },
   jarvis_ui: { label: 'Interfaz', icon: '🎨', hidden: true },
@@ -58,7 +58,7 @@ export const SERVICES: Record<string, Service> = {
 }
 
 /** The department a service hangs from on the map. */
-export const deptOf = (key: string) => SERVICES[key]?.dept ?? 'nucleo'
+export const deptOf = (key: string) => SERVICES[key]?.dept ?? 'direccion'
 
 /** Friendly names for steps. Anything missing is spelled out from its tool name. */
 const STEPS: Record<string, string> = {
@@ -99,8 +99,9 @@ const STEPS: Record<string, string> = {
   'jarvis_video__clone_owner_voice': 'Clonar tu voz',
   'jarvis_video__speak_as_owner': 'Decir una línea con tu voz',
   'jarvis_video__get_reference_video': 'Bajar video de referencia',
-  'jarvis_brands__save_edit_style': 'Guardar estilo de edición',
-  'jarvis_brands__remove_edit_style': 'Borrar estilo de edición',
+  'jarvis_brands__save_edit_style': 'Guardar molde de edición',
+  'jarvis_brands__read_edit_molds': 'Leer moldes de edición',
+  'jarvis_brands__remove_edit_style': 'Borrar molde de edición',
   'jarvis_taller__add_to_project': 'Preparar proyecto de edición',
   'jarvis_taller__ffmpeg': 'Editar (paso de edición)',
   'jarvis_taller__media_info': 'Revisar el video',

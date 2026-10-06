@@ -3,6 +3,7 @@ import { BRIDGE_WS_URL } from '../config'
 import { brandOf, clock, isAgentStep, liveNodes, stepLook } from './activity'
 import { Boards } from './Boards'
 import { Brain } from './Brain'
+import { Departments } from './Departments'
 import { EcosystemMap } from './EcosystemMap'
 import { buildEcosystem, ecoLive } from './ecosystem'
 import { ApprovalCard, BrandPill, TaskView } from './parts'
@@ -117,8 +118,9 @@ function useSaved<T extends string | null>(key: string, initial: T): [T, (v: T) 
   return [value, set]
 }
 
-type Tab = 'mapa' | 'cerebro' | 'tableros' | 'aprobaciones'
+type Tab = 'departamentos' | 'mapa' | 'cerebro' | 'tableros' | 'aprobaciones'
 const TABS: Array<[Tab, string]> = [
+  ['departamentos', 'Departamentos'],
   ['mapa', 'Mapa'],
   ['cerebro', 'Cerebro'],
   ['tableros', 'Tableros'],
@@ -128,7 +130,7 @@ const TABS: Array<[Tab, string]> = [
 export default function Console() {
   const { connected, servers, tasks, approvals, brands, org, brain, answer, switchBrand, saveManual } = useBridge()
   const now = useTick()
-  const [tab, setTab] = useSaved<Tab>('nexy-console-tab', 'mapa')
+  const [tab, setTab] = useSaved<Tab>('nexy-console-view', 'departamentos')
   const [brandFilter, setBrandFilter] = useSaved<string | null>('nexy-console-brand', null)
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -241,7 +243,7 @@ export default function Console() {
             <EcosystemMap grupo={brands?.grupo ?? 'Ramos & Co.'} nodes={nodes} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
             <div className="legend">
               <span>
-                <i className="lg dept" /> Marca · área · agente
+                <i className="lg dept" /> Marca · departamento · agente
               </span>
               <span>
                 <i className="lg svc" /> Conexión
@@ -293,6 +295,18 @@ export default function Console() {
             ) : null}
           </section>
         </main>
+      ) : null}
+
+      {tab === 'departamentos' ? (
+        <Departments
+          brands={brands}
+          brandFilter={brandFilter}
+          tasks={tasks}
+          approvals={approvals}
+          servers={servers}
+          org={org}
+          openApprovals={() => setTab('aprobaciones')}
+        />
       ) : null}
 
       {tab === 'cerebro' ? <Brain data={brain} live={live} brandFilter={brandFilter} /> : null}

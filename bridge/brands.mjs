@@ -399,7 +399,8 @@ const manualBody = (b) => {
 const stylesFile = (id) => join(MANUALS_DIR, id, 'estilos.json')
 /** Styles for every brand: the owner wants what Nexy learns to serve them all. */
 const SHARED_STYLES = join(MANUALS_DIR, 'estilos-todas.json')
-const MAX_STYLES = 20
+// Every reference the owner sends becomes one, so there is room for many.
+const MAX_STYLES = 80
 
 const readStyleFile = (file) => {
   try {
@@ -443,12 +444,32 @@ export function readEditStyles(id) {
   return [...sharedStyles(), ...readStyleFile(stylesFile(id)).map((s) => ({ ...s, soloMarca: true }))]
 }
 
+/** One line on what a mold is for: its summary, or the start of its text for older ones. */
+const moldLine = (s) => (s.resumen || s.ficha.replace(/\s+/g, ' ').slice(0, 160)).trim()
+
+/**
+ * Every mold, for the console: shared ones for all brands, then the few kept
+ * for one brand.
+ */
+export function listMolds() {
+  const out = sharedStyles().map((s) => ({ nombre: s.nombre, resumen: moldLine(s), fuente: s.fuente ?? null, marca: null }))
+  for (const b of readBrands().marcas) {
+    for (const s of readStyleFile(stylesFile(b.id))) out.push({ nombre: s.nombre, resumen: moldLine(s), fuente: s.fuente ?? null, marca: b.id })
+  }
+  return out
+}
+
+/** Where every mold came from, to tell which reference videos are molds already. */
+export const moldSources = () => listMolds().map((m) => ({ nombre: m.nombre, fuente: m.fuente ?? '' }))
+
+// The manual lists the molds in one line each; read_edit_molds gives the whole text.
 const stylesText = (b) => {
   const styles = readEditStyles(b.id)
   return styles.length
-    ? `\n\nEditing styles ${b.nombre} can use (shared by every brand unless marked) — follow the named one exactly when asked to edit "con el estilo …", and pass its whole description to the editor:\n` +
-        styles.map((s) => `### ${s.nombre}${s.soloMarca ? ` (only ${b.nombre})` : ''}${s.fuente ? ` (learned from ${s.fuente})` : ''}\n${s.ficha}`).join('\n\n')
-    : ''
+    ? `\n\nEditing molds ${b.nombre} can use (Departamento de Marketing; shared by every brand unless marked). Every edit follows at least one: ` +
+        'pick the one or ones that fit, or the one the owner names, and get their full text with read_edit_molds:\n' +
+        styles.map((s) => `- ${s.nombre}${s.soloMarca ? ` (only ${b.nombre})` : ''}: ${moldLine(s)}`).join('\n')
+    : '\n\nEditing molds: none saved yet. Every reference video the owner sends becomes one.'
 }
 
 const notFound = (q) => {
@@ -585,12 +606,16 @@ export function brandsServer() {
 
       tool(
         'save_edit_style',
-        'Keep an editing style under a name, so videos can be edited that way again: the description of a reference ' +
-          'video the editor analysed (or the owner described). Only when the owner asks to keep or learn a style. Styles ' +
-          'are for every brand; pass only_brand only when the owner says it is for one brand alone. Saving under an ' +
-          'existing name replaces it.',
+        'Keep an editing mold (an editing style) under a name, so videos are edited that way: the description of a ' +
+          'reference video the editor analysed, or one the owner described. Save one for every reference video the owner ' +
+          'sends, without waiting to be asked. Molds are for every brand; pass only_brand only when the owner says it is ' +
+          'for one brand alone. Saving under an existing name replaces it.',
         {
-          name: z.string().describe('What the owner calls it, e.g. "Reel dinámico".'),
+          name: z.string().describe('What the owner calls it, or a short descriptive name you give it, e.g. "Reel dinámico podcast".'),
+          summary: z
+            .string()
+            .optional()
+            .describe('One line in Spanish: what kind of video it suits and how it feels, e.g. "Reels de opinión a cámara, cortes cada 1 s, subtítulos grandes".'),
           style: z
             .string()
             .describe(
@@ -598,10 +623,10 @@ export function brandsServer() {
                 'seconds, structure, subtitles (font, size, position, colours, highlighted words, animation), text on ' +
                 'screen, zooms and transitions, colour look, music and sound, logo and call to action.',
             ),
-          source: z.string().optional().describe('Where it came from: the link or file of the example.'),
+          source: z.string().optional().describe('Where it came from: the link and the downloaded file path of the example.'),
           only_brand: z.string().optional().describe('Only when the owner says this style is for one brand alone.'),
         },
-        async ({ name, style, source, only_brand }) => {
+        async ({ name, summary, style, source, only_brand }) => {
           const b = only_brand ? findBrand(only_brand) : null
           if (only_brand && !b) return notFound(only_brand)
           const nombre = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, 60)
@@ -610,11 +635,30 @@ export function brandsServer() {
           const file = b ? stylesFile(b.id) : SHARED_STYLES
           const list = (b ? readStyleFile(file) : sharedStyles()).filter((s) => fold(s.nombre) !== fold(nombre))
           if (list.length >= MAX_STYLES) return refuse(`There are already ${MAX_STYLES} styles there; remove one first.`)
-          list.push({ nombre, ficha, fuente: String(source ?? '').trim().slice(0, 300) || null, fecha: new Date().toISOString() })
+          list.push({ nombre, resumen: String(summary ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || null, ficha, fuente: String(source ?? '').trim().slice(0, 300) || null, fecha: new Date().toISOString() })
           writeStyleFile(file, list)
           console.log(`[jarvis] editing style "${nombre}" saved for ${b ? b.id : 'every brand'}`)
           changed()
-          return ok(`Saved the editing style "${nombre}" for ${b ? `${b.nombre} only` : 'every brand'}. Ask for it any time: "edítalo con el estilo ${nombre}".`)
+          return ok(`Saved the editing mold "${nombre}" for ${b ? `${b.nombre} only` : 'every brand'} (Departamento de Marketing). Tell the owner its name; they can ask for it any time: "edítalo con el molde ${nombre}".`)
+        },
+      ),
+
+      tool(
+        'read_edit_molds',
+        'The full text of the editing molds (the owner\'s saved editing styles): every one, or the ones named. Read the ' +
+          'ones you chose before an edit and pass their whole text to the editor.',
+        { names: z.array(z.string()).optional().describe('The molds to read; all of them when left out.') },
+        async ({ names }) => {
+          const all = [...sharedStyles(), ...readBrands().marcas.flatMap((b) => readStyleFile(stylesFile(b.id)).map((s) => ({ ...s, soloMarca: b.nombre })))]
+          if (!all.length) return ok('No editing molds saved yet. Every reference video the owner sends becomes one.')
+          const want = (names ?? []).map(fold)
+          const pick = want.length ? all.filter((s) => want.some((w) => fold(s.nombre).includes(w) || w.includes(fold(s.nombre)))) : all
+          if (!pick.length) return refuse(`No mold by that name. The molds are: ${all.map((s) => s.nombre).join(', ')}.`)
+          return ok(
+            pick
+              .map((s) => `### ${s.nombre}${s.soloMarca ? ` (only ${s.soloMarca})` : ''}${s.fuente ? ` (learned from ${s.fuente})` : ''}\n${s.ficha}`)
+              .join('\n\n'),
+          )
         },
       ),
 
