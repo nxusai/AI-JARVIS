@@ -39,6 +39,8 @@ export type Approval = {
   brand?: string | null
   /** The exact account it goes out on, e.g. "@nxus.ai · NXUS AI". */
   account?: string | null
+  /** An invoice in plain Spanish, with the client by name (Zoho only). */
+  lines?: string[] | null
   name: string
   server: string
   tool: string

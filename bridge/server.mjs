@@ -932,6 +932,13 @@ Invoices (Zoho):
   Before creating one, find the customer (create them only with details the
   owner gave), and say back the customer, email, items, amounts, currency and
   due date. The owner approves every create and every send with a tap.
+- Find the customer by listing Zoho contacts right before the create (with
+  their contact persons when you add any): the approval card names the client
+  from that lookup, and shows only a number when you skip it.
+- "Factura para X" means X is the client being billed. The brand issuing it
+  is the one the work is from (e.g. NXUS AI bills its client Mi Semago).
+  When it is not clear which brand issues it, ask. Say both in your reply:
+  "De NXUS AI para Mi Semago".
 - Each brand invoices only from the Zoho organization linked to it
   (link_brand_account, service zoho, the organization id). Work in the brand
   the invoice is for (use_brand) and pass its organization id; a call to

@@ -27,6 +27,8 @@
  * Approvals can also be answered from Telegram: see addApprover below.
  */
 
+import { rememberZohoNames, zohoAction, zohoLines } from './zoho-preview.mjs'
+
 /** Tasks kept for the history list. */
 const KEEP_TASKS = 30
 /** How long an approval waits before it counts as a no. */
@@ -407,7 +409,10 @@ function createHub() {
       const found = findStep(toolUseId)
       if (!found) return
       const { task, step } = found
-      const text = clip(resultText(content))
+      const full = resultText(content)
+      // Client names from Zoho lookups, so invoice cards can name the client.
+      if (step.server === 'zoho' && !isError) rememberZohoNames(full)
+      const text = clip(full)
       step.endedAt = Date.now()
       if (step.status !== 'rejected') {
         step.status = !isError ? 'done' : /^Blocked:|read-only/i.test(text) ? 'blocked' : 'error'
@@ -460,6 +465,8 @@ function createHub() {
             input: clip(input ?? {}),
             // The exact account this will go out on, when it goes to one.
             account: typeof extra.account === 'string' ? extra.account : null,
+            // Invoices read as invoices, with the client by name.
+            lines: server === 'zoho' ? [zohoAction(tool), ...zohoLines(input)] : null,
             createdAt: Date.now(),
             expiresAt: Date.now() + APPROVAL_TIMEOUT_MS,
           },

@@ -5,6 +5,81 @@
  * carry the organization.
  */
 
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+
+/**
+ * Zoho's create calls name the client only by id, which the owner cannot
+ * read. Nexy looks clients up before invoicing them, so the names come back
+ * in those results: they are remembered here (in a small file, so a restart
+ * keeps them) and the card says "Cliente: Mi Semago" instead of a number.
+ */
+const NAMES_FILE = join(homedir(), '.nexy', 'zoho-nombres.json')
+const MAX_NAMES = 2000
+let names = null
+const loadNames = () => {
+  if (names) return names
+  try {
+    names = new Map(Object.entries(JSON.parse(readFileSync(NAMES_FILE, 'utf8'))))
+  } catch {
+    names = new Map()
+  }
+  return names
+}
+
+const str = (v) => (v === undefined || v === null ? '' : String(v).trim())
+
+/** Every Zoho record in a result that carries an id and a readable name. */
+function walk(v, found, depth = 0) {
+  if (depth > 8 || !v || typeof v !== 'object') return
+  if (Array.isArray(v)) return v.forEach((x) => walk(x, found, depth + 1))
+  const company = str(v.company_name)
+  const contact = str(v.contact_name ?? v.customer_name)
+  if (v.contact_id ?? v.customer_id) {
+    const name = contact && company && contact !== company ? `${contact} (${company})` : contact || company
+    if (name) found.push([str(v.contact_id ?? v.customer_id), name])
+  }
+  if (v.contact_person_id) {
+    const person = [str(v.first_name), str(v.last_name)].filter(Boolean).join(' ')
+    const name = [person, str(v.email)].filter(Boolean).join(' · ')
+    if (name) found.push([str(v.contact_person_id), name])
+  }
+  for (const x of Object.values(v)) if (x && typeof x === 'object') walk(x, found, depth + 1)
+}
+
+/** Remember the client and contact names in a Zoho result's text. */
+export function rememberZohoNames(text) {
+  const t = String(text ?? '')
+  if (!/"(contact_id|customer_id|contact_person_id)"/.test(t)) return 0
+  const found = []
+  // The result is JSON, sometimes with a line of text around it.
+  for (const chunk of [t, ...(t.match(/[[{][\s\S]*[\]}]/g) ?? [])]) {
+    try {
+      walk(JSON.parse(chunk), found)
+      break
+    } catch {
+      // try the next shape
+    }
+  }
+  if (!found.length) return 0
+  const map = loadNames()
+  for (const [id, name] of found) {
+    map.delete(id)
+    map.set(id, name.slice(0, 160))
+  }
+  while (map.size > MAX_NAMES) map.delete(map.keys().next().value)
+  try {
+    mkdirSync(join(NAMES_FILE, '..'), { recursive: true })
+    writeFileSync(NAMES_FILE, JSON.stringify(Object.fromEntries(map)))
+  } catch {
+    // Only the card's wording depends on it.
+  }
+  return found.length
+}
+
+const nameOf = (id) => loadNames().get(str(id)) ?? null
+
 const MODES = {
   cash: 'efectivo',
   banktransfer: 'transferencia',
@@ -90,7 +165,12 @@ export function zohoLines(input) {
   for (const [k, v0] of Object.entries(data)) {
     const v = parse(v0)
     if (v === undefined || v === null || v === '') continue
-    if (k === 'invoices' && Array.isArray(v)) {
+    if ((k === 'customer_id' || k === 'contact_id') && typeof v !== 'object') {
+      const name = nameOf(v)
+      lines.unshift(name ? `👤 Cliente: ${name}` : `👤 Cliente: id ${v} — ⚠️ Nexy no confirmó el nombre; revísalo en Zoho antes de aprobar`)
+    } else if (k === 'contact_persons' && Array.isArray(v)) {
+      lines.push(`Se envía a: ${v.map((id) => nameOf(id) ?? `id ${id}`).join(', ')}`)
+    } else if (k === 'invoices' && Array.isArray(v)) {
       const parts = v.map((i) => `${i.invoice_number ?? `#${String(i.invoice_id ?? '').slice(-6)}`}: ${money(i.amount_applied ?? i.amount)}`)
       lines.push(`Se aplica a ${v.length} factura${v.length === 1 ? '' : 's'}: ${parts.join(' · ')}`)
     } else if (k === 'line_items' && Array.isArray(v)) {

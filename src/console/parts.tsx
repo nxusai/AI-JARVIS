@@ -111,7 +111,17 @@ export function ApprovalCard({
         </p>
       ) : null}
       <Media input={a.input} />
-      <Fields input={a.input} full />
+      {a.lines?.length ? (
+        <ul className="approval-lines">
+          {a.lines.map((l, i) => (
+            <li key={i} className={/⚠️/.test(l) ? 'warn' : undefined}>
+              {l}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Fields input={a.input} full />
+      )}
       <textarea
         placeholder="¿Qué cambiarías? (opcional, si rechazas)"
         value={note}
