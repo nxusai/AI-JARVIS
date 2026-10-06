@@ -410,6 +410,8 @@ const NOTION_READ = new Set([
 const NOTION_WRITE = new Set([
   'API-post-page', 'API-patch-page', 'API-create-a-comment',
   'API-patch-block-children', 'API-update-a-block', 'API-update-page-markdown',
+  // Tables (databases): making a new one and adding columns to it.
+  'API-create-a-data-source', 'API-update-a-data-source', 'API-create-a-database', 'API-update-a-database',
 ])
 
 /** Image, video and social-publishing services, and what they may never do. */
@@ -705,6 +707,10 @@ Notion:
   ask the owner to approve the same thing again: tell them the error in plain
   words. If it is about access, tell them to open that page in Notion → ••• →
   Connections and add Nexy's integration.
+- Tables: create-a-data-source makes a new table (database) under a page,
+  with the columns it needs; update-a-data-source adds columns to one. Never
+  remove or rename an existing column (that erases what is in it): if one
+  should go, tell the owner to do it in Notion.
 - After any approved action fails, check whether it went through before
   trying again (a timeout can still have created the page), so nothing is
   created twice.
@@ -1693,7 +1699,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     canUseTool: async (toolName, input) => {
       // An update is allowed; the same call used to bin a page is not.
       if (
-        /^mcp__notion__API-(patch-page|update-a-block)$/.test(toolName) &&
+        /^mcp__notion__API-(patch-page|update-a-block|update-a-data-source|update-a-database)$/.test(toolName) &&
         (input?.archived === true || input?.in_trash === true)
       ) {
         console.log(`[jarvis] tool ${toolName} -> deny (archive/delete)`)

@@ -61,6 +61,10 @@ const ALWAYS_APPROVAL = new Set([
   'notion__API-patch-block-children',
   'notion__API-update-a-block',
   'notion__API-update-page-markdown',
+  'notion__API-create-a-data-source',
+  'notion__API-update-a-data-source',
+  'notion__API-create-a-database',
+  'notion__API-update-a-database',
   // Who Nexy may phone in the owner's name.
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',

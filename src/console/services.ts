@@ -154,6 +154,8 @@ const STEPS: Record<string, string> = {
   'notion__API-patch-block-children': 'Agregar contenido',
   'notion__API-update-a-block': 'Editar contenido',
   'notion__API-update-page-markdown': 'Reescribir página',
+  'notion__API-create-a-data-source': 'Crear tabla',
+  'notion__API-update-a-data-source': 'Agregar columnas a tabla',
   'builtin__WebSearch': 'Buscar en internet',
   'builtin__WebFetch': 'Leer una página web',
 }
