@@ -86,6 +86,7 @@ const HELP =
   '/nuevo — empezar una conversación nueva\n' +
   '/estado — qué estoy haciendo ahora\n' +
   '/cancelar — detener lo que estoy haciendo\n' +
+  'Si me escribes mientras trabajo, dejo lo anterior y atiendo tu mensaje nuevo. Para ver cómo voy sin interrumpirme: /estado\n' +
   'También puedes mandarme fotos, videos, música, o un contacto de tu agenda para que lo guarde.\n' +
   '/ayuda — ver esto otra vez'
 
@@ -285,10 +286,6 @@ async function speak(key, voiceId, text) {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/**
- * One running conversation with the agent. Requests queue in order; each gets
- * its answer from the result that closes its turn.
- */
 /** A tool's name as the owner would say it. */
 const stepName = (name) => {
   const [, server = '', tool = name] = String(name).match(/^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/) ?? []
@@ -310,18 +307,68 @@ const stepName = (name) => {
   return who ?? (server ? server : tool)
 }
 
-function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local }) {
-  const inbox = []
-  const jobs = []
+/** Several messages as one: text joined, images kept. */
+function mergeContent(list) {
+  if (list.every((c) => typeof c === 'string')) return list.join('\n\n')
+  return list.flatMap((c) => (typeof c === 'string' ? [{ type: 'text', text: c }] : c))
+}
+
+/** Put a note in front of a message, whatever its shape. */
+const withNote = (note, content) => (typeof content === 'string' ? `${note}\n\n${content}` : [{ type: 'text', text: note }, ...content])
+
+const SUPERSEDED =
+  '[The owner wrote this while you were still on the previous request, so that work was stopped where it was. ' +
+  'If this corrects or replaces it, do it the new way; do not repeat steps that already ran or anything they rejected.]'
+
+/**
+ * One running conversation with the agent, one request at a time.
+ *
+ * A message that arrives while she works does not wait in a queue: the owner
+ * is usually correcting her ("no, el due by es el 8"), so the current work
+ * stops (with any approval it was waiting on) and the new message is taken
+ * up at once, with the old one still in context. Several messages sent
+ * quickly become one request. Each request gets its answer from the result
+ * that closes its turn.
+ */
+export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local }) {
+  let current = null
+  const held = []
   let deliver = null
   let closed = false
 
   async function* prompts() {
     while (!closed) {
-      const content = inbox.shift() ?? (await new Promise((r) => (deliver = r)))
+      const content = await new Promise((r) => (deliver = r))
       if (closed || content == null) return
       yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null }
     }
+  }
+
+  const begin = (content, job) => {
+    job.started = Date.now()
+    current = job
+    lastSign = Date.now()
+    const send = () => {
+      if (!deliver) return setTimeout(send, 50)
+      const r = deliver
+      deliver = null
+      r(content)
+    }
+    send()
+  }
+
+  /** The held messages, as one request: the earlier ones end as part of it. */
+  const next = () => {
+    if (!held.length || closed) return
+    // The owner's own messages go first, together; a routine runs on its own after.
+    const mine = held.filter((b) => !b.job.solo)
+    const batch = mine.length ? mine : [held[0]]
+    for (const b of batch) held.splice(held.indexOf(b), 1)
+    const job = batch.at(-1).job
+    for (const b of batch.slice(0, -1)) hub.endTask(b.job.taskId, 'interrupted', 'Se juntó con el mensaje siguiente.')
+    if (batch.length > 1) job.what = batch.map((b) => b.job.what).filter(Boolean).join(' · ')
+    const content = mergeContent(batch.map((b) => b.content))
+    begin(batch.some((b) => b.superseded) ? withNote(SUPERSEDED, content) : content, job)
   }
 
   // Pick up where the last conversation left off, across restarts.
@@ -330,7 +377,7 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
   const session = runQuery({
     prompt: prompts(),
     options: {
-      ...agentOptions({ local, channelPrompt: CHANNEL_PROMPT, currentTask: () => jobs[0]?.taskId ?? null }),
+      ...agentOptions({ local, channelPrompt: CHANNEL_PROMPT, currentTask: () => current?.taskId ?? null }),
       ...(resume ? { resume } : {}),
     },
   })
@@ -340,7 +387,7 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
   // the owner is told which step it was stuck on.
   let lastSign = Date.now()
   const watchdog = setInterval(() => {
-    const job = jobs[0]
+    const job = current
     if (!job || job.stopped) return
     if (hub.waitingOnOwner(job.taskId)) {
       lastSign = Date.now()
@@ -354,9 +401,20 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
     }
     if (Date.now() - lastSign < (step && SLOW_STEP.test(step) ? STUCK_MS * 3 : STUCK_MS)) return
     console.log(`[jarvis] telegram: turn stuck${step ? ` on ${step}` : ''}; stopping it`)
-    job.stopped = `Me quedé atorada${step ? ` esperando a ${stepName(step)}` : ''} y lo detuve. ¿Lo intento otra vez?`
-    Promise.resolve(session.interrupt?.()).catch(() => {})
+    halt(`Me quedé atorada${step ? ` esperando a ${stepName(step)}` : ''} y lo detuve. ¿Lo intento otra vez?`)
   }, 15_000)
+
+  /** Stop the current turn; it ends with `reason` as its answer, or silently. */
+  function halt(reason, silent = false) {
+    const job = current
+    if (!job || job.stopped !== undefined) return false
+    job.stopped = reason
+    job.silent = silent
+    // Pending approvals first: the SDK finishes the turn only once they settle.
+    hub.cancelApprovals(job.taskId)
+    Promise.resolve(session.interrupt?.()).catch(() => {})
+    return true
+  }
 
   const done = (async () => {
     try {
@@ -372,7 +430,7 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
         if (msg.type === 'assistant') {
           for (const block of msg.message?.content ?? []) {
             if (block.type === 'tool_use') {
-              hub.startStep(jobs[0]?.taskId, block.id, block.name, block.input, msg.parent_tool_use_id ?? null)
+              hub.startStep(current?.taskId, block.id, block.name, block.input, msg.parent_tool_use_id ?? null)
             }
           }
         } else if (msg.type === 'user' && Array.isArray(msg.message?.content)) {
@@ -380,19 +438,18 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
             if (block?.type === 'tool_result') hub.endStep(block.tool_use_id, block.is_error === true, block.content)
           }
         } else if (msg.type === 'result') {
-          const job = jobs.shift()
-          const ok = msg.subtype === 'success' && !job?.stopped
-          const text = job?.stopped
-            ? job.stopped
-            : ok
-              ? String(msg.result ?? '').trim()
-              : 'No pude terminar eso. Inténtalo otra vez, por favor.'
-          if (!ok && !job?.stopped) console.error(`[jarvis] telegram turn failed: ${msg.subtype}`)
+          const job = current
+          current = null
+          const stopped = job?.stopped !== undefined
+          const ok = msg.subtype === 'success' && !stopped
+          const text = stopped ? job.stopped : ok ? String(msg.result ?? '').trim() : 'No pude terminar eso. Inténtalo otra vez, por favor.'
+          if (!ok && !stopped) console.error(`[jarvis] telegram turn failed: ${msg.subtype}`)
           if (job) {
-            hub.endTask(job.taskId, job.stopped ? 'interrupted' : ok ? 'done' : 'error', text)
-            onAnswer(job, text || 'Listo.')
+            hub.endTask(job.taskId, stopped ? 'interrupted' : ok ? 'done' : 'error', text)
+            if (!job.silent) onAnswer(job, text || 'Listo.')
           }
           lastSign = Date.now()
+          next()
         }
       }
     } catch (err) {
@@ -400,10 +457,11 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
       // A conversation that cannot be picked up again is dropped, so the next
       // message starts a fresh one instead of failing the same way.
       clearSession('telegram')
-      for (const job of jobs.splice(0)) {
+      for (const job of [current, ...held.splice(0).map((b) => b.job)].filter(Boolean)) {
         hub.endTask(job.taskId, 'error', '')
         onAnswer(job, 'Tuve un problema y reinicié la conversación. ¿Me lo repites?')
       }
+      current = null
     } finally {
       closed = true
       clearInterval(watchdog)
@@ -415,37 +473,41 @@ function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, loc
       return closed
     },
     get busy() {
-      return jobs.length > 0
+      return Boolean(current) || held.length > 0
     },
     /** What she is on right now, for a status line while the owner waits. */
     status() {
-      const job = jobs[0]
+      const job = current
       if (!job) return null
-      return { what: job.what ?? '', started: job.started ?? Date.now(), step: hub.runningStepName(job.taskId), waiting: jobs.length - 1 }
+      return { what: job.what ?? '', started: job.started ?? Date.now(), step: hub.runningStepName(job.taskId), waiting: held.length }
     },
-    /** `content` is the owner's words, or a list of image and text blocks. */
-    ask(content, job) {
-      job.started = Date.now()
-      jobs.push(job)
-      if (deliver) {
-        const r = deliver
-        deliver = null
-        r(content)
-      } else inbox.push(content)
+    /**
+     * `content` is the owner's words, or a list of image and text blocks.
+     * `wait`: files, contacts and routines wait their turn instead of
+     * stopping the work in progress. Returns true when it took over.
+     */
+    ask(content, job, { wait = false } = {}) {
+      if (!current) {
+        begin(content, job)
+        return false
+      }
+      // Stopping a routine for the owner is fine; a routine never stops the owner's work.
+      const takeOver = !wait && !job.solo
+      held.push({ content, job, superseded: takeOver })
+      if (takeOver) halt('', true)
+      return takeOver
     },
-    /** Stop what she is doing now; the turn ends with `reason` as its answer. */
+    /** /cancelar: stop now, and drop anything sent meanwhile. */
     stop(reason) {
-      const job = jobs[0]
-      if (!job) return false
-      job.stopped = reason
-      Promise.resolve(session.interrupt?.()).catch(() => {})
-      return true
+      for (const b of held.splice(0)) hub.endTask(b.job.taskId, 'interrupted', '')
+      return halt(reason)
     },
     close() {
       closed = true
       deliver?.(null)
       session.close?.()
-      for (const job of jobs.splice(0)) hub.endTask(job.taskId, 'interrupted', '')
+      for (const job of [current, ...held.splice(0).map((b) => b.job)].filter(Boolean)) hub.endTask(job.taskId, 'interrupted', '')
+      current = null
       return done
     },
   }
@@ -548,7 +610,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     blocks.push({ type: 'text', text: ask })
     const taskId = hub.startTask(`📷 ${n === 1 ? 'Imagen' : `${n} imágenes`}${caption ? `: ${caption}` : ''}`, undefined, 'telegram')
     const voice = readTelegram()?.voice === 'siempre'
-    talk().ask(blocks, { taskId, chatId, voice })
+    talk().ask(blocks, { taskId, chatId, voice }, { wait: true })
     keepTyping(chatId, voice)
   }
 
@@ -637,7 +699,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         (caption || (dir === MUSIC ? 'Te mando esta música para los videos.' : 'Te mando este video.')) +
         `\n\n[${dir === MUSIC ? 'Music file' : 'Video'} sent by the owner on Telegram, saved at: ${path}]`
       const taskId = hub.startTask(`${dir === MUSIC ? '🎵' : '🎬'} ${caption || (dir === MUSIC ? 'Música' : 'Video')}`, undefined, 'telegram')
-      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' }, { wait: true })
       keepTyping(chatId, false)
     } catch (err) {
       console.log(`[jarvis] telegram file download failed: ${err.message}`)
@@ -661,7 +723,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         `[The owner shared this contact card from their own phone book on Telegram: they want it saved. The number has no country code: ` +
         `ask them in one short line whether it is Mexico or the US, then call save_contact with name "${name}", phone "${raw}" and that country.]`
       const taskId = hub.startTask(`👤 Guardar contacto: ${name}`, undefined, 'telegram')
-      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+      talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' }, { wait: true })
       keepTyping(chatId, false)
       return
     }
@@ -677,7 +739,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       `[The owner shared this contact card from their own phone book on Telegram: they want it saved. Call save_contact with name "${name}" and phone "${phone}". ` +
       'Then say in one line that it is ready and that they can ask you to call them with a message.]'
     const taskId = hub.startTask(`👤 Guardar contacto: ${name}`, undefined, 'telegram')
-    talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' })
+    talk().ask(request, { taskId, chatId, voice: readTelegram()?.voice === 'siempre' }, { wait: true })
     keepTyping(chatId, false)
   }
 
@@ -695,7 +757,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
               : /higgsfield/i.test(step ?? '')
                 ? 'generando en Higgsfield'
                 : 'en eso'
-          void say(job.chatId, `⏳ Sigo trabajando, ${what}. Te aviso en cuanto termine. Si quieres que pare: /cancelar`)
+          void say(job.chatId, `⏳ Sigo trabajando, ${what}. Te aviso en cuanto termine. Si me escribes, dejo esto y atiendo lo nuevo.`)
         },
         runQuery,
         local: { jarvis_telegram: filesToOwner() },
@@ -726,7 +788,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     if (!owner) throw new Error('Telegram is not paired')
     void say(owner.id, routine.aviso ?? `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
     const taskId = hub.startTask(routine.aviso ? routine.nombre : `⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
-    talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre' })
+    talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre', solo: true })
     keepTyping(owner.id, false)
   })
 
@@ -911,10 +973,9 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     }
 
     const voice = cfg.voice === 'siempre' || (cfg.voice !== 'nunca' && Boolean(audio))
-    // Busy with something long: answer now with where she is, and queue this.
-    if (convo?.busy) await say(chatId, busyLine(convo.status(), true))
+    // Busy: the new message takes over (see conversation), and she says so.
     const taskId = hub.startTask(request, undefined, 'telegram')
-    talk().ask(request, { taskId, chatId, voice, what: request })
+    if (talk().ask(request, { taskId, chatId, voice, what: request })) await say(chatId, '👌 Dejo lo anterior y voy con esto.')
     keepTyping(chatId, voice)
   }
 

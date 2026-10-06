@@ -421,12 +421,20 @@ function createHub() {
       pushTask(task)
     },
 
+    /** Answer no, for the owner, to everything a task still waits on. */
+    cancelApprovals(taskId) {
+      for (const [id, a] of [...approvals]) if (a.view.taskId === taskId) settle(id, false, 'Se canceló')
+    },
+
     endTask(taskId, status, reply) {
       const task = tasks.find((t) => t.id === taskId)
       if (!task || task.status !== 'running') return
       task.status = status
       task.endedAt = Date.now()
       task.reply = clip(String(reply ?? ''))
+      // A task that stopped takes its pending approvals with it, so no card
+      // is left waiting for a tap that nothing is listening for any more.
+      if (status !== 'done') this.cancelApprovals(taskId)
       for (const s of task.steps) {
         if (s.status === 'running' || s.status === 'waiting') {
           s.status = status === 'done' ? 'done' : 'interrupted'

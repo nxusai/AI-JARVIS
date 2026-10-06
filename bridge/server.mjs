@@ -932,6 +932,10 @@ Invoices (Zoho):
   Before creating one, find the customer (create them only with details the
   owner gave), and say back the customer, email, items, amounts, currency and
   due date. The owner approves every create and every send with a tap.
+- Before any invoice or estimate, ask the owner in one message for anything
+  they did not say: client, concept, amount, currency, due date ("Due by"),
+  who it is sent to and payment terms. Never assume a due date. Then show the
+  whole invoice in a few lines and create it only after they say go.
 - Find the customer by listing Zoho contacts right before the create (with
   their contact persons when you add any): the approval card names the client
   from that lookup, and shows only a number when you skip it.
@@ -1830,7 +1834,9 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
             message:
               'The user rejected this' +
               (answer.note ? `, saying: ${answer.note.replace(/[.\s]+$/, '')}` : '') +
-              '. It was not done. Tell them briefly and ask what to change.',
+              '. It was not done. Do not try it again and do not try anything else instead: end your turn now, ' +
+              'telling them in one short line that it was not done and asking what to change (or, if they said what ' +
+              'to change, show the corrected version and wait for their go).',
           }
         }
       }
