@@ -160,27 +160,18 @@ function originAllowed(origin) {
 const ALLOW_WRITES = process.env.JARVIS_ALLOW_WRITES === '1'
 
 /**
- * The orchestrator model. Override with JARVIS_MODEL to trade quality for pace
- * — claude-sonnet-5 is noticeably snappier on camera if Opus feels slow.
+ * The orchestrator model: the newest Sonnet, the fast one. The owner wants
+ * Nexy quick at everything, out loud and on Telegram, like the sales line's
+ * voice agent. JARVIS_MODEL overrides it (claude-opus-5-5 for the most depth).
  */
-const MODEL = process.env.JARVIS_MODEL ?? 'claude-opus-5'
+const MODEL = process.env.JARVIS_MODEL ?? 'claude-sonnet-5-5'
 
 /**
- * How hard the model thinks before answering.
- *
- * This was 'low', on the reasoning that a voice assistant is judged on latency
- * — and that is true right up until the answer is thin. Low effort scopes the
- * work tightly to what was literally asked: fewer tool calls, less
- * cross-referencing, no second look. On a model of this tier that is leaving
- * most of it on the table.
- *
- * 'medium' is the compromise worth having here. It reasons and reaches for
- * tools noticeably more than 'low' while still answering inside the window a
- * spoken conversation tolerates. Raise it to 'high' or 'xhigh' when quality
- * matters more than pace; drop back to 'low' when filming and every second of
- * dead air shows.
+ * How hard the model thinks before answering. 'low' by the owner's choice:
+ * speed first. Raise it with JARVIS_EFFORT=medium (or high) when depth matters
+ * more than pace.
  */
-const EFFORT = process.env.JARVIS_EFFORT ?? 'high'
+const EFFORT = process.env.JARVIS_EFFORT ?? 'low'
 
 /**
  * Both spellings of every renamed built-in are listed on purpose. The SDK
@@ -1406,7 +1397,7 @@ const handleRequest = async (req, res) => {
             voice_settings: {
               stability: 0.4,
               similarity_boost: 0.75,
-              speed: 1.05,
+              speed: 1.12,
             },
           }),
         },

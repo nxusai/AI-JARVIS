@@ -51,17 +51,32 @@ export async function probeCapabilities(): Promise<Capabilities> {
     probed = true
     return current
   }
-  try {
-    const res = await fetch(`${BRIDGE_HTTP_URL}/health`, {
-      signal: AbortSignal.timeout(3000),
-    })
-    if (res.ok) {
+  // `npm start` brings the page up in a fraction of a second and the bridge
+  // several seconds later, and one failed look used to settle the whole
+  // session on the browser's slow voice and recogniser. So keep asking for a
+  // while before giving up, and if it still is not up, keep asking in the
+  // background: the voice upgrades itself the moment the bridge answers.
+  const ask = async () => {
+    try {
+      const res = await fetch(`${BRIDGE_HTTP_URL}/health`, { signal: AbortSignal.timeout(3000) })
+      if (!res.ok) return false
       const h = (await res.json()) as { stt?: boolean; tts?: boolean }
       current = { stt: Boolean(h.stt), tts: Boolean(h.tts) }
+      return true
+    } catch {
+      return false
     }
-  } catch {
-    // Bridge down or slow — stay on the browser engines rather than blocking
-    // boot on a health check that is only an optimisation.
+  }
+  const until = Date.now() + 30_000
+  let answered = await ask()
+  while (!answered && Date.now() < until) {
+    await new Promise((r) => setTimeout(r, 1500))
+    answered = await ask()
+  }
+  if (!answered) {
+    const retry = setInterval(async () => {
+      if (await ask()) clearInterval(retry)
+    }, 5000)
   }
   probed = true
   return current
