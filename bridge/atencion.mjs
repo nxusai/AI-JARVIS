@@ -1,8 +1,10 @@
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { chmodSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
+import { extname, join } from 'node:path'
+import { findFfmpeg } from './video.mjs'
 import { hub } from './console.mjs'
 import { readBrands } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
@@ -111,7 +113,7 @@ export function clientCompanies() {
 
 const companyName = (id) => readBrands().marcas.find((b) => b.id === id)?.nombre ?? id
 
-const ESTADOS = ['pendiente', 'en proceso', 'entregado', 'cancelado']
+const ESTADOS = ['pendiente', 'en proceso', 'en revisión', 'entregado', 'cancelado']
 
 function orderLine(o) {
   return `#${o.id} · ${companyName(o.empresa)} · ${o.que}${o.para ? ` · para ${o.para}` : ''} · ${o.estado}` + (o.archivos?.length ? ` · archivos ${o.archivos.join(', ')}` : '')
@@ -123,6 +125,7 @@ function fileLine(f) {
     (f.empresa ? ` · ${companyName(f.empresa)}` : '') +
     (f.pedido ? ` · pedido #${f.pedido}` : '') +
     (f.descripcion ? ` · ${f.descripcion}` : '') +
+    (f.qc ? ` · calidad: ${f.qc}` : '') +
     (f.entregado ? ' · entregado al cliente' : '')
   )
 }
@@ -190,6 +193,73 @@ export const safeName = (s) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 80) || 'archivo'
 
+// -- seeing a file, for quality control -------------------------------------
+
+const run = (cmd, args, ms = 60_000) =>
+  new Promise((resolve) => {
+    let err = ''
+    const p = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    p.stderr.on('data', (b) => (err = (err + b).slice(-4000)))
+    const t = setTimeout(() => p.kill('SIGKILL'), ms)
+    p.on('error', () => resolve({ ok: false, err }))
+    p.on('close', (code) => {
+      clearTimeout(t)
+      resolve({ ok: code === 0, err })
+    })
+  })
+
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|heic|bmp|tiff?)$/i
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|avi|mkv)$/i
+
+/**
+ * What a kept file looks like, as images the model can see: the picture
+ * itself, the first page of a PDF or a design file (Quick Look on the Mac
+ * draws AI, PSD, EPS, SVG…), or four moments of a video in one sheet.
+ */
+export async function previewOf(f) {
+  if (!f.ruta || !existsSync(f.ruta)) return { error: 'There is no local copy (bigger than 20 MB, or it could not be downloaded): ask the team for a lighter export or a PDF/PNG preview.' }
+  const dir = mkdtempSync(join(tmpdir(), 'nexy-qc-'))
+  const ffmpeg = findFfmpeg()
+  const images = []
+  try {
+    const isImage = f.tipo === 'foto' || IMAGE_EXT.test(f.nombre)
+    const isVideo = f.tipo === 'video' || f.tipo === 'animacion' || VIDEO_EXT.test(f.nombre)
+    if (isVideo && ffmpeg) {
+      // Its length, to spread four frames over it.
+      const probe = await new Promise((resolve) => {
+        let out = ''
+        const p = spawn(ffmpeg, ['-i', f.ruta], { stdio: ['ignore', 'ignore', 'pipe'] })
+        p.stderr.on('data', (b) => (out += b))
+        p.on('close', () => resolve(out))
+        p.on('error', () => resolve(''))
+      })
+      const m = probe.match(/Duration: (\d+):(\d+):([\d.]+)/)
+      const secs = m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : 8
+      for (const [i, frac] of [0.05, 0.35, 0.65, 0.95].entries()) {
+        const out = join(dir, `f${i}.jpg`)
+        await run(ffmpeg, ['-y', '-ss', String(Math.max(0, secs * frac)), '-i', f.ruta, '-frames:v', '1', '-vf', 'scale=720:-2', '-q:v', '4', out])
+        if (existsSync(out)) images.push({ path: out, mime: 'image/jpeg', label: `${Math.round(secs * frac)} s` })
+      }
+    } else if (isImage) {
+      const out = join(dir, 'img.jpg')
+      if (ffmpeg && (await run(ffmpeg, ['-y', '-i', f.ruta, '-vf', "scale='min(1568,iw)':-2", '-q:v', '3', out])).ok && existsSync(out)) images.push({ path: out, mime: 'image/jpeg' })
+      else if (statSync(f.ruta).size < 3_500_000 && /\.(jpe?g|png|webp|gif)$/i.test(f.ruta)) {
+        const ext = extname(f.ruta).slice(1).toLowerCase().replace('jpg', 'jpeg')
+        images.push({ path: f.ruta, mime: `image/${ext}` })
+      }
+    } else if (process.platform === 'darwin') {
+      // PDFs, Illustrator, Photoshop, EPS, SVG…: Quick Look draws the first page.
+      await run('/usr/bin/qlmanage', ['-t', '-s', '1600', '-o', dir, f.ruta])
+      const png = readdirSync(dir).find((x) => x.endsWith('.png'))
+      if (png) images.push({ path: join(dir, png), mime: 'image/png', label: 'primera página' })
+    }
+    if (!images.length) return { error: `Cannot show a ${f.tipo} like ${f.nombre} here: ask the team for a PNG or PDF preview of it.` }
+    return { blocks: images.map((im) => ({ type: 'image', data: readFileSync(im.path).toString('base64'), mimeType: im.mime })), labels: images.map((im) => im.label).filter(Boolean) }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
 // -- the agent --------------------------------------------------------------
 
 function promptFor() {
@@ -213,7 +283,14 @@ Each message reaches you as one line saying the group, who wrote and what, with 
 How you work:
 1. The client asks for something: if the company, what exactly, or the key details are missing, ask in one short message. Then nuevo_pedido (it posts the request to the team by itself) and tell the client it is noted with its number and that the team is on it.
 2. Questions the team asks (in EQUIPO) about a request: ask the client, then pass the answer back to the team. Questions the client asks about a request: answer from pedidos; if you do not know, ask the team and say you will confirm.
-3. Finished work arrives from the team in EQUIPO: work out which request it is (the number they mention, what they reply to, or the only one open for that company; if unsure, ask the team) and entregar it to the client with one short line. If the team posts it straight in CLIENTE instead, do not send it again: registrar_entrega.
+3. Finished work arrives from the team in EQUIPO: work out which request it is (the number they mention, what they reply to, or the only one open for that company; if unsure, ask the team). You are its quality control before it reaches the client:
+   a. revisar_archivo every file, and the client's references for that request too.
+   b. Check it against the request and what you know of the client: everything asked for is there (each size, version, quantity, format); every text exactly as the client gave it (names, spelling and accents, prices, weights, phone numbers, addresses, dates, ingredients); the right company, logo, colours and style (compare with the references and your notes); and it is clean (sharp, nothing cut off or overlapping, the right orientation and size when one was given).
+   c. Right: aprobar_trabajo, then entregar it to the client with one short line.
+   d. Not right: rechazar_trabajo with each correction specific and numbered ("1. El peso dice 1 lb, el cliente pidió 2 lb"), and wait for the corrected version; review it again from the start. Never send the client work that has not passed.
+   e. Something you cannot judge from what you have (no spec was given): do not block on it; approve, and mention it to the team in one line.
+   f. Eduardo may tell you himself, in EQUIPO, to send something as it is: then aprobar_trabajo noting that he approved it. Nobody else can.
+   If the team posts work straight in CLIENTE instead, do not send it again: review it the same way; if it is right, registrar_entrega; if not, tell the team in EQUIPO what to fix (never point out errors in front of the client).
 4. The client asks again for something already delivered ("mándame otra vez el label del queso"): buscar_archivos and reenviar it straight away. If two or more could be it, ask which, naming them briefly.
 5. Files the client sends (references, logos, data) are kept too: describir_archivo so they can be found, and mention them in the request.
 6. nota_cliente for what is worth remembering about the client: how they like things, sizes, colours, contacts. Not every message.
@@ -311,6 +388,64 @@ export function toolsServer(token, groups) {
         return ok(list.length ? list.map((o) => orderLine(o) + (o.detalles ? `\n   ${o.detalles.slice(0, 300)}` : '') + o.notas.map((n) => `\n   nota: ${n.texto}`).join('')).join('\n') : 'No orders.')
       }),
       tool(
+        'revisar_archivo',
+        'See a file from the archive (an image, the first page of a PDF or design file, or four frames of a video), to check it before it reaches the client.',
+        { id: z.string() },
+        async ({ id }) => {
+          const f = readFiles().find((x) => x.id === id)
+          if (!f) return refuse(`There is no file ${id}.`)
+          const p = await previewOf(f)
+          if (p.error) return refuse(p.error)
+          return { content: [{ type: 'text', text: `${fileLine(f)}${p.labels.length ? ` · ${p.labels.join(', ')}` : ''}` }, ...p.blocks] }
+        },
+      ),
+      tool(
+        'aprobar_trabajo',
+        "Pass quality control: the files are right for the order and may go to the client.",
+        { pedido: z.number(), archivos: z.array(z.string()).min(1), nota: z.string().optional() },
+        async ({ pedido, archivos, nota }) => {
+          const orders = readOrders()
+          const o = orders.find((x) => x.id === pedido)
+          if (!o) return refuse(`There is no order #${pedido}.`)
+          const files = readFiles()
+          const pick = files.filter((f) => archivos.includes(f.id))
+          if (pick.length !== archivos.length) return refuse(`Unknown file id among ${archivos.join(', ')}.`)
+          for (const f of pick) Object.assign(f, { qc: 'aprobado', qcNota: nota ?? null, pedido, empresa: o.empresa })
+          o.notas.push({ at: new Date().toISOString(), texto: `Control de calidad: aprobado (${archivos.join(', ')})${nota ? ` — ${nota}` : ''}` })
+          writeJson(FILES, files)
+          writeJson(ORDERS, orders)
+          return ok(`Approved ${archivos.join(', ')} for order #${pedido}. Now entregar them.`)
+        },
+      ),
+      tool(
+        'rechazar_trabajo',
+        "Fail quality control: tells the team in its group exactly what to correct before it can go to the client.",
+        { pedido: z.number(), archivos: z.array(z.string()).min(1), correcciones: z.array(z.string()).min(1) },
+        async ({ pedido, archivos, correcciones }) => {
+          const orders = readOrders()
+          const o = orders.find((x) => x.id === pedido)
+          if (!o) return refuse(`There is no order #${pedido}.`)
+          const files = readFiles()
+          for (const f of files) if (archivos.includes(f.id)) Object.assign(f, { qc: 'rechazado', qcNota: correcciones.join(' | '), pedido, empresa: o.empresa })
+          o.estado = 'en proceso'
+          o.revisiones = (o.revisiones ?? 0) + 1
+          o.notas.push({ at: new Date().toISOString(), texto: `Control de calidad: correcciones (${archivos.join(', ')}): ${correcciones.join(' | ')}` })
+          writeJson(FILES, files)
+          writeJson(ORDERS, orders)
+          if (groups().equipo) {
+            await say(
+              token,
+              groups().equipo,
+              `🔁 Pedido #${pedido} · ${companyName(o.empresa)} — antes de mandarlo al cliente hay que corregir:\n` +
+                correcciones.map((c, i) => `${i + 1}. ${c.replace(/^\d+[.)]\s*/, '')}`).join('\n') +
+                `\n\nSúbanlo corregido aquí mencionando #${pedido} y lo reviso otra vez.`,
+            )
+          }
+          console.log(`[jarvis] atención: pedido #${pedido} needs corrections`)
+          return ok(`Sent ${correcciones.length} correction(s) to the team for order #${pedido}.`)
+        },
+      ),
+      tool(
         'entregar',
         "Deliver finished work to the client: sends the files to the client's group, marks the order delivered and tells the team.",
         { pedido: z.number(), archivos: z.array(z.string()).min(1), mensaje: z.string().optional().describe('One short line for the client.') },
@@ -323,6 +458,9 @@ export function toolsServer(token, groups) {
           const files = readFiles()
           const pick = files.filter((f) => archivos.includes(f.id))
           if (pick.length !== archivos.length) return refuse(`Unknown file id among ${archivos.join(', ')}.`)
+          // Quality control first, always: nothing reaches the client unreviewed.
+          const unchecked = pick.filter((f) => f.qc !== 'aprobado')
+          if (unchecked.length) return refuse(`Not reviewed yet: ${unchecked.map((f) => f.id).join(', ')}. revisar_archivo each one, then aprobar_trabajo (or rechazar_trabajo), and only then entregar.`)
           if (mensaje) await say(token, groups().cliente, mensaje)
           for (const f of pick) {
             await sendFile(token, groups().cliente, f)
