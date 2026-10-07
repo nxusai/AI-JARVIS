@@ -24,7 +24,7 @@ export type Task = {
   id: string
   brand?: string | null
   /** Where the owner asked: out loud, on Telegram, or a routine they left scheduled. */
-  via?: 'voz' | 'telegram' | 'rutina' | 'llamada'
+  via?: 'voz' | 'telegram' | 'rutina' | 'llamada' | 'atencion'
   text: string
   status: 'running' | 'done' | 'error' | 'interrupted'
   startedAt: number

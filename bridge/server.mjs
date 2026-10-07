@@ -26,6 +26,7 @@ import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
+import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -62,7 +63,7 @@ const CONTACT_EDITS = new Set([
   // A clone of the owner's own voice on ElevenLabs.
   'mcp__jarvis_video__clone_owner_voice',
 ])
-import { startTelegram } from './telegram.mjs'
+import { startTelegram, transcribe as transcribeVoice } from './telegram.mjs'
 import { smoothBoss } from './speech.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
 import { rawServer } from './raw.mjs'
@@ -324,6 +325,9 @@ const VETO_EXEMPT = new Set([
  * Full `server__tool` keys, like VETO_EXEMPT, so nothing leaks across servers.
  */
 const WRITE_ALLOWLIST = new Set([
+  // Writing as Nexy in the client-service groups on Telegram; always held for the owner's tap (send).
+  'jarvis_atencion__send_to_client_group',
+  'jarvis_atencion__send_to_team_group',
   // Draws a PDF into ~/Documents/Nexy/facturas, nothing else (see invoice-pdf.mjs).
   'jarvis_facturas__invoice_pdf',
   'google-calendar__create-event',
@@ -964,6 +968,15 @@ Invoices (Zoho):
   in its description, so the approval card says whose payment it is.
 - "¿Quién me debe?" is a read: list the unpaid and overdue invoices with
   customer, amount and days late.
+
+Client service (Telegram):
+- A second bot, also called Nexy, serves the client group (Keko Foods / VAYRO,
+  Mi Semago and Abuelito INC's companies) in its own Telegram group: it takes
+  their requests as numbered orders, passes them to the NXUS team's group and
+  delivers the finished work. It runs on its own; you oversee it.
+- list_client_orders and list_client_files tell the owner what the client
+  asked, what is pending and what was delivered. send_to_client_group and
+  send_to_team_group write in those groups as Nexy, with the owner's tap.
 
 Routines:
 - The owner can leave you work to do on your own at set times ("todos los
@@ -1707,6 +1720,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_ventas: salesServer(elevenKey, TIME_ZONE),
       // An invoice drawn as a PDF for the owner to look at (see invoice-pdf.mjs).
       jarvis_facturas: invoicesServer(),
+      // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
+      jarvis_atencion: atencionServer(),
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
@@ -1902,6 +1917,15 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
 } else {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+  // The client-service bot, when it has been set up (scripts/atencion.mjs).
+  void startAtencion({
+    model: MODEL,
+    effort: EFFORT,
+    transcribe: (bytes) => {
+      const key = elevenKey()
+      return key ? transcribeVoice(key, bytes, 'nota.ogg') : Promise.resolve('')
+    },
+  })
   startRoutines(TIME_ZONE)
   startSales({ elevenKey, zone: TIME_ZONE })
 }

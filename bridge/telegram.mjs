@@ -260,7 +260,7 @@ export function describeApproval(view) {
   return lines.join('\n').slice(0, MAX_MESSAGE)
 }
 
-async function transcribe(key, bytes, name) {
+export async function transcribe(key, bytes, name) {
   const form = new FormData()
   form.append('model_id', 'scribe_v1')
   form.append('tag_audio_events', 'false')
@@ -332,7 +332,7 @@ const SUPERSEDED =
  * quickly become one request. Each request gets its answer from the result
  * that closes its turn.
  */
-export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local }) {
+export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local, channel = 'telegram' }) {
   let current = null
   const held = []
   let deliver = null
@@ -374,8 +374,8 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQue
   }
 
   // Pick up where the last conversation left off, across restarts.
-  const resume = loadSession('telegram')
-  if (resume) console.log('[jarvis] telegram: continuing the previous conversation')
+  const resume = loadSession(channel)
+  if (resume) console.log(`[jarvis] ${channel}: continuing the previous conversation`)
   const session = runQuery({
     prompt: prompts(),
     options: {
@@ -423,7 +423,7 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQue
       for await (const msg of session) {
         lastSign = Date.now()
         if (msg.session_id && (msg.type === 'result' || (msg.type === 'system' && msg.subtype === 'init'))) {
-          saveSession('telegram', msg.session_id)
+          saveSession(channel, msg.session_id)
         }
         // Which connectors are up, for the console, as the voice session does.
         if (msg.type === 'system' && msg.subtype === 'init' && Array.isArray(msg.mcp_servers)) {
@@ -458,7 +458,7 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQue
       console.error('[jarvis] telegram session error:', err?.message ?? err)
       // A conversation that cannot be picked up again is dropped, so the next
       // message starts a fresh one instead of failing the same way.
-      clearSession('telegram')
+      clearSession(channel)
       for (const job of [current, ...held.splice(0).map((b) => b.job)].filter(Boolean)) {
         hub.endTask(job.taskId, 'error', '')
         onAnswer(job, 'Tuve un problema y reinicié la conversación. ¿Me lo repites?')

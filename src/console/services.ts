@@ -47,6 +47,7 @@ export const SERVICES: Record<string, Service> = {
   canva: { label: 'Canva', icon: '🎨', dept: 'marketing' },
   zoho: { label: 'Zoho Invoice', icon: '🧾', dept: 'finanzas' },
   jarvis_facturas: { label: 'PDF de facturas', icon: '📄', dept: 'finanzas' },
+  jarvis_atencion: { label: 'Atención a clientes (Telegram)', icon: '🤝', dept: 'comunicacion' },
   zernio: { label: 'Zernio', icon: '🗓️', dept: 'marketing' },
   'meta-ads': { label: 'Meta Ads', icon: '📢', dept: 'publicidad' },
   fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'ia' },
