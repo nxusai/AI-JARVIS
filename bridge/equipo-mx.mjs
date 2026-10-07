@@ -7,7 +7,7 @@ import { hub } from './console.mjs'
 import { readBrands, readManual } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
 import { conversation } from './telegram.mjs'
-import { api, fileOf, readAtencion, safeName, say, sendFile } from './atencion.mjs'
+import { api, fileOf, previewOf, readAtencion, readLink, safeName, say, sendFile } from './atencion.mjs'
 
 /**
  * Nexy in NXUS México's group: the team that runs marketing for Aurelius (the
@@ -134,6 +134,7 @@ What you do:
 - Answer the team's questions about Aurelius and NXUS AI from what you know (below, manual for the latest), and about anything said or shared in the group (buscar_bitacora, buscar_archivos). Send a file again with reenviar.
 - Keep track of work: nueva_tarea when someone assigns or takes on something, actualizar_tarea when it moves, tareas to say what is pending and whose.
 - Speak for Eduardo when he is not around, but only with what he already said: the manuals, what he taught you, and what he wrote in this group. Anything new — approving a design or a post, spending, prices, the menu, promotions, hiring, changing plans — you do not decide: preguntar_a_eduardo, and tell the group you passed it to him.
+- You can see: the images, PDFs, designs and videos of the message that calls you (and of the one it replies to) come with it; any other file of the record, ver_archivo. Asked to check, review or give an opinion on a design, a photo or a post, look at it first and be specific (texts and spelling, brand colours and logo, legibility, what to improve). Links: abrir_link to read the page or see the video before answering. Never say you cannot see a file without trying ver_archivo.
 - describir_archivo for files worth finding later (what it is, for which brand).
 - You keep a memory of the group's work on your own (below): use it, and memoria to search all of it. Asked what you know about something or someone, answer from it and from the record.
 
@@ -245,6 +246,24 @@ export function mexicoTools(token, chat) {
         log({ de: 'Nexy', texto: `[reenvío: ${archivos.join(', ')}] ${mensaje ?? ''}` })
         return ok('Sent again.')
       }),
+      tool(
+        'ver_archivo',
+        'See a file from the record: an image, the first page of a PDF or design file, or four frames of a video.',
+        { id: z.string() },
+        async ({ id }) => {
+          const f = readFiles().find((x) => x.id === id)
+          if (!f) return refuse(`There is no file ${id}.`)
+          const p = await previewOf(f)
+          if (p.error) return refuse(p.error)
+          return { content: [{ type: 'text', text: `${fileLine(f)}${p.labels.length ? ` · ${p.labels.join(', ')}` : ''}` }, ...p.blocks] }
+        },
+      ),
+      tool(
+        'abrir_link',
+        'Open a link shared in the group (a web page, or an Instagram/TikTok/YouTube video) and read it, or see four frames of the video.',
+        { url: z.string() },
+        async ({ url }) => ({ content: await readLink(url) }),
+      ),
       tool(
         'describir_archivo',
         'Say what a file is and for which brand, so it can be found later.',
@@ -440,13 +459,28 @@ export function createMexico({ token, me, model, effort, runQuery, transcribe })
     if (!called) return
 
     const reply = m.reply_to_message ? String(m.reply_to_message.text ?? m.reply_to_message.caption ?? '').slice(0, 300) : ''
+    // The files she is asked about come with the message: the one just sent
+    // and the one replied to (found in the record by its Telegram id).
+    const repliedFile = m.reply_to_message ? fileOf(m.reply_to_message) : null
+    const repliedEntry = repliedFile ? readFiles().findLast((f) => f.file_id === repliedFile.file_id) : null
+    const shown = []
+    const images = []
+    for (const f of [kept, repliedEntry].filter(Boolean)) {
+      if (images.length >= 8) break
+      const p = await previewOf(f).catch(() => ({ error: 'no preview' }))
+      if (p.error) continue
+      shown.push(f.id)
+      images.push(...p.blocks.map((b) => ({ type: 'image', source: { type: 'base64', media_type: b.mimeType, data: b.data } })))
+    }
     const line =
       (recent.length ? `Conversación reciente del grupo:\n${recent.map(logLine).join('\n')}\n\n` : '') +
       `[NXUS MÉXICO · ${when(new Date(m.date * 1000).toISOString())}] ${who} te escribió: ${said || '(sin texto)'}` +
       (reply ? `\n  respondiendo a: «${reply}»` : '') +
-      (kept ? `\n  archivo guardado: ${kept.id} · ${kept.nombre} (${kept.tipo})` : '')
+      (kept ? `\n  archivo guardado: ${kept.id} · ${kept.nombre} (${kept.tipo})` : '') +
+      (repliedEntry && repliedEntry !== kept ? `\n  el mensaje al que responde trae el archivo ${repliedEntry.id} · ${repliedEntry.nombre} (${repliedEntry.tipo})` : '') +
+      (shown.length ? `\n  (abajo ves ${shown.join(' y ')})` : '')
     const taskId = hub.startTask(`🇲🇽 NXUS México · ${who}: ${(said || kept?.nombre || '').slice(0, 80)}`, null, 'atencion')
-    talk().ask(line, { taskId, chatId: chat() }, { wait: true })
+    talk().ask(images.length ? [{ type: 'text', text: line }, ...images] : line, { taskId, chatId: chat() }, { wait: true })
   }
 
   /**
