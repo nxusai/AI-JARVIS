@@ -43,7 +43,7 @@ const MAX_MANUAL_CHARS = 20_000
  * umbrella: it has no departments of its own, and all the work is done by
  * its companies (`padre` is the holding's id), one level only:
  *
- *   Ramos & Co.          NXUS AI · Marca personal
+ *   Ramos & Co.          NXUS AI · Marca personal · Aurelius (the owner's restaurant)
  *   Empresas cliente     Abuelito INC (holding) → Abuelito Corn, Abuelito Meat, Abuelito Cheese
  *                        Mi Semago
  *                        Keko Foods (holding) → VAYRO
@@ -60,6 +60,7 @@ const DEFAULT_CLIENT_GROUP = 'Empresas cliente'
 const DEFAULT_BRANDS = [
   { id: 'nxus-ai', nombre: 'NXUS AI', color: '#8b5cf6', descripcion: 'Empresa de IA: marketing, social media y más.', cartera: 'propia' },
   { id: 'personal', nombre: 'Marca personal', color: '#38bdf8', descripcion: 'La marca personal del dueño.', cartera: 'propia' },
+  { id: 'aurelius', nombre: 'Aurelius', color: '#c9a227', descripcion: 'El restaurante del dueño. Su marketing lo lleva el equipo NXUS México.', cartera: 'propia' },
   { id: 'abuelito-inc', nombre: 'Abuelito INC', color: '#f59e0b', descripcion: 'Holding de Abuelito Corn, Abuelito Meat y Abuelito Cheese.', cartera: 'cliente' },
   { id: 'abuelito-corn', nombre: 'Abuelito Corn', color: '#eab308', descripcion: '', cartera: 'cliente', padre: 'abuelito-inc', ocultos: ['finanzas'] },
   { id: 'abuelito-meat', nombre: 'Abuelito Meat', color: '#dc2626', descripcion: '', cartera: 'cliente', padre: 'abuelito-inc', ocultos: ['finanzas'] },
@@ -70,7 +71,7 @@ const DEFAULT_BRANDS = [
 ]
 
 /** The version of the layout above; files written before it are brought up to it once. */
-const STRUCTURE = 3
+const STRUCTURE = 4
 
 const MANUAL_HEADER = (nombre) =>
   `# Manual de marca: ${nombre}\n\n` +
@@ -242,10 +243,14 @@ function restructure(marcas) {
       if (d.id === 'keko-foods' && /su marca es VAYRO/.test(have.descripcion)) have.descripcion = d.descripcion
       if (d.padre && !have.padre) have.padre = find(DEFAULT_BRANDS.find((x) => x.id === d.padre))?.id ?? d.padre
       if (!have.descripcion && d.descripcion) have.descripcion = d.descripcion
-    } else if (d.cartera === 'cliente') {
+    } else if (d.cartera === 'cliente' || d.id === 'aurelius') {
       const padre = d.padre ? (find(DEFAULT_BRANDS.find((x) => x.id === d.padre))?.id ?? d.padre) : null
       // A new brand goes right after its company (or its last brand), a new company at the end.
-      const after = padre ? out.map((b) => b.id === padre || b.padre === padre).lastIndexOf(true) : -1
+      const after = padre
+        ? out.map((b) => b.id === padre || b.padre === padre).lastIndexOf(true)
+        : d.cartera === 'propia'
+          ? out.map((b) => b.cartera === 'propia').lastIndexOf(true)
+          : -1
       const fresh = clean({ ...d, padre })
       if (after >= 0) out.splice(after + 1, 0, fresh)
       else out.push(fresh)

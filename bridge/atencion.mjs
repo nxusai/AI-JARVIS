@@ -7,6 +7,7 @@ import { hub } from './console.mjs'
 import { readBrands } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
 import { conversation } from './telegram.mjs'
+import { createMexico, readTasks as readMxTasks, readLog as readMxLog } from './equipo-mx.mjs'
 
 /**
  * Nexy for the client group: client service on Telegram.
@@ -128,7 +129,7 @@ function fileLine(f) {
 
 // -- Telegram ---------------------------------------------------------------
 
-async function api(token, method, params = {}, timeoutMs = 20_000) {
+export async function api(token, method, params = {}, timeoutMs = 20_000) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -158,19 +159,19 @@ const chunks = (text, max = 3900) => {
   return out
 }
 
-async function say(token, chatId, text) {
+export async function say(token, chatId, text) {
   for (const part of chunks(text)) await api(token, 'sendMessage', { chat_id: chatId, text: part })
 }
 
 /** Send an archived file again, by its Telegram id: no download, no size limit. */
-async function sendFile(token, chatId, f, caption) {
+export async function sendFile(token, chatId, f, caption) {
   const method = { foto: 'sendPhoto', video: 'sendVideo', animacion: 'sendAnimation', audio: 'sendAudio', nota: 'sendVoice' }[f.tipo] ?? 'sendDocument'
   const field = { sendPhoto: 'photo', sendVideo: 'video', sendAnimation: 'animation', sendAudio: 'audio', sendVoice: 'voice', sendDocument: 'document' }[method]
   await api(token, method, { chat_id: chatId, [field]: f.file_id, ...(caption ? { caption: String(caption).slice(0, 1000) } : {}) }, 60_000)
 }
 
 /** The one file in a message, if any, as { file_id, tipo, nombre, size }. */
-function fileOf(m) {
+export function fileOf(m) {
   if (m.photo?.length) {
     const p = m.photo[m.photo.length - 1]
     return { file_id: p.file_id, tipo: 'foto', nombre: `foto-${m.message_id}.jpg`, size: p.file_size ?? 0 }
@@ -182,7 +183,7 @@ function fileOf(m) {
   return null
 }
 
-const safeName = (s) =>
+export const safeName = (s) =>
   String(s)
     .normalize('NFD')
     .replace(/[^\w.-]+/g, '-')
@@ -437,6 +438,7 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
   }
   console.log(`[jarvis] atención on as @${me.username}`)
 
+  const mexico = createMexico({ token, me, model, effort, runQuery, transcribe })
   const server = toolsServer(token, groups)
   const options = () => ({
     mcpServers: { atencion: server },
@@ -520,17 +522,29 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
 
     // Linking a group: only the owner, from inside it.
     const cmd = text.split(/[\s@]/)[0].toLowerCase()
-    if (cmd === '/cliente' || cmd === '/equipo') {
+    if (cmd === '/cliente' || cmd === '/equipo' || cmd === '/mexico') {
       if (!isOwner) return
       const c = readAtencion()
-      const grupos = { ...(c.grupos ?? {}), [cmd.slice(1)]: chat }
+      // A group is one thing only: linking it here unlinks it anywhere else.
+      const grupos = Object.fromEntries(Object.entries(c.grupos ?? {}).filter(([, id]) => id !== chat))
+      grupos[cmd.slice(1)] = chat
       writeAtencion({ ...c, grupos })
-      await say(token, chat, cmd === '/cliente' ? 'Listo: este es el grupo del cliente. Aquí atiendo yo.' : 'Listo: este es el grupo del equipo NXUS. Aquí les paso los pedidos y me suben el trabajo terminado.')
+      await say(
+        token,
+        chat,
+        {
+          '/cliente': 'Listo: este es el grupo del cliente. Aquí atiendo yo.',
+          '/equipo': 'Listo: este es el grupo del equipo NXUS. Aquí les paso los pedidos y me suben el trabajo terminado.',
+          '/mexico': 'Listo: este es el grupo de NXUS México. Guardo todo lo que pase aquí y contesto cuando me llamen ("Nexy, …").',
+        }[cmd],
+      )
       console.log(`[jarvis] atención: ${cmd.slice(1)} group linked`)
       return
     }
 
     const g = groups()
+    // NXUS México has its own Nexy: separate conversation, memory and tools (see equipo-mx.mjs).
+    if (chat === g.mexico) return mexico.handle(m, { isOwner })
     const where = chat === g.cliente ? 'cliente' : chat === g.equipo ? 'equipo' : null
     if (!where) return
     if (where === 'equipo') rememberTeam(from.id)
@@ -591,9 +605,9 @@ export function atencionServer() {
     const cfg = readAtencion()
     if (!cfg) return refuse('Client service on Telegram is not set up.')
     const chat = cfg.grupos?.[g]
-    if (!chat) return refuse(`The ${g === 'cliente' ? 'client' : 'team'} group is not linked yet.`)
+    if (!chat) return refuse(`The ${{ cliente: 'client', equipo: 'team', mexico: 'NXUS México' }[g]} group is not linked yet.`)
     await say(cfg.token, chat, texto)
-    log({ grupo: g, de: 'Nexy (por el dueño)', texto })
+    if (g !== 'mexico') log({ grupo: g, de: 'Nexy (por el dueño)', texto })
     return ok('Sent.')
   }
   return createSdkMcpServer({
@@ -618,6 +632,18 @@ export function atencionServer() {
       }),
       tool('send_to_client_group', "Write in the client's Telegram group as Nexy. The owner approves it.", { texto: z.string() }, async ({ texto }) => post('cliente', texto)),
       tool('send_to_team_group', "Write in the NXUS team's Telegram group as Nexy. The owner approves it.", { texto: z.string() }, async ({ texto }) => post('equipo', texto)),
+      tool('list_mexico_tasks', "NXUS México's tasks (Aurelius and NXUS AI in Mexico), newest first.", {}, async () => {
+        const list = readMxTasks().reverse().slice(0, 40)
+        return ok(list.length ? list.map((t) => `T${t.id} · ${t.marca} · ${t.que}${t.responsable ? ` · ${t.responsable}` : ''}${t.para ? ` · para ${t.para}` : ''} · ${t.estado}`).join('\n') : 'No tasks yet.')
+      }),
+      tool('search_mexico_log', "What was said in NXUS México's group: by words, or the latest when left out.", { texto: z.string().optional() }, async ({ texto }) => {
+        const w = String(texto ?? '').toLowerCase()
+        const hits = readMxLog()
+          .filter((e) => !w || `${e.de} ${e.texto}`.toLowerCase().includes(w))
+          .slice(-40)
+        return ok(hits.length ? hits.map((e) => `[${e.at.slice(0, 16).replace('T', ' ')}] ${e.de}: ${e.texto}`).join('\n') : 'Nothing found.')
+      }),
+      tool('send_to_mexico_group', "Write in NXUS México's Telegram group as Nexy. The owner approves it.", { texto: z.string() }, async ({ texto }) => post('mexico', texto)),
     ],
   })
 }

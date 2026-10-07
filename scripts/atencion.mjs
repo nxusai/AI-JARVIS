@@ -74,6 +74,7 @@ if (cmd === 'estado') {
   }
   console.log(` Grupo del cliente: ${cfg.grupos?.cliente ? 'vinculado ✅' : 'falta (escribe /cliente dentro del grupo)'}`)
   console.log(` Grupo del equipo:  ${cfg.grupos?.equipo ? 'vinculado ✅' : 'falta (escribe /equipo dentro del grupo)'}`)
+  console.log(` NXUS México:       ${cfg.grupos?.mexico ? 'vinculado ✅' : 'falta (escribe /mexico dentro del grupo)'}`)
 } else if (cmd === 'apagar') {
   rmSync(ATENCION_FILE, { force: true })
   console.log(' El bot de atención quedó desconectado de esta Mac. Los pedidos y archivos se quedan guardados. Reinicia Nexy.')

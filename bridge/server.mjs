@@ -328,6 +328,7 @@ const WRITE_ALLOWLIST = new Set([
   // Writing as Nexy in the client-service groups on Telegram; always held for the owner's tap (send).
   'jarvis_atencion__send_to_client_group',
   'jarvis_atencion__send_to_team_group',
+  'jarvis_atencion__send_to_mexico_group',
   // Draws a PDF into ~/Documents/Nexy/facturas, nothing else (see invoice-pdf.mjs).
   'jarvis_facturas__invoice_pdf',
   'google-calendar__create-event',
@@ -977,6 +978,10 @@ Client service (Telegram):
 - list_client_orders and list_client_files tell the owner what the client
   asked, what is pending and what was delivered. send_to_client_group and
   send_to_team_group write in those groups as Nexy, with the owner's tap.
+- The same bot also sits in NXUS México's group (the team that runs Aurelius'
+  and NXUS AI's marketing in Mexico), as a separate assistant with its own
+  memory: list_mexico_tasks and search_mexico_log tell the owner what is
+  pending and what was said; send_to_mexico_group writes there, with a tap.
 
 Routines:
 - The owner can leave you work to do on your own at set times ("todos los
