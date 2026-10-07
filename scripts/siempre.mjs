@@ -29,7 +29,23 @@ const say = (s = '') => console.log(s)
 const launchctl = (...args) => spawnSync('launchctl', args, { encoding: 'utf8' })
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const sh = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`
+/** Loaded in launchd (it may be between restarts). */
 const running = () => launchctl('print', `${DOMAIN}/${LABEL}`).status === 0
+/** Actually up right now: launchd reports a live process for it. */
+const alive = () => {
+  const r = launchctl('print', `${DOMAIN}/${LABEL}`)
+  return r.status === 0 && /\bstate = running\b/.test(r.stdout) && /\bpid = \d+/.test(r.stdout)
+}
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+/** Wait up to `ms` for a condition, checking twice a second. */
+function waitFor(cond, ms) {
+  const end = Date.now() + ms
+  while (Date.now() < end) {
+    if (cond()) return true
+    pause(500)
+  }
+  return cond()
+}
 
 function instalar() {
   if (process.platform !== 'darwin') return say('\nEsto es solo para Mac.\n')
@@ -63,18 +79,49 @@ ${args.map((a) => `    <string>${xml(a)}</string>`).join('\n')}
 </dict>
 </plist>
 `
-  if (running()) launchctl('bootout', `${DOMAIN}/${LABEL}`)
+  // Restarting: stop the running one and wait until macOS has really let it go.
+  // Starting the new one too soon is refused, and both end up stopped.
+  if (running()) {
+    say('\nReiniciando a Nexy…')
+    launchctl('bootout', `${DOMAIN}/${LABEL}`)
+    if (!waitFor(() => !running(), 20_000)) return say('\n✋ La Nexy anterior no terminó de apagarse. Espera un minuto y vuelve a correr esto.\n')
+    // The old one's ports (8787 and 5173) free up a moment after it stops.
+    waitFor(() => !spawnSync('lsof', ['-ti', 'tcp:8787'], { encoding: 'utf8' }).stdout.trim(), 10_000)
+  }
   mkdirSync(dirname(PLIST), { recursive: true })
   writeFileSync(PLIST, plist)
-  const r = launchctl('bootstrap', DOMAIN, PLIST)
-  if (r.status !== 0 && !running()) return say(`\n✋ macOS no la dejó arrancar: ${(r.stderr || r.stdout).trim()}\n`)
+  let r = null
+  for (let i = 0; i < 3 && !running(); i++) {
+    r = launchctl('bootstrap', DOMAIN, PLIST)
+    if (r.status !== 0) pause(3000)
+  }
+  if (!running()) return say(`\n✋ macOS no la dejó arrancar: ${(r?.stderr || r?.stdout || '').trim()}\n   Vuelve a correr: node scripts/siempre.mjs\n`)
+  // Up for real: launchd has a live process and it is still there a few seconds later.
+  let up = waitFor(alive, 15_000)
+  if (up) {
+    pause(5000)
+    up = alive()
+  }
+  if (!up) {
+    say('\n⚠️ Quedó instalada, pero Nexy no se mantiene prendida. Esto dice su registro:\n')
+    if (existsSync(LOG)) say(readFileSync(LOG, 'utf8').trim().split('\n').slice(-12).join('\n'))
+    return say('\nMándale captura de esto a quien te ayuda con Nexy.\n')
+  }
   say('\n✅ Listo: Nexy ya está prendida y se prende sola cada vez que esta Mac arranque.')
   say('   Si algo la tumba, se vuelve a levantar en 30 segundos.')
   say('   Ya no uses npm start en esta Mac. Para ver cómo va: node scripts/siempre.mjs estado\n')
 }
 
 function estado() {
-  say(running() ? '\n🟢 Nexy está prendida (modo siempre).' : existsSync(PLIST) ? '\n🟡 Instalada, pero no está corriendo ahora.' : '\n⚪ Modo siempre no instalado.')
+  say(
+    alive()
+      ? '\n🟢 Nexy está prendida (modo siempre).'
+      : running()
+        ? '\n🟡 Instalada y reiniciándose (se vuelve a levantar sola en unos segundos).'
+        : existsSync(PLIST)
+          ? '\n🟠 Instalada, pero macOS no la tiene cargada. Corre: node scripts/siempre.mjs'
+          : '\n⚪ Modo siempre no instalado.',
+  )
   if (existsSync(LOG)) {
     const lines = readFileSync(LOG, 'utf8').trim().split('\n').slice(-15)
     say(`\nÚltimas líneas (${LOG}):\n${lines.join('\n')}`)
