@@ -8,6 +8,7 @@
 //   node scripts/ana-sofi.mjs estado     what is set up, and the leads it can see
 //   node scripts/ana-sofi.mjs revisar    why each lead was or was not called, piece by piece
 //   node scripts/ana-sofi.mjs entrantes  lets leads call Ana Sofi back: makes her inbound twin and gives it the number
+//   node scripts/ana-sofi.mjs avisos meetings | todo   what reaches the owner: only video calls (default) or everything
 //
 // The Sheet script answers only to a long random key made here, kept in
 // ~/.nexy/ventas.json (readable by this user only) and inside the script in
@@ -299,4 +300,14 @@ else if (cmd === 'script') {
 } else if (cmd === 'estado') await estado()
 else if (cmd === 'revisar') await revisar()
 else if (cmd === 'entrantes') await entrantes()
+else if (cmd === 'avisos') {
+  const want = process.argv[3]
+  if (want !== 'meetings' && want !== 'todo') {
+    say(` Ahora: ${readSalesConfig().avisos === 'todo' ? 'te aviso de todo (cada lead, llamada y resultado)' : 'solo te aviso de meetings'}.`)
+    say(' Cambiar: node scripts/ana-sofi.mjs avisos meetings   o   node scripts/ana-sofi.mjs avisos todo')
+  } else {
+    writeSalesConfig({ avisos: want })
+    say(want === 'todo' ? ' Listo: te aviso de todo otra vez.' : ' Listo: solo te aviso cuando hay meeting (agendado, movido o cancelado). Lo demás queda en el Sheet y en la consola.')
+  }
+}
 else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes]\n')

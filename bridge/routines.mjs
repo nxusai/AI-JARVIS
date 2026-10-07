@@ -191,10 +191,10 @@ export function setRoutineRunner(fn) {
  * new lead — run the same way and reported the same way. `aviso` is the line
  * the owner sees when it starts. False when nothing can run it yet.
  */
-export function runJob(nombre, marca, prompt, aviso) {
+export function runJob(nombre, marca, prompt, aviso, { silent = false } = {}) {
   if (!runner) return false
   try {
-    runner({ id: 'job', nombre, marca, aviso }, prompt)
+    runner({ id: 'job', nombre, marca, aviso, silent }, prompt)
     return true
   } catch (err) {
     console.log(`[jarvis] job «${nombre}» could not start: ${err?.message ?? err}`)

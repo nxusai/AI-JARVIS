@@ -788,10 +788,12 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   setRoutineRunner((routine, prompt) => {
     const owner = readTelegram()?.owner
     if (!owner) throw new Error('Telegram is not paired')
-    void say(owner.id, routine.aviso ?? `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
-    const taskId = hub.startTask(routine.aviso ? routine.nombre : `⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
-    talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre', solo: true })
-    keepTyping(owner.id, false)
+    // A silent job (the sales line's routine work) shows in the console only.
+    // An empty notice means "no heads-up, just the report when it is done".
+    if (!routine.silent && routine.aviso !== '') void say(owner.id, routine.aviso ?? `⏰ Empiezo tu rutina «${routine.nombre}». Te aviso cuando termine.`)
+    const taskId = hub.startTask(routine.aviso !== undefined || routine.silent ? routine.nombre : `⏰ Rutina: ${routine.nombre}`, routine.marca ?? undefined, 'rutina')
+    talk().ask(prompt, { taskId, chatId: owner.id, voice: readTelegram()?.voice === 'siempre', solo: true, silent: routine.silent })
+    if (!routine.silent) keepTyping(owner.id, false)
   })
 
   // The sales line's plain news (a call that went nowhere, a lead outside the
@@ -802,6 +804,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   })
 
   async function answer(job, text) {
+    if (job.silent) return
     const key = elevenKey()
     if (job.voice && key) {
       try {

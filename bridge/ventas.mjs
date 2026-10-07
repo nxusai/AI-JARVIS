@@ -93,8 +93,15 @@ export function readSalesConfig() {
     agentId: String(process.env.NEXY_SALES_AGENT_ID ?? c.agentId ?? '').trim(),
     phoneId: String(process.env.NEXY_SALES_PHONE_ID ?? c.phoneId ?? '').trim(),
     inboundAgentId: String(c.inboundAgentId ?? '').trim(),
+    // 'meetings' (default): the owner hears only about video calls (booked,
+    // moved, cancelled) and the 8:00 call rings only on days with one.
+    // 'todo': every lead, call and outcome, as before.
+    avisos: c.avisos === 'todo' ? 'todo' : 'meetings',
   }
 }
+
+/** Only meetings reach the owner (see avisos above). */
+const quiet = () => readSalesConfig().avisos !== 'todo'
 
 export function writeSalesConfig(next) {
   writeJson(CONFIG, { ...readJson(CONFIG, {}), ...next })
@@ -520,7 +527,12 @@ function briefingDue(now) {
 export function morningCall(now = Date.now()) {
   const day = briefingDue(now)
   if (!day) return
-  if (runJob('☀️ Llamada de las 8', 'mi-semago', BRIEF_JOB, '☀️ Buenos días Boss. Preparo tu resumen y te llamo.')) {
+  const job = quiet()
+    ? BRIEF_JOB +
+      '\n\nThe owner asked to hear only about meetings: if there is no meeting today, do not phone them and answer with one line. ' +
+      'If there is, the call is about today\'s meetings first, then one line of numbers.'
+    : BRIEF_JOB
+  if (runJob('☀️ Llamada de las 8', 'mi-semago', job, quiet() ? undefined : '☀️ Buenos días Boss. Preparo tu resumen y te llamo.', { silent: quiet() })) {
     writeJson(BRIEF_FILE, { dia: day })
   }
 }
@@ -532,11 +544,17 @@ let notifier = null
 export function setSalesNotifier(fn) {
   notifier = fn
 }
-const tell = (text) => {
+const tell = (text, { meeting = false } = {}) => {
+  if (quiet() && !meeting) {
+    console.log(`[jarvis] ventas (sin aviso): ${text.split('\n')[0].slice(0, 160)}`)
+    return
+  }
   try {
     notifier?.(text)
   } catch {}
 }
+/** A routine job of the sales line: silent unless the owner wants every notice. */
+const routine = (nombre, prompt, aviso) => runJob(nombre, 'mi-semago', prompt, quiet() ? undefined : aviso, { silent: quiet() })
 
 /**
  * Watch the Sheet. Only on the Mac that answers Telegram (see server.mjs),
@@ -640,7 +658,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
         await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' })
         return
       }
-      const handed = runJob('Ana Sofi · lead nuevo', 'mi-semago', scheduleJob(lead, now, zone), `📋 Lead nuevo de Mi Semago: ${lead.empresa || lead.nombre || 'sin nombre'}. Programo la llamada de Ana Sofi.`)
+      const handed = routine('Ana Sofi · lead nuevo', scheduleJob(lead, now, zone), `📋 Lead nuevo de Mi Semago: ${lead.empresa || lead.nombre || 'sin nombre'}. Programo la llamada de Ana Sofi.`)
       if (!handed) {
         console.log('[jarvis] ventas: lead nuevo esperando a que Telegram esté listo')
         return
@@ -656,7 +674,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
     if ((s.stage === 'nuevo' || s.stage === 'callback') && now - (s.jobAt ?? 0) > JOB_STALE_MS) {
       if ((s.jobTries ?? 0) < MAX_JOB_TRIES) {
         const job = s.stage === 'callback' ? scheduleJob({ ...lead, llamarDespues: s.llamarDespues }, s.since ?? now, zone, 'callback') : scheduleJob(lead, s.since ?? now, zone)
-        if (runJob('Ana Sofi · programar llamada', 'mi-semago', job)) {
+        if (routine('Ana Sofi · programar llamada', job)) {
           s.jobAt = now
           s.jobTries = (s.jobTries ?? 0) + 1
         }
@@ -708,14 +726,15 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
   if (outcome.resultado === 'videollamada_agendada' && outcome.videollamada) {
     Object.assign(s, { stage: 'reunion_pendiente', correo: String(lead.correo ?? '').trim().toLowerCase(), meetingSince: now })
     await writeLead(cfg, lead, { Estado: 'Aceptó precio — agendando videollamada' })
-    const handed = runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. La agendo y te aviso.`)
-    if (!handed) tell(`🎉 ${who} aceptó el precio y eligió videollamada: ${outcome.videollamada}. Agéndala tú; no pude prepararla.`)
+    // The one thing the owner always hears about: its report is the meeting notice.
+    const handed = runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), quiet() ? '' : `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. La agendo y te aviso.`)
+    if (!handed) tell(`🎉 ${who} aceptó el precio y eligió videollamada: ${outcome.videollamada}. Agéndala tú; no pude prepararla.`, { meeting: true })
     return
   }
   if (outcome.resultado === 'llamar_despues' && outcome.llamarDespues) {
     Object.assign(s, { stage: 'callback', since: now, jobAt: now, jobTries: 1, llamarDespues: outcome.llamarDespues, attempts: 0 })
     await writeLead(cfg, lead, { Estado: 'Pidió otra llamada — reprogramando' })
-    runJob('Ana Sofi · reprogramar', 'mi-semago', scheduleJob({ ...lead, llamarDespues: outcome.llamarDespues }, now, zone, 'callback'))
+    routine('Ana Sofi · reprogramar', scheduleJob({ ...lead, llamarDespues: outcome.llamarDespues }, now, zone, 'callback'))
     return
   }
   s.stage = 'cerrado'
@@ -1060,7 +1079,7 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
       changeJob(lead, tipo, horario, correo, resumen),
       `📞 ${who} llamó a Ana Sofi: ${tipo === 'cambio_reunion' ? 'quiere mover su videollamada' : 'quiere agendar videollamada'} (${horario}). Lo arreglo y te aviso.`,
     )
-    if (!ok) tell(`📞 ${who} pidió ${tipo === 'cambio_reunion' ? 'mover' : 'agendar'} la videollamada: ${horario}. No pude hacerlo solo; revísalo.`)
+    if (!ok) tell(`📞 ${who} pidió ${tipo === 'cambio_reunion' ? 'mover' : 'agendar'} la videollamada: ${horario}. No pude hacerlo solo; revísalo.`, { meeting: true })
     return
   }
   if (tipo === 'cancelar_reunion') {
@@ -1068,7 +1087,7 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
     writeState(state)
     await writeLead(cfg, lead, { Estado: 'Canceló la videollamada', Notas: notes })
     const ok = runJob('Ana Sofi · videollamada cancelada', 'mi-semago', cancelJob(lead, resumen), `📞 ${who} canceló su videollamada. La marco en tu calendario.`)
-    if (!ok) tell(`📞 ${who} canceló su videollamada.${resumen ? ` ${resumen.slice(0, 400)}` : ''}`)
+    if (!ok) tell(`📞 ${who} canceló su videollamada.${resumen ? ` ${resumen.slice(0, 400)}` : ''}`, { meeting: true })
     return
   }
   await writeLead(cfg, lead, { Notas: notes })
@@ -1119,16 +1138,16 @@ export async function whatsappTick({ cfg, leads, state, zone, now }) {
           changeJob(lead, tipo, horario, '', resumen, 'whatsapp'),
           `💬 ${who} escribió por WhatsApp: ${tipo === 'cambio_reunion' ? 'quiere mover su videollamada' : 'quiere agendar videollamada'} (${horario}). Lo arreglo y te aviso.`,
         )
-        if (!done) tell(`💬 ${who} pidió por WhatsApp ${tipo === 'cambio_reunion' ? 'mover' : 'agendar'} la videollamada: ${horario}. No pude hacerlo solo; revísalo.`)
+        if (!done) tell(`💬 ${who} pidió por WhatsApp ${tipo === 'cambio_reunion' ? 'mover' : 'agendar'} la videollamada: ${horario}. No pude hacerlo solo; revísalo.`, { meeting: true })
       } else if (tipo === 'cancelar_reunion') {
         if (s) s.stage = 'cerrado'
         writeState(state)
         await writeLead(cfg, lead, { Estado: 'Canceló la videollamada (WhatsApp)', Notas: notes })
         const done = runJob('WhatsApp · videollamada cancelada', 'mi-semago', cancelJob(lead, resumen, 'whatsapp'), `💬 ${who} canceló su videollamada por WhatsApp. La marco en tu calendario.`)
-        if (!done) tell(`💬 ${who} canceló su videollamada por WhatsApp.${motivo ? ` Motivo: ${motivo}` : ''}`)
+        if (!done) tell(`💬 ${who} canceló su videollamada por WhatsApp.${motivo ? ` Motivo: ${motivo}` : ''}`, { meeting: true })
       } else {
         await writeLead(cfg, lead, { Notas: notes })
-        tell(`💬 ${who} escribió por WhatsApp: ${lead.solicitud}${motivo ? ` (${motivo})` : ''}${tipo === 'otro' ? '' : '. No dijo para cuándo: hay que preguntarle.'}`)
+        tell(`💬 ${who} escribió por WhatsApp: ${lead.solicitud}${motivo ? ` (${motivo})` : ''}${tipo === 'otro' ? '' : '. No dijo para cuándo: hay que preguntarle.'}`, { meeting: true })
       }
     } catch (err) {
       console.log(`[jarvis] ventas whatsapp: fila ${lead.row}: ${err?.message ?? err}`)
