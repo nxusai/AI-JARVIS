@@ -40,7 +40,10 @@ function instalar() {
   mkdirSync(LOG_DIR, { recursive: true })
   // A log that has grown past 20 MB starts over.
   if (existsSync(LOG) && statSync(LOG).size > 20 * 1024 * 1024) writeFileSync(LOG, '')
-  const command = `source ~/.zshrc >/dev/null 2>&1; cd ${sh(APP)} && exec ${sh(process.execPath)} scripts/start.mjs`
+  // The Mac starts this without a Terminal: put this Node (and Homebrew's) on the PATH, then the owner's settings.
+  const command =
+    `export PATH=${sh([dirname(process.execPath), '/opt/homebrew/bin', '/usr/local/bin'].join(':'))}:"$PATH"; ` +
+    `source ~/.zprofile >/dev/null 2>&1; source ~/.zshrc >/dev/null 2>&1; cd ${sh(APP)} && exec ${sh(process.execPath)} scripts/start.mjs`
   const args = ['/usr/bin/caffeinate', '-i', '/bin/zsh', '-c', command]
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

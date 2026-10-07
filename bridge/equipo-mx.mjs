@@ -344,7 +344,10 @@ export function createMexico({ token, me, model, effort, runQuery, transcribe })
         await say(token, chat(), gone ? `Listo, olvidé: ${gone.slice(2, 160)}${gone.length > 160 ? '…' : ''}` : 'No tengo nada aprendido todavía.')
         return
       }
-      const lesson = said.match(/^\s*(?:\[nota de voz\]\s*)?(?:oye\s+)?nexy[\s,.:]+(?:apr[eé]nde(?:te)?|memoriza)\b\s*[:,.-]?\s*([\s\S]*)$/i)
+      // "Nexy, aprende …", or just "aprende …" as a reply to the message to learn.
+      const lesson =
+        said.match(/^\s*(?:\[nota de voz\]\s*)?(?:oye\s+)?nexy[\s,.:]+(?:apr[eé]nde(?:te)?|memoriza)\b\s*[:,.-]?\s*([\s\S]*)$/i) ??
+        (m.reply_to_message ? said.match(/^\s*(?:\[nota de voz\]\s*)?(?:apr[eé]nde(?:te)?|memoriza)\b\s*[:,.-]?\s*([\s\S]*)$/i) : null)
       if (lesson) {
         const rest = lesson[1].trim()
         // What "eso" points at: the message he replied to, or the latest one by

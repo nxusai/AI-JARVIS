@@ -11,6 +11,7 @@
  */
 
 import { spawn } from 'node:child_process'
+import { delimiter, dirname } from 'node:path'
 import process from 'node:process'
 import { cpSync, existsSync, mkdirSync } from 'node:fs'
 
@@ -57,10 +58,20 @@ const paint = (tag, colour) => (line) =>
 
 const children = []
 
+/**
+ * Where this Node lives, first on the PATH of everything started from here.
+ * Started by the Mac on its own (scripts/siempre.mjs) there is no Terminal
+ * PATH, so "node" and "npx" (the connectors run on them) were not found and
+ * Nexy died on start: "spawn node ENOENT".
+ */
+const PATH = [dirname(process.execPath), '/opt/homebrew/bin', '/usr/local/bin', process.env.PATH ?? '/usr/bin:/bin']
+  .filter(Boolean)
+  .join(delimiter)
+
 function run(name, command, args, colour, env) {
   const label = paint(name, colour)
   const child = spawn(command, args, {
-    env: { ...process.env, ...env },
+    env: { ...process.env, PATH, ...env },
     shell: false,
   })
   child.stdout.on('data', (d) => process.stdout.write(label(d) + '\n'))
@@ -114,7 +125,7 @@ if (port) {
 vendorWasm()
 
 console.log('\nJ.A.R.V.I.S. starting — the brain and the face.\n')
-run('bridge', 'node', ['bridge/server.mjs'], '36', bridgeEnv)
+run('bridge', process.execPath, ['bridge/server.mjs'], '36', bridgeEnv)
 // npm is a shell script on most systems; call the vite binary directly so we do
 // not need shell:true (which would break the argument handling above).
 run('face', process.execPath, ['node_modules/vite/bin/vite.js'], '35', {})
