@@ -137,7 +137,7 @@ export default function Console() {
   const agents = useMemo(() => org?.agents ?? [], [org])
   const live = useMemo(() => liveNodes(tasks, agents, now), [tasks, agents, now])
   const nodes = useMemo(() => buildEcosystem(brands, org, servers, brain), [brands, org, servers, brain])
-  const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now, brands?.marcas ?? []), [tasks, nodes, org, brands, now])
+  const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now), [tasks, nodes, org, brands, now])
   // Picking a brand chip flies the map there; "Todas" pulls back to everything.
   const [focus, setFocus] = useState<string | null>(null)
   const active = brandOf(brands, brands?.activa)
@@ -325,6 +325,7 @@ export default function Console() {
           servers={servers}
           org={org}
           openApprovals={() => setTab('aprobaciones')}
+          pick={(id) => setBrandFilter(id)}
         />
       ) : null}
 

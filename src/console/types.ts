@@ -61,6 +61,8 @@ export type Brand = {
   cartera?: 'propia' | 'cliente'
   /** The company this brand belongs to; null for a company. */
   padre?: string | null
+  /** Departments this company does not have yet, by id. */
+  ocultos?: string[]
   /** Accounts this brand publishes to — and the only ones it can. */
   conexiones?: Array<{ servicio: string; id: string; nombre: string }>
 }

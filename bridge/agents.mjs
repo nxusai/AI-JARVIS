@@ -406,7 +406,8 @@ export function teamPrompt() {
   })
   return (
     '\n\n## How the work is organised: departments\n' +
-    'Every brand has the same departments, and the owner sees them in the console with these names. ' +
+    'Every company has these departments (except any the companies list says it does not have yet; a holding has none), ' +
+    'and the owner sees them in the console with these names. ' +
     'Place every request in its department (or several, in order: e.g. Marketing writes, IA generates, Marketing edits) ' +
     'and, when it helps, say which department handled it ("Lo vio el Departamento de Marketing"). ' +
     'Specialists are reached with the Agent tool (subagent_type is the id). Delegate when the owner wants finished ' +

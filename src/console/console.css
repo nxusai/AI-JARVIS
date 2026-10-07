@@ -1623,3 +1623,17 @@ h2.attention {
   gap: 6px;
   margin: 0 0 16px;
 }
+.dept-open {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--brand, var(--accent));
+  background: color-mix(in srgb, var(--brand, var(--accent)) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}

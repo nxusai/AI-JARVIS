@@ -33,6 +33,7 @@ export function Departments({
   servers,
   org,
   openApprovals,
+  pick,
 }: {
   brands: Brands | null
   brandFilter: string | null
@@ -41,6 +42,8 @@ export function Departments({
   servers: Server[]
   org: Org | null
   openApprovals: () => void
+  /** Show one company (or holding) instead. */
+  pick: (id: string) => void
 }) {
   const brand = brandOf(brands, brandFilter)
   const inBrand = (id?: string | null) => inScope(brands, brandFilter, id ?? brands?.activa)
@@ -52,9 +55,69 @@ export function Departments({
   const status = new Map(servers.map((s) => [s.name, s.status]))
   const agents = org?.agents ?? []
   const molds = (org?.molds ?? []).filter((m) => !m.marca || !brandFilter || m.marca === brandFilter || companyOf(brands, m.marca) === brandFilter)
-  // A company's page names its brands; a brand's names its company.
-  const company = brand ? brandOf(brands, companyOf(brands, brand.id)) : undefined
-  const family = company ? (brands?.marcas ?? []).filter((b) => b.padre === company.id) : []
+  // A holding's page shows its companies; a company of a holding names it.
+  const holding = brand ? brandOf(brands, companyOf(brands, brand.id)) : undefined
+  const family = holding && holding.id !== brand?.id ? [] : holding ? (brands?.marcas ?? []).filter((b) => b.padre === holding.id) : []
+  const isHolding = Boolean(brand && family.length)
+  const depts = (org?.departments ?? []).filter((d) => !brand?.ocultos?.includes(d.id))
+
+  if (brand && isHolding) {
+    return (
+      <main className="depts">
+        <h1 className="depts-title">
+          <BrandPill brand={brand} big /> Holding
+        </h1>
+        <p className="muted depts-sub">
+          {brand.nombre} es el paraguas: no tiene departamentos propios. Todo el trabajo lo hacen sus empresas, cada una con sus departamentos.
+        </p>
+        <div className="dept-grid">
+          {family.map((c) => {
+            const mine = tasks.filter((t) => t.brand === c.id)
+            const busy = mine.some((t) => t.status === 'running')
+            const held = approvals.filter((a) => a.brand === c.id)
+            const recent = mine.flatMap((t) => t.steps).sort((a, b) => b.startedAt - a.startedAt).slice(0, 3)
+            const count = (org?.departments ?? []).filter((d) => !c.ocultos?.includes(d.id)).length
+            return (
+              <section key={c.id} className={`dept-card${busy ? ' busy' : ''}`} style={{ ['--brand' as string]: c.color }}>
+                <header>
+                  <span className="dept-icon">🏢</span>
+                  <h2>{c.nombre}</h2>
+                  {busy ? <span className="dept-live">● Trabajando</span> : null}
+                </header>
+                <p className="dept-does">
+                  {count} departamentos
+                  {c.ocultos?.length
+                    ? ` · sin ${c.ocultos.map((o) => org?.departments.find((d) => d.id === o)?.short ?? o).join(', ')} por ahora`
+                    : ''}
+                </p>
+                {held.length ? (
+                  <button className="dept-held" onClick={openApprovals}>
+                    ⚠️ {held.length === 1 ? '1 acción espera' : `${held.length} acciones esperan`} tu aprobación
+                  </button>
+                ) : null}
+                <h3>Actividad reciente</h3>
+                {recent.length ? (
+                  <ul className="recent">
+                    {recent.map((s) => (
+                      <li key={s.id}>
+                        <span className="when">{clock(s.startedAt)}</span>
+                        {stepLook(s, agents).label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted small">Sin actividad todavía.</p>
+                )}
+                <button className="dept-open" onClick={() => pick(c.id)}>
+                  Ver departamentos de {c.nombre} →
+                </button>
+              </section>
+            )
+          })}
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="depts">
@@ -68,23 +131,25 @@ export function Departments({
         )}
       </h1>
       <p className="muted depts-sub">
-        {brand?.padre && company
-          ? `${brand.nombre} es una marca de ${company.nombre}: trabaja con los departamentos de ${company.nombre}.`
-          : brand && family.length
-            ? `Los departamentos de ${brand.nombre} trabajan para todas sus marcas.`
+        {brand?.padre && holding
+          ? `${brand.nombre} es una empresa de ${holding.nombre}, con sus propios departamentos.`
+          : brand
+            ? `Los departamentos de ${brand.nombre}.`
             : 'Cada empresa tiene sus propios departamentos. Escoge arriba una empresa para ver solo lo suyo.'}
+        {brand?.ocultos?.length
+          ? ` Sin ${brand.ocultos.map((o) => org?.departments.find((d) => d.id === o)?.short ?? o).join(', ')} por ahora.`
+          : ''}
       </p>
-      {family.length ? (
+      {brand?.padre && holding ? (
         <div className="dept-family">
-          {company ? <BrandPill brand={company} /> : null}
-          {family.map((b) => (
-            <BrandPill key={b.id} brand={b} />
-          ))}
+          <button className="chip" onClick={() => pick(holding.id)}>
+            ← {holding.nombre}
+          </button>
         </div>
       ) : null}
 
       <div className="dept-grid">
-        {(org?.departments ?? []).map((d) => {
+        {depts.map((d) => {
           const mine = steps.filter((x) => x.d === d.id)
           const busy = mine.some((x) => x.s.status === 'running' || x.s.status === 'waiting')
           const held = waiting.filter((a) => deptOf(homeOf(a.server, a.tool)) === d.id)

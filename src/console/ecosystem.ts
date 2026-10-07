@@ -83,21 +83,27 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
     })
   })
 
-  // One galaxy per company; a company's brands orbit it, on the side away from Nexy.
+  // One galaxy per company. A holding has none of its own: it is a hub
+  // between Nexy and its companies, whose galaxies sit side by side.
   const all = brands?.marcas ?? []
-  const marcas = all.filter((b) => !b.padre)
-  const depts = (org?.departments ?? []).filter((d) => d.id !== 'direccion')
-  marcas.forEach((b, i) => {
-    const ba = (i / Math.max(marcas.length, 1)) * TAU - Math.PI / 2
-    const bp = polar(0, 0, RB, ba)
+  const isHolding = (b: Brand) => all.some((k) => k.padre === b.id)
+  const marcas = all.filter((b) => !isHolding(b))
+  const allDepts = (org?.departments ?? []).filter((d) => d.id !== 'direccion')
+  // Enough room around the circle for every galaxy.
+  const rb = Math.max(RB, (marcas.length * 1250) / TAU)
+  const angleOf = (b: Brand) => (marcas.indexOf(b) / Math.max(marcas.length, 1)) * TAU - Math.PI / 2
+  for (const h of all.filter(isHolding)) {
+    const kids = marcas.filter((k) => k.padre === h.id)
+    const a = kids.reduce((s, k) => s + angleOf(k), 0) / kids.length
+    const hp = polar(0, 0, rb * 0.55, a)
+    add({ id: `${h.id}:brand`, kind: 'brand', label: h.nombre, ...hp, r: 46, color: h.color, eco: h.id, parent: 'core' })
+  }
+  marcas.forEach((b) => {
+    const ba = angleOf(b)
+    const bp = polar(0, 0, rb, ba)
     const id = `${b.id}:brand`
-    add({ id, kind: 'brand', label: b.nombre, x: bp.x, y: bp.y, r: 70, color: b.color, eco: b.id, parent: 'core' })
-    const kids = all.filter((k) => k.padre === b.id)
-    // Drawn as satellites (smaller, quieter labels) so the company's name stays the one you read.
-    fan(kids.length, ba, (150 * Math.PI) / 180).forEach((ka, k) => {
-      const kp = polar(bp.x, bp.y, 235, ka)
-      add({ id: `${kids[k].id}:brand`, kind: 'sat', label: kids[k].nombre, ...kp, r: 26, color: kids[k].color, eco: b.id, parent: id })
-    })
+    add({ id, kind: 'brand', label: b.nombre, x: bp.x, y: bp.y, r: 70, color: b.color, eco: b.id, parent: b.padre ? `${b.padre}:brand` : 'core' })
+    const depts = allDepts.filter((d) => !b.ocultos?.includes(d.id))
 
     depts.forEach((d, j) => {
       const da = ba + (j / depts.length) * TAU + Math.PI / depts.length
@@ -147,7 +153,7 @@ export type EcoLive = Map<string, 'active' | 'waiting'>
  * What is working, keyed by node id, in the galaxy of the task's brand.
  * A lit node lights its parents too, so the whole path back to Nexy flows.
  */
-export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa: string | null, now: number, brandsList: Brand[] = []): EcoLive {
+export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa: string | null, now: number): EcoLive {
   const live: EcoLive = new Map()
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const mark = (id: string, state: 'active' | 'waiting') => {
@@ -157,18 +163,14 @@ export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa
       cur = cur.parent ? byId.get(cur.parent) : undefined
     }
   }
-  // Work for a company's brand happens in the company's galaxy, and lights the brand too.
-  const companyOf = (id: string) => brandsList.find((b) => b.id === id)?.padre ?? id
   for (const t of tasks) {
-    const own = t.brand ?? activa ?? ''
-    const brand = companyOf(own)
+    const brand = t.brand ?? activa ?? ''
     // Whatever she was asked — even a plain "hola" — Nexy herself is working
     // while she answers, in the brand the task belongs to.
     const answering = t.status === 'running' || (t.endedAt && now - t.endedAt < AFTERGLOW_MS)
     if (answering) {
       mark('core', 'active')
       if (byId.has(`${brand}:brand`) && t.steps.length) mark(`${brand}:brand`, 'active')
-      if (own !== brand && byId.has(`${own}:brand`) && t.steps.length) mark(`${own}:brand`, 'active')
     }
     for (const s of t.steps) {
       const state = s.status === 'waiting' ? 'waiting' : s.status === 'running' || (s.endedAt && now - s.endedAt < AFTERGLOW_MS) ? 'active' : null
