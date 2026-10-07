@@ -60,7 +60,7 @@ export const SERVICES: Record<string, Service> = {
 }
 
 /** The department a service hangs from on the map. */
-export const deptOf = (key: string) => SERVICES[key]?.dept ?? 'direccion'
+export const deptOf = (key: string) => SERVICES[key]?.dept ?? (key.startsWith('gmail-') ? SERVICES.gmail.dept : undefined) ?? 'direccion'
 
 /** Friendly names for steps. Anything missing is spelled out from its tool name. */
 const STEPS: Record<string, string> = {
@@ -178,11 +178,13 @@ export function homeOf(server: string, tool: string): string {
 }
 
 export function serviceOf(key: string): Service {
+  // A company's own mailbox (gmail-mi-semago): a Gmail of its own.
+  if (!SERVICES[key] && key.startsWith('gmail-')) return { ...SERVICES.gmail, label: `Gmail ${humanize(key.slice(6))}` }
   return SERVICES[key] ?? { label: humanize(key), icon: '🔌' }
 }
 
 export function stepLabel(server: string, tool: string): string {
-  return STEPS[`${server}__${tool}`] ?? humanize(tool)
+  return STEPS[`${server}__${tool}`] ?? (server.startsWith('gmail-') ? STEPS[`gmail__${tool}`] : undefined) ?? humanize(tool)
 }
 
 /**

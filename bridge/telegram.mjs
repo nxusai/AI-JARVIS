@@ -235,7 +235,8 @@ export function describeApproval(view) {
     lines.push(`🧾 ${zohoAction(view.tool)}`, '', ...zohoLines(view.input), '', 'Revisa cliente, montos y forma de pago antes de aprobar.')
     return lines.join('\n').slice(0, MAX_MESSAGE)
   }
-  lines.push(`➡️ ${TOOL_LABEL[key] ?? adsLabel(view) ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
+  const mailbox = /^gmail-/.test(view.server) ? TOOL_LABEL[`gmail__${view.tool}`] : null
+  lines.push(`➡️ ${TOOL_LABEL[key] ?? (mailbox ? `${mailbox} (correo de la empresa)` : null) ?? adsLabel(view) ?? `${view.server} · ${view.tool.replace(/[_-]+/g, ' ')}`}`, '')
   const input = view.input && typeof view.input === 'object' ? view.input : {}
   // A post reads as a post: when, where, and the caption exactly as it will go out.
   const post = postPreview(input)
@@ -306,6 +307,7 @@ const stepName = (name) => {
     jarvis_crudo: 'revisando tu memoria',
     jarvis_brands: 'revisando la marca',
   }[server]
+  if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)
 }
 

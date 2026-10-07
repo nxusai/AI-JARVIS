@@ -28,6 +28,7 @@ import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
+import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
 import { buildBrain } from './brain.mjs'
@@ -233,7 +234,7 @@ const MCP_SERVERS = configuredServers()
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
 const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas']
-hub.setServers([...Object.keys(MCP_SERVERS), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
+hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
 const mcpServerOf = (toolName) =>
@@ -463,6 +464,9 @@ function decideTool(name) {
     // console.mjs). Only spending money and deleting are refused outright.
     if (CONTENT_SERVERS.has(server)) return !CONTENT_REFUSED.test(tool)
     if (WRITE_ALLOWLIST.has(`${server}__${tool}`)) return true
+    // A company's mailbox sends and drafts like the owner's Gmail: always held
+    // for his tap, and only while working in that company (see correos.mjs).
+    if (mailboxOf(server) && (tool === 'send_email' || tool === 'draft_email')) return true
     if (EFFECTFUL_VERB.test(tool) && !VETO_EXEMPT.has(`${server}__${tool}`)) {
       return ALLOW_WRITES
     }
@@ -1700,6 +1704,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // shares.
     mcpServers: {
       ...MCP_SERVERS,
+      // The companies' own mailboxes, each a Gmail of its own (see correos.mjs).
+      ...mailboxServers(MCP_SERVERS.gmail),
       ...local,
       // The owner's phone, through the ElevenLabs phone agent.
       jarvis_phone: phoneServer(elevenKey, TIME_ZONE),
@@ -1738,7 +1744,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + memoryPrompt() + brandsPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),
@@ -1837,6 +1843,15 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
           return { behavior: 'deny', message: guard.message }
         }
         account = guard.account
+      }
+      // A company's mailbox only sends for that company (see correos.mjs).
+      {
+        const guard = mailboxGuard(svc, svcTool)
+        if (!guard.ok) {
+          console.log(`[jarvis] tool ${toolName} -> deny (company mailbox outside its company)`)
+          return { behavior: 'deny', message: guard.message }
+        }
+        if (guard.account) account = guard.account
       }
       const ok = decideTool(toolName)
       console.log(`[jarvis] tool ${toolName} -> ${ok ? 'allow' : 'deny'}`)
