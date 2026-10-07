@@ -330,14 +330,49 @@ export function createMexico({ token, me, model, effort, runQuery, transcribe })
     if (!said && !kept) return
 
     // "Nexy, aprende: …" from the owner, and only the owner: kept as a rule, in code.
-    const lesson = isOwner && said.match(/^\s*(?:\[nota de voz\]\s*)?(?:oye\s+)?nexy[\s,.:]+apr[eé]nde(?:te)?(?:\s+esto)?\s*[:,.-]?\s*([\s\S]{3,})/i)
-    if (lesson) {
-      mkdirSync(DIR, { recursive: true })
-      const rule = lesson[1].replace(/\s+/g, ' ').trim().slice(0, 500)
-      appendFileSync(KNOW, `- ${rule} (${when(new Date().toISOString())})\n`)
-      await say(token, chat(), `Aprendido ✅ ${rule.length > 120 ? `${rule.slice(0, 120)}…` : rule}`)
-      console.log('[jarvis] NXUS México: learned a rule from the owner')
-      return
+    if (isOwner) {
+      const forget = said.match(/^\s*(?:\[nota de voz\]\s*)?(?:oye\s+)?nexy[\s,.:]+olvida\s+(?:lo\s+)?[uú]ltimo/i)
+      if (forget) {
+        let lines = []
+        try {
+          lines = readFileSync(KNOW, 'utf8').split('\n').filter((l) => l.startsWith('- '))
+        } catch {
+          // nothing learned yet
+        }
+        const gone = lines.pop()
+        writeFileSync(KNOW, lines.map((l) => `${l}\n`).join(''))
+        await say(token, chat(), gone ? `Listo, olvidé: ${gone.slice(2, 160)}${gone.length > 160 ? '…' : ''}` : 'No tengo nada aprendido todavía.')
+        return
+      }
+      const lesson = said.match(/^\s*(?:\[nota de voz\]\s*)?(?:oye\s+)?nexy[\s,.:]+(?:apr[eé]nde(?:te)?|memoriza)\b\s*[:,.-]?\s*([\s\S]*)$/i)
+      if (lesson) {
+        const rest = lesson[1].trim()
+        // What "eso" points at: the message he replied to, or the latest one by
+        // whoever he names ("lo que escribió Tania"), or the latest from the team.
+        let source = null
+        const replied = m.reply_to_message
+        if (replied && !replied.from?.is_bot && String(replied.text ?? replied.caption ?? '').trim()) {
+          source = { de: [replied.from?.first_name, replied.from?.last_name].filter(Boolean).join(' ') || 'alguien', texto: String(replied.text ?? replied.caption).trim() }
+        } else if (!rest || /^(eso|esto|est[ao]s?|lo\s+(?:de\s+arriba|anterior|que))\b/i.test(rest) || /\blo\s+que\s+(?:te\s+)?(?:escribi[oó]|dijo|mand[oó]|puso|comparti[oó])\b/i.test(rest)) {
+          const named = rest.match(/\blo\s+que\s+(?:te\s+)?(?:escribi[oó]|dijo|mand[oó]|puso|comparti[oó])\s+([\p{L}]+)/iu)?.[1]
+          const others = recent.filter((e) => e.texto && e.de !== 'Nexy' && !/el dueño/.test(e.de) && !e.texto.startsWith('[nota de voz que no'))
+          const pick = named ? [...others].reverse().find((e) => fold(e.de).includes(fold(named))) : others.at(-1)
+          if (pick) source = { de: pick.de, texto: pick.texto }
+          else {
+            await say(token, chat(), `No encontré ${named ? `un mensaje reciente de ${named}` : 'el mensaje'} que quieres que aprenda. Respóndele directo al mensaje con "Nexy, aprende esto".`)
+            return
+          }
+        }
+        const rule = source
+          ? `De ${source.de} (aprobado por Eduardo): ${source.texto.replace(/\s+/g, ' ').trim().slice(0, 4000)}`
+          : rest.replace(/\s+/g, ' ').trim().slice(0, 1000)
+        if (rule.length < 3) return
+        mkdirSync(DIR, { recursive: true })
+        appendFileSync(KNOW, `- ${rule} (${when(new Date().toISOString())})\n`)
+        await say(token, chat(), source ? `Aprendido ✅ lo que escribió ${source.de}: «${source.texto.slice(0, 100)}${source.texto.length > 100 ? '…' : ''}»` : `Aprendido ✅ ${rule.length > 120 ? `${rule.slice(0, 120)}…` : rule}`)
+        console.log('[jarvis] NXUS México: learned a rule from the owner')
+        return
+      }
     }
 
     // She speaks only when called: her name, a mention, or a reply to her.
