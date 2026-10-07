@@ -60,6 +60,10 @@ export function Departments({
   const family = holding && holding.id !== brand?.id ? [] : holding ? (brands?.marcas ?? []).filter((b) => b.padre === holding.id) : []
   const isHolding = Boolean(brand && family.length)
   const depts = (org?.departments ?? []).filter((d) => !brand?.ocultos?.includes(d.id))
+  // Each company shows its own mailbox (gmail-mi-semago) and the owner's Gmail
+  // shows in his own companies; all of them when no company is picked.
+  const mailFor = (k: string) =>
+    !brand ? true : k.startsWith('gmail-') ? k === `gmail-${brand.id}` : k === 'gmail' ? brand.cartera !== 'cliente' : true
 
   if (brand && isHolding) {
     return (
@@ -154,7 +158,7 @@ export function Departments({
           const busy = mine.some((x) => x.s.status === 'running' || x.s.status === 'waiting')
           const held = waiting.filter((a) => deptOf(homeOf(a.server, a.tool)) === d.id)
           const team = agents.filter((a) => a.dept === d.id)
-          const svcs = [...new Set([...servers.map((s) => s.name), 'web'])].filter((k) => !serviceOf(k).hidden && deptOf(k) === d.id)
+          const svcs = [...new Set([...servers.map((s) => s.name), 'web'])].filter((k) => !serviceOf(k).hidden && deptOf(k) === d.id && mailFor(k))
           return (
             <section key={d.id} className={`dept-card${busy ? ' busy' : ''}`}>
               <header>

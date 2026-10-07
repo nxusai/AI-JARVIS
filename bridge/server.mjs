@@ -1846,7 +1846,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       }
       // A company's mailbox only sends for that company (see correos.mjs).
       {
-        const guard = mailboxGuard(svc, svcTool)
+        const guard = mailboxGuard(svc)
         if (!guard.ok) {
           console.log(`[jarvis] tool ${toolName} -> deny (company mailbox outside its company)`)
           return { behavior: 'deny', message: guard.message }
