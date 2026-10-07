@@ -29,6 +29,7 @@ import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
+import { adsWatchServer, startAdsWatch } from './anuncios.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -234,7 +235,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -897,6 +898,9 @@ Video:
   send_file on Telegram.
 
 Ads (Meta):
+- Asked what ads are on, what they spend daily, where they show or until
+  when — for one company or all — use list_running_ads and give, per company,
+  each one's campaign, budget, location and dates. It reads Meta directly.
 - Work only in the ad account linked to the active brand (read_brand lists it;
   link one with link_brand_account, service meta-ads and the ad account id,
   after the owner confirms which account is whose). A call naming another
@@ -1737,6 +1741,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_facturas: invoicesServer(),
       // A backup of everything that is Nexy onto the owner's drive, when he asks (see respaldo.mjs).
       jarvis_respaldo: backupServer(),
+      // What each company's Meta ads are running now, read only (see anuncios.mjs).
+      jarvis_anuncios: adsWatchServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
@@ -1954,6 +1960,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   })
   startRoutines(TIME_ZONE)
   startSales({ elevenKey, zone: TIME_ZONE })
+  // Each company's Meta ads, watched with a read-only key: the owner hears when one starts.
+  startAdsWatch()
 }
 
 wss.on('connection', (socket, req) => {
