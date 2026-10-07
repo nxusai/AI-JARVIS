@@ -42,6 +42,29 @@ export function liveNodes(tasks: Task[], agents: Agent[], now: number): Map<stri
   return live
 }
 
+/** The company a brand belongs to (itself for a company). */
+export const companyOf = (brands: Brands | null, id?: string | null): string | null =>
+  (id && brands?.marcas.find((b) => b.id === id)?.padre) || id || null
+
+/**
+ * Whether something of brand `id` shows under the filter picked: the brand
+ * itself, or a brand of the company picked. No filter shows everything.
+ */
+export const inScope = (brands: Brands | null, filter: string | null, id?: string | null) =>
+  !filter || id === filter || companyOf(brands, id) === filter
+
+/** Companies by portfolio, each with its brands, in the order they are listed. */
+export function companies(brands: Brands | null) {
+  const marcas = brands?.marcas ?? []
+  const tops = marcas.filter((b) => !b.padre)
+  const group = (cartera: 'propia' | 'cliente') =>
+    tops.filter((b) => (b.cartera ?? 'propia') === cartera).map((c) => ({ company: c, brands: marcas.filter((b) => b.padre === c.id) }))
+  return [
+    { title: brands?.grupo ?? 'Ramos & Co.', items: group('propia') },
+    { title: brands?.clientes ?? 'Empresas cliente', items: group('cliente') },
+  ].filter((s) => s.items.length)
+}
+
 export const brandOf = (brands: Brands | null, id?: string | null): Brand | undefined =>
   brands?.marcas.find((b) => b.id === id)
 

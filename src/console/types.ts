@@ -57,10 +57,14 @@ export type Brand = {
   color: string
   descripcion: string
   cuentas: { correo: string[]; redes: string[]; notion: string[] }
+  /** 'propia': the owner's own companies; 'cliente': the client group's. */
+  cartera?: 'propia' | 'cliente'
+  /** The company this brand belongs to; null for a company. */
+  padre?: string | null
   /** Accounts this brand publishes to — and the only ones it can. */
   conexiones?: Array<{ servicio: string; id: string; nombre: string }>
 }
-export type Brands = { grupo?: string; activa: string; marcas: Brand[] }
+export type Brands = { grupo?: string; clientes?: string; activa: string; marcas: Brand[] }
 
 export type Department = { id: string; label: string; short?: string; icon: string; hace?: string }
 export type Mold = { nombre: string; resumen: string; fuente: string | null; marca: string | null }

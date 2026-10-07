@@ -1,6 +1,6 @@
 import { deptOf, homeOf, serviceOf } from './services'
 import { isAgentStep, AFTERGLOW_MS } from './activity'
-import type { Brain, Brands, Org, Server, Task } from './types'
+import type { Brain, Brand, Brands, Org, Server, Task } from './types'
 
 /**
  * The whole ecosystem on one sheet: Nexy in the middle with her own core
@@ -83,14 +83,21 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
     })
   })
 
-  // One galaxy per brand.
-  const marcas = brands?.marcas ?? []
+  // One galaxy per company; a company's brands orbit it, on the side away from Nexy.
+  const all = brands?.marcas ?? []
+  const marcas = all.filter((b) => !b.padre)
   const depts = (org?.departments ?? []).filter((d) => d.id !== 'direccion')
   marcas.forEach((b, i) => {
     const ba = (i / Math.max(marcas.length, 1)) * TAU - Math.PI / 2
     const bp = polar(0, 0, RB, ba)
     const id = `${b.id}:brand`
     add({ id, kind: 'brand', label: b.nombre, x: bp.x, y: bp.y, r: 70, color: b.color, eco: b.id, parent: 'core' })
+    const kids = all.filter((k) => k.padre === b.id)
+    // Drawn as satellites (smaller, quieter labels) so the company's name stays the one you read.
+    fan(kids.length, ba, (150 * Math.PI) / 180).forEach((ka, k) => {
+      const kp = polar(bp.x, bp.y, 235, ka)
+      add({ id: `${kids[k].id}:brand`, kind: 'sat', label: kids[k].nombre, ...kp, r: 26, color: kids[k].color, eco: b.id, parent: id })
+    })
 
     depts.forEach((d, j) => {
       const da = ba + (j / depts.length) * TAU + Math.PI / depts.length
@@ -140,7 +147,7 @@ export type EcoLive = Map<string, 'active' | 'waiting'>
  * What is working, keyed by node id, in the galaxy of the task's brand.
  * A lit node lights its parents too, so the whole path back to Nexy flows.
  */
-export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa: string | null, now: number): EcoLive {
+export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa: string | null, now: number, brandsList: Brand[] = []): EcoLive {
   const live: EcoLive = new Map()
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const mark = (id: string, state: 'active' | 'waiting') => {
@@ -150,14 +157,18 @@ export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa
       cur = cur.parent ? byId.get(cur.parent) : undefined
     }
   }
+  // Work for a company's brand happens in the company's galaxy, and lights the brand too.
+  const companyOf = (id: string) => brandsList.find((b) => b.id === id)?.padre ?? id
   for (const t of tasks) {
-    const brand = t.brand ?? activa ?? ''
+    const own = t.brand ?? activa ?? ''
+    const brand = companyOf(own)
     // Whatever she was asked — even a plain "hola" — Nexy herself is working
     // while she answers, in the brand the task belongs to.
     const answering = t.status === 'running' || (t.endedAt && now - t.endedAt < AFTERGLOW_MS)
     if (answering) {
       mark('core', 'active')
       if (byId.has(`${brand}:brand`) && t.steps.length) mark(`${brand}:brand`, 'active')
+      if (own !== brand && byId.has(`${own}:brand`) && t.steps.length) mark(`${own}:brand`, 'active')
     }
     for (const s of t.steps) {
       const state = s.status === 'waiting' ? 'waiting' : s.status === 'running' || (s.endedAt && now - s.endedAt < AFTERGLOW_MS) ? 'active' : null

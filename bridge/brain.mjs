@@ -27,7 +27,9 @@ export function buildBrain() {
 
   const { activa, marcas } = readBrands()
   for (const b of marcas) {
-    add({ id: `brand:${b.id}`, label: b.nombre, kind: 'brand', color: b.color, brand: b.id, active: b.id === activa }, 'nexy')
+    // A company's brands hang from the company, not from Nexy.
+    const under = b.padre && marcas.some((x) => x.id === b.padre) ? `brand:${b.padre}` : 'nexy'
+    add({ id: `brand:${b.id}`, label: b.nombre, kind: 'brand', color: b.color, brand: b.id, active: b.id === activa }, under)
     readManual(b.id).forEach((note, i) =>
       add({ id: `note:${b.id}:${i}`, label: short(note), detail: note, kind: 'note', color: b.color, brand: b.id }, `brand:${b.id}`),
     )

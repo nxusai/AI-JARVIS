@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BRIDGE_WS_URL } from '../config'
-import { brandOf, clock, isAgentStep, liveNodes, stepLook } from './activity'
+import { brandOf, clock, companies, companyOf, inScope, isAgentStep, liveNodes, stepLook } from './activity'
 import { Boards } from './Boards'
 import { Brain } from './Brain'
 import { Departments } from './Departments'
@@ -137,11 +137,11 @@ export default function Console() {
   const agents = useMemo(() => org?.agents ?? [], [org])
   const live = useMemo(() => liveNodes(tasks, agents, now), [tasks, agents, now])
   const nodes = useMemo(() => buildEcosystem(brands, org, servers, brain), [brands, org, servers, brain])
-  const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now), [tasks, nodes, org, brands, now])
+  const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now, brands?.marcas ?? []), [tasks, nodes, org, brands, now])
   // Picking a brand chip flies the map there; "Todas" pulls back to everything.
   const [focus, setFocus] = useState<string | null>(null)
   const active = brandOf(brands, brands?.activa)
-  const inBrand = (id?: string | null) => !brandFilter || id === brandFilter
+  const inBrand = (id?: string | null) => inScope(brands, brandFilter, id)
   const shownTasks = tasks.filter((t) => inBrand(t.brand))
   const shownApprovals = approvals.filter((a) => inBrand(a.brand))
   const [current, ...history] = shownTasks
@@ -151,7 +151,7 @@ export default function Console() {
   const [nodeEco, nodeKind, nodeKey] = (node?.id ?? '').split(':')
   const nodeSteps = node
     ? tasks
-        .filter((t) => nodeEco === 'core' || (t.brand ?? brands?.activa) === nodeEco)
+        .filter((t) => nodeEco === 'core' || companyOf(brands, t.brand ?? brands?.activa) === nodeEco)
         .flatMap((t) => t.steps.map((s) => ({ t, s })))
         .filter(({ s }) => {
           if (nodeKind === 'agent') return s.agent === nodeKey || s.by === nodeKey
@@ -182,10 +182,20 @@ export default function Console() {
         <label className="working-on">
           <span>Nexy trabaja en</span>
           <select value={brands?.activa ?? ''} onChange={(e) => switchBrand(e.target.value)} disabled={!brands}>
-            {(brands?.marcas ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.nombre}
-              </option>
+            {companies(brands).map((sec) => (
+              <optgroup key={sec.title} label={sec.title}>
+                {sec.items.flatMap(({ company, brands: kids }) => [
+                  <option key={company.id} value={company.id}>
+                    {company.nombre}
+                  </option>,
+                  ...kids.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {'\u00a0\u00a0↳ '}
+                      {k.nombre}
+                    </option>
+                  )),
+                ])}
+              </optgroup>
             ))}
           </select>
           <i className="swatch" />
@@ -205,20 +215,29 @@ export default function Console() {
         >
           Todas
         </button>
-        {(brands?.marcas ?? []).map((b) => (
-          <button
-            key={b.id}
-            className={brandFilter === b.id ? 'chip on' : 'chip'}
-            style={{ ['--brand' as string]: b.color }}
-            onClick={() => {
-              setBrandFilter(brandFilter === b.id ? null : b.id)
-              setFocus(null)
-              setTimeout(() => setFocus(brandFilter === b.id ? 'all' : b.id), 0)
-            }}
-          >
-            <i />
-            {b.nombre}
-          </button>
+        {companies(brands).map((sec) => (
+          <span key={sec.title} className="chip-section">
+            <em>{sec.title}</em>
+            {sec.items.map(({ company, brands: kids }) =>
+              [company, ...kids].map((b) => (
+                <button
+                  key={b.id}
+                  className={`${brandFilter === b.id ? 'chip on' : 'chip'}${b.padre ? ' sub' : ''}`}
+                  style={{ ['--brand' as string]: b.color }}
+                  title={b.padre ? `Marca de ${company.nombre}` : undefined}
+                  onClick={() => {
+                    setBrandFilter(brandFilter === b.id ? null : b.id)
+                    setFocus(null)
+                    setTimeout(() => setFocus(brandFilter === b.id ? 'all' : b.id), 0)
+                  }}
+                >
+                  <i />
+                  {b.padre ? '↳ ' : ''}
+                  {b.nombre}
+                </button>
+              )),
+            )}
+          </span>
         ))}
       </nav>
 

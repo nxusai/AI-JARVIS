@@ -1594,3 +1594,32 @@ h2.attention {
 .approval-lines li.warn {
   color: var(--warn);
 }
+
+/* The brand filter, by portfolio: companies, with their brands smaller after them. */
+.chip-section {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+.chip-section em {
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.chip.sub {
+  font-size: 12px;
+  padding: 4px 10px;
+  opacity: 0.9;
+}
+.dept-family {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+}

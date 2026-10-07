@@ -35,14 +35,41 @@ const MAX_NOTES = 150
 const MAX_NOTE_CHARS = 400
 const MAX_MANUAL_CHARS = 20_000
 
+/**
+ * How the brands hang together.
+ *
+ * Two portfolios ("carteras"): the owner's own companies under Ramos & Co.,
+ * and the companies of the client group the owner runs (one owner, three
+ * companies). A brand is either a company (no `padre`) or a brand inside one
+ * (`padre` is the company's id), one level only:
+ *
+ *   Ramos & Co.          NXUS AI · Marca personal
+ *   Empresas cliente     Abuelito INC → Abuelito Corn, Abuelito Meat, Abuelito Cheese
+ *                        Mi Semago
+ *                        Keko Foods → VAYRO
+ *
+ * Every company has its own departments. A brand inside a company follows the
+ * company's manual too, and uses the company's accounts (its Zoho, its
+ * Metricool…) for any service it has none of its own for.
+ */
+const CARTERAS = ['propia', 'cliente']
+const DEFAULT_CLIENT_GROUP = 'Empresas cliente'
+
 /** The brands the owner started with. Seeded once; the file wins after that. */
 const DEFAULT_BRANDS = [
-  { id: 'nxus-ai', nombre: 'NXUS AI', color: '#8b5cf6', descripcion: 'Empresa de IA: marketing, social media y más.' },
-  { id: 'personal', nombre: 'Marca personal', color: '#38bdf8', descripcion: 'La marca personal del dueño.' },
-  { id: 'abuelito-inc', nombre: 'Abuelito INC', color: '#f59e0b', descripcion: '' },
-  { id: 'mi-semago', nombre: 'Mi Semago', color: '#22c55e', descripcion: '' },
-  { id: 'vayro', nombre: 'VAYRO', color: '#f43f5e', descripcion: '' },
+  { id: 'nxus-ai', nombre: 'NXUS AI', color: '#8b5cf6', descripcion: 'Empresa de IA: marketing, social media y más.', cartera: 'propia' },
+  { id: 'personal', nombre: 'Marca personal', color: '#38bdf8', descripcion: 'La marca personal del dueño.', cartera: 'propia' },
+  { id: 'abuelito-inc', nombre: 'Abuelito INC', color: '#f59e0b', descripcion: 'Holding de Abuelito Corn, Abuelito Meat y Abuelito Cheese.', cartera: 'cliente' },
+  { id: 'abuelito-corn', nombre: 'Abuelito Corn', color: '#eab308', descripcion: '', cartera: 'cliente', padre: 'abuelito-inc' },
+  { id: 'abuelito-meat', nombre: 'Abuelito Meat', color: '#dc2626', descripcion: '', cartera: 'cliente', padre: 'abuelito-inc' },
+  { id: 'abuelito-cheese', nombre: 'Abuelito Cheese', color: '#fbbf24', descripcion: '', cartera: 'cliente', padre: 'abuelito-inc' },
+  { id: 'mi-semago', nombre: 'Mi Semago', color: '#22c55e', descripcion: '', cartera: 'cliente' },
+  { id: 'keko-foods', nombre: 'Keko Foods', color: '#14b8a6', descripcion: 'Empresa de alimentos; su marca es VAYRO.', cartera: 'cliente' },
+  { id: 'vayro', nombre: 'VAYRO', color: '#f43f5e', descripcion: '', cartera: 'cliente', padre: 'keko-foods' },
 ]
+
+/** The version of the layout above; files written before it are brought up to it once. */
+const STRUCTURE = 2
 
 const MANUAL_HEADER = (nombre) =>
   `# Manual de marca: ${nombre}\n\n` +
@@ -73,6 +100,8 @@ function clean(b) {
     nombre: b.nombre.trim().slice(0, 60) || id,
     color: HEX.test(b.color ?? '') ? b.color : '#8b5cf6',
     descripcion: typeof b.descripcion === 'string' ? b.descripcion.slice(0, 300) : '',
+    cartera: CARTERAS.includes(b.cartera) ? b.cartera : 'propia',
+    padre: typeof b.padre === 'string' && /^[a-z0-9-]{1,40}$/.test(b.padre) && b.padre !== id ? b.padre : null,
     cuentas: {
       correo: list(b.cuentas?.correo),
       redes: list(b.cuentas?.redes),
@@ -157,7 +186,10 @@ export function accountIdsIn(input) {
  */
 export function accountGuard(servicio, input) {
   const active = activeBrand()
-  const mine = active.conexiones.filter((c) => c.servicio === servicio)
+  // A brand with no account of its own for this service uses its company's.
+  const parent = parentOf(active)
+  const own = active.conexiones.filter((c) => c.servicio === servicio)
+  const mine = own.length || !parent ? own : parent.conexiones.filter((c) => c.servicio === servicio)
   if (!mine.length) {
     return {
       ok: false,
@@ -185,7 +217,50 @@ export function accountGuard(servicio, input) {
 
 function save(state) {
   mkdirSync(DIR, { recursive: true })
-  writeFileSync(BRANDS_FILE, JSON.stringify({ grupo: state.grupo, activa: state.activa, marcas: state.marcas }, null, 2) + '\n')
+  writeFileSync(
+    BRANDS_FILE,
+    JSON.stringify({ grupo: state.grupo, clientes: state.clientes, estructura: STRUCTURE, activa: state.activa, marcas: state.marcas }, null, 2) + '\n',
+  )
+}
+
+/**
+ * Bring a brand list written before the companies existed up to the layout
+ * above, once: portfolios, Abuelito INC's three brands, Keko Foods over VAYRO.
+ * Matched by id or name so nothing the owner already set up is duplicated,
+ * and ids never change (Ana Sofi, the linked accounts and the manuals all
+ * hang on them).
+ */
+function restructure(marcas) {
+  const out = [...marcas]
+  const find = (d) => out.find((b) => b.id === d.id || fold(b.nombre) === fold(d.nombre))
+  for (const d of DEFAULT_BRANDS) {
+    const have = find(d)
+    if (have) {
+      have.cartera = d.cartera
+      if (d.padre && !have.padre) have.padre = find(DEFAULT_BRANDS.find((x) => x.id === d.padre))?.id ?? d.padre
+      if (!have.descripcion && d.descripcion) have.descripcion = d.descripcion
+    } else if (d.cartera === 'cliente') {
+      const padre = d.padre ? (find(DEFAULT_BRANDS.find((x) => x.id === d.padre))?.id ?? d.padre) : null
+      // A new brand goes right after its company (or its last brand), a new company at the end.
+      const after = padre ? out.map((b) => b.id === padre || b.padre === padre).lastIndexOf(true) : -1
+      const fresh = clean({ ...d, padre })
+      if (after >= 0) out.splice(after + 1, 0, fresh)
+      else out.push(fresh)
+    }
+  }
+  return out
+}
+
+/** One level only: a brand's parent must be a company that exists. */
+function tidyTree(marcas) {
+  const ids = new Set(marcas.map((b) => b.id))
+  for (const b of marcas) {
+    const p = b.padre && marcas.find((x) => x.id === b.padre)
+    if (!b.padre || !ids.has(b.padre) || !p || p.padre) b.padre = null
+    else b.cartera = p.cartera
+  }
+  // Each company followed by its brands, so every list reads as the tree.
+  return marcas.filter((b) => !b.padre).flatMap((c) => [c, ...marcas.filter((b) => b.padre === c.id)])
 }
 
 /** The owner's holding company, which owns every brand. */
@@ -202,10 +277,15 @@ export function readBrands() {
   let marcas = Array.isArray(raw?.marcas) ? raw.marcas.map(clean).filter(Boolean) : []
   const seeded = !marcas.length
   if (seeded) marcas = DEFAULT_BRANDS.map(clean)
+  const upgraded = !seeded && !(Number(raw?.estructura) >= STRUCTURE)
+  if (upgraded) marcas = restructure(marcas)
+  marcas = tidyTree(marcas)
   const activa = marcas.some((b) => b.id === raw?.activa) ? raw.activa : marcas[0].id
   const grupo = typeof raw?.grupo === 'string' && raw.grupo.trim() ? raw.grupo.trim().slice(0, 60) : DEFAULT_GROUP
-  const state = { grupo, activa, marcas }
-  if (seeded) {
+  const clientes = typeof raw?.clientes === 'string' && raw.clientes.trim() ? raw.clientes.trim().slice(0, 60) : DEFAULT_CLIENT_GROUP
+  const state = { grupo, clientes, activa, marcas }
+  if (upgraded) console.log('[jarvis] brands: organised into companies and their brands')
+  if (seeded || upgraded) {
     try {
       save(state)
     } catch (err) {
@@ -213,6 +293,35 @@ export function readBrands() {
     }
   }
   return state
+}
+
+/** The company a brand belongs to, or null for a company. */
+export function parentOf(b, marcas = readBrands().marcas) {
+  return b?.padre ? (marcas.find((x) => x.id === b.padre) ?? null) : null
+}
+
+/** The brands inside a company. */
+export const brandsOf = (id, marcas = readBrands().marcas) => marcas.filter((b) => b.padre === id)
+
+/** The company id a brand belongs to (itself, for a company). */
+export const companyId = (id, marcas = readBrands().marcas) => marcas.find((b) => b.id === id)?.padre ?? id
+
+/** The whole layout in plain lines, for Nexy and for list_brands. */
+export function treeText({ grupo, clientes, activa, marcas }, line = (b) => b.nombre) {
+  const section = (cartera, title) => {
+    const companies = marcas.filter((b) => !b.padre && b.cartera === cartera)
+    if (!companies.length) return ''
+    return (
+      `${title}:\n` +
+      companies
+        .map((c) => {
+          const kids = brandsOf(c.id, marcas)
+          return `- ${line(c, activa)} (company)` + kids.map((k) => `\n  - ${line(k, activa)} (brand of ${c.nombre})`).join('')
+        })
+        .join('\n')
+    )
+  }
+  return [section('propia', `${grupo} (the owner's own companies)`), section('cliente', `${clientes} (one client group, run by the owner)`)].filter(Boolean).join('\n')
 }
 
 export const activeBrand = () => {
@@ -361,13 +470,16 @@ export function saveManualText(id, text) {
 
 /** The block appended to the system prompt. */
 export function brandsPrompt() {
-  const { grupo, activa, marcas } = readBrands()
-  const active = marcas.find((b) => b.id === activa)
+  const state = readBrands()
+  const active = state.marcas.find((b) => b.id === state.activa)
   return (
-    `\n\nThe owner's holding company is ${grupo}; it owns every brand they run: ` +
-    marcas.map((b) => b.nombre).join(', ') +
-    `. When this conversation started the active brand was ${active.nombre}; ` +
-    'use_brand switches it and tells you the current one.'
+    `\n\n## The companies and brands\n${treeText(state)}\n` +
+    'Each company has its own departments (the same nine), its own manual and its own accounts. A brand inside a ' +
+    "company follows the company's manual as well as its own, and uses the company's accounts unless it has its own. " +
+    "Never mix one company's information, tone or accounts with another's, nor the client group's with the owner's own. " +
+    'When the owner names a company or a brand, switch to it with use_brand; for work for a whole company (an invoice, ' +
+    'a report) use the company itself. ' +
+    `When this conversation started the active one was ${active.nombre}; use_brand switches it and tells you the current one.`
   )
 }
 
@@ -377,10 +489,19 @@ const describe = (b, active) => {
 }
 
 const manualText = (b) => {
+  const parent = parentOf(b)
+  const company = parent
+    ? `\n\n${b.nombre} is a brand of ${parent.nombre}. ${parent.nombre}'s own rules apply too:\n${manualBody(parent)}` +
+      (parent.conexiones.length
+        ? `\n${parent.nombre}'s accounts, used for any service ${b.nombre} has no account of its own for: ${parent.conexiones.map((c) => `${c.servicio} id ${c.id}${c.nombre ? ` (${c.nombre})` : ''}`).join('; ')}.`
+        : '')
+    : ''
+  const kids = brandsOf(b.id)
+  const family = kids.length ? `\n\n${b.nombre} is a company; its brands: ${kids.map((k) => k.nombre).join(', ')}.` : ''
   const links = b.conexiones.length
     ? `\n\nAccounts linked to ${b.nombre} (publish only to these): ${b.conexiones.map((c) => `${c.servicio} id ${c.id}${c.nombre ? ` (${c.nombre})` : ''}`).join('; ')}.`
     : `\n\n${b.nombre} has no publishing accounts linked yet.`
-  return manualBody(b) + stylesText(b) + links
+  return manualBody(b) + family + company + stylesText(b) + links
 }
 
 const manualBody = (b) => {
@@ -508,8 +629,7 @@ export function brandsServer() {
       ),
 
       tool('list_brands', "List the owner's brands and which one is active.", {}, async () => {
-        const { activa, marcas } = readBrands()
-        return ok(marcas.map((b) => `- ${describe(b, activa)}`).join('\n'))
+        return ok(treeText(readBrands(), describe))
       }),
 
       tool(

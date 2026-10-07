@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { isAgentStep, isToday } from './activity'
+import { inScope, isAgentStep, isToday } from './activity'
 import { deptOf, homeOf, serviceOf } from './services'
 import type { Approval, Brain, Brand, Brands, Org, Server, Task } from './types'
 
@@ -137,7 +137,7 @@ export function Boards({
   switchBrand: (id: string) => void
   saveManual: (id: string, text: string) => void
 }) {
-  const inBrand = (id?: string | null) => !brandFilter || id === brandFilter
+  const inBrand = (id?: string | null) => inScope(brands, brandFilter, id)
   const shown = tasks.filter((t) => inBrand(t.brand))
   const today = shown.filter((t) => isToday(t.startedAt))
   const working = new Set(

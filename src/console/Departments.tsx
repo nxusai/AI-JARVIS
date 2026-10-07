@@ -1,4 +1,4 @@
-import { brandOf, clock, isAgentStep, stepLook } from './activity'
+import { brandOf, clock, companyOf, inScope, isAgentStep, stepLook } from './activity'
 import { BrandPill } from './parts'
 import { deptOf, homeOf, serviceOf } from './services'
 import type { Approval, Brands, Org, Server, Step, Task } from './types'
@@ -43,7 +43,7 @@ export function Departments({
   openApprovals: () => void
 }) {
   const brand = brandOf(brands, brandFilter)
-  const inBrand = (id?: string | null) => !brandFilter || (id ?? brands?.activa) === brandFilter
+  const inBrand = (id?: string | null) => inScope(brands, brandFilter, id ?? brands?.activa)
   const steps = tasks
     .filter((t) => inBrand(t.brand))
     .flatMap((t) => t.steps.map((s) => ({ t, s, d: stepDept(s, org) })))
@@ -51,7 +51,10 @@ export function Departments({
   const waiting = approvals.filter((a) => inBrand(a.brand))
   const status = new Map(servers.map((s) => [s.name, s.status]))
   const agents = org?.agents ?? []
-  const molds = (org?.molds ?? []).filter((m) => !m.marca || !brandFilter || m.marca === brandFilter)
+  const molds = (org?.molds ?? []).filter((m) => !m.marca || !brandFilter || m.marca === brandFilter || companyOf(brands, m.marca) === brandFilter)
+  // A company's page names its brands; a brand's names its company.
+  const company = brand ? brandOf(brands, companyOf(brands, brand.id)) : undefined
+  const family = company ? (brands?.marcas ?? []).filter((b) => b.padre === company.id) : []
 
   return (
     <main className="depts">
@@ -65,8 +68,20 @@ export function Departments({
         )}
       </h1>
       <p className="muted depts-sub">
-        Cada empresa tiene los mismos departamentos. Escoge arriba una empresa para ver solo lo suyo.
+        {brand?.padre && company
+          ? `${brand.nombre} es una marca de ${company.nombre}: trabaja con los departamentos de ${company.nombre}.`
+          : brand && family.length
+            ? `Los departamentos de ${brand.nombre} trabajan para todas sus marcas.`
+            : 'Cada empresa tiene sus propios departamentos. Escoge arriba una empresa para ver solo lo suyo.'}
       </p>
+      {family.length ? (
+        <div className="dept-family">
+          {company ? <BrandPill brand={company} /> : null}
+          {family.map((b) => (
+            <BrandPill key={b.id} brand={b} />
+          ))}
+        </div>
+      ) : null}
 
       <div className="dept-grid">
         {(org?.departments ?? []).map((d) => {
