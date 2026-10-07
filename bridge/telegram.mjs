@@ -145,6 +145,7 @@ export function forSpeech(text) {
 const TOOL_LABEL = {
   gmail__send_email: 'Enviar correo',
   gmail__draft_email: 'Crear borrador de correo',
+  jarvis_respaldo__make_backup: 'Hacer respaldo',
   'notion__API-post-page': 'Crear tarea o página en Notion',
   'notion__API-patch-page': 'Actualizar tarea en Notion',
   'notion__API-create-a-comment': 'Comentar en Notion',
@@ -306,6 +307,7 @@ const stepName = (name) => {
     jarvis_video: 'el editor de video',
     jarvis_crudo: 'revisando tu memoria',
     jarvis_brands: 'revisando la marca',
+    jarvis_respaldo: 'el respaldo',
   }[server]
   if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)

@@ -28,6 +28,7 @@ import { memoryPrompt, memoryServer } from './memory.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
+import { backupServer } from './respaldo.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -233,7 +234,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -332,6 +333,9 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_atencion__send_to_mexico_group',
   // Draws a PDF into ~/Documents/Nexy/facturas, nothing else (see invoice-pdf.mjs).
   'jarvis_facturas__invoice_pdf',
+  // Copies Nexy's own folders to the drive the owner set up on this Mac, nothing else (see respaldo.mjs).
+  'jarvis_respaldo__make_backup',
+  'jarvis_respaldo__backup_status',
   'google-calendar__create-event',
   'google-calendar__create-events',
   'google-calendar__update-event',
@@ -1731,6 +1735,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_ventas: salesServer(elevenKey, TIME_ZONE),
       // An invoice drawn as a PDF for the owner to look at (see invoice-pdf.mjs).
       jarvis_facturas: invoicesServer(),
+      // A backup of everything that is Nexy onto the owner's drive, when he asks (see respaldo.mjs).
+      jarvis_respaldo: backupServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
