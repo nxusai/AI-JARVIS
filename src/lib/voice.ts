@@ -124,7 +124,11 @@ function afterWake(text: string): string {
  * last word of a real request.
  */
 const CONTINUES =
-  /\b(and|or|but|so|because|since|if|when|while|that|which|who|whose|to|of|in|on|at|by|for|with|from|about|into|onto|over|under|between|through|the|a|an|my|your|his|her|its|our|their|is|are|was|were|be|been|do|does|did|have|has|had|can|could|would|should|will|shall|might|must|like|than|then|as|very|really|just|some|any|all|both|either|neither)$/i
+  /(?:^|\s)(and|or|but|so|because|since|if|when|while|that|which|who|whose|to|of|in|on|at|by|for|with|from|about|into|onto|over|under|between|through|the|a|an|my|your|his|her|its|our|their|is|are|was|were|be|been|do|does|did|have|has|had|can|could|would|should|will|shall|might|must|like|than|then|as|very|really|just|some|any|all|both|either|neither|y|e|o|u|pero|porque|pues|que|qué|cuando|si|aunque|mientras|como|de|del|a|al|en|con|para|por|sin|sobre|entre|hasta|desde|el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestro|nuestra|es|son|está|están|era|fue|ser|estar|hay|tengo|tiene|quiero|puedes|podrías|necesito|muy|más|menos|también|este|esta|ese|esa|lo|le|les|me|te|se|nos)$/i
+
+/** Short answers that are complete on their own: "sí", "dale", "mándalo". */
+const SHORT_DONE =
+  /^(sí|si|yes|yeah|dale|va|ok|okay|gracias|thanks|listo|claro|perfecto|correcto|exacto|mándalo|mandalo|hazlo|envíalo|envialo|apruébalo|apruebalo|sí,? dale|sí,? mándalo|sí,? hazlo)[.!]?$/i
 
 /** Trailing punctuation a transcriber emits mid-thought. */
 const TRAILS = /[,;:–—-]$/
@@ -176,7 +180,7 @@ function holdFor(text: string): number {
   if (CONTINUES.test(words[words.length - 1])) return CONTINUE_MS
   // One or two words is usually the start of something, not the whole of it —
   // except for the short commands that genuinely are complete.
-  if (words.length <= 2 && !OVERRIDE.test(text)) return CONTINUE_MS
+  if (words.length <= 2 && !OVERRIDE.test(text) && !SHORT_DONE.test(text.trim())) return CONTINUE_MS
   return SETTLE_MS
 }
 
@@ -258,7 +262,7 @@ function makeAssembler(h: {
 const norm = (s: string) =>
   s
     .toLowerCase()
-    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -268,7 +272,7 @@ const norm = (s: string) =>
  * would be the single most infuriating failure this file could have.
  */
 const OVERRIDE =
-  /\b(stop|wait|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no)\b/i
+  /(?:^|[^\p{L}])(stop|wait|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no|para|párale|espera|esperate|espérate|alto|ya|basta|cállate|callate|silencio|cancela|cancélalo|olvídalo|olvidalo|déjalo|dejalo|oye)(?![\p{L}])/iu
 
 /**
  * Words too common to be evidence of anything.
@@ -285,7 +289,10 @@ const STOP = new Set(
     'our their what which who how why when where do does did can could would ' +
     'should will shall not no yes if then than as about into over under out up ' +
     'down one two three first second third now here there just very really got ' +
-    'get have has had say said tell me okay ok well right').split(' '),
+    'get have has had say said tell me okay ok well right ' +
+    'y e o u pero que qué de del el la los las un una al en con para por es son ' +
+    'lo le les me te se nos mi tu su sí si ya no más muy esto este esta eso ese esa ' +
+    'como cómo cuando cuándo donde dónde quién porque hay está están boss listo bueno').split(' '),
 )
 
 /**
@@ -297,7 +304,9 @@ const STOP = new Set(
  */
 function isEcho(heard: string, spoken: string): boolean {
   if (!spoken) return false
-  if (OVERRIDE.test(heard)) return false
+  // "para", "no" and "ya" are everyday Spanish words in his own answers too,
+  // so they only count as the owner cutting in at the start of a short phrase.
+  if (opensWithStop(heard)) return false
 
   const all = norm(heard).split(' ').filter(Boolean)
   if (!all.length) return true
@@ -761,7 +770,8 @@ function startBrowserVoice(h: VoiceHandlers): Voice {
     rec = new Ctor()
     rec.continuous = true
     rec.interimResults = true
-    rec.lang = 'en-GB'
+    // The owner speaks Spanish, with English words mixed in.
+    rec.lang = 'es-MX'
     rec.onstart = () => {
       running = true
       diag.running = true
@@ -829,4 +839,18 @@ function startBrowserVoice(h: VoiceHandlers): Voice {
     },
     live: () => running,
   }
+}
+
+/**
+ * Whether words heard while Nexy is working on an answer are meant for her:
+ * her name, or a word that stops or corrects ("no", "espera", "para").
+ * Anything else then is the room — a TV, someone else talking — and must not
+ * throw away the answer she is preparing.
+ */
+export const isForNexy = (text: string) => WAKE.test(text) || opensWithStop(text)
+
+/** A stop word in the first two words: "no, espera…", "para, para". */
+function opensWithStop(text: string): boolean {
+  const first = norm(text).split(' ').slice(0, 2).join(' ')
+  return OVERRIDE.test(first)
 }

@@ -398,7 +398,7 @@ export async function ask(
     const arm = () => {
       clearTimeout(timer)
       timer = window.setTimeout(() => {
-        fail(new Error('The bridge went quiet — that turn was lost, sir.'))
+        fail(new Error('Perdí la conexión con Nexy a media respuesta. ¿Me lo repites?'))
       }, IDLE_TIMEOUT_MS)
     }
 
@@ -445,7 +445,7 @@ export async function ask(
             break
 
           case 'error':
-            fail(new Error(msg.message ?? 'The bridge reported an error.'))
+            fail(new Error(msg.message ?? 'Algo falló. ¿Me lo repites?'))
             break
         }
       } catch (err) {
@@ -454,10 +454,10 @@ export async function ask(
     }
 
     const onClose = () => {
-      fail(new Error('The bridge disconnected mid-answer — that session is gone.'))
+      fail(new Error('Se cortó la conexión con Nexy a media respuesta. ¿Me lo repites?'))
     }
     const onError = () => {
-      fail(new Error('The connection to the bridge failed.'))
+      fail(new Error('No pude conectarme con Nexy. ¿Está encendida?'))
     }
 
     pending = { finish }

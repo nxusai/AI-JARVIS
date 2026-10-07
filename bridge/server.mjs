@@ -1516,6 +1516,13 @@ const handleRequest = async (req, res) => {
             : 'webm'
       const form = new FormData()
       form.append('model_id', 'scribe_v1')
+      // Short commands are where language detection guesses wrong (a quick
+      // "sí, mándalo" read as Portuguese), so tell Scribe it is Spanish; it
+      // still writes the English words the owner mixes in. NEXY_STT_LANG=auto
+      // goes back to detecting. And no "(ruido)" or "(risas)" tags: those
+      // were reaching Nexy as if the owner had said them.
+      if (STT_LANG) form.append('language_code', STT_LANG)
+      form.append('tag_audio_events', 'false')
       form.append(
         'file',
         new Blob([Buffer.concat(chunks)], { type }),
@@ -1526,6 +1533,9 @@ const handleRequest = async (req, res) => {
         method: 'POST',
         headers: { 'xi-api-key': key },
         body: form,
+        // A transcription that hangs used to leave everything said after it
+        // waiting in line behind it.
+        signal: AbortSignal.timeout(15_000),
       })
       if (!upstream.ok) {
         res.writeHead(upstream.status, cors)
@@ -1533,7 +1543,7 @@ const handleRequest = async (req, res) => {
       }
       const data = await upstream.json()
       res.writeHead(200, { ...cors, 'content-type': 'application/json' })
-      return res.end(JSON.stringify({ text: (data.text ?? '').trim() }))
+      return res.end(JSON.stringify({ text: cleanTranscript(data.text) }))
     } catch (err) {
       res.writeHead(502, cors)
       return res.end(String(err?.message ?? err))
@@ -1621,12 +1631,25 @@ console.log(
  * What to tell the browser when a turn ends badly. Plain sentences, because
  * whatever reaches the client is liable to be spoken.
  */
+/** How long a quiet voice conversation is picked up again before starting fresh. */
+const VOICE_SESSION_MS = 3 * 60 * 60_000
+
+/** The language the owner speaks to Nexy in, for Scribe; '' lets it detect. */
+const STT_LANG = (process.env.NEXY_STT_LANG ?? 'es').trim().toLowerCase() === 'auto' ? '' : (process.env.NEXY_STT_LANG ?? 'es').trim()
+
+/** Scribe's text without any sound tags it still adds, e.g. "(música)". */
+export const cleanTranscript = (t) =>
+  String(t ?? '')
+    .replace(/[([][^)\]]{0,40}[)\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
 const RESULT_FAILURES = {
-  error_during_execution: 'The turn failed part way through.',
-  error_max_turns: 'The turn ran too long and was stopped.',
-  error_max_budget_usd: 'The budget for this turn ran out.',
-  error_max_structured_output_retries: 'The answer could not be assembled.',
-  default: 'The turn ended without an answer.',
+  error_during_execution: 'Algo falló a medio camino. ¿Me lo repites?',
+  error_max_turns: 'Eso se alargó demasiado y lo detuve. ¿Lo hacemos por partes?',
+  error_max_budget_usd: 'Se acabó el presupuesto para esta tarea.',
+  error_max_structured_output_retries: 'No pude armar la respuesta. ¿Me lo repites?',
+  default: 'Me quedé sin respuesta. ¿Me lo repites?',
 }
 
 // What the console shows besides tasks: the brands, the team and the brain.
@@ -2054,7 +2077,9 @@ wss.on('connection', (socket, req) => {
   }
 
   // Pick up the last spoken conversation, so a reload or restart doesn't wipe it.
-  const resume = loadSession('voz')
+  // Only if it was recent: spoken requests are mostly one at a time, and days
+  // of old turns and tool results made every answer slower and muddier.
+  const resume = loadSession('voz', VOICE_SESSION_MS)
   const session = query({
     prompt: userMessages(),
     options: {
@@ -2083,10 +2108,41 @@ wss.on('connection', (socket, req) => {
     },
   })
 
+  /**
+   * The voice watchdog.
+   *
+   * The face gives up on a turn after two minutes without a frame, which used
+   * to be any long job: an edit, an approval she was waiting on, a slow
+   * connector. The turn kept working here while the face had already gone
+   * quiet, so she "didn't answer". Now a turn in flight sends a heartbeat every
+   * 15 s, and only a turn that is really stuck — nothing from the agent for
+   * VOICE_STUCK_MS and not waiting on the owner — is stopped, saying where.
+   */
+  let lastSign = Date.now()
+  let stuckNote = null
+  const VOICE_STUCK_MS = Number(process.env.NEXY_VOICE_STUCK_MS) || 3 * 60_000
+  const SLOW_VOICE_STEP = /wait|video|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
+  const watchdog = setInterval(() => {
+    const task = openTasks[0]
+    if (!task || closed) return
+    sendTurn({ type: 'ping' })
+    if (hub.waitingOnOwner(task)) {
+      lastSign = Date.now()
+      return
+    }
+    const step = hub.runningStepName(task)
+    if (stuckNote || Date.now() - lastSign < (step && SLOW_VOICE_STEP.test(step) ? VOICE_STUCK_MS * 3 : VOICE_STUCK_MS)) return
+    console.log(`[jarvis] voice turn stuck${step ? ` on ${step}` : ''}; stopping it`)
+    stuckNote = `Me quedé atorada${step ? ' esperando una conexión' : ''} y lo detuve. ¿Lo intento otra vez?`
+    Promise.resolve(session.interrupt?.()).catch(() => {})
+  }, 15_000)
+  socket.on('close', () => clearInterval(watchdog))
+
   // Pump the session's output stream to the browser for as long as it lives.
   ;(async () => {
     try {
       for await (const msg of session) {
+        lastSign = Date.now()
         if (process.env.JARVIS_DEBUG === '1') {
           console.log('[msg]', msg.type, msg.event?.type ?? '')
         }
@@ -2159,7 +2215,12 @@ wss.on('connection', (socket, req) => {
               msg.subtype === 'success' ? 'done' : 'error',
               msg.subtype === 'success' ? msg.result : RESULT_FAILURES[msg.subtype] ?? RESULT_FAILURES.default,
             )
-            if (msg.subtype === 'success') {
+            if (stuckNote) {
+              // Stopped by the watchdog: say so, as an answer rather than a crash.
+              sendTurn({ type: 'text', delta: stuckNote })
+              sendTurn({ type: 'done', text: stuckNote, costUsd: null })
+              stuckNote = null
+            } else if (msg.subtype === 'success') {
               sendTurn({
                 type: 'done',
                 text: msg.result ?? '',

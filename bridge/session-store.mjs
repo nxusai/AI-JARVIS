@@ -21,11 +21,11 @@ const ID = /^[0-9a-f-]{8,64}$/i
 
 const file = (channel) => join(DIR, `${channel}.json`)
 
-export function loadSession(channel) {
+export function loadSession(channel, maxAgeMs = MAX_AGE_MS) {
   try {
     const { id, updated } = JSON.parse(readFileSync(file(channel), 'utf8'))
     if (typeof id !== 'string' || !ID.test(id)) return null
-    if (!updated || Date.now() - updated > MAX_AGE_MS) return null
+    if (!updated || Date.now() - updated > maxAgeMs) return null
     return id
   } catch {
     return null

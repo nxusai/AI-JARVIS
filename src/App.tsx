@@ -5,7 +5,7 @@ import { Boot } from './ui/Boot'
 import { Ignition } from './ui/Ignition'
 import { Diagnostics } from './ui/Diagnostics'
 import { useStore } from './store'
-import { startVoice, type Voice, type VoiceMode } from './lib/voice'
+import { isForNexy, startVoice, type Voice, type VoiceMode } from './lib/voice'
 import { createSpeaker, cycleVoice, currentVoiceName } from './lib/tts'
 import * as sfx from './lib/sfx'
 import * as music from './lib/music'
@@ -272,8 +272,13 @@ export default function App() {
     const phase = store.getState().phase
     if (phase === 'offline' || phase === 'boot' || phase === 'dormant') return
 
-    const wasBusy =
-      phase === 'thinking' || phase === 'tooling' || phase === 'speaking'
+    // While she is working on an answer and not yet talking, a sound is not
+    // enough to throw the answer away: a cough, the TV or someone else in the
+    // room used to cancel the turn here and leave her silent. Wait for words;
+    // onUtterance decides whether they were meant for her.
+    if (phase === 'thinking' || phase === 'tooling') return
+
+    const wasBusy = phase === 'speaking'
 
     silence()
     if (wasBusy) {
@@ -292,6 +297,19 @@ export default function App() {
   const onUtterance = (text: string) => {
     const phase = store.getState().phase
     if (phase === 'offline' || phase === 'boot' || phase === 'dormant') return
+
+    // Heard while she works on an answer. Only her name or a correction
+    // ("no", "espera", "para") stops it; anything else is the room.
+    if (phase === 'thinking' || phase === 'tooling') {
+      if (!isForNexy(text)) return
+      silence()
+      turn.current++
+      interrupt()
+      store.getState().setActiveTool(null)
+      music.working(false)
+      sfx.duck(false)
+      music.duck(false)
+    }
 
     // People keep using his name as a vocative once they're already talking to
     // him. Strip it rather than sending "jarvis" to the model as a question.
