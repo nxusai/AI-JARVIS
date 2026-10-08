@@ -50,8 +50,10 @@ const MAX_MANUAL_CHARS = 20_000
  *
  * Every company has its own departments (`ocultos` lists any it does not
  * have yet) and its own accounts: companies of the same holding never use
- * each other's or the holding's accounts. The holding's manual, if any,
- * applies to all of them as group rules.
+ * each other's accounts. The one exception is Meta Ads: a company with no ad
+ * account of its own advertises from its holding's (Abuelito Corn, Meat and
+ * Cheese share Abuelito INC's). The holding's manual, if any, applies to all
+ * of them as group rules.
  */
 const CARTERAS = ['propia', 'cliente']
 const DEFAULT_CLIENT_GROUP = 'Empresas cliente'
@@ -190,8 +192,18 @@ export function accountIdsIn(input) {
  */
 export function accountGuard(servicio, input) {
   const active = activeBrand()
-  // Each company only its own accounts: never a sister company's or the holding's.
-  const mine = active.conexiones.filter((c) => c.servicio === servicio)
+  // Each company only its own accounts: never a sister company's. Ads alone
+  // fall back to the holding's ad account when the company has none.
+  let mine = active.conexiones.filter((c) => c.servicio === servicio)
+  let via = null
+  if (!mine.length && servicio === 'meta-ads') {
+    const parent = parentOf(active)
+    const shared = parent ? parent.conexiones.filter((c) => c.servicio === servicio) : []
+    if (shared.length) {
+      mine = shared
+      via = parent
+    }
+  }
   if (!mine.length) {
     return {
       ok: false,
@@ -214,7 +226,7 @@ export function accountGuard(servicio, input) {
     }
   }
   const link = mine.find((c) => c.id === ids[0])
-  return { ok: true, account: `${link.nombre || link.id} · ${active.nombre}` }
+  return { ok: true, account: via ? `${link.nombre || link.id} · cuenta de ${via.nombre}, para ${active.nombre}` : `${link.nombre || link.id} · ${active.nombre}` }
 }
 
 function save(state) {
@@ -489,7 +501,8 @@ export function brandsPrompt() {
     'Each company has its own departments (the nine, minus any marked as not there yet), its own manual and its own ' +
     "accounts. A holding is only an umbrella: work is always for one of its companies, so when the owner names the " +
     'holding for a task, ask which company, unless they want a summary of all of them. Companies of a holding follow ' +
-    "the holding's manual as group rules, but never use its accounts or a sister company's. A department a company " +
+    "the holding's manual as group rules, but never use a sister company's accounts, nor the holding's — except its Meta " +
+    "ad account, which a company with none of its own advertises from (name the company in the campaign). A department a company " +
     'does not have (e.g. no Finanzas for the Abuelito companies) is not done for it: say so. ' +
     "Never mix one company's information, tone or accounts with another's, nor the client group's with the owner's own. " +
     'When the owner names a company, switch to it with use_brand. ' +

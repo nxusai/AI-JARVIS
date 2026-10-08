@@ -289,7 +289,10 @@ export function startAdsWatch() {
 
 /** What a company (or all of them) has running now, in the same words as the alerts. */
 export async function runningNow(marca, opts) {
-  const accounts = watchedAccounts().filter((a) => !marca || a.marca === marca)
+  let accounts = watchedAccounts().filter((a) => !marca || a.marca === marca)
+  // A company with no ad account of its own advertises from its holding's.
+  const holding = marca && !accounts.length ? readBrands().marcas.find((b) => b.id === marca)?.padre : null
+  if (holding) accounts = watchedAccounts().filter((a) => a.marca === holding)
   if (!accounts.length) return marca ? 'That company has no Meta ad account linked yet.' : 'No company has a Meta ad account linked yet.'
   const out = []
   for (const a of accounts) {
