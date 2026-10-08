@@ -186,12 +186,75 @@ export function accountIdsIn(input) {
   return [...new Set(ids)]
 }
 
+// -- an ad account shared between companies ----------------------------------
+
+/**
+ * Meta Ads only: one ad account the owner shares between companies (Mi
+ * Semago's, also used for the Abuelito companies). Set by the owner on the
+ * Mac (`node scripts/meta-ads.mjs compartir …`), never by the model. In a
+ * shared account every campaign, ad set and ad carries its company at the
+ * front of its name — "[Abuelito Cheese] Promo queso" — which Nexy adds when
+ * she creates and checks before she changes anything (see anuncios.mjs).
+ *
+ *   ~/.nexy/cuentas-compartidas.json   [{ servicio, id, marcas: [ids] }]
+ */
+export const SHARED_FILE = join(DIR, 'cuentas-compartidas.json')
+
+export function readShared() {
+  try {
+    const data = JSON.parse(readFileSync(SHARED_FILE, 'utf8'))
+    return (Array.isArray(data?.compartidas) ? data.compartidas : [])
+      .filter((c) => c && c.servicio === 'meta-ads' && c.id && Array.isArray(c.marcas) && c.marcas.length > 1)
+      .map((c) => ({ servicio: c.servicio, id: normId(c.id), marcas: c.marcas.filter((m) => typeof m === 'string') }))
+  } catch {
+    return []
+  }
+}
+
+export function writeShared(list) {
+  mkdirSync(DIR, { recursive: true })
+  writeFileSync(SHARED_FILE, `${JSON.stringify({ compartidas: list }, null, 2)}\n`)
+}
+
+/** The share an account belongs to, if any. */
+export const sharedAccount = (servicio, id) => readShared().find((c) => c.servicio === servicio && c.id === normId(id)) ?? null
+
+/** Whether a company (or its holding) is in a share. */
+export function inShare(share, b, marcas = readBrands().marcas) {
+  if (!share || !b) return false
+  return share.marcas.includes(b.id) || Boolean(b.padre && share.marcas.includes(b.padre)) || share.marcas.some((m) => marcas.find((x) => x.id === m)?.padre === b.id)
+}
+
+/** The company tag at the front of a name: "[Abuelito Cheese] Promo" → "Abuelito Cheese". */
+export const tagOf = (name) => String(name ?? '').match(/^\s*\[([^\]]{2,60})\]/)?.[1]?.trim() ?? null
+
+/** The company a tag names. */
+export function brandOfTag(tag, marcas = readBrands().marcas) {
+  if (!tag) return null
+  return marcas.find((b) => fold(b.nombre) === fold(tag) || b.id === fold(tag).replace(/\s+/g, '-')) ?? null
+}
+
+/** The tags a company may use or touch: its own; a holding, its own and its companies'. */
+export function tagsFor(b, marcas = readBrands().marcas) {
+  return [b, ...marcas.filter((x) => x.padre === b.id)].map((x) => x.nombre)
+}
+
 /**
  * The lock between brands: a publishing call may only name accounts linked
  * to the brand Nexy is working in. Returns { ok, account } or { ok: false, message }.
+ * In a shared ad account it also returns `tags`: the company tags this brand
+ * may use there (see anuncios.mjs, which enforces them).
  */
 export function accountGuard(servicio, input) {
   const active = activeBrand()
+  {
+    const ids = accountIdsIn(input)
+    const share = ids.length ? sharedAccount(servicio, ids[0]) : null
+    if (share && ids.every((id) => id === share.id) && inShare(share, active)) {
+      const names = share.marcas.map((m) => readBrands().marcas.find((x) => x.id === m)?.nombre ?? m).join(' + ')
+      return { ok: true, account: `${share.id} · cuenta compartida (${names}), para ${active.nombre}`, shared: share, tags: tagsFor(active) }
+    }
+  }
   // Each company only its own accounts: never a sister company's. Ads alone
   // fall back to the holding's ad account when the company has none.
   let mine = active.conexiones.filter((c) => c.servicio === servicio)
@@ -506,6 +569,15 @@ export function brandsPrompt() {
     'does not have (e.g. no Finanzas for the Abuelito companies) is not done for it: say so. ' +
     "Never mix one company's information, tone or accounts with another's, nor the client group's with the owner's own. " +
     'When the owner names a company, switch to it with use_brand. ' +
+    readShared()
+      .map(
+        (c) =>
+          `Meta ad account ${c.id} is shared by ${c.marcas.map((m) => state.marcas.find((x) => x.id === m)?.nombre ?? m).join(' and ')} (and their companies), for ads only: ` +
+          'work in the company the ad is for (use_brand), start every campaign, ad set and ad name with that company in brackets ' +
+          '("[Abuelito Cheese] Promo queso"; it is added for you if you forget), only touch campaigns tagged with the company you are in, ' +
+          "and report each company's ads apart (list_running_ads, get_ads_report). ",
+      )
+      .join('') +
     `When this conversation started the active one was ${active.nombre}; use_brand switches it and tells you the current one.`
   )
 }

@@ -6,6 +6,10 @@
 //   node scripts/meta-ads.mjs probar       what each company has running now, as Nexy reads it
 //   node scripts/meta-ads.mjs pausas si|no also tell when an ad is paused or ends (off by default)
 //   node scripts/meta-ads.mjs quitar       deletes the key from this Mac
+//   node scripts/meta-ads.mjs compartir mi-semago abuelito-inc
+//        the ad account linked to the first company is shared with the others
+//        (ads only): each campaign carries its company, "[Abuelito Cheese] …"
+//   node scripts/meta-ads.mjs descompartir mi-semago   undoes it
 //
 // The key is a Meta Business system user token with ads_read only: it can see
 // ads, never create, switch on or spend. Typed into a hidden prompt, checked
@@ -14,6 +18,7 @@
 
 import { rmSync } from 'node:fs'
 import { ADS_FILE, graph, readAdsKey, runningNow, watchedAccounts, writeAdsKey } from '../bridge/anuncios.mjs'
+import { readBrands, readShared, writeShared } from '../bridge/brands.mjs'
 
 const [cmd, arg] = process.argv.slice(2)
 const say = (s) => console.log(s)
@@ -77,6 +82,7 @@ if (cmd === 'estado') {
   const key = readAdsKey()
   say(key ? `\nLlave de Meta: guardada (de ${key.quien ?? 'Meta Business'}).` : '\nTodavía no hay llave de Meta. Pégala con: node scripts/meta-ads.mjs')
   say(`Avisos de pausas: ${key?.avisarPausas ? 'sí' : 'no'}`)
+  for (const c of readShared()) say(`Cuenta compartida (solo anuncios): ${c.id} · ${c.marcas.map((m) => readBrands().marcas.find((b) => b.id === m)?.nombre ?? m).join(' + ')}`)
   say('Empresas vigiladas:')
   if (key) await accounts(key)
   else for (const a of watchedAccounts()) say(`   • ${a.empresa}: cuenta ${a.cuenta}`)
@@ -105,6 +111,38 @@ if (cmd === 'pausas') {
   process.exit(0)
 }
 
+if (cmd === 'compartir' || cmd === 'descompartir') {
+  const ids = process.argv.slice(3)
+  const marcas = readBrands().marcas
+  const owner = marcas.find((b) => b.id === ids[0])
+  const link = owner?.conexiones.find((c) => c.servicio === 'meta-ads')
+  if (!owner || !link) {
+    say(`\n❌ "${ids[0] ?? ''}" no tiene una cuenta de Meta Ads ligada. Primero la empresa dueña de la cuenta, por ejemplo: node scripts/meta-ads.mjs compartir mi-semago abuelito-inc\n`)
+    process.exit(1)
+  }
+  const cuenta = String(link.id).replace(/^act_/i, '')
+  const rest = readShared().filter((c) => c.id !== cuenta)
+  if (cmd === 'descompartir') {
+    writeShared(rest)
+    say(`\n✅ La cuenta ${link.nombre || cuenta} ya es solo de ${owner.nombre}. Reinicia Nexy.\n`)
+    process.exit(0)
+  }
+  const others = ids.slice(1).map((id) => marcas.find((b) => b.id === id))
+  if (!others.length || others.some((b) => !b)) {
+    say(`\n❌ Di con qué empresas se comparte, por su id. Las que hay: ${marcas.map((b) => b.id).join(', ')}\n`)
+    process.exit(1)
+  }
+  const taken = others.find((b) => b.conexiones.some((c) => c.servicio === 'meta-ads'))
+  if (taken) say(`\n⚠️ ${taken.nombre} ya tiene su propia cuenta de Meta Ads; seguirá usando la suya y además podrá usar esta.`)
+  writeShared([...rest, { servicio: 'meta-ads', id: cuenta, marcas: [owner.id, ...others.map((b) => b.id)] }])
+  const names = [owner, ...others].map((b) => b.nombre).join(' + ')
+  say(`\n✅ La cuenta ${link.nombre || cuenta} queda compartida, solo para anuncios: ${names}.`)
+  say('   Nexy pone la empresa al inicio del nombre de cada campaña, por ejemplo "[Abuelito Cheese] Promo queso",')
+  say('   solo cambia las campañas de la empresa en la que está trabajando, y te avisa y reporta cada empresa por separado.')
+  say('   Reinicia Nexy (Ctrl+C y npm start) para que lo tome.\n')
+  process.exit(0)
+}
+
 if (cmd === 'quitar') {
   rmSync(ADS_FILE, { force: true })
   say('\n✅ Borré la llave de Meta de esta Mac. Nexy ya no vigila los ads (reiníciala).\n')
@@ -112,7 +150,7 @@ if (cmd === 'quitar') {
 }
 
 if (cmd) {
-  say('Uso:\n  node scripts/meta-ads.mjs\n  node scripts/meta-ads.mjs estado\n  node scripts/meta-ads.mjs probar\n  node scripts/meta-ads.mjs pausas si|no\n  node scripts/meta-ads.mjs quitar')
+  say('Uso:\n  node scripts/meta-ads.mjs\n  node scripts/meta-ads.mjs estado\n  node scripts/meta-ads.mjs probar\n  node scripts/meta-ads.mjs pausas si|no\n  node scripts/meta-ads.mjs compartir mi-semago abuelito-inc\n  node scripts/meta-ads.mjs descompartir mi-semago\n  node scripts/meta-ads.mjs quitar')
   process.exit(1)
 }
 

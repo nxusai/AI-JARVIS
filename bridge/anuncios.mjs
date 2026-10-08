@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { readBrands } from './brands.mjs'
+import { brandOfTag, inShare, readBrands, readShared, tagOf, tagsFor } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
 
 /**
@@ -49,12 +49,32 @@ export function writeAdsKey(cfg) {
   chmodSync(ADS_FILE, 0o600)
 }
 
-/** Every company with a Meta ad account linked, and its accounts. */
+/**
+ * Every company with a Meta ad account linked, and its accounts, once each.
+ * A shared account (see brands.mjs) carries its share: who it is for comes
+ * from each campaign's "[Company]" tag.
+ */
 export function watchedAccounts(brands = readBrands()) {
-  return brands.marcas.flatMap((b) =>
-    b.conexiones.filter((c) => c.servicio === 'meta-ads').map((c) => ({ marca: b.id, empresa: b.nombre, cuenta: String(c.id).replace(/^act_/i, ''), nombre: c.nombre })),
-  )
+  const shares = readShared()
+  const out = []
+  for (const b of brands.marcas) {
+    for (const c of b.conexiones.filter((x) => x.servicio === 'meta-ads')) {
+      const cuenta = String(c.id).replace(/^act_/i, '')
+      if (out.some((a) => a.cuenta === cuenta)) continue
+      const share = shares.find((x) => x.id === cuenta) ?? null
+      const empresa = share ? share.marcas.map((m) => brands.marcas.find((x) => x.id === m)?.nombre ?? m).join(' + ') : b.nombre
+      out.push({ marca: b.id, empresa, cuenta, nombre: c.nombre, compartida: share })
+    }
+  }
+  return out
 }
+
+/** Which company an ad set is for: the account's, or in a shared account its campaign's tag. */
+export function companyOf(a, s, marcas = readBrands().marcas) {
+  if (!a.compartida) return a.empresa
+  return brandOfTag(tagOf(s.campaign?.name) ?? tagOf(s.name), marcas)?.nombre ?? null
+}
+const UNTAGGED = '⚠️ Sin empresa en el nombre'
 
 /** One read from Meta's Graph API. Throws with Meta's own message. */
 export async function graph(path, params = {}, { key = readAdsKey(), fetchImpl = fetch } = {}) {
@@ -220,7 +240,7 @@ export async function check({ opts = {}, now = Date.now(), notifyPauses = readAd
     const currency = data.info.currency ?? 'USD'
     const zone = data.info.timezone_name ?? 'America/New_York'
     const seen = {}
-    for (const s of data.adsets) seen[s.id] = { on: isOn(s, now), budget: budgetOf(s, currency).key, name: s.name }
+    for (const s of data.adsets) seen[s.id] = { on: isOn(s, now), budget: budgetOf(s, currency).key, name: s.campaign?.name && s.campaign.name !== s.name ? `${s.campaign.name} → ${s.name}` : s.name }
     if (prev) {
       const sinceSec = Math.floor((prev.at ? new Date(prev.at).getTime() : now - EVERY_MS) / 1000) - 120
       const started = data.adsets.filter((s) => seen[s.id].on && !prev.adsets?.[s.id]?.on)
@@ -229,11 +249,13 @@ export async function check({ opts = {}, now = Date.now(), notifyPauses = readAd
       const who = started.length || rebudget.length ? await whoDid(a.cuenta, sinceSec, opts) : new Map()
       const by = (s) => who.get(s.id) ?? who.get(s.campaign?.id) ?? ''
       const away = prev.at && now - new Date(prev.at).getTime() > EVERY_MS * 2 ? ' (mientras Nexy estaba apagada)' : ''
-      for (const s of started) messages.push(`📢 ${a.empresa} — se activó un ad${away}\n${describe(s, { currency, zone, who: by(s) })}`)
+      const label = (s) => companyOf(a, s) ?? `${UNTAGGED} (cuenta compartida ${a.empresa})`
+      const fix = (s) => (a.compartida && !companyOf(a, s) ? '\n• Ponle al nombre de la campaña la empresa entre corchetes, por ejemplo "[Abuelito Cheese] …", para saber de quién es.' : '')
+      for (const s of started) messages.push(`📢 ${label(s)} — se activó un ad${away}\n${describe(s, { currency, zone, who: by(s) })}${fix(s)}`)
       for (const s of rebudget) {
         const before = prev.adsets[s.id].budget
         messages.push(
-          `💰 ${a.empresa} — cambió el presupuesto de un ad${away}\n${describe(s, { currency, zone, who: by(s), whoLabel: 'Lo cambió' })}\n• Antes: ${budgetKeyText(before, currency)}`,
+          `💰 ${label(s)} — cambió el presupuesto de un ad${away}\n${describe(s, { currency, zone, who: by(s), whoLabel: 'Lo cambió' })}\n• Antes: ${budgetKeyText(before, currency)}${fix(s)}`,
         )
       }
       for (const [, p] of stopped) messages.push(`⏸️ ${a.empresa} — se pausó o terminó: ${p.name}${away}`)
@@ -287,29 +309,166 @@ export function startAdsWatch() {
 
 // -- asking ------------------------------------------------------------------
 
+/** The accounts that hold a company's ads: its own, its holding's, or a share it is in. */
+function accountsFor(marca, marcas = readBrands().marcas) {
+  const all = watchedAccounts()
+  if (!marca) return all
+  const b = marcas.find((x) => x.id === marca)
+  if (!b) return []
+  const own = all.filter((a) => a.marca === marca || (a.compartida && inShare(a.compartida, b, marcas)))
+  if (own.length) return own
+  // A company with no ad account of its own advertises from its holding's.
+  return b.padre ? all.filter((a) => a.marca === b.padre) : []
+}
+
+/** In a shared account, whether an ad set is this company's (a holding sees its companies'). */
+function belongs(a, s, marca, marcas) {
+  if (!a.compartida || !marca) return true
+  const b = marcas.find((x) => x.id === marca)
+  const who = companyOf(a, s, marcas)
+  return Boolean(b && who && tagsFor(b, marcas).includes(who))
+}
+
 /** What a company (or all of them) has running now, in the same words as the alerts. */
 export async function runningNow(marca, opts) {
-  let accounts = watchedAccounts().filter((a) => !marca || a.marca === marca)
-  // A company with no ad account of its own advertises from its holding's.
-  const holding = marca && !accounts.length ? readBrands().marcas.find((b) => b.id === marca)?.padre : null
-  if (holding) accounts = watchedAccounts().filter((a) => a.marca === holding)
+  const marcas = readBrands().marcas
+  const accounts = accountsFor(marca, marcas)
   if (!accounts.length) return marca ? 'That company has no Meta ad account linked yet.' : 'No company has a Meta ad account linked yet.'
   const out = []
   for (const a of accounts) {
     try {
       const { info, adsets } = await readAccount(a.cuenta, opts)
-      const on = adsets.filter((s) => isOn(s))
       const currency = info.currency ?? 'USD'
       const zone = info.timezone_name ?? 'America/New_York'
-      out.push(
-        `## ${a.empresa} (cuenta ${info.name ?? a.cuenta})\n` +
-          (on.length ? on.map((s) => describe(s, { currency, zone })).join('\n\n') : 'Nada activo ahora.'),
-      )
+      const on = adsets.filter((s) => isOn(s))
+      if (!a.compartida) {
+        out.push(`## ${a.empresa} (cuenta ${info.name ?? a.cuenta})\n` + (on.length ? on.map((s) => describe(s, { currency, zone })).join('\n\n') : 'Nada activo ahora.'))
+        continue
+      }
+      // A shared account: each company apart, and what has no company tag flagged.
+      const groups = new Map()
+      for (const s of on) {
+        if (!belongs(a, s, marca, marcas) && companyOf(a, s, marcas)) continue
+        const k = companyOf(a, s, marcas) ?? UNTAGGED
+        groups.set(k, [...(groups.get(k) ?? []), s])
+      }
+      const wanted = marca ? tagsFor(marcas.find((x) => x.id === marca), marcas) : []
+      for (const w of wanted) if (!groups.has(w)) groups.set(w, [])
+      if (!groups.size) out.push(`## Cuenta compartida ${a.empresa} (${info.name ?? a.cuenta})\nNada activo ahora.`)
+      for (const [k, list] of groups) {
+        out.push(
+          `## ${k} (cuenta compartida ${info.name ?? a.cuenta})\n` +
+            (list.length ? list.map((s) => describe(s, { currency, zone })).join('\n\n') : 'Nada activo ahora.') +
+            (k === UNTAGGED && list.length ? '\n(These campaigns have no company tag in their name: ask the owner whose they are.)' : ''),
+        )
+      }
     } catch (err) {
       out.push(`## ${a.empresa}\nCould not read it: ${err.message}`)
     }
   }
   return out.join('\n\n')
+}
+
+// -- reports -----------------------------------------------------------------
+
+const PERIODS = { hoy: 'today', ayer: 'yesterday', '7dias': 'last_7d', '14dias': 'last_14d', '30dias': 'last_30d', 'este-mes': 'this_month', 'mes-pasado': 'last_month' }
+const count = (actions, re) => (actions ?? []).filter((x) => re.test(x.action_type)).reduce((n, x) => n + Number(x.value || 0), 0)
+
+/** Spend and results per company and campaign over a period, from Meta's insights. */
+export async function adsReport(marca, periodo = '7dias', opts) {
+  const marcas = readBrands().marcas
+  const accounts = accountsFor(marca, marcas)
+  if (!accounts.length) return marca ? 'That company has no Meta ad account linked yet.' : 'No company has a Meta ad account linked yet.'
+  const preset = PERIODS[periodo] ?? 'last_7d'
+  const out = []
+  for (const a of accounts) {
+    try {
+      const info = await graph(`act_${a.cuenta}`, { fields: 'name,currency' }, opts)
+      const rows = await all(`act_${a.cuenta}/insights`, { level: 'campaign', date_preset: preset, fields: 'campaign_name,spend,impressions,clicks,actions' }, opts)
+      const groups = new Map()
+      for (const r of rows) {
+        const fake = { campaign: { name: r.campaign_name }, name: r.campaign_name }
+        if (!belongs(a, fake, marca, marcas) && companyOf(a, fake, marcas)) continue
+        const k = companyOf(a, fake, marcas) ?? UNTAGGED
+        groups.set(k, [...(groups.get(k) ?? []), r])
+      }
+      if (!groups.size) out.push(`## ${a.compartida ? `Cuenta compartida ${a.empresa}` : a.empresa}\nSin gasto en ese periodo.`)
+      for (const [k, list] of groups) {
+        const cur = info.currency ?? 'USD'
+        const spend = list.reduce((n, r) => n + Number(r.spend || 0), 0)
+        const line = (r) => {
+          const leads = count(r.actions, /lead/i)
+          const msgs = count(r.actions, /messaging_conversation_started/i)
+          return `• ${r.campaign_name}: $${Number(r.spend || 0).toFixed(2)} ${cur} · ${Number(r.impressions || 0).toLocaleString('en-US')} impresiones · ${r.clicks ?? 0} clics` +
+            (leads ? ` · ${leads} leads ($${(Number(r.spend) / leads).toFixed(2)} c/u)` : '') + (msgs ? ` · ${msgs} conversaciones` : '')
+        }
+        out.push(`## ${k}${a.compartida ? ` (cuenta compartida ${info.name ?? a.cuenta})` : ''} — gastado: $${spend.toFixed(2)} ${cur}\n${list.map(line).join('\n')}`)
+      }
+    } catch (err) {
+      out.push(`## ${a.empresa}\nCould not read it: ${err.message}`)
+    }
+  }
+  return `Periodo: ${periodo}\n\n${out.join('\n\n')}`
+}
+
+// -- the lock inside a shared account ----------------------------------------
+
+const OBJECT_KEY = /^(campaign_?id|adset_?id|ad_?set_?id|ad_?id|object_?id|id|campaign_?ids|adset_?ids|ad_?ids)$/i
+const CREATES = /create|duplicate|copy/i
+
+/**
+ * A write in a shared ad account (see brands.mjs): what is created is named
+ * for the company Nexy is working in ("[Abuelito Cheese] …", added when
+ * missing), and what is changed must already carry one of its tags — read
+ * from Meta with the read-only key, so the model cannot claim it.
+ * Resolves { ok, input?, changed? } or { ok: false, message }.
+ */
+export async function sharedWriteCheck(tool, input, tags, opts) {
+  const mine = (name) => tags.includes(brandOfTag(tagOf(name))?.nombre)
+  if (CREATES.test(tool)) {
+    let changed = false
+    const tagName = (obj) => {
+      if (!obj || typeof obj !== 'object' || typeof obj.name !== 'string') return null
+      const t = tagOf(obj.name)
+      if (t && !mine(obj.name)) return `"${obj.name}" is tagged for ${t}, and you are working for ${tags[0]}. Name it for ${tags[0]}, or switch company with use_brand.`
+      if (!t) {
+        obj.name = `[${tags[0]}] ${obj.name.trim()}`
+        changed = true
+      }
+      return null
+    }
+    const copy = JSON.parse(JSON.stringify(input ?? {}))
+    const problems = [tagName(copy), ...Object.values(copy).map((v) => (v && typeof v === 'object' && !Array.isArray(v) ? tagName(v) : null))].filter(Boolean)
+    if (problems.length) return { ok: false, message: `Blocked: ${problems[0]}` }
+    return { ok: true, input: copy, changed }
+  }
+  // Changing something that exists: it has to be this company's.
+  const ids = []
+  for (const [k, v] of Object.entries(input ?? {})) if (OBJECT_KEY.test(k)) for (const x of Array.isArray(v) ? v : [v]) if (/^\d{6,}$/.test(String(x))) ids.push(String(x))
+  if (!ids.length) {
+    // Something that names no campaign, ad set or ad: allowed when its own name (if any) is ours.
+    if (typeof input?.name === 'string' && tagOf(input.name) && !mine(input.name)) return { ok: false, message: `Blocked: "${input.name}" is not ${tags[0]}'s.` }
+    return { ok: true }
+  }
+  for (const id of ids) {
+    let obj
+    try {
+      obj = await graph(id, { fields: 'name,campaign{name}' }, opts)
+    } catch (err) {
+      return { ok: false, message: `Blocked: this ad account is shared, and I could not check whose ${id} is (${err.message}). Ask the owner to check it in Ads Manager.` }
+    }
+    const name = obj.campaign?.name ?? obj.name
+    if (!mine(name)) {
+      const t = tagOf(name)
+      return {
+        ok: false,
+        message: t
+          ? `Blocked: "${name}" is ${t}'s, and you are working for ${tags[0]}. Never change another company's ads; if the owner meant ${t}, switch with use_brand.`
+          : `Blocked: "${name}" has no company tag, so it is not clear whose it is. Ask the owner; once it is renamed "[Company] …" you can change it.`,
+      }
+    }
+  }
+  return { ok: true }
 }
 
 /** Nexy's tool for "¿qué ads tiene activos Mi Semago?". Read only. */
@@ -326,6 +485,21 @@ export function adsWatchServer() {
         async ({ marca }) => {
           try {
             return { content: [{ type: 'text', text: await runningNow(marca) }] }
+          } catch (err) {
+            return { isError: true, content: [{ type: 'text', text: err.message }] }
+          }
+        },
+      ),
+      tool(
+        'get_ads_report',
+        "Each company's Meta ad spend and results over a period (per campaign: spent, impressions, clicks, leads and cost per lead, conversations). In a shared ad account each company is reported apart by its campaign tag. Read only.",
+        {
+          marca: z.string().optional().describe('Company id, e.g. abuelito-cheese. Omit for every company.'),
+          periodo: z.enum(Object.keys(PERIODS)).optional().describe('Default 7dias.'),
+        },
+        async ({ marca, periodo }) => {
+          try {
+            return { content: [{ type: 'text', text: await adsReport(marca, periodo) }] }
           } catch (err) {
             return { isError: true, content: [{ type: 'text', text: err.message }] }
           }

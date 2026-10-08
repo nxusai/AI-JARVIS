@@ -29,7 +29,7 @@ import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
-import { adsWatchServer, startAdsWatch } from './anuncios.mjs'
+import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -900,7 +900,9 @@ Video:
 Ads (Meta):
 - Asked what ads are on, what they spend daily, where they show or until
   when — for one company or all — use list_running_ads and give, per company,
-  each one's campaign, budget, location and dates. It reads Meta directly.
+  each one's campaign, budget, location and dates. For spend and results over
+  a period (today, this week, this month…) use get_ads_report. Both read Meta
+  directly and keep each company apart, also in a shared ad account.
 - Work only in the ad account linked to the active brand (read_brand lists it;
   link one with link_brand_account, service meta-ads and the ad account id,
   after the owner confirms which account is whose). A call naming another
@@ -1855,6 +1857,19 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
           return { behavior: 'deny', message: guard.message }
         }
         account = guard.account
+        // An ad account shared between companies: each one only names and
+        // touches its own campaigns (see anuncios.mjs).
+        if (guard.shared) {
+          const shared = await sharedWriteCheck(svcTool, input, guard.tags)
+          if (!shared.ok) {
+            console.log(`[jarvis] tool ${toolName} -> deny (another company's ads in the shared account)`)
+            return { behavior: 'deny', message: shared.message }
+          }
+          if (shared.changed) {
+            input = shared.input
+            changed = true
+          }
+        }
       }
       // A company's mailbox only sends for that company (see correos.mjs).
       {
