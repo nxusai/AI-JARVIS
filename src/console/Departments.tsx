@@ -74,6 +74,22 @@ export function Departments({
         <p className="muted depts-sub">
           {brand.nombre} es el paraguas: no tiene departamentos propios. Todo el trabajo lo hacen sus empresas, cada una con sus departamentos.
         </p>
+        {/* The holding's own mailbox (gmail-abuelito-inc): its own, never its companies'. */}
+        {servers.some((x) => x.name === `gmail-${brand.id}`) ? (
+          <ul className="dept-svcs">
+            {servers
+              .filter((x) => x.name === `gmail-${brand.id}`)
+              .map((x) => {
+                const [cls, text] = STATUS[x.status] ?? ['warn', x.status]
+                return (
+                  <li key={x.name} title={text}>
+                    <i className={`st ${cls}`} />
+                    {serviceOf(x.name).icon} {serviceOf(x.name).label} · solo de {brand.nombre}
+                  </li>
+                )
+              })}
+          </ul>
+        ) : null}
         <div className="dept-grid">
           {family.map((c) => {
             const mine = tasks.filter((t) => t.brand === c.id)
