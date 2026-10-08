@@ -29,6 +29,7 @@ import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
+import { startAnaSofi } from './anasofi.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
@@ -1966,6 +1967,15 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
   void startAtencion({
+    model: MODEL,
+    effort: EFFORT,
+    transcribe: (bytes) => {
+      const key = elevenKey()
+      return key ? transcribeVoice(key, bytes, 'nota.ogg') : Promise.resolve('')
+    },
+  })
+  // Ana Sofi's own bot, for the clients' Zebra labels (scripts/anasofi.mjs).
+  void startAnaSofi({
     model: MODEL,
     effort: EFFORT,
     transcribe: (bytes) => {

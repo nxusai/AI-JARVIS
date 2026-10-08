@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#15171a; --muted:#5b616b; --line:#d9dce1; --accent:#1f7a3a; --warn:#b42318; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font: 15px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  header { padding:16px 20px; background:#15171a; color:#fff; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:20px; }
+  header span { color:#b8bdc6; font-size:13px; }
+  main { display:grid; grid-template-columns: minmax(300px, 420px) 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding:16px; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  label { display:block; font-weight:600; margin:12px 0 4px; }
+  .hint { color:var(--muted); font-size:12.5px; font-weight:400; }
+  input, select { width:100%; padding:10px 12px; font-size:16px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
+  input:focus, select:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button { font-size:16px; font-weight:700; padding:12px 14px; border-radius:10px; border:0; cursor:pointer; }
+  .primary { background:var(--accent); color:#fff; width:100%; margin-top:16px; }
+  .secondary { background:#e8eaee; color:var(--ink); width:100%; margin-top:8px; }
+  .msg { margin-top:10px; font-size:14px; min-height:1.4em; }
+  .msg.err { color:var(--warn); }
+  .msg.ok { color:var(--accent); }
+  canvas { width:100%; max-width:620px; aspect-ratio:1/1; height:auto; display:block; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:6px; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; font-weight:600; }
+  .small { font-size:13px; color:var(--muted); }
+  #printarea { display:none; }
+  @page { size: 4in 4in; margin: 0; }
+  @media print {
+    html, body { margin:0; padding:0; background:#fff; }
+    body > *:not(#printarea) { display:none !important; }
+    #printarea { display:block; }
+    #printarea .pg { width:4in; height:4in; margin:0; overflow:hidden; break-after:page; page-break-after:always; }
+    #printarea .pg:last-child { break-after:auto; page-break-after:auto; }
+    #printarea svg { display:block; width:4in; height:4in; }
+    #printarea text { -webkit-font-smoothing:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Etiquetas 4×4 · __CLIENT__</h1>
+  <span>Elige el producto, revisa lote y fechas, e imprime.</span>
+</header>
+<main>
+  <section class="card">
+    <label for="prod">Producto</label>
+    <select id="prod"></select>
+
+    <label for="fprod">Fecha de producción <span class="hint">(con esta se calculan el lote y el sell by)</span></label>
+    <input id="fprod" type="date">
+
+    <div class="row">
+      <div>
+        <label for="prefmode">Letra del lote</label>
+        <select id="prefmode">
+          <option value="auto">Según el mes (A=ene … J=sep, K=oct)</option>
+          <option value="manual">Escribirla yo</option>
+        </select>
+        <input id="pref" maxlength="6" autocomplete="off" placeholder="Letra" style="margin-top:6px">
+      </div>
+      <div>
+        <label for="lot">Lote</label>
+        <input id="lot" maxlength="20" autocomplete="off">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="sell">Sell by</label>
+        <input id="sell" type="date">
+      </div>
+      <div>
+        <label for="logo">Logo de abajo</label>
+        <select id="logo">
+__LOGO_OPTIONS__
+          <option value="texto">Texto (escribirlo yo)</option>
+          <option value="none">Sin logo</option>
+        </select>
+      </div>
+    </div>
+    <div id="textbox" hidden>
+      <label for="b1">Texto de abajo <span class="hint">(hasta 3 renglones)</span></label>
+      <input id="b1" maxlength="60" placeholder="Distributed by: …">
+      <input id="b2" maxlength="70" placeholder="Dirección" style="margin-top:6px">
+      <input id="b3" maxlength="70" placeholder="Teléfono · sitio web" style="margin-top:6px">
+    </div>
+    <p class="small" id="auto"></p>
+
+    <div class="row">
+      <div>
+        <label for="qty">Cuántas etiquetas</label>
+        <input id="qty" type="number" min="1" max="9999" value="1">
+      </div>
+      <div>
+        <label for="dpi">Impresora</label>
+        <select id="dpi">
+          <option value="203">203 dpi (la nuestra)</option>
+          <option value="300">300 dpi</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="primary" id="print">🖨️ Imprimir en la Zebra</button>
+    <div class="msg" id="msg"></div>
+    <p class="small" id="how"></p>
+    <details>
+      <summary class="small">Opciones avanzadas</summary>
+      <button class="secondary" id="winprint">🖨️ Imprimir con Windows (driver de la Zebra)</button>
+      <button class="secondary" id="download">⬇️ Descargar archivo .prn (para Zebra Setup Utilities)</button>
+      <p class="small">No abras el archivo .prn con doble clic: se manda con Zebra Setup Utilities → Open Printer Tools → Action → Send file.</p>
+    </details>
+
+    <p class="small">¿Algo que corregir o agregar? Pídeselo a Ana Sofi en Telegram.</p>
+    <details hidden>
+      <summary>Editar datos de este producto</summary>
+      <label for="e_brand">Marca <span class="hint">(Mi Siembra, Izalco… vacío si no lleva)</span></label><input id="e_brand">
+      <label for="e_name1">Nombre (línea 1)</label><input id="e_name1">
+      <label for="e_name2">Nombre (línea 2)</label><input id="e_name2">
+      <label for="e_english">Descripción en inglés</label><input id="e_english">
+      <label for="e_pack">Presentación</label><input id="e_pack">
+      <div class="row">
+        <div><label for="e_upc">UPC (12 dígitos)</label><input id="e_upc" inputmode="numeric" maxlength="12"></div>
+        <div><label for="e_days">Días de vida (sell by)</label><input id="e_days" type="number" min="1" max="365"></div>
+      </div>
+      <button class="secondary" id="save">Guardar cambios de este producto</button>
+      <button class="secondary" id="reset">Volver a los datos originales</button>
+      <p class="small">Los cambios se guardan solo en esta computadora.</p>
+    </details>
+  </section>
+
+  <section class="card">
+    <canvas id="cv" width="812" height="812" aria-label="Vista previa de la etiqueta"></canvas>
+    <p class="small" style="text-align:center">Vista previa. La impresión real puede variar un poco en las letras.</p>
+  </section>
+</main>
+<div id="printarea" aria-hidden="true"></div>
+
+<script>
+const BASE = __PRODUCTS__;
+const DESIGN = __DESIGN__; // tamaños (0.8–1.15), textos y qué se muestra, por cliente (Ana Sofi los ajusta)
+const LOGOS = __LOGOS__; // id → { png, at: [{ x, y, w, h }], gfa: { "203": [...], "300": [...] } } per choice
+
+// ── productos (con los cambios guardados en esta computadora) ──
+const KEY = '__STORE__-productos';
+function loadEdits() { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } }
+function saveEdits(e) { try { localStorage.setItem(KEY, JSON.stringify(e)); } catch {} }
+let edits = {}; // Los datos los cambia Ana Sofi; esta computadora no guarda cambios propios.
+const products = () => BASE.map(p => ({ ...p, ...(edits[p.code] || {}) }));
+const current = () => products().find(p => p.code === $('prod').value) || products()[0];
+const $ = id => document.getElementById(id);
+
+// ── Code 128 (GS1) ──
+const PAT = ('212222 222122 222221 121223 121322 131222 122213 122312 132212 221213 221312 231212 112232 122132 122231 113222 ' +
+  '123122 123221 223211 221132 221231 213212 223112 312131 311222 321122 321221 312212 322112 322211 212123 212321 ' +
+  '232121 111323 131123 131321 112313 132113 132311 211313 231113 231311 112133 112331 132131 113123 113321 133121 ' +
+  '313121 211331 231131 213113 213311 213131 311123 311321 331121 312113 312311 332111 314111 221411 431111 111224 ' +
+  '111422 121124 121421 141122 141221 112214 112412 122114 122411 142112 142211 241211 221114 413111 241112 134111 ' +
+  '111242 121142 121241 114212 124112 124211 411212 421112 421211 212141 214121 412121 111143 111341 131141 114113 ' +
+  '114311 411113 411311 113141 114131 311141 411131 211412 211214 211232').split(' ');
+function gs1(gtin14, sell, lot) {
+  const digits = '01' + gtin14 + '16' + sell + '10';
+  const vals = [105, 102];
+  for (let i = 0; i < digits.length; i += 2) vals.push(+digits.substr(i, 2));
+  let zpl = '>;>8' + digits;
+  if (/^\d+$/.test(lot) && lot.length % 2 === 0) {
+    for (let i = 0; i < lot.length; i += 2) vals.push(+lot.substr(i, 2));
+    zpl += lot;
+  } else {
+    vals.push(100);
+    for (const ch of lot) vals.push(ch.charCodeAt(0) - 32);
+    zpl += '>6' + lot;
+  }
+  let sum = vals[0];
+  for (let i = 1; i < vals.length; i++) sum += i * vals[i];
+  vals.push(sum % 103);
+  const widths = (vals.map(v => PAT[v]).join('') + '2331112').split('').map(Number);
+  return { widths, zpl };
+}
+function upcCheck(d11) {
+  let odd = 0, even = 0;
+  for (let i = 0; i < 11; i++) (i % 2 === 0 ? (odd += +d11[i]) : (even += +d11[i]));
+  return String((10 - (odd * 3 + even) % 10) % 10);
+}
+
+// ── fechas y lote ──
+const pad = n => String(n).padStart(2, '0');
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const toISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const mdy = s => { const d = parseISO(s); return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`; };
+const yymmdd = s => { const d = parseISO(s); return `${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; };
+function julian(s) { const d = parseISO(s); const start = new Date(d.getFullYear(), 0, 1); return Math.round((d - start) / 864e5) + 1; }
+// La letra del lote es el mes, sin la I: A=ene B=feb C=mar D=abr E=may F=jun G=jul H=ago J=sep K=oct L=nov M=dic.
+const MONTHS = 'ABCDEFGHJKLM';
+function letter() {
+  if ($('prefmode').value === 'manual') return $('pref').value.trim().toUpperCase();
+  return $('fprod').value ? MONTHS[parseISO($('fprod').value).getMonth()] : '';
+}
+function autofill() {
+  const p = current();
+  if (!$('fprod').value) return;
+  $('lot').value = letter() + String(julian($('fprod').value)).padStart(3, '0');
+  const d = parseISO($('fprod').value); d.setDate(d.getDate() + Number(p.days));
+  $('sell').value = toISO(d);
+  $('auto').textContent = `Lote = ${letter() || '(sin letra)'} + día del año (${julian($('fprod').value)}). Sell by = producción + ${p.days} días. Puedes cambiarlos a mano.`;
+}
+
+// ── la etiqueta: un solo diseño para la vista previa y para la Zebra ──
+function layout(p, f) {
+  const items = layoutBase(p, f);
+  // Ajustes del cliente: tamaño de cada texto, sus palabras y qué se muestra.
+  const tam = DESIGN.tam || {}, txt = DESIGN.textos || {}, ver = DESIGN.mostrar || {};
+  items.items = items.items
+    .filter((it) => !it.k || ver[it.k] !== false)
+    .map((it) => {
+      if (it.t !== 'text') return it;
+      const m = Math.min(1.15, Math.max(0.8, Number(tam[it.k]) || 1));
+      const s = it.k && typeof txt[it.k] === 'string' && txt[it.k].trim() && ['keep', 'lote_titulo', 'sell_titulo'].includes(it.k) ? txt[it.k].trim() : it.s;
+      return { ...it, h: Math.round(it.h * m), s };
+    });
+  return items;
+}
+function layoutBase(p, f) {
+  const upc = p.upc;
+  const gtin = '00' + upc;
+  const name = [p.name1, p.name2].filter(Boolean).join(' ');
+  const one = name.length <= 22;
+  const bottom = $('logo').value !== 'none';
+  const upcText = `UPC ${upc[0]} ${upc.slice(1, 6)} ${upc.slice(6, 11)} ${upc[11]}`;
+  const hri = `(01) ${gtin}  (16) ${f.sell6}  (10) ${f.lot}`;
+  // Nothing under KEEP REFRIGERATED: the whole label for the words, as big as they fit.
+  if (!bottom) return {
+    bc: gs1(gtin, f.sell6, f.lot),
+    items: [
+      { t: 'text', x: 16, y: 200, w: 780, h: 36, s: hri, k: 'codigo_texto' },
+      { t: 'fill', x: 20, y: 244, w: 772, h: 5 },
+      ...(p.brand ? [
+        { t: 'text', x: 16, y: 256, w: 780, h: 60, s: p.brand, k: 'marca' },
+        ...(one ? [{ t: 'text', x: 16, y: 328, w: 780, h: 50, s: name, k: 'nombre' }] : [{ t: 'text', x: 16, y: 322, w: 780, h: 38, s: name, lines: 2, k: 'nombre' }]),
+        { t: 'text', x: 16, y: one ? 396 : 408, w: 780, h: one ? 40 : 34, s: p.english, k: 'ingles' },
+      ] : [
+        { t: 'text', x: 16, y: one ? 270 : 254, w: 780, h: one ? 66 : 58, s: name, lines: one ? 1 : 2, k: 'nombre' },
+        { t: 'text', x: 16, y: 396, w: 780, h: 40, s: p.english, k: 'ingles' },
+      ]),
+      { t: 'fill', x: 20, y: 450, w: 772, h: 62 },
+      { t: 'text', x: 20, y: 459, w: 772, h: 44, s: p.pack, rev: true, k: 'presentacion' },
+      { t: 'box', x: 20, y: 522, w: 380, h: 124, th: 4 },
+      { t: 'box', x: 412, y: 522, w: 380, h: 124, th: 4 },
+      { t: 'text', x: 20, y: 530, w: 380, h: 32, s: 'LOT #', k: 'lote_titulo' },
+      { t: 'text', x: 24, y: 568, w: 372, h: 70, s: f.lot, k: 'lote' },
+      { t: 'text', x: 412, y: 530, w: 380, h: 32, s: 'SELL BY', k: 'sell_titulo' },
+      { t: 'text', x: 416, y: 568, w: 372, h: 70, s: f.sellMDY, k: 'sell' },
+      { t: 'text', x: 20, y: 656, w: 330, h: 38, s: `ITEM ${p.code}`, align: 'L', k: 'item' },
+      { t: 'text', x: 360, y: 656, w: 432, h: 38, s: upcText, align: 'R', k: 'upc' },
+      { t: 'fill', x: 20, y: 704, w: 772, h: 58, k: 'keep' },
+      { t: 'text', x: 20, y: 712, w: 772, h: 42, s: 'KEEP REFRIGERATED', rev: true, k: 'keep' },
+    ],
+  };
+  return {
+    bc: gs1(gtin, f.sell6, f.lot),
+    items: [
+      { t: 'text', x: 16, y: 200, w: 780, h: 32, s: hri, k: 'codigo_texto' },
+      { t: 'fill', x: 20, y: 240, w: 772, h: 4 },
+      ...(p.brand ? [
+        { t: 'text', x: 20, y: 250, w: 772, h: 50, s: p.brand, k: 'marca' },
+        { t: 'text', x: 20, y: 304, w: 772, h: 34, s: name, lines: 2, k: 'nombre' },
+        { t: 'text', x: 20, y: 378, w: 772, h: 26, s: p.english, k: 'ingles' },
+      ] : [
+        { t: 'text', x: 20, y: one ? 278 : 254, w: 772, h: 54, s: name, lines: one ? 1 : 2, k: 'nombre' },
+        { t: 'text', x: 20, y: 370, w: 772, h: 32, s: p.english, k: 'ingles' },
+      ]),
+      { t: 'fill', x: 20, y: 410, w: 772, h: 52 },
+      { t: 'text', x: 20, y: 417, w: 772, h: 38, s: p.pack, rev: true, k: 'presentacion' },
+      { t: 'box', x: 20, y: 470, w: 380, h: 94, th: 3 },
+      { t: 'box', x: 412, y: 470, w: 380, h: 94, th: 3 },
+      { t: 'text', x: 20, y: 476, w: 380, h: 26, s: 'LOT #', k: 'lote_titulo' },
+      { t: 'text', x: 24, y: 506, w: 372, h: 52, s: f.lot, k: 'lote' },
+      { t: 'text', x: 412, y: 476, w: 380, h: 26, s: 'SELL BY', k: 'sell_titulo' },
+      { t: 'text', x: 416, y: 506, w: 372, h: 52, s: f.sellMDY, k: 'sell' },
+      { t: 'text', x: 20, y: 572, w: 330, h: 30, s: `ITEM ${p.code}`, align: 'L', k: 'item' },
+      { t: 'text', x: 360, y: 572, w: 432, h: 30, s: upcText, align: 'R', k: 'upc' },
+      { t: 'fill', x: 20, y: 610, w: 772, h: 44, k: 'keep' },
+      { t: 'text', x: 20, y: 616, w: 772, h: 32, s: 'KEEP REFRIGERATED', rev: true, k: 'keep' },
+      ...($('logo').value === 'texto' ? [
+        { t: 'text', x: 20, y: 666, w: 772, h: 38, s: $('b1').value.trim() },
+        { t: 'text', x: 20, y: 716, w: 772, h: 30, s: $('b2').value.trim() },
+        { t: 'text', x: 20, y: 758, w: 772, h: 30, s: $('b3').value.trim() },
+      ].filter(x => x.s) : []),
+    ],
+  };
+}
+
+/** The rows a text item becomes, each with its font size and x, as drawn. */
+const measurer = document.createElement('canvas').getContext('2d');
+function rowsOf(it) {
+  const size = Math.round(it.h * 0.86);
+  const font = s => `bold ${s}px Arial, Helvetica, sans-serif`;
+  const c = measurer; c.font = font(size);
+  const words = String(it.s || '').split(/\s+/); const rows = []; let cur = '';
+  for (const w of words) { const t = (cur + ' ' + w).trim(); if (c.measureText(t).width <= it.w || !cur) cur = t; else { rows.push(cur); cur = w; } }
+  rows.push(cur);
+  return rows.slice(0, it.lines || 1).map((r, i) => {
+    let s = size; c.font = font(s);
+    while (c.measureText(r).width > it.w && s > 8) { s--; c.font = font(s); }
+    const tw = c.measureText(r).width;
+    const tx = it.align === 'L' ? it.x : it.align === 'R' ? it.x + it.w - tw : it.x + (it.w - tw) / 2;
+    return { s: r, size: s, x: tx, y: it.y + i * (it.h + 4) + it.h * 0.06, font: font(s), w: tw };
+  });
+}
+
+function zpl(p, f, dpi, copies) {
+  const k = dpi === 300 ? 300 / 203 : 1;
+  const r = v => Math.round(v * k);
+  const L = layout(p, f);
+  const out = ['^XA', '^CI28', `^PW${r(812)}`, `^LL${r(812)}`, '^LH0,0'];
+  const mod = dpi === 300 ? 4 : 3;
+  const bw = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
+  out.push(`^FO${Math.round((r(812) - bw) / 2)},${r(24)}^BY${mod},3,${r(170)}^BCN,${r(170)},N,N,N,N^FD${L.bc.zpl}^FS`);
+  for (const it of L.items) {
+    if (it.t === 'fill') out.push(`^FO${r(it.x)},${r(it.y)}^GB${r(it.w)},${r(it.h)},${r(it.h)}^FS`);
+    else if (it.t === 'box') out.push(`^FO${r(it.x)},${r(it.y)}^GB${r(it.w)},${r(it.h)},${Math.max(1, r(it.th))}^FS`);
+    else for (const row of rowsOf(it)) {
+      // The Zebra's font 0 is narrower than Arial bold: same height, and a
+      // width that keeps the line inside its box (about 0.6 of the width setting per character, with room to spare).
+      const hh = Math.round(row.size / 0.86 * 0.92);
+      const ww = Math.max(10, Math.min(hh, Math.floor(it.w / (0.62 * Math.max(1, row.s.length)))));
+      out.push(`^FO${r(it.x)},${r(row.y)}^A0N,${r(hh)},${r(ww)}^FB${r(it.w)},1,0,${it.align || 'C'},0${it.rev ? '^FR' : ''}^FD${clean(row.s)}^FS`);
+    }
+  }
+  const choice = LOGOS[$('logo').value] || { at: [], gfa: { 203: [], 300: [] } };
+  choice.at.forEach((a, i) => {
+    const g = choice.gfa[String(dpi)][i];
+    out.push(`^FO${r(a.x)},${r(a.y)}^GFA,${g.total},${g.total},${g.bpr},${g.hex}^FS`);
+  });
+  out.push(`^PQ${copies}`, '^XZ');
+  return out.join('\n');
+}
+const clean = s => String(s ?? '').replace(/[\^~]/g, ' ');
+
+const pics = {};
+for (const [id, l] of Object.entries(LOGOS)) l.png.forEach((src, i) => { const im = new Image(); im.onload = () => draw(); im.src = src; pics[id + i] = im; });
+
+function draw() { drawTo($('cv'), 203); }
+/**
+ * The label at the printer's own resolution: 812 dots for 4 inches at 203
+ * dpi, 1218 at 300. The barcode is drawn in whole dots (module 3 or 4, as in
+ * the ZPL) so it scans the same printed through Windows as through ZPL.
+ */
+function drawTo(cv, dpi) {
+  const k = dpi === 300 ? 300 / 203 : 1, size = Math.round(812 * k);
+  if (cv.width !== size) { cv.width = size; cv.height = size; }
+  const p = current(), f = fields();
+  const c = cv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.imageSmoothingEnabled = false;
+  c.fillStyle = '#fff'; c.fillRect(0, 0, size, size); c.fillStyle = '#000';
+  if (!f) return false;
+  const L = layout(p, f);
+  const mod = dpi === 300 ? 4 : 3;
+  const total = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
+  let x = Math.round((size - total) / 2), bar = true;
+  const by = Math.round(24 * k), bh = Math.round(170 * k);
+  for (const w of L.bc.widths) { if (bar) c.fillRect(x, by, w * mod, bh); x += w * mod; bar = !bar; }
+  c.setTransform(k, 0, 0, k, 0, 0);
+  for (const it of L.items) {
+    if (it.t === 'fill') { c.fillStyle = '#000'; c.fillRect(it.x, it.y, it.w, it.h); }
+    else if (it.t === 'box') { c.lineWidth = it.th; c.strokeStyle = '#000'; c.strokeRect(it.x + it.th / 2, it.y + it.th / 2, it.w - it.th, it.h - it.th); }
+    else text(c, it);
+  }
+  const choice = LOGOS[$('logo').value];
+  if (choice) choice.at.forEach((a, i) => { const im = pics[$('logo').value + i]; if (im && im.complete && im.naturalWidth) c.drawImage(im, a.x, a.y, a.w, a.h); });
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  return true;
+}
+function text(c, it) {
+  for (const r of rowsOf(it)) { c.font = r.font; c.fillStyle = it.rev ? '#fff' : '#000'; c.textBaseline = 'top'; c.fillText(r.s, r.x, r.y); }
+}
+
+function fields() {
+  const lot = $('lot').value.trim().toUpperCase();
+  const sell = $('sell').value;
+  if (!lot || !sell) return null;
+  return { lot, sell6: yymmdd(sell), sellMDY: mdy(sell) };
+}
+function check() {
+  const f = fields();
+  if (!f) return 'Falta el lote o la fecha de sell by.';
+  if (!/^[\x20-\x7E]{1,20}$/.test(f.lot)) return 'El lote solo puede llevar letras sin acento, números y guiones.';
+  if (!/^\d{12}$/.test(current().upc)) return 'El UPC de este producto no tiene 12 dígitos.';
+  const q = Number($('qty').value);
+  if (!(q >= 1 && q <= 9999)) return 'La cantidad debe ser de 1 a 9999.';
+  return null;
+}
+function say(t, kind) { const m = $('msg'); m.textContent = t; m.className = 'msg ' + (kind || ''); }
+
+// ── imprimir ──
+// 1) Zebra Browser Print, si está instalado: manda el ZPL directo a la Zebra.
+// 2) Si no: imprime con Windows, por el driver de la Zebra (ZDesigner).
+//    Con el acceso directo "kiosko" de Chrome sale sin preguntar nada.
+const ZEBRA = /zebra|zdesigner|^z[dt]\d|gk4|gx4|zt\d|zd\d/i;
+async function browserPrint() {
+  let reached = false;
+  for (const base of ['http://127.0.0.1:9100', 'https://127.0.0.1:9101', 'http://localhost:9100']) {
+    try {
+      let dev = await fetch(base + '/default?type=printer', { signal: AbortSignal.timeout(2500) }).then(r => (reached = true, r.ok ? r.text() : '')).then(t => { try { return JSON.parse(t); } catch { return null; } });
+      if (!dev || !dev.name) {
+        // No default printer chosen in Browser Print: take the Zebra it can see.
+        const all = await fetch(base + '/available', { signal: AbortSignal.timeout(4000) }).then(r => r.ok ? r.json() : null).catch(() => null);
+        const list = (all && (all.printer || all.printers)) || [];
+        dev = list.find(d => ZEBRA.test(d.name || '')) || list[0] || null;
+      }
+      if (!dev || !dev.name) return { reached: true, error: 'Browser Print no tiene ninguna impresora: abre Zebra Browser Print (icono junto al reloj) → Settings → elige la Zebra como Default Printer.' };
+      return { base, dev };
+    } catch {}
+  }
+  return { reached };
+}
+async function sendToZebra(data) {
+  const bp = await browserPrint();
+  if (!bp.dev) return bp;
+  try {
+    const r = await fetch(bp.base + '/write', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ device: bp.dev, data }), signal: AbortSignal.timeout(15000) });
+    if (r.ok) return { name: bp.dev.name };
+    return { reached: true, error: `Browser Print respondió ${r.status}. Si salió una ventanita de Browser Print preguntando por esta página, dale Accept y vuelve a imprimir.` };
+  } catch {
+    return { reached: true, error: 'Browser Print no aceptó la página. Si salió una ventanita de Browser Print, dale Accept y vuelve a imprimir.' };
+  }
+}
+/**
+ * The label as a drawing (SVG), not a picture: letters and bars go to the
+ * Zebra's Windows driver as shapes, and the printer draws them at its own
+ * resolution (203, 300 or 600 dpi), so nothing is stretched or blurred.
+ */
+function svgLabel() {
+  const p = current(), f = fields();
+  if (!f) return null;
+  const L = layout(p, f);
+  const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  const out = [];
+  const total = L.bc.widths.reduce((a, b) => a + b, 0) * 3;
+  let x = Math.round((812 - total) / 2), bar = true;
+  for (const w of L.bc.widths) { if (bar) out.push(`<rect x="${x}" y="24" width="${w * 3}" height="170"/>`); x += w * 3; bar = !bar; }
+  for (const it of L.items) {
+    if (it.t === 'fill') out.push(`<rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}"/>`);
+    else if (it.t === 'box') out.push(`<rect x="${it.x + it.th / 2}" y="${it.y + it.th / 2}" width="${it.w - it.th}" height="${it.h - it.th}" fill="none" stroke="#000" stroke-width="${it.th}"/>`);
+    else for (const r of rowsOf(it)) out.push(`<text x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" font-size="${r.size}" textLength="${r.w.toFixed(1)}" lengthAdjust="spacingAndGlyphs"${it.rev ? ' fill="#fff"' : ''}>${esc(r.s)}</text>`);
+  }
+  const choice = LOGOS[$('logo').value];
+  if (choice) choice.at.forEach((a, i) => out.push(`<image x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" href="${choice.png[i]}"/>`));
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 812 812" width="4in" height="4in" shape-rendering="crispEdges" font-family="Arial, Helvetica, sans-serif" font-weight="bold" dominant-baseline="text-before-edge"><rect width="812" height="812" fill="#fff"/><g fill="#000">${out.join('')}</g></svg>`;
+}
+/** Windows printing: one 4×4 page per label. */
+function windowsPrint() {
+  const qty = Number($('qty').value);
+  if (qty > 300) { say('Por Windows se imprimen hasta 300 de una vez. Para más, imprime en tandas o instala Zebra Browser Print.', 'err'); return false; }
+  const svg = svgLabel();
+  if (!svg) return false;
+  const area = $('printarea');
+  area.innerHTML = Array.from({ length: qty }, () => `<div class="pg">${svg}</div>`).join('');
+  const done = () => { area.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => window.print(), 50);
+  return true;
+}
+function download(data) {
+  const p = current();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
+  a.download = `${p.code}-${$('lot').value.trim().toUpperCase()}-x${$('qty').value}.prn`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function current_zpl() { return zpl(current(), fields(), Number($('dpi').value), Number($('qty').value)); }
+
+$('print').onclick = async () => {
+  const bad = check(); if (bad) return say(bad, 'err');
+  say('Enviando a la impresora…');
+  const r = await sendToZebra(current_zpl());
+  if (r.name) return say(`✅ Mandé ${$('qty').value} etiqueta(s) a ${r.name}.`, 'ok');
+  if (r.error) return say(r.error, 'err');
+  // No Browser Print on this computer: Windows prints it through the Zebra's driver.
+  if (windowsPrint()) say('Imprimiendo con Windows. En la ventana de impresión elige la Zebra (ZDesigner) la primera vez; después la recuerda. Tamaño 4×4, márgenes: ninguno.', 'ok');
+};
+$('winprint').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); if (windowsPrint()) say('Imprimiendo con Windows…', 'ok'); };
+$('download').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); download(current_zpl()); say('Archivo .prn descargado. Mándalo con Zebra Setup Utilities → Send file (no lo abras con doble clic).', 'ok'); };
+// Say how this computer prints, before anyone clicks.
+browserPrint().then(bp => {
+  $('how').textContent = bp.dev ? `Impresión directa con Zebra Browser Print → ${bp.dev.name}.` : bp.reached ? (bp.error || '') : 'Zebra Browser Print no está en esta computadora: se imprime con Windows (driver de la Zebra).';
+});
+
+// ── editar producto ──
+function fillEditor() {
+  const p = current();
+  for (const k of ['brand', 'name1', 'name2', 'english', 'pack', 'upc', 'days']) $('e_' + k).value = p[k] ?? '';
+}
+$('save').onclick = () => {
+  const p = current(); const e = {};
+  for (const k of ['brand', 'name1', 'name2', 'english', 'pack', 'upc', 'days']) e[k] = $('e_' + k).value.trim();
+  if (!/^\d{11,12}$/.test(e.upc)) return say('El UPC debe tener 11 o 12 dígitos.', 'err');
+  if (e.upc.length === 11) e.upc += upcCheck(e.upc);
+  if (e.upc.slice(11) !== upcCheck(e.upc.slice(0, 11))) return say('El último dígito del UPC no cuadra; revísalo.', 'err');
+  e.days = Number(e.days) || p.days;
+  edits[p.code] = e; saveEdits(edits); fillEditor(); autofill(); draw(); say('Guardado en esta computadora.', 'ok');
+};
+$('reset').onclick = () => { delete edits[current().code]; saveEdits(edits); fillEditor(); autofill(); draw(); say('Datos originales.', 'ok'); };
+
+// ── arranque ──
+for (const p of products()) {
+  const o = document.createElement('option');
+  o.value = p.code; o.textContent = `${p.code} · ${[p.brand, p.name1, p.name2].filter(Boolean).join(' · ')}`;
+  $('prod').appendChild(o);
+}
+$('fprod').value = toISO(new Date());
+const PREFS = '__STORE__-prefs';
+let prefs = {};
+try { prefs = JSON.parse(localStorage.getItem(PREFS) || '{}'); } catch {}
+$('prefmode').value = prefs.mode ?? 'auto';
+$('pref').value = prefs.pref ?? '';
+$('logo').value = prefs.logo ?? __DEFAULT_LOGO__;
+for (const k of ['b1', 'b2', 'b3']) $(k).value = prefs[k] ?? (__DEFAULT_TEXT__)[k] ?? '';
+const showPrefs = () => { $('pref').hidden = $('prefmode').value !== 'manual'; $('textbox').hidden = $('logo').value !== 'texto'; };
+const keepPrefs = () => {
+  try {
+    localStorage.setItem(PREFS, JSON.stringify({ mode: $('prefmode').value, pref: $('pref').value.trim().toUpperCase(), logo: $('logo').value, b1: $('b1').value, b2: $('b2').value, b3: $('b3').value }));
+  } catch {}
+};
+$('prefmode').onchange = () => { showPrefs(); keepPrefs(); autofill(); draw(); };
+$('pref').oninput = () => { keepPrefs(); autofill(); draw(); };
+$('logo').onchange = () => { showPrefs(); keepPrefs(); draw(); };
+for (const k of ['b1', 'b2', 'b3']) $(k).oninput = () => { keepPrefs(); draw(); };
+// A client whose labels never carry a logo gets no logo choice at all.
+if (__HIDE_LOGO__) { $('logo').value = 'none'; $('logo').parentElement.hidden = true; $('textbox').hidden = true; }
+showPrefs();
+if (__HIDE_LOGO__) $('textbox').hidden = true;
+$('prod').onchange = () => { fillEditor(); autofill(); draw(); say(''); };
+$('fprod').onchange = () => { autofill(); draw(); };
+for (const id of ['lot', 'sell', 'qty', 'dpi']) $(id).oninput = () => draw();
+fillEditor(); autofill(); draw();
+// Vista previa para Ana Sofi: …html#preview&prod=CODE&logo=ID&fprod=AAAA-MM-DD → solo la etiqueta.
+if (location.hash.startsWith('#preview')) {
+  const q = new URLSearchParams(location.hash.slice(8));
+  if (q.get('prod')) $('prod').value = q.get('prod');
+  if (q.get('fprod')) $('fprod').value = q.get('fprod');
+  autofill();
+  if (q.get('logo')) $('logo').value = q.get('logo');
+  const svg = svgLabel();
+  document.head.insertAdjacentHTML('beforeend', '<style>html,body{margin:0;background:#fff}#pv svg{display:block;width:812px;height:812px}</style>');
+  document.body.innerHTML = `<div id="pv">${svg || ''}</div>`;
+  document.title = 'listo';
+}
+</script>
+</body>
+</html>

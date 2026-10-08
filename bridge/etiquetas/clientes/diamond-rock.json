@@ -1,0 +1,153 @@
+{
+ "id": "diamond-rock",
+ "nombre": "Diamond Rock",
+ "store": "ms-diamondrock",
+ "sin_logo": false,
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "logos": {},
+ "diseno": {},
+ "productos": [
+  {
+   "code": "9000",
+   "brand": "MI SIEMBRA",
+   "name1": "QUESO OAXACA",
+   "name2": "",
+   "english": "Oaxaca Cheese",
+   "pack": "12 / 12 OZ",
+   "upc": "815944009916",
+   "days": 59
+  },
+  {
+   "code": "9001",
+   "brand": "IZALCO",
+   "name1": "QUESO FRESCO IZALCO",
+   "name2": "ESTILO SALVADOREÑO",
+   "english": "Fresh Cheese Salvadorean Style",
+   "pack": "6 / 10 OZ · REDONDO",
+   "upc": "815944009930",
+   "days": 44
+  },
+  {
+   "code": "9002",
+   "brand": "MI SIEMBRA",
+   "name1": "QUESO FRESCO",
+   "name2": "ESTILO GUATEMALTECO",
+   "english": "Fresh Cheese Guatemalan Style",
+   "pack": "6 / 10 OZ · REDONDO",
+   "upc": "815944009954",
+   "days": 44
+  },
+  {
+   "code": "9003",
+   "brand": "DANLI",
+   "name1": "QUESO FRESCO",
+   "name2": "ESTILO HONDUREÑO",
+   "english": "Fresh Cheese Honduran Style",
+   "pack": "6 / 10 OZ · REDONDO",
+   "upc": "815944009978",
+   "days": 44
+  },
+  {
+   "code": "9004",
+   "brand": "IZALCO",
+   "name1": "CUAJADA FRESCA",
+   "name2": "ESTILO SALVADOREÑO",
+   "english": "Salvadorean Style Cheese",
+   "pack": "6 / 10 OZ · 4 PULG",
+   "upc": "815944009992",
+   "days": 44
+  },
+  {
+   "code": "9005",
+   "brand": "MI SIEMBRA",
+   "name1": "CUAJADA FRESCA",
+   "name2": "ESTILO GUATEMALTECO",
+   "english": "Guatemalan Style Cheese",
+   "pack": "6 / 10 OZ · 4 PULG",
+   "upc": "815944010011",
+   "days": 44
+  },
+  {
+   "code": "9006",
+   "brand": "DANLI",
+   "name1": "CUAJADA FRESCA",
+   "name2": "ESTILO HONDUREÑO",
+   "english": "Honduran Style Cheese",
+   "pack": "6 / 10 OZ · 4 PULG",
+   "upc": "815944010035",
+   "days": 44
+  },
+  {
+   "code": "9007",
+   "brand": "MI SIEMBRA",
+   "name1": "QUESO FRESCO GUATEMALA",
+   "name2": "CON HOJA",
+   "english": "Fresh Cheese with Plantain Leaf Guatemalan Style",
+   "pack": "6 / 10 OZ · CUADRADO",
+   "upc": "815944010059",
+   "days": 44
+  },
+  {
+   "code": "9008",
+   "brand": "MI SIEMBRA",
+   "name1": "QUESO FRESCO CENTROAMERICANO",
+   "name2": "FAMILIAR",
+   "english": "Central American Fresh Cheese Family Size",
+   "pack": "4 / 5 LBS",
+   "upc": "815944010073",
+   "days": 59
+  },
+  {
+   "code": "9009",
+   "brand": "MI SIEMBRA",
+   "name1": "QUESO MEXICANO",
+   "name2": "FAMILIAR",
+   "english": "",
+   "pack": "4 / 3 LBS · PANELA",
+   "upc": "815944010097",
+   "days": 59
+  },
+  {
+   "code": "9010",
+   "brand": "MI SIEMBRA",
+   "name1": "REQUESON",
+   "name2": "",
+   "english": "Ricotta",
+   "pack": "6 / 10 OZ",
+   "upc": "815944010110",
+   "days": 49
+  },
+  {
+   "code": "9011",
+   "brand": "IZALCO",
+   "name1": "CUAJADA FRESCA",
+   "name2": "",
+   "english": "Salvadoran Style Cheese",
+   "pack": "2 / 9 LBS · CHAROLA",
+   "upc": "815944010134",
+   "days": 44
+  },
+  {
+   "code": "CH1135",
+   "brand": "",
+   "name1": "QUESO FRESCO REDONDO",
+   "name2": "MEXICANO",
+   "english": "Fresh White Cheese",
+   "pack": "6 X 12 OZ. X 4.5 LB. (2 kg)",
+   "upc": "890237011357",
+   "days": 44
+  },
+  {
+   "code": "CH1101",
+   "brand": "",
+   "name1": "QUESO FRESCO",
+   "name2": "WHEEL GUADALUPE",
+   "english": "Fresh White Cheese",
+   "pack": "4 X 5 LB X 20 LB (9 kg)",
+   "upc": "890237011012",
+   "days": 59
+  }
+ ],
+ "archivo": "Etiquetas-Diamond-Rock.html"
+}
