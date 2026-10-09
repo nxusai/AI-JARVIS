@@ -83,7 +83,10 @@ const slug = (s) =>
  * program: Depensa was the same twenty products as Mi Semago without a logo
  * (now "Sin logo" in Mi Semago), and Diamond Rock repeated two of them.
  */
-const CATALOG_VERSION = 2
+const CATALOG_VERSION = 3
+// Sets that are gone. Updates copy new files over old ones without deleting any,
+// so a retired seed can still be lying in bridge/etiquetas/clientes: never use it.
+const RETIRED = new Set(['depensa'])
 const CATALOG_FILE = join(LABELS_DIR, '_catalogo.json')
 let seeded = false
 function seed() {
@@ -97,7 +100,7 @@ function seed() {
       return existsSync(join(LABELS_DIR, 'mi-semago.json')) ? 1 : CATALOG_VERSION
     }
   })()
-  if (version < 2) {
+  if (version < 3) {
     const dep = join(LABELS_DIR, 'depensa.json')
     if (existsSync(dep)) {
       const c = JSON.parse(readFileSync(dep, 'utf8'))
@@ -110,7 +113,7 @@ function seed() {
       if (dr.productos.some((p) => repeated.has(p.code))) saveClient({ ...dr, productos: dr.productos.filter((p) => !repeated.has(p.code)) }, { quien: 'Nexy', que: 'quitó CH1135 y CH1101, que ya están en Mi Semago' })
     }
   }
-  if (existsSync(SEEDS)) for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
+  if (existsSync(SEEDS)) for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !RETIRED.has(f.slice(0, -5)) && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
   writeFileSync(CATALOG_FILE, `${JSON.stringify({ version: CATALOG_VERSION })}\n`)
 }
 const readJson = (f) => {
