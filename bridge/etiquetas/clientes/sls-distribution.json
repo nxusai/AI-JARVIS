@@ -1,0 +1,58 @@
+{
+ "id": "sls-distribution",
+ "nombre": "SLS Distribution",
+ "tipo": "traza",
+ "store": "et-sls-distribution",
+ "productos": [
+  {
+   "code": "SLS01",
+   "name1": "SLS DISTRIBUTION",
+   "pack": "5 LIBRAS PRE CUT",
+   "lineas": [
+    "4408 N WILDER RD",
+    "PLANT CITY, FL 33565"
+   ],
+   "empaque": "VACIO",
+   "days": 69,
+   "duda": "Corregí el código postal: decía 35565 / 3556."
+  },
+  {
+   "code": "SLS02",
+   "name1": "SLS DISTRIBUTION",
+   "pack": "CANASTO 5 LBS",
+   "lineas": [
+    "4408 N WILDER RD",
+    "PLANT CITY, FL 33565"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "SLS03",
+   "name1": "SLS DISTRIBUTION",
+   "pack": "PANELA 5 LBS",
+   "lineas": [
+    "4408 N WILDER RD",
+    "PLANT CITY, FL 33565"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "SLS04",
+   "name1": "SLS DISTRIBUTION",
+   "pack": "4/5 LBS",
+   "lineas": [
+    "4408 N WILDER RD",
+    "PLANT CITY, FL 33565"
+   ],
+   "empaque": "VACIO",
+   "days": 64
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,79 @@
+{
+ "id": "indura-food",
+ "nombre": "Indura Food",
+ "tipo": "traza",
+ "store": "et-indura-food",
+ "productos": [
+  {
+   "code": "IF01",
+   "name1": "INDURA FOOD",
+   "pack": "REQUESON 12 OZ",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "IF02",
+   "name1": "INDURA FOOD",
+   "pack": "FRESCO / HOJA 12 OZ",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "IF03",
+   "name1": "INDURA FOOD",
+   "pack": "4 PULGADAS / HOJA 12 OZ",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "IF04",
+   "name1": "INDURA FOOD",
+   "pack": "CUADRADO / HOJA",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "IF05",
+   "name1": "INDURA FOOD",
+   "pack": "4 PULGADAS",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "IF06",
+   "name1": "OAXACA DOÑA LITA",
+   "pack": "12 OZ",
+   "lineas": [
+    "2227 SHARON ST",
+    "KENNER, LA 70062"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,46 @@
+{
+ "id": "emis",
+ "nombre": "Emis",
+ "tipo": "traza",
+ "store": "et-emis",
+ "productos": [
+  {
+   "code": "EM01",
+   "name1": "EMIS",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "EL PAISANO WAREHOUSE",
+    "INDIANAPOLIS, IN 46254"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "EM02",
+   "name1": "EMIS",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "EL PAISANO WAREHOUSE",
+    "INDIANAPOLIS, IN 46254"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "EM03",
+   "name1": "EMIS",
+   "pack": "12 OZ",
+   "lineas": [
+    "EL PAISANO WAREHOUSE",
+    "INDIANAPOLIS, IN 46254"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,47 @@
+{
+ "id": "rio-grande",
+ "nombre": "Río Grande",
+ "tipo": "traza",
+ "store": "et-rio-grande",
+ "productos": [
+  {
+   "code": "RG01",
+   "name1": "REQUESON",
+   "pack": "5 LBS",
+   "lineas": [
+    "8610 CHERRY LN SUITE 51",
+    "LAUREL, MD 20707"
+   ],
+   "empaque": "REGULAR",
+   "days": 44,
+   "duda": "Corregí la dirección: decía \"CHERY LN\" y \"MD 2007\"."
+  },
+  {
+   "code": "RG02",
+   "name1": "REQUESON",
+   "pack": "RIO GRANDE 12 OZ",
+   "lineas": [
+    "8610 CHERRY LN SUITE 51",
+    "LAUREL, MD 20707"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "RG03",
+   "name1": "ARTESANAL RG",
+   "pack": "12 OZ",
+   "lineas": [
+    "8610 CHERRY LN SUITE 51",
+    "LAUREL, MD 20707"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

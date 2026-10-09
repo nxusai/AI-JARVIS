@@ -127,27 +127,7 @@
    "pack": "2 / 9 LBS · CHAROLA",
    "upc": "815944010134",
    "days": 44
-  },
-  {
-   "code": "CH1135",
-   "brand": "",
-   "name1": "QUESO FRESCO REDONDO",
-   "name2": "MEXICANO",
-   "english": "Fresh White Cheese",
-   "pack": "6 X 12 OZ. X 4.5 LB. (2 kg)",
-   "upc": "890237011357",
-   "days": 44
-  },
-  {
-   "code": "CH1101",
-   "brand": "",
-   "name1": "QUESO FRESCO",
-   "name2": "WHEEL GUADALUPE",
-   "english": "Fresh White Cheese",
-   "pack": "4 X 5 LB X 20 LB (9 kg)",
-   "upc": "890237011012",
-   "days": 59
   }
  ],
- "archivo": "Etiquetas-Diamond-Rock.html"
+ "tipo": "gs1"
 }

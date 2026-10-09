@@ -1,0 +1,37 @@
+{
+ "id": "el-huache",
+ "nombre": "El Huache",
+ "tipo": "traza",
+ "store": "et-el-huache",
+ "productos": [
+  {
+   "code": "EH01",
+   "name1": "QUESO OAXACA",
+   "pack": "6/5 LBS",
+   "lineas": [
+    "MANUFACTURE FOR:",
+    "EL HUACHE ENTERPRISES LLC",
+    "HOUSTON, TX"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "EH02",
+   "name1": "FRESCO DOBLE CREMA",
+   "pack": "2/5 LB",
+   "lineas": [
+    "MANUFACTURE FOR:",
+    "EL HUACHE ENTERPRISES LLC",
+    "HOUSTON, TX"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

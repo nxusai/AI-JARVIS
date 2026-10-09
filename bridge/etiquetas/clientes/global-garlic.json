@@ -1,0 +1,24 @@
+{
+ "id": "global-garlic",
+ "nombre": "Global Garlic",
+ "tipo": "traza",
+ "store": "et-global-garlic",
+ "productos": [
+  {
+   "code": "GG01",
+   "name1": "GLOBAL GARLIC INC",
+   "pack": "FRESCO 4 PULGADAS",
+   "lineas": [
+    "11501 NW 107TH ST SUITE 101",
+    "MIAMI, FL 33178"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

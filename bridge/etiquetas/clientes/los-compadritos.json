@@ -1,0 +1,91 @@
+{
+ "id": "los-compadritos",
+ "nombre": "Los Compadritos",
+ "tipo": "traza",
+ "store": "et-los-compadritos",
+ "productos": [
+  {
+   "code": "LCP01",
+   "name1": "LOS COMPADRITOS",
+   "pack": "5 LBS",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "LCP02",
+   "name1": "LOS COMPADRITOS",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "LCP03",
+   "name1": "LOS COMPADRITOS",
+   "pack": "10 LBS CHAROLAS",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "LCP04",
+   "name1": "LOS COMPADRITOS",
+   "pack": "14 OZ",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "VACIO",
+   "days": 59,
+   "duda": "Esa etiqueta no trae el nombre arriba; por la dirección es de Los Compadritos."
+  },
+  {
+   "code": "LCP05",
+   "name1": "LOS COMPADRITOS",
+   "pack": "CANASTO 5 LBS",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "LCP06",
+   "name1": "LOS COMPADRITOS",
+   "pack": "CANASTO 14 LBS",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "LCP07",
+   "name1": "LOS COMPADRITOS",
+   "pack": "FRESCO CUADRADO 12 OZ",
+   "lineas": [
+    "62 SHERMAN ST",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

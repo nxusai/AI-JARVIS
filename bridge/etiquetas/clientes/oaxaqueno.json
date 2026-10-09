@@ -1,0 +1,46 @@
+{
+ "id": "oaxaqueno",
+ "nombre": "Oaxaqueño",
+ "tipo": "traza",
+ "store": "et-oaxaqueno",
+ "productos": [
+  {
+   "code": "OX01",
+   "name1": "QUESO OAXAQUEÑO",
+   "pack": "12 OZ",
+   "lineas": [
+    "451 HIGHLAND AVE",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "OX02",
+   "name1": "QUESO OAXAQUEÑO",
+   "pack": "5 LBS",
+   "lineas": [
+    "451 HIGHLAND AVE",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "OX03",
+   "name1": "QUESO OAXAQUEÑO",
+   "pack": "10 LBS",
+   "lineas": [
+    "451 HIGHLAND AVE",
+    "PASSAIC, NJ 07055"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

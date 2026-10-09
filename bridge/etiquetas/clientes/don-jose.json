@@ -1,0 +1,63 @@
+{
+ "id": "don-jose",
+ "nombre": "Don José",
+ "tipo": "traza",
+ "store": "et-don-jose",
+ "productos": [
+  {
+   "code": "DJ01",
+   "name1": "QUESO OAXACA",
+   "pack": "ARTESANAL 25/12 OZ",
+   "lineas": [
+    "DIST BY: DON JOSE"
+   ],
+   "empaque": "VACIO",
+   "days": 69
+  },
+  {
+   "code": "DJ02",
+   "name1": "QUESO OAXACA",
+   "pack": "ARTESANAL 20 LBS",
+   "lineas": [
+    "DIST BY: DON JOSE"
+   ],
+   "empaque": "VACIO",
+   "days": 69
+  },
+  {
+   "code": "DJ03",
+   "name1": "QUESO OAXACA",
+   "pack": "TIRAS 20 LBS",
+   "lineas": [
+    "DIST BY: DON JOSE"
+   ],
+   "empaque": "VACIO",
+   "days": 69
+  },
+  {
+   "code": "DJ04",
+   "name1": "FRESCO DON JOSE",
+   "pack": "CANASTO 5 LBS",
+   "lineas": [
+    "DIST BY: DON JOSE"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "DJ05",
+   "name1": "FRESCO DON JOSE",
+   "pack": "CANASTO 14 LBS",
+   "lineas": [
+    "DIST BY: DON JOSE"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

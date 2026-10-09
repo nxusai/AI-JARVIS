@@ -1,0 +1,91 @@
+{
+ "id": "quesos-el-ideal",
+ "nombre": "Quesos El Ideal",
+ "tipo": "traza",
+ "store": "et-quesos-el-ideal",
+ "productos": [
+  {
+   "code": "QEI01",
+   "name1": "QUESOS EL IDEAL",
+   "pack": "12 OZ",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "VACIO",
+   "days": 59,
+   "duda": "Esa etiqueta no trae la fecha completa; puse 59 días como los demás de 12 oz."
+  },
+  {
+   "code": "QEI02",
+   "name1": "QUESOS EL IDEAL",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "QEI03",
+   "name1": "QUESOS EL IDEAL",
+   "pack": "DESHEBRADO 12 OZ",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "QEI04",
+   "name1": "QUESOS EL IDEAL",
+   "pack": "REQUESON 12 OZ",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "QEI05",
+   "name1": "QUESOS EL IDEAL",
+   "pack": "REQUESON 12 OZ",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "VACIO",
+   "days": 44
+  },
+  {
+   "code": "QEI06",
+   "name1": "FRESCO EL IDEAL",
+   "pack": "CANASTO 5 LBS",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "VACIO",
+   "days": 44
+  },
+  {
+   "code": "QEI07",
+   "name1": "FRESCO EL IDEAL",
+   "pack": "CANASTO 14 LBS",
+   "lineas": [
+    "706 N. SECREST AVE",
+    "MONROE, NC 28110"
+   ],
+   "empaque": "VACIO",
+   "days": 44
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,37 @@
+{
+ "id": "cuatro-hermanos",
+ "nombre": "4 Hermanos",
+ "tipo": "traza",
+ "store": "et-cuatro-hermanos",
+ "productos": [
+  {
+   "code": "CH401",
+   "name1": "QUESILLO 4 HERMANOS",
+   "pack": "5 LBS",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "CH402",
+   "name1": "QUESILLO 4 HERMANOS",
+   "pack": "10 LBS",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "CH403",
+   "name1": "QUESILLO 4 HERMANOS",
+   "pack": "10 LBS CHAROLA",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 39
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

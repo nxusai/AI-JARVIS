@@ -30,6 +30,7 @@ import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
 import { CONTENT_PLAN_PROMPT, contentPlanServer } from './parrilla.mjs'
+import { ownerLabelsServer } from './etiquetas.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
@@ -240,7 +241,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -343,6 +344,8 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_respaldo__make_backup',
   'jarvis_respaldo__backup_status',
   // Each brand's content strategy and weekly calendar: files on this Mac, and its PDF (see parrilla.mjs).
+  // Labels to the Zebra at Mi Semago: an order in the shared folder's queue, nothing else (see etiquetas.mjs).
+  'jarvis_etiquetas__print_labels',
   'jarvis_parrilla__save_content_strategy',
   'jarvis_parrilla__save_content_plan',
   'jarvis_parrilla__update_content_post',
@@ -1760,6 +1763,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_anuncios: adsWatchServer(),
       // Each brand's content strategy and weekly calendar, and its PDF (see parrilla.mjs).
       jarvis_parrilla: contentPlanServer(),
+      // Mi Semago's Zebra labels: find one and print it there (see etiquetas.mjs).
+      jarvis_etiquetas: ownerLabelsServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },

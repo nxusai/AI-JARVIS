@@ -1,0 +1,500 @@
+{
+ "id": "abuelito",
+ "nombre": "Abuelito",
+ "tipo": "traza",
+ "store": "et-abuelito",
+ "productos": [
+  {
+   "code": "AB01",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB02",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "AB03",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB04",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "AB05",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "AB06",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "12 OZ DOMINICANO",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "AB07",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS PRE CUT",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54,
+   "nota": "6 PZS / 5 LB · P/CJS"
+  },
+  {
+   "code": "AB08",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS PRE CUT",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 39,
+   "nota": "6/CJS"
+  },
+  {
+   "code": "AB09",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS BOLA",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 39,
+   "nota": "6/CJS"
+  },
+  {
+   "code": "AB10",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "DESHEBRADO 5 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB11",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "CHAROLA 10 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB12",
+   "name1": "REQUESON",
+   "pack": "12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 49
+  },
+  {
+   "code": "AB13",
+   "name1": "REQUESON",
+   "pack": "CENTRO AMERICANO 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB14",
+   "name1": "ABUELITO ARTESANAL",
+   "pack": "12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "AB15",
+   "name1": "QUESO PANELA",
+   "pack": "",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54,
+   "duda": "La etiqueta no dice el tamaño."
+  },
+  {
+   "code": "AB16",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA MEXICANA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "AB17",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA OLANCHITA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "AB18",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA GUATEMALA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "AB19",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA SALVADOREÑA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "AB20",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA HONDUREÑA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 34,
+   "duda": "Esa etiqueta no trae dirección y da 34 días (las otras cuajadas dan 49)."
+  },
+  {
+   "code": "AB21",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CUAJADA ECUATORIANA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 34,
+   "duda": "Esa etiqueta no trae dirección y da 34 días (las otras cuajadas dan 49)."
+  },
+  {
+   "code": "AB22",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HECHO A MANO SALVADOREÑO 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB23",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HECHO A MANO MEXICANO 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB24",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HECHO A MANO GUATEMALA 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB25",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HECHO A MANO HONDUREÑO 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB26",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HECHO A MANO ECUATORIANO 12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB27",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CANASTO 5 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "AB28",
+   "name1": "FRESCO ABUELITO",
+   "pack": "CANASTO 14 LIBRAS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "AB29",
+   "name1": "FRESCO ABUELITO",
+   "pack": "PANELA 3 LBS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "AB30",
+   "name1": "FRESCO ABUELITO",
+   "pack": "4/5 LBS",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "AB31",
+   "name1": "FRESCO ABUELITO",
+   "pack": "FRESCO REDONDO 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB32",
+   "name1": "FRESCO ABUELITO",
+   "pack": "REDONDO PP 4.99 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB33",
+   "name1": "FRESCO ABUELITO",
+   "pack": "FRESCO ORIGINAL 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB34",
+   "name1": "FRESCO ABUELITO",
+   "pack": "ORIGINAL / HOJA 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB35",
+   "name1": "FRESCO ABUELITO",
+   "pack": "ORIGINAL 4.99 6/10 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB36",
+   "name1": "FRESCO ABUELITO",
+   "pack": "ORIGINAL 4.99 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34,
+   "duda": "Hay una etiqueta \"ORIGINAL 4.99 6/12 OZ\" y dos \"6/10 OZ\": ¿son dos productos o es la misma?"
+  },
+  {
+   "code": "AB37",
+   "name1": "FRESCO ABUELITO",
+   "pack": "PARAGUAYO 6/12 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB38",
+   "name1": "FRESCO ABUELITO",
+   "pack": "HOND REDONDO 6/10 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB39",
+   "name1": "FRESCO ABUELITO",
+   "pack": "SALV REDONDO 6/10 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "AB40",
+   "name1": "FRESCO ABUELITO",
+   "pack": "GUAT REDONDO 6/10 OZ",
+   "lineas": [
+    "ABUELITO DISTRIBUTION",
+    "607 MAIN ST",
+    "PATERSON, NJ"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

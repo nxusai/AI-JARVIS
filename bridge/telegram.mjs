@@ -310,6 +310,7 @@ const stepName = (name) => {
     jarvis_brands: 'revisando la marca',
     jarvis_respaldo: 'el respaldo',
     jarvis_parrilla: 'la parrilla de contenido',
+    jarvis_etiquetas: 'las etiquetas',
   }[server]
   if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)

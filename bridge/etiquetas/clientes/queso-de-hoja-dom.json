@@ -1,0 +1,24 @@
+{
+ "id": "queso-de-hoja-dom",
+ "nombre": "Queso de Hoja DOM",
+ "tipo": "traza",
+ "store": "et-queso-de-hoja-dom",
+ "productos": [
+  {
+   "code": "QHD01",
+   "name1": "QUESO DE HOJA DOM",
+   "pack": "12 OZ",
+   "lineas": [
+    "56 MORNING SIDE AVE",
+    "YONKERS, NY 10703"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

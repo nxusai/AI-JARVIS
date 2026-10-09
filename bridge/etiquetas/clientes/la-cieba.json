@@ -1,0 +1,69 @@
+{
+ "id": "la-cieba",
+ "nombre": "La Cieba",
+ "tipo": "traza",
+ "store": "et-la-cieba",
+ "productos": [
+  {
+   "code": "LCB01",
+   "name1": "LA CIEBA",
+   "pack": "CUAJADA SALVADOREÑA 12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LCB02",
+   "name1": "LA CIEBA",
+   "pack": "CUAJADA GUATEMALA 12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LCB03",
+   "name1": "LA CIEBA",
+   "pack": "CUAJADA OLANCHITA 12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LCB04",
+   "name1": "LA CIEBA",
+   "pack": "CUAJADA MEXICANA 12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LCB05",
+   "name1": "LA CIEBA",
+   "pack": "FRESCO 4 PULGADAS 12 OZ",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LCB06",
+   "name1": "LA CIEBA",
+   "pack": "FRESCO 4 PULGADAS 12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LCB07",
+   "name1": "LA CIEBA",
+   "pack": "FRESCO CUADRADO 12 OZ",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 54
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

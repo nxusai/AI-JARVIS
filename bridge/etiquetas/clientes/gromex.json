@@ -1,0 +1,53 @@
+{
+ "id": "gromex",
+ "nombre": "Gromex",
+ "tipo": "traza",
+ "store": "et-gromex",
+ "productos": [
+  {
+   "code": "GX01",
+   "name1": "GROMEX",
+   "pack": "5 LBS",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "GX02",
+   "name1": "GROMEX",
+   "pack": "10 LIBRAS",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "GX03",
+   "name1": "GROMEX",
+   "pack": "12 OZ",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "GX04",
+   "name1": "GROMEX",
+   "pack": "DESHEBRADO 12 OZ",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "GX05",
+   "name1": "GROMEX",
+   "pack": "FRESCO CUADRADO 6/12 OZ",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 44
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

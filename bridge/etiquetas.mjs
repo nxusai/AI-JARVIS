@@ -8,17 +8,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { findFfmpeg } from './video.mjs'
 
 /**
- * The 4×4 Zebra case labels of the owner's clients (Mi Semago's customers:
- * Depensa, Diamond Rock, Mi Semago itself), kept as data so Ana Sofi can
- * change them from Telegram: products, logos, a few safe design settings.
+ * The 4×4 Zebra labels Mi Semago prints, kept as data so Ana Sofi can change
+ * them from Telegram: products, logos, a few safe design settings. One label
+ * set per company (a category in the program): the GS1 case labels with a
+ * barcode (tipo gs1: Mi Semago, Diamond Rock) and the traceability labels
+ * without one (tipo traza: Abuelito, Río Lindo, … and Laboratorio).
  * Each change keeps the version before it, so anything can be undone.
- * Publishing builds the one-file program the printer's computer opens
- * (the template is bridge/etiquetas/plantilla.html, the one that prints well).
+ * Publishing builds ONE program with every company, the file the printer's
+ * computer opens (the template is bridge/etiquetas/plantilla.html, the one
+ * that prints well). Orders to print from Telegram go to a small queue file
+ * next to it, which that program reads and prints by itself.
  *
- *   ~/.nexy/etiquetas/<cliente>.json            the label set as it is now
- *   ~/.nexy/etiquetas/historial/<cliente>/…     every earlier version
+ *   ~/.nexy/etiquetas/<empresa>.json            the label set as it is now
+ *   ~/.nexy/etiquetas/historial/<empresa>/…     every earlier version
  *   ~/.nexy/etiquetas/recibidos/                images sent in the group (logos, samples)
- *   ~/Documents/Nexy/etiquetas/Etiquetas-….html the published programs
+ *   ~/Documents/Nexy/etiquetas/Etiquetas.html   the published program (and in the shared folder)
+ *   <shared folder>/cola-impresion.js           print orders from Telegram
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -51,9 +56,15 @@ export const sharedFolder = () => {
 const ID = /^[a-z0-9-]{2,40}$/
 const KEEP_VERSIONS = 200
 const FIELDS = ['brand', 'name1', 'name2', 'english', 'pack', 'upc', 'days']
-export const SIZES = ['codigo_texto', 'marca', 'nombre', 'ingles', 'presentacion', 'lote_titulo', 'lote', 'sell_titulo', 'sell', 'item', 'upc', 'keep']
+export const SIZES = ['codigo_texto', 'marca', 'nombre', 'ingles', 'presentacion', 'lote_titulo', 'lote', 'sell_titulo', 'sell', 'item', 'upc', 'keep', 'titulo', 'lineas', 'nota', 'empaque']
 const TEXTS = ['keep', 'lote_titulo', 'sell_titulo']
-const SHOWN = ['ingles', 'item', 'upc', 'codigo_texto', 'keep']
+const SHOWN = ['ingles', 'item', 'upc', 'codigo_texto', 'keep', 'lineas', 'nota', 'empaque']
+export const PROGRAM = 'Etiquetas.html'
+export const QUEUE_FILE = 'cola-impresion.js'
+const EMPAQUES = ['VACIO', 'REGULAR', '']
+// The order of the buttons: these first, Otros and Laboratorio last, the rest by name.
+const FIRST = ['mi-semago', 'diamond-rock']
+const LAST = ['otros', 'laboratorio']
 
 // -- the data ------------------------------------------------------------------
 
@@ -66,29 +77,74 @@ const slug = (s) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40)
 
-/** First run: the three label sets as they were delivered. */
+/**
+ * The label sets as they were delivered, each copied once (after that, the
+ * copy here is the one Ana Sofi changes). Catalog 2 put everything in one
+ * program: Depensa was the same twenty products as Mi Semago without a logo
+ * (now "Sin logo" in Mi Semago), and Diamond Rock repeated two of them.
+ */
+const CATALOG_VERSION = 2
+const CATALOG_FILE = join(LABELS_DIR, '_catalogo.json')
+let seeded = false
 function seed() {
+  if (seeded) return
+  seeded = true
   mkdirSync(LABELS_DIR, { recursive: true })
-  if (!existsSync(SEEDS)) return
-  for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
+  const version = (() => {
+    try {
+      return JSON.parse(readFileSync(CATALOG_FILE, 'utf8')).version ?? 1
+    } catch {
+      return existsSync(join(LABELS_DIR, 'mi-semago.json')) ? 1 : CATALOG_VERSION
+    }
+  })()
+  if (version < 2) {
+    const dep = join(LABELS_DIR, 'depensa.json')
+    if (existsSync(dep)) {
+      const c = JSON.parse(readFileSync(dep, 'utf8'))
+      saveClient(c, { quien: 'Nexy', que: 'se juntó con Mi Semago (mismos productos; Sin logo = Depensa)' })
+      rmSync(dep, { force: true })
+    }
+    const dr = readJson(join(LABELS_DIR, 'diamond-rock.json'))
+    if (dr?.productos) {
+      const repeated = new Set(['CH1135', 'CH1101'])
+      if (dr.productos.some((p) => repeated.has(p.code))) saveClient({ ...dr, productos: dr.productos.filter((p) => !repeated.has(p.code)) }, { quien: 'Nexy', que: 'quitó CH1135 y CH1101, que ya están en Mi Semago' })
+    }
+  }
+  if (existsSync(SEEDS)) for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
+  writeFileSync(CATALOG_FILE, `${JSON.stringify({ version: CATALOG_VERSION })}\n`)
+}
+const readJson = (f) => {
+  try {
+    return JSON.parse(readFileSync(f, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
+const rank = (c) => (FIRST.includes(c.id) ? FIRST.indexOf(c.id) - 100 : LAST.includes(c.id) ? 100 + LAST.indexOf(c.id) : 0)
 export function listClients() {
   seed()
   return readdirSync(LABELS_DIR)
     .filter((f) => f.endsWith('.json'))
     .map((f) => readClient(f.slice(0, -5)))
     .filter((c) => Array.isArray(c?.productos))
+    .sort((a, b) => rank(a) - rank(b) || a.nombre.localeCompare(b.nombre, 'es'))
 }
 
 export function readClient(id) {
   if (!ID.test(String(id))) return null
   seed()
-  try {
-    return JSON.parse(readFileSync(join(LABELS_DIR, `${id}.json`), 'utf8'))
-  } catch {
-    return null
+  const c = readJson(join(LABELS_DIR, `${id}.json`))
+  return c ? { ...c, tipo: c.tipo === 'traza' ? 'traza' : 'gs1' } : null
+}
+/** Which company a product code belongs to, when only the code is given (codes are unique across companies). */
+export function findProduct(code) {
+  const want = String(code ?? '').trim().toUpperCase()
+  for (const c of listClients()) {
+    const p = c.productos.find((x) => x.code.toUpperCase() === want)
+    if (p) return { c, p }
   }
+  return null
 }
 
 /** Save a label set, keeping the one before it. */
@@ -148,8 +204,26 @@ export function upcCheck(d11) {
   return String((10 - ((odd * 3 + even) % 10)) % 10)
 }
 
+/** A traceability product (no barcode) as it may be saved, or the reason it cannot. */
+export function cleanTraza(p) {
+  const t = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n)
+  const code = t(p.code, 20).toUpperCase()
+  if (!/^[\w.-]{1,20}$/.test(code)) return { error: 'The product code must be 1-20 letters, numbers, dots or dashes.' }
+  const name1 = t(p.name1, 40)
+  if (!name1) return { error: 'The product needs a name (the big line on top).' }
+  const lineas = (Array.isArray(p.lineas) ? p.lineas : []).map((l) => t(l, 50)).filter(Boolean)
+  if (lineas.length > 3) return { error: 'At most 3 lines for the company and address.' }
+  const empaque = t(p.empaque, 10).toUpperCase().replace('VACÍO', 'VACIO')
+  if (!EMPAQUES.includes(empaque)) return { error: 'Empaque is VACIO, REGULAR or empty.' }
+  const days = Number(p.days)
+  if (!Number.isInteger(days) || days < 1 || days > 365) return { error: 'Shelf life (days for the sell by) must be a whole number from 1 to 365.' }
+  const nota = t(p.nota, 50)
+  return { product: { code, name1, pack: t(p.pack, 40), lineas, empaque, days, ...(nota ? { nota } : {}), ...(p.duda ? { duda: t(p.duda, 200) } : {}) } }
+}
+
 /** A product as it may be saved, or the reason it cannot. */
-export function cleanProduct(p) {
+export function cleanProduct(p, tipo = 'gs1') {
+  if (tipo === 'traza') return cleanTraza(p)
   const out = {}
   for (const k of FIELDS) if (p[k] !== undefined && p[k] !== null) out[k] = typeof p[k] === 'string' ? p[k].replace(/\s+/g, ' ').trim() : p[k]
   out.code = String(p.code ?? '').trim().toUpperCase()
@@ -176,6 +250,7 @@ export function cleanProduct(p) {
  * (must fix) and warnings (worth a look at the preview).
  */
 export function review(c) {
+  if (c.tipo === 'traza') return reviewTraza(c)
   const problems = []
   const warnings = []
   const seenCode = new Map()
@@ -207,51 +282,114 @@ export function review(c) {
   return { problems, warnings }
 }
 
+function reviewTraza(c) {
+  const problems = []
+  const warnings = []
+  const seen = new Map()
+  for (const p of c.productos) {
+    const tag = p.code || '(sin código)'
+    const r = cleanTraza(p)
+    if (r.error) problems.push(`${tag}: ${r.error}`)
+    if (seen.has(p.code)) problems.push(`${tag}: el código está repetido.`)
+    seen.set(p.code, true)
+    if ((p.name1 ?? '').length > 26) warnings.push(`${tag}: el nombre es largo; saldrá en dos renglones o más chico.`)
+    if ((p.pack ?? '').length > 28) warnings.push(`${tag}: la presentación es larga; saldrá más chica.`)
+    if ((p.lineas ?? []).some((l) => l.length > 36)) warnings.push(`${tag}: un renglón de la dirección es largo; saldrá más chico.`)
+    if (p.duda) warnings.push(`${tag}: por confirmar — ${p.duda}`)
+  }
+  // The same label twice under different codes.
+  const same = new Map()
+  for (const p of c.productos) {
+    const k = [p.name1, p.pack, (p.lineas ?? []).join('|'), p.empaque].join('·').toUpperCase()
+    if (same.has(k)) warnings.push(`${p.code}: es igual a ${same.get(k)}.`)
+    else same.set(k, p.code)
+  }
+  if (!c.productos.length) problems.push('No tiene productos.')
+  return { problems, warnings }
+}
+
 // -- the program ------------------------------------------------------------------
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
-export function buildHtml(c, version = '') {
-  const logos = Object.fromEntries(Object.entries(c.logos ?? {}).map(([k, v]) => [k, { png: v.png, at: v.at, gfa: v.gfa }]))
-  const options = Object.entries(c.logos ?? {})
-    .map(([k, v]) => `          <option value="${esc(k)}">${esc(v.nombre ?? k)}</option>`)
-    .join('\n')
-  const json = (v) => JSON.stringify(v).replace(/</g, '\\u003c')
-  const t = readFileSync(TEMPLATE, 'utf8')
-  return t
-    .replace('__TITLE__', esc(`Etiquetas ${c.nombre}`))
-    .replace('__VERSION__', esc(version))
-    .replace('__CLIENT__', esc(c.nombre))
-    .replaceAll('__STORE__', c.store)
-    .replace('__PRODUCTS__', json(c.productos))
-    .replace('__DESIGN__', json(c.diseno ?? {}))
-    .replace('__LOGOS__', json(logos))
-    .replace('__LOGO_OPTIONS__', options)
-    .replace('__DEFAULT_LOGO__', json(c.sin_logo ? 'none' : c.logo_inicial && (c.logos?.[c.logo_inicial] || c.logo_inicial === 'texto') ? c.logo_inicial : 'none'))
-    .replace('__DEFAULT_TEXT__', json(c.texto_inicial ?? {}))
-    .replaceAll('__HIDE_LOGO__', c.sin_logo ? 'true' : 'false')
+/** One company as the program sees it. */
+function forProgram(c) {
+  const logos = c.tipo === 'traza' ? {} : Object.fromEntries(Object.entries(c.logos ?? {}).map(([k, v]) => [k, { nombre: v.nombre ?? k, png: v.png, at: v.at, gfa: v.gfa }]))
+  return {
+    id: c.id,
+    nombre: c.nombre,
+    tipo: c.tipo,
+    productos: c.productos.map(({ duda: _d, ...p }) => p),
+    diseno: c.diseno ?? {},
+    logos,
+    logo: c.sin_logo || c.tipo === 'traza' ? 'none' : c.logo_inicial && (logos[c.logo_inicial] || c.logo_inicial === 'texto') ? c.logo_inicial : 'none',
+    texto: c.texto_inicial ?? {},
+    sinLogo: Boolean(c.sin_logo) || c.tipo === 'traza',
+  }
 }
 
-export const programName = (c) => (/^[\w.-]+\.html$/.test(c.archivo ?? '') ? c.archivo : null) ?? `Etiquetas-${slug(c.nombre).replace(/(^|-)([a-z])/g, (_, d, l) => `${d}${l.toUpperCase()}`)}.html`
+/** The one program, every company a button. */
+export function buildCatalog(version = '', sets = listClients()) {
+  const json = (v) => JSON.stringify(v).replace(/</g, '\\u003c')
+  return readFileSync(TEMPLATE, 'utf8')
+    .replace('__TITLE__', 'Etiquetas Zebra 4×4')
+    .replace('__VERSION__', esc(version))
+    .replace('__CATALOG__', json(sets.map(forProgram)))
+}
+/** Kept for callers that build one company: the whole program, opened on it. */
+export const buildHtml = (_c, version = '') => buildCatalog(version)
+
+export const programName = () => PROGRAM
 
 /**
  * Build the program and keep it in ~/Documents/Nexy/etiquetas and, when it is
  * set, in the shared Google Drive folder the printer's computer opens it from.
  * The header says which version it is, so they can tell they have the latest.
  */
-export function publish(c, nota = '') {
+export function publish(_c, nota = '') {
   const when = new Date().toLocaleString('es-MX', { timeZone: 'America/New_York', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
-  const html = buildHtml(c, `Versión del ${when}${nota ? ` · ${String(nota).slice(0, 80)}` : ''}`)
+  const html = buildCatalog(`Versión del ${when}${nota ? ` · ${String(nota).slice(0, 80)}` : ''}`)
   mkdirSync(PUBLISHED, { recursive: true })
-  const path = join(PUBLISHED, programName(c))
+  const path = join(PUBLISHED, PROGRAM)
   writeFileSync(path, html)
   const folder = sharedFolder()
   let shared = null
   if (folder) {
-    shared = join(folder, programName(c))
+    shared = join(folder, PROGRAM)
     writeFileSync(shared, html)
   }
   return { path, shared }
+}
+
+// -- printing from Telegram ---------------------------------------------------------
+
+export const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+const JOB_HOURS = 6
+const MAX_JOBS = 60
+
+/**
+ * An order to print, left in the shared folder for the program open on the
+ * printer's computer (the one ticked as "la computadora de la Zebra"): it reads
+ * the queue every 15 seconds and prints each order once. The program works out
+ * the lot and sell by itself, from the production date and the days of life.
+ */
+export function queuePrint({ c, p, qty, fecha, logo, quien }) {
+  const folder = sharedFolder()
+  if (!folder) return { error: 'The shared Google Drive folder is not set up on this Mac (node scripts/anasofi.mjs carpeta), so nothing can reach the printer from here.' }
+  const file = join(folder, QUEUE_FILE)
+  let jobs = []
+  try {
+    const m = readFileSync(file, 'utf8').match(/colaImpresion\((\[[\s\S]*\])\)/)
+    jobs = m ? JSON.parse(m[1]) : []
+  } catch {
+    jobs = []
+  }
+  const now = Date.now()
+  jobs = jobs.filter((j) => now - Number(j.at) < JOB_HOURS * 3600e3).slice(-MAX_JOBS + 1)
+  const job = { id: `${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, at: now, cat: c.id, code: p.code, qty, fecha, ...(logo ? { logo } : {}), quien: String(quien ?? '').slice(0, 60) }
+  jobs.push(job)
+  writeFileSync(file, `// Pedidos de impresión de Telegram (Ana Sofi y Nexy). Los lee Etiquetas.html.\nwindow.colaImpresion && window.colaImpresion(${JSON.stringify(jobs)});\n`)
+  return { job, folder }
 }
 
 // -- pictures ---------------------------------------------------------------------
@@ -293,9 +431,9 @@ export async function preview(c, code, { logo, fecha } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'nexy-etiqueta-'))
   try {
     const html = join(dir, 'e.html')
-    writeFileSync(html, buildHtml(c))
+    writeFileSync(html, buildCatalog())
     const png = join(dir, 'e.png')
-    const hash = new URLSearchParams({ prod: p.code, ...(logo ? { logo } : {}), ...(fecha ? { fprod: fecha } : {}) }).toString()
+    const hash = new URLSearchParams({ cat: c.id, prod: p.code, ...(logo ? { logo } : {}), ...(fecha ? { fprod: fecha } : {}) }).toString()
     const args = [
       '--headless=new',
       '--disable-gpu',
@@ -375,7 +513,22 @@ export async function makeLogo(path, lugar = 'centro') {
 // -- Ana Sofi's tools ---------------------------------------------------------------
 
 const productLine = (p) =>
-  `${p.code} · ${[p.brand, p.name1, p.name2].filter(Boolean).join(' / ')} · ${p.english || '—'} · ${p.pack} · UPC ${p.upc} · ${p.days} días`
+  p.upc
+    ? `${p.code} · ${[p.brand, p.name1, p.name2].filter(Boolean).join(' / ')} · ${p.english || '—'} · ${p.pack} · UPC ${p.upc} · ${p.days} días`
+    : `${p.code} · ${p.name1} · ${p.pack || '—'} · ${(p.lineas ?? []).join(' / ') || 'sin dirección'} · ${p.empaque ? `empaque ${p.empaque}` : 'sin empaque'} · ${p.days} días${p.nota ? ` · ${p.nota}` : ''}${p.duda ? ` · POR CONFIRMAR: ${p.duda}` : ''}`
+const PRODUCT_FIELDS = {
+  code: z.string().optional().describe('A new code, to rename it.'),
+  brand: z.string().optional().describe('Barcode labels only.'),
+  name1: z.string().optional().describe('Barcode labels: the name. Traceability labels: the big line on top.'),
+  name2: z.string().optional().describe('Barcode labels only: second line of the name.'),
+  english: z.string().optional().describe('Barcode labels only.'),
+  pack: z.string().optional().describe('The size line (in the black band).'),
+  upc: z.string().optional().describe('Barcode labels only: 12 digits, checked.'),
+  days: z.number().optional().describe('Shelf life: sell by = production date + days.'),
+  lineas: z.array(z.string()).max(3).optional().describe('Traceability labels only: up to 3 lines, the company and its address.'),
+  empaque: z.enum(['VACIO', 'REGULAR', '']).optional().describe('Traceability labels only.'),
+  nota: z.string().optional().describe('Traceability labels only: a small extra line (e.g. "6 PZS / 5 LB · P/CJS").'),
+}
 
 /**
  * The only things Ana Sofi can do: the label sets. `files()` gives the images
@@ -393,14 +546,38 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
   return createSdkMcpServer({
     name: 'et',
     version: '1.0.0',
-    instructions: "The clients' 4×4 Zebra labels: products, logos, design, previews, publishing and undo.",
+    instructions: "Mi Semago's 4×4 Zebra labels, one program with a button per company: products, logos, design, previews, publishing, undo and printing.",
     tools: [
       tool('al_grupo', 'Write in the group.', { texto: z.string() }, async ({ texto }) => {
         await post(texto)
         return ok('Sent.')
       }),
-      tool('clientes', 'The label sets there are, with how many products each.', {}, async () =>
-        ok(listClients().map((c) => `${c.id} · ${c.nombre} · ${c.productos.length} productos · logos: ${Object.values(c.logos ?? {}).map((l) => l.nombre).join(', ') || (c.sin_logo ? 'no lleva' : 'ninguno')}`).join('\n')),
+      tool('clientes', 'The companies (label sets) there are, each a button in the program, with their kind and how many products.', {}, async () =>
+        ok(listClients().map((c) => `${c.id} · ${c.nombre} · ${c.tipo === 'traza' ? 'trazabilidad (sin código de barras)' : 'con código de barras'} · ${c.productos.length} productos${c.tipo === 'traza' ? '' : ` · logos: ${Object.values(c.logos ?? {}).map((l) => l.nombre).join(', ') || (c.sin_logo ? 'no lleva' : 'ninguno')}`}`).join('\n')),
+      ),
+      tool('buscar', 'Find products in every company by words (name, size, code, company), e.g. "quesillo abuelito 5 libras vacio".', { texto: z.string() }, async ({ texto }) => {
+        const fold = (x) => String(x ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        const words = fold(texto).split(/\s+/).filter(Boolean)
+        const hits = []
+        for (const c of listClients()) for (const p of c.productos) {
+          const hay = fold(`${c.nombre} ${c.id} ${productLine(p)}`)
+          if (words.every((w) => hay.includes(w))) hits.push(`${c.id} · ${productLine(p)}`)
+        }
+        return ok(hits.length ? hits.slice(0, 40).join('\n') + (hits.length > 40 ? `\n…and ${hits.length - 40} more: be more specific.` : '') : 'Nothing matches all those words.')
+      }),
+      tool(
+        'imprimir',
+        "Print labels on the Zebra at Mi Semago, from here: the order goes to the program open on the printer's computer, which prints it by itself within a minute (it works out the lot and sell by from the production date and the product's days). Only when someone in the group asks to print, after confirming which product (code) and how many. fecha: production date YYYY-MM-DD, today if not given.",
+        { codigo: z.string(), cantidad: z.number().int().min(1).max(500), cliente: z.string().optional(), fecha: z.string().optional(), logo: z.string().optional().describe('Barcode labels with logos only: tqf, 3ac, both, texto or none.') },
+        async ({ codigo, cantidad, cliente, fecha, logo }) => {
+          const hit = cliente ? (() => { const c = get(cliente); const p = c?.productos.find((x) => x.code.toUpperCase() === codigo.toUpperCase()); return c && p ? { c, p } : null })() : findProduct(codigo)
+          if (!hit) return refuse(`There is no product ${codigo}${cliente ? ` in ${cliente}` : ''}. Use buscar.`)
+          if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return refuse('fecha is YYYY-MM-DD.')
+          if (logo && hit.c.tipo !== 'traza' && !['texto', 'none'].includes(logo) && !hit.c.logos?.[logo]) return refuse(`${hit.c.nombre} has no logo ${logo}.`)
+          const r = queuePrint({ c: hit.c, p: hit.p, qty: cantidad, fecha: fecha || today(), logo, quien: who() })
+          if (r.error) return refuse(r.error)
+          return ok(`Sent to the printer's computer: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}), production ${fecha || today()}. It prints within a minute if the program is open there and ticked as the Zebra's computer (Opciones avanzadas); if that computer has no Zebra Browser Print, a button appears there to print it.`)
+        },
       ),
       tool('productos', "A label set's products and its design settings.", { cliente: z.string() }, async ({ cliente }) => {
         const c = get(cliente)
@@ -413,52 +590,37 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
         {
           cliente: z.string(),
           codigo: z.string().describe('The product code (ITEM) as it is now.'),
-          cambios: z.object({
-            code: z.string().optional().describe('A new code, to rename it.'),
-            brand: z.string().optional(),
-            name1: z.string().optional(),
-            name2: z.string().optional(),
-            english: z.string().optional(),
-            pack: z.string().optional(),
-            upc: z.string().optional(),
-            days: z.number().optional(),
-          }),
+          cambios: z.object(PRODUCT_FIELDS),
         },
         async ({ cliente, codigo, cambios }) => {
           const c = get(cliente)
           if (!c) return unknown(cliente)
           const i = c.productos.findIndex((p) => p.code === codigo)
           if (i < 0) return refuse(`${c.nombre} has no product ${codigo}.`)
-          const r = cleanProduct({ ...c.productos[i], ...cambios })
+          const { duda: _resolved, ...was } = c.productos[i]
+          const r = cleanProduct({ ...was, ...cambios }, c.tipo)
           if (r.error) return refuse(r.error)
           if (r.product.code !== codigo && c.productos.some((p) => p.code === r.product.code)) return refuse(`There is already a product ${r.product.code}.`)
           const before = c.productos[i]
           c.productos[i] = r.product
-          const diff = Object.keys(r.product).filter((k) => String(r.product[k]) !== String(before[k] ?? '')).map((k) => `${k}: «${before[k] ?? ''}» → «${r.product[k]}»`)
+          const diff = Object.keys({ ...before, ...r.product }).filter((k) => String(r.product[k] ?? '') !== String(before[k] ?? '')).map((k) => `${k}: «${before[k] ?? ''}» → «${r.product[k] ?? ''}»`)
           if (!diff.length) return ok('Nothing changed: it already had those values.')
           return change(c, `${codigo}: ${diff.join('; ')}`)
         },
       ),
       tool(
         'agregar_producto',
-        'Add a product to a label set.',
+        'Add a product to a label set. Barcode labels (gs1) need code, name1, pack, upc and days; traceability labels (traza) need code, name1, pack, lineas, empaque and days. Codes are unique across all companies.',
         {
           cliente: z.string(),
-          producto: z.object({
-            code: z.string(),
-            brand: z.string().optional(),
-            name1: z.string(),
-            name2: z.string().optional(),
-            english: z.string().optional(),
-            pack: z.string(),
-            upc: z.string(),
-            days: z.number(),
-          }),
+          producto: z.object({ ...PRODUCT_FIELDS, code: z.string(), name1: z.string(), days: z.number() }),
         },
         async ({ cliente, producto }) => {
           const c = get(cliente)
           if (!c) return unknown(cliente)
-          const r = cleanProduct(producto)
+          const other = findProduct(producto.code)
+          if (other && other.c.id !== c.id) return refuse(`The code ${producto.code} is already used in ${other.c.nombre}; pick another.`)
+          const r = cleanProduct(producto, c.tipo)
           if (r.error) return refuse(r.error)
           if (c.productos.some((p) => p.code === r.product.code)) return refuse(`There is already a product ${r.product.code}; use editar_producto.`)
           c.productos.push(r.product)
@@ -575,7 +737,7 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
           if (problems.length) return refuse(`Not published: fix these first:\n- ${problems.join('\n- ')}`)
           const { path, shared } = publish(c, que_cambio)
           // With the shared folder the printer's computer gets it by itself; without it, as a file.
-          if (shared) return ok(`Published: ${path.split('/').pop()} is updated in the shared folder; in a minute the printer's computer has it. Tell them in one line to reload the program (F5) and check the version line at the top.`)
+          if (shared) return ok(`Published: ${path.split('/').pop()} (every company in one program) is updated in the shared folder; in a minute the printer's computer has it. Tell them in one line to reload the program (F5) and check the version line at the top.`)
           await postFile(path, `🆕 ${c.nombre}: ${que_cambio}\n\nEn la computadora de la Zebra: descarga este archivo y reemplaza el anterior (mismo nombre).`)
           return ok(`Published and sent as a file: ${path.split('/').pop()}.`)
         },
@@ -608,7 +770,7 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
       ),
       tool(
         'nuevo_cliente',
-        'Start a new label set, copying the design (not the products) of an existing one.',
+        'Start a new company (label set, a new button in the program), copying the design and kind (barcode or traceability) of an existing one, not its products.',
         { nombre: z.string(), copiar_de: z.string(), sin_logo: z.boolean().optional() },
         async ({ nombre, copiar_de, sin_logo }) => {
           const from = get(copiar_de)
@@ -617,9 +779,46 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
           if (!ID.test(id)) return refuse('Give it a name with letters or numbers.')
           if (readClient(id)) return refuse(`There is already a label set ${id}.`)
           const { archivo: _archivo, ...design } = from
-          const c = { ...design, id, nombre: nombre.slice(0, 40), store: `et-${id}`, productos: [], logos: {}, logo_inicial: 'none', texto_inicial: {}, sin_logo: sin_logo ?? from.sin_logo }
+          const c = { ...design, id, nombre: nombre.slice(0, 40), tipo: from.tipo, store: `et-${id}`, productos: [], logos: {}, logo_inicial: 'none', texto_inicial: {}, sin_logo: from.tipo === 'traza' ? true : (sin_logo ?? from.sin_logo) }
           saveClient(c, { quien: who(), que: `creó ${nombre}` })
           return ok(`Created ${id}. Add its products with agregar_producto.`)
+        },
+      ),
+    ],
+  })
+}
+
+/**
+ * The owner's own Nexy and the labels: find a product and send labels to the
+ * Zebra ("imprímeme 20 del quesillo abuelito de 5 libras"). Changing the
+ * labels stays with Ana Sofi's group.
+ */
+export function ownerLabelsServer() {
+  const ok = (text) => ({ content: [{ type: 'text', text }] })
+  const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
+  const fold = (x) => String(x ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  return createSdkMcpServer({
+    name: 'jarvis_etiquetas',
+    version: '1.0.0',
+    instructions: "Mi Semago's Zebra labels: find a product and print labels on the Zebra at Mi Semago.",
+    tools: [
+      tool('search_labels', "Find label products in every company by words (name, size, packing, company, code). Codes are unique; use one to print.", { texto: z.string() }, async ({ texto }) => {
+        const words = fold(texto).split(/\s+/).filter(Boolean)
+        const hits = []
+        for (const c of listClients()) for (const p of c.productos) if (words.every((w) => fold(`${c.nombre} ${productLine(p)}`).includes(w))) hits.push(`${c.nombre} · ${productLine(p)}`)
+        return ok(hits.length ? hits.slice(0, 30).join('\n') : 'Nothing matches all those words.')
+      }),
+      tool(
+        'print_labels',
+        "Print labels on the Zebra at Mi Semago: the order reaches the label program open on the printer's computer through the shared Drive folder and prints within a minute. Only when the owner asks, with the product (code from search_labels) and how many; if more than one product could be it, ask which. fecha: production date YYYY-MM-DD, today if not given.",
+        { codigo: z.string(), cantidad: z.number().int().min(1).max(500), fecha: z.string().optional(), logo: z.string().optional() },
+        async ({ codigo, cantidad, fecha, logo }) => {
+          const hit = findProduct(codigo)
+          if (!hit) return refuse(`There is no label product ${codigo}. Use search_labels.`)
+          if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return refuse('fecha is YYYY-MM-DD.')
+          const r = queuePrint({ c: hit.c, p: hit.p, qty: cantidad, fecha: fecha || today(), logo, quien: 'Eduardo (Nexy)' })
+          if (r.error) return refuse(r.error)
+          return ok(`Sent: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}). It prints within a minute if the program is open on the printer's computer.`)
         },
       ),
     ],

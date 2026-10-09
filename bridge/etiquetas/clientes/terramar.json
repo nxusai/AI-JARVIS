@@ -1,0 +1,35 @@
+{
+ "id": "terramar",
+ "nombre": "Terramar",
+ "tipo": "traza",
+ "store": "et-terramar",
+ "productos": [
+  {
+   "code": "TM01",
+   "name1": "REQUESON",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "DISTRIBUTED BY TERRAMAR LLC",
+    "WWW.TERRAMARESSENTIALS.COM"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "TM02",
+   "name1": "QUESILLO MEDRANO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "DISTRIBUTED BY TERRAMAR LLC",
+    "WWW.TERRAMARESSENTIALS.COM"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,423 @@
+{
+ "id": "laboratorio",
+ "nombre": "Laboratorio",
+ "tipo": "traza",
+ "store": "et-laboratorio",
+ "productos": [
+  {
+   "code": "LAB01",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB02",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB03",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB04",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "12 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB05",
+   "name1": "QUESILLO ABUELITO",
+   "pack": "5 LIBRAS (PRE CUT)",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB06",
+   "name1": "QUESOS FINOS",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB07",
+   "name1": "QUESILLO STYLE OAXACA",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB08",
+   "name1": "QUESILLO STYLE OAXACA",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB09",
+   "name1": "QUESILLO MI COMPADRE",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB10",
+   "name1": "QUESILLO MI COMPADRE",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB11",
+   "name1": "TERRAMAR ESSENCIALS",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB12",
+   "name1": "FRESCO PRODUCTS",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB13",
+   "name1": "VALLE DE TEXCOCO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB14",
+   "name1": "VALLE DE TEXCOCO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO SEGMENTED"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB15",
+   "name1": "LA CIMA",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB16",
+   "name1": "QUESILLO IDEAL",
+   "pack": "12 ONZAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB17",
+   "name1": "QUESILLO IDEAL",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB18",
+   "name1": "EL GALLITO",
+   "pack": "12 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB19",
+   "name1": "EL GALLITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB20",
+   "name1": "EL VIEJITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB21",
+   "name1": "EL VIEJITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB22",
+   "name1": "EL VIEJITO",
+   "pack": "14 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB23",
+   "name1": "RIO LINDO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB24",
+   "name1": "RIO LINDO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB25",
+   "name1": "RIO LINDO",
+   "pack": "14 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB26",
+   "name1": "QUESILLO COMPADRITOS",
+   "pack": "",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB27",
+   "name1": "SABROCITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB28",
+   "name1": "QUESO DE HOJA",
+   "pack": "12 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB29",
+   "name1": "DELICIAS",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB30",
+   "name1": "OAXAQUEÑO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB31",
+   "name1": "OAXAQUEÑO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "LAB32",
+   "name1": "QUESILLO EMIS",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB33",
+   "name1": "QUESILLO EMIS",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB34",
+   "name1": "QUESILLO EMIS",
+   "pack": "12 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "LAB35",
+   "name1": "QUESILLO MEDRANO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "LAB36",
+   "name1": "QUESO FRESCO",
+   "pack": "11 OZ",
+   "lineas": [
+    "FINISH PRODUCT"
+   ],
+   "empaque": "",
+   "days": 59
+  },
+  {
+   "code": "LAB37",
+   "name1": "QUESO FRESCO",
+   "pack": "11 OZ",
+   "lineas": [
+    "RAW MATERIAL"
+   ],
+   "empaque": "",
+   "days": 59
+  },
+  {
+   "code": "LAB38",
+   "name1": "REQUESON",
+   "pack": "",
+   "lineas": [
+    "FINISH PRODUCT"
+   ],
+   "empaque": "",
+   "days": 44
+  },
+  {
+   "code": "LAB39",
+   "name1": "REQUESON",
+   "pack": "",
+   "lineas": [
+    "RAW MATERIAL"
+   ],
+   "empaque": "",
+   "days": 44
+  },
+  {
+   "code": "LAB40",
+   "name1": "ABUELITO, VIEJITO AND RIO LINDO",
+   "pack": "CONTAINER 12 OZ",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "",
+   "days": 59
+  },
+  {
+   "code": "LAB41",
+   "name1": "VIEJITO · RIO LINDO",
+   "pack": "CONTAINER",
+   "lineas": [
+    "LABORATORIO"
+   ],
+   "empaque": "",
+   "days": 49
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -8,13 +8,22 @@
   :root { --bg:#f4f5f7; --card:#fff; --ink:#15171a; --muted:#5b616b; --line:#d9dce1; --accent:#1f7a3a; --warn:#b42318; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font: 15px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-  header { padding:16px 20px; background:#15171a; color:#fff; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  header { padding:14px 20px; background:#15171a; color:#fff; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
   header h1 { margin:0; font-size:20px; }
   header span { color:#b8bdc6; font-size:13px; }
   header .ver { margin-left:auto; color:#9fe0b0; }
-  main { display:grid; grid-template-columns: minmax(300px, 420px) 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding:16px; } }
+  .wrap { display:grid; grid-template-columns: 230px minmax(300px, 420px) 1fr; gap:16px; padding:16px; max-width:1400px; margin:0 auto; align-items:start; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns: 200px 1fr; } .wrap > .preview { grid-column: 1 / -1; } }
+  @media (max-width: 700px) { .wrap { grid-template-columns: 1fr; } }
+  nav { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; position:sticky; top:10px; max-height:calc(100vh - 20px); overflow:auto; }
+  nav input { margin-bottom:8px; }
+  nav button { display:flex; justify-content:space-between; gap:8px; width:100%; text-align:left; background:none; color:var(--ink); font-size:15px; font-weight:600; padding:9px 10px; border-radius:8px; margin:1px 0; }
+  nav button:hover { background:#eef0f3; }
+  nav button.on { background:var(--accent); color:#fff; }
+  nav button small { opacity:.7; font-weight:500; }
+  nav .found { font-weight:500; font-size:14px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card h2 { margin:0 0 4px; font-size:18px; }
   label { display:block; font-weight:600; margin:12px 0 4px; }
   .hint { color:var(--muted); font-size:12.5px; font-weight:400; }
   input, select { width:100%; padding:10px 12px; font-size:16px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
@@ -23,13 +32,19 @@
   button { font-size:16px; font-weight:700; padding:12px 14px; border-radius:10px; border:0; cursor:pointer; }
   .primary { background:var(--accent); color:#fff; width:100%; margin-top:16px; }
   .secondary { background:#e8eaee; color:var(--ink); width:100%; margin-top:8px; }
+  .mini { background:#e8eaee; color:var(--ink); font-size:14px; padding:8px 10px; margin-top:6px; }
   .msg { margin-top:10px; font-size:14px; min-height:1.4em; }
   .msg.err { color:var(--warn); }
   .msg.ok { color:var(--accent); }
+  .days { display:grid; grid-template-columns: 110px auto auto; gap:8px; align-items:end; }
+  .changed { color:#9a5b00; font-size:13px; }
   canvas { width:100%; max-width:620px; aspect-ratio:1/1; height:auto; display:block; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:6px; }
   details { margin-top:16px; }
   summary { cursor:pointer; font-weight:600; }
   .small { font-size:13px; color:var(--muted); }
+  .queue { margin-top:14px; padding:10px 12px; border-radius:10px; background:#eef6f0; font-size:14px; }
+  .queue.off { background:#f3f4f6; }
+  .pending { margin-top:10px; padding:12px; border-radius:10px; background:#fff4e5; border:1px solid #f0c27a; }
   #printarea { display:none; }
   @page { size: 4in 4in; margin: 0; }
   @media print {
@@ -45,17 +60,31 @@
 </head>
 <body>
 <header>
-  <h1>Etiquetas 4×4 · __CLIENT__</h1>
-  <span>Elige el producto, revisa lote y fechas, e imprime.</span>
+  <h1>Etiquetas Zebra 4×4</h1>
+  <span>Elige la empresa, el producto, revisa lote y fechas, e imprime.</span>
   <span class="ver">__VERSION__</span>
 </header>
-<main>
+<div class="wrap">
+  <nav>
+    <input id="find" type="search" placeholder="Buscar producto…" autocomplete="off">
+    <div id="cats"></div>
+  </nav>
+
   <section class="card">
+    <h2 id="catname"></h2>
     <label for="prod">Producto</label>
     <select id="prod"></select>
 
     <label for="fprod">Fecha de producción <span class="hint">(con esta se calculan el lote y el sell by)</span></label>
     <input id="fprod" type="date">
+
+    <label for="days">Días de vida <span class="hint">(sell by = producción + días)</span></label>
+    <div class="days">
+      <input id="days" type="number" min="1" max="365">
+      <button class="mini" id="daysave">Guardar</button>
+      <button class="mini" id="daysreset" hidden>Volver al original</button>
+    </div>
+    <div class="changed" id="dayswhy"></div>
 
     <div class="row">
       <div>
@@ -76,13 +105,9 @@
         <label for="sell">Sell by</label>
         <input id="sell" type="date">
       </div>
-      <div>
+      <div id="logobox">
         <label for="logo">Logo de abajo</label>
-        <select id="logo">
-__LOGO_OPTIONS__
-          <option value="texto">Texto (escribirlo yo)</option>
-          <option value="none">Sin logo</option>
-        </select>
+        <select id="logo"></select>
       </div>
     </div>
     <div id="textbox" hidden>
@@ -110,51 +135,41 @@ __LOGO_OPTIONS__
     <button class="primary" id="print">🖨️ Imprimir en la Zebra</button>
     <div class="msg" id="msg"></div>
     <p class="small" id="how"></p>
+    <div id="pending"></div>
+    <div class="queue off" id="queue"></div>
     <details>
       <summary class="small">Opciones avanzadas</summary>
       <button class="secondary" id="winprint">🖨️ Imprimir con Windows (driver de la Zebra)</button>
       <button class="secondary" id="download">⬇️ Descargar archivo .prn (para Zebra Setup Utilities)</button>
       <p class="small">No abras el archivo .prn con doble clic: se manda con Zebra Setup Utilities → Open Printer Tools → Action → Send file.</p>
+      <label style="font-weight:500"><input type="checkbox" id="zebrapc" style="width:auto"> Esta es la computadora de la Zebra: aquí se imprimen los pedidos que lleguen por Telegram.</label>
     </details>
-
     <p class="small">¿Algo que corregir o agregar? Pídeselo a Ana Sofi en Telegram.</p>
-    <details hidden>
-      <summary>Editar datos de este producto</summary>
-      <label for="e_brand">Marca <span class="hint">(Mi Siembra, Izalco… vacío si no lleva)</span></label><input id="e_brand">
-      <label for="e_name1">Nombre (línea 1)</label><input id="e_name1">
-      <label for="e_name2">Nombre (línea 2)</label><input id="e_name2">
-      <label for="e_english">Descripción en inglés</label><input id="e_english">
-      <label for="e_pack">Presentación</label><input id="e_pack">
-      <div class="row">
-        <div><label for="e_upc">UPC (12 dígitos)</label><input id="e_upc" inputmode="numeric" maxlength="12"></div>
-        <div><label for="e_days">Días de vida (sell by)</label><input id="e_days" type="number" min="1" max="365"></div>
-      </div>
-      <button class="secondary" id="save">Guardar cambios de este producto</button>
-      <button class="secondary" id="reset">Volver a los datos originales</button>
-      <p class="small">Los cambios se guardan solo en esta computadora.</p>
-    </details>
   </section>
 
-  <section class="card">
+  <section class="card preview">
     <canvas id="cv" width="812" height="812" aria-label="Vista previa de la etiqueta"></canvas>
     <p class="small" style="text-align:center">Vista previa. La impresión real puede variar un poco en las letras.</p>
   </section>
-</main>
+</div>
 <div id="printarea" aria-hidden="true"></div>
 
 <script>
-const BASE = __PRODUCTS__;
-const DESIGN = __DESIGN__; // tamaños (0.8–1.15), textos y qué se muestra, por cliente (Ana Sofi los ajusta)
-const LOGOS = __LOGOS__; // id → { png, at: [{ x, y, w, h }], gfa: { "203": [...], "300": [...] } } per choice
-
-// ── productos (con los cambios guardados en esta computadora) ──
-const KEY = '__STORE__-productos';
-function loadEdits() { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } }
-function saveEdits(e) { try { localStorage.setItem(KEY, JSON.stringify(e)); } catch {} }
-let edits = {}; // Los datos los cambia Ana Sofi; esta computadora no guarda cambios propios.
-const products = () => BASE.map(p => ({ ...p, ...(edits[p.code] || {}) }));
-const current = () => products().find(p => p.code === $('prod').value) || products()[0];
+// Every label set (category): { id, nombre, tipo: 'gs1'|'traza', productos, diseno, logos, logo, texto, sinLogo }.
+const CATALOG = __CATALOG__;
 const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let cat = CATALOG[0];
+const setOf = id => CATALOG.find(c => c.id === id);
+const current = () => cat.productos.find(p => p.code === $('prod').value) || cat.productos[0];
+
+// ── días de vida: los de la etiqueta, o los que se cambiaron en esta computadora ──
+const DAYS = 'et-dias';
+const dayKey = (c, p) => `${c.id}/${p.code}`;
+const daysOf = (c, p) => { const o = store.get(DAYS, {})[dayKey(c, p)]; return Number(o) || Number(p.days); };
 
 // ── Code 128 (GS1) ──
 const PAT = ('212222 222122 222221 121223 121322 131222 122213 122312 132212 221213 221312 231212 112232 122132 122231 113222 ' +
@@ -183,11 +198,6 @@ function gs1(gtin14, sell, lot) {
   const widths = (vals.map(v => PAT[v]).join('') + '2331112').split('').map(Number);
   return { widths, zpl };
 }
-function upcCheck(d11) {
-  let odd = 0, even = 0;
-  for (let i = 0; i < 11; i++) (i % 2 === 0 ? (odd += +d11[i]) : (even += +d11[i]));
-  return String((10 - (odd * 3 + even) % 10) % 10);
-}
 
 // ── fechas y lote ──
 const pad = n => String(n).padStart(2, '0');
@@ -198,40 +208,48 @@ const yymmdd = s => { const d = parseISO(s); return `${String(d.getFullYear()).s
 function julian(s) { const d = parseISO(s); const start = new Date(d.getFullYear(), 0, 1); return Math.round((d - start) / 864e5) + 1; }
 // La letra del lote es el mes, sin la I: A=ene B=feb C=mar D=abr E=may F=jun G=jul H=ago J=sep K=oct L=nov M=dic.
 const MONTHS = 'ABCDEFGHJKLM';
-function letter() {
+function letterFor(fecha) {
   if ($('prefmode').value === 'manual') return $('pref').value.trim().toUpperCase();
-  return $('fprod').value ? MONTHS[parseISO($('fprod').value).getMonth()] : '';
+  return fecha ? MONTHS[parseISO(fecha).getMonth()] : '';
+}
+/** Lot and sell by for a production date: what the form shows, and what a Telegram order prints. */
+function fieldsFor(c, p, fecha) {
+  const lot = letterFor(fecha) + String(julian(fecha)).padStart(3, '0');
+  const d = parseISO(fecha); d.setDate(d.getDate() + daysOf(c, p));
+  const sell = toISO(d);
+  return { lot, sell6: yymmdd(sell), sellMDY: mdy(sell), sell };
 }
 function autofill() {
   const p = current();
-  if (!$('fprod').value) return;
-  $('lot').value = letter() + String(julian($('fprod').value)).padStart(3, '0');
-  const d = parseISO($('fprod').value); d.setDate(d.getDate() + Number(p.days));
-  $('sell').value = toISO(d);
-  $('auto').textContent = `Lote = ${letter() || '(sin letra)'} + día del año (${julian($('fprod').value)}). Sell by = producción + ${p.days} días. Puedes cambiarlos a mano.`;
+  if (!$('fprod').value || !p) return;
+  const f = fieldsFor(cat, p, $('fprod').value);
+  $('lot').value = f.lot;
+  $('sell').value = f.sell;
+  $('auto').textContent = `Lote = ${letterFor($('fprod').value) || '(sin letra)'} + día del año (${julian($('fprod').value)}). Sell by = producción + ${daysOf(cat, p)} días. Puedes cambiarlos a mano.`;
 }
 
-// ── la etiqueta: un solo diseño para la vista previa y para la Zebra ──
-function layout(p, f) {
-  const items = layoutBase(p, f);
-  // Ajustes del cliente: tamaño de cada texto, sus palabras y qué se muestra.
-  const tam = DESIGN.tam || {}, txt = DESIGN.textos || {}, ver = DESIGN.mostrar || {};
-  items.items = items.items
-    .filter((it) => !it.k || ver[it.k] !== false)
-    .map((it) => {
+// ── las etiquetas: un solo diseño para la vista previa, Windows y la Zebra ──
+const opts = () => ({ logo: $('logo').value, b: [$('b1').value.trim(), $('b2').value.trim(), $('b3').value.trim()] });
+function layout(c, p, f, o) {
+  const L = c.tipo === 'traza' ? layoutTraza(p, f) : layoutGs1(p, f, o);
+  // Ajustes de cada empresa (Ana Sofi): tamaño de cada texto, sus palabras y qué se muestra.
+  const D = c.diseno || {}, tam = D.tam || {}, txt = D.textos || {}, ver = D.mostrar || {};
+  L.items = L.items
+    .filter(it => !it.k || ver[it.k] !== false)
+    .map(it => {
       if (it.t !== 'text') return it;
       const m = Math.min(1.15, Math.max(0.8, Number(tam[it.k]) || 1));
       const s = it.k && typeof txt[it.k] === 'string' && txt[it.k].trim() && ['keep', 'lote_titulo', 'sell_titulo'].includes(it.k) ? txt[it.k].trim() : it.s;
       return { ...it, h: Math.round(it.h * m), s };
     });
-  return items;
+  return L;
 }
-function layoutBase(p, f) {
+function layoutGs1(p, f, o) {
   const upc = p.upc;
   const gtin = '00' + upc;
   const name = [p.name1, p.name2].filter(Boolean).join(' ');
   const one = name.length <= 22;
-  const bottom = $('logo').value !== 'none';
+  const bottom = o.logo !== 'none';
   const upcText = `UPC ${upc[0]} ${upc.slice(1, 6)} ${upc.slice(6, 11)} ${upc[11]}`;
   const hri = `(01) ${gtin}  (16) ${f.sell6}  (10) ${f.lot}`;
   // Nothing under KEEP REFRIGERATED: the whole label for the words, as big as they fit.
@@ -287,13 +305,51 @@ function layoutBase(p, f) {
       { t: 'text', x: 360, y: 572, w: 432, h: 30, s: upcText, align: 'R', k: 'upc' },
       { t: 'fill', x: 20, y: 610, w: 772, h: 44, k: 'keep' },
       { t: 'text', x: 20, y: 616, w: 772, h: 32, s: 'KEEP REFRIGERATED', rev: true, k: 'keep' },
-      ...($('logo').value === 'texto' ? [
-        { t: 'text', x: 20, y: 666, w: 772, h: 38, s: $('b1').value.trim() },
-        { t: 'text', x: 20, y: 716, w: 772, h: 30, s: $('b2').value.trim() },
-        { t: 'text', x: 20, y: 758, w: 772, h: 30, s: $('b3').value.trim() },
+      ...(o.logo === 'texto' ? [
+        { t: 'text', x: 20, y: 666, w: 772, h: 38, s: o.b[0] },
+        { t: 'text', x: 20, y: 716, w: 772, h: 30, s: o.b[1] },
+        { t: 'text', x: 20, y: 758, w: 772, h: 30, s: o.b[2] },
       ].filter(x => x.s) : []),
     ],
   };
+}
+/**
+ * The traceability label (no barcode): the product's name as big as it fits on
+ * top, its size in a black band, who it is for and their address, and at the
+ * bottom the packing, the lot and the sell by in large boxes.
+ */
+function layoutTraza(p, f) {
+  const mid = [];
+  let y = 0;
+  const title = p.name1 || '';
+  const th = title.length <= 14 ? 124 : title.length <= 20 ? 100 : 84;
+  const tl = rowsOf({ x: 16, y: 0, w: 780, h: th, s: title, lines: 2 }).length;
+  mid.push({ t: 'text', x: 16, y, w: 780, h: th, s: title, lines: 2, k: 'titulo' });
+  y += tl * (th + 4) + 10;
+  if (p.pack) {
+    mid.push({ t: 'fill', x: 20, y, w: 772, h: 78 });
+    mid.push({ t: 'text', x: 24, y: y + 10, w: 764, h: 58, s: p.pack, rev: true, k: 'presentacion' });
+    y += 92;
+  }
+  for (const l of (p.lineas || []).filter(Boolean)) { mid.push({ t: 'text', x: 16, y, w: 780, h: 48, s: l, k: 'lineas' }); y += 56; }
+  if (p.nota) { mid.push({ t: 'text', x: 16, y, w: 780, h: 34, s: p.nota, k: 'nota' }); y += 42; }
+  // Everything above the packing line has to fit in 560 dots: shrink it all together if not.
+  const room = 560, top = 22, k = y > room ? room / y : 1;
+  const items = mid.map(it => ({ ...it, y: Math.round(top + it.y * k), h: Math.round(it.h * k) }));
+  const used = Math.round(y * k);
+  // The space left over goes evenly above and below, so short labels sit centred.
+  const shift = Math.max(0, Math.round((room - used) / 2));
+  items.forEach(it => (it.y += shift));
+  if (p.empaque) items.push({ t: 'text', x: 20, y: 594, w: 772, h: 44, s: `EMPAQUE: ${p.empaque}`, k: 'empaque' });
+  items.push(
+    { t: 'box', x: 20, y: 648, w: 380, h: 148, th: 4 },
+    { t: 'box', x: 412, y: 648, w: 380, h: 148, th: 4 },
+    { t: 'text', x: 20, y: 658, w: 380, h: 34, s: 'LOT', k: 'lote_titulo' },
+    { t: 'text', x: 40, y: 706, w: 340, h: 80, s: f.lot, k: 'lote' },
+    { t: 'text', x: 412, y: 658, w: 380, h: 34, s: 'SELL BY', k: 'sell_titulo' },
+    { t: 'text', x: 432, y: 706, w: 340, h: 80, s: f.sellMDY, k: 'sell' },
+  );
+  return { bc: null, items };
 }
 
 /** The rows a text item becomes, each with its font size and x, as drawn. */
@@ -305,7 +361,9 @@ function rowsOf(it) {
   const words = String(it.s || '').split(/\s+/); const rows = []; let cur = '';
   for (const w of words) { const t = (cur + ' ' + w).trim(); if (c.measureText(t).width <= it.w || !cur) cur = t; else { rows.push(cur); cur = w; } }
   rows.push(cur);
-  return rows.slice(0, it.lines || 1).map((r, i) => {
+  // More words than lines: the last line takes the rest, smaller.
+  if (rows.length > (it.lines || 1)) rows.splice((it.lines || 1) - 1, rows.length, rows.slice((it.lines || 1) - 1).join(' '));
+  return rows.map((r, i) => {
     let s = size; c.font = font(s);
     while (c.measureText(r).width > it.w && s > 8) { s--; c.font = font(s); }
     const tw = c.measureText(r).width;
@@ -314,14 +372,16 @@ function rowsOf(it) {
   });
 }
 
-function zpl(p, f, dpi, copies) {
+function zpl(c, p, f, o, dpi, copies) {
   const k = dpi === 300 ? 300 / 203 : 1;
   const r = v => Math.round(v * k);
-  const L = layout(p, f);
+  const L = layout(c, p, f, o);
   const out = ['^XA', '^CI28', `^PW${r(812)}`, `^LL${r(812)}`, '^LH0,0'];
-  const mod = dpi === 300 ? 4 : 3;
-  const bw = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
-  out.push(`^FO${Math.round((r(812) - bw) / 2)},${r(24)}^BY${mod},3,${r(170)}^BCN,${r(170)},N,N,N,N^FD${L.bc.zpl}^FS`);
+  if (L.bc) {
+    const mod = dpi === 300 ? 4 : 3;
+    const bw = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
+    out.push(`^FO${Math.round((r(812) - bw) / 2)},${r(24)}^BY${mod},3,${r(170)}^BCN,${r(170)},N,N,N,N^FD${L.bc.zpl}^FS`);
+  }
   for (const it of L.items) {
     if (it.t === 'fill') out.push(`^FO${r(it.x)},${r(it.y)}^GB${r(it.w)},${r(it.h)},${r(it.h)}^FS`);
     else if (it.t === 'box') out.push(`^FO${r(it.x)},${r(it.y)}^GB${r(it.w)},${r(it.h)},${Math.max(1, r(it.th))}^FS`);
@@ -333,8 +393,8 @@ function zpl(p, f, dpi, copies) {
       out.push(`^FO${r(it.x)},${r(row.y)}^A0N,${r(hh)},${r(ww)}^FB${r(it.w)},1,0,${it.align || 'C'},0${it.rev ? '^FR' : ''}^FD${clean(row.s)}^FS`);
     }
   }
-  const choice = LOGOS[$('logo').value] || { at: [], gfa: { 203: [], 300: [] } };
-  choice.at.forEach((a, i) => {
+  const choice = c.tipo === 'traza' ? null : (c.logos || {})[o.logo];
+  if (choice) choice.at.forEach((a, i) => {
     const g = choice.gfa[String(dpi)][i];
     out.push(`^FO${r(a.x)},${r(a.y)}^GFA,${g.total},${g.total},${g.bpr},${g.hex}^FS`);
   });
@@ -344,7 +404,7 @@ function zpl(p, f, dpi, copies) {
 const clean = s => String(s ?? '').replace(/[\^~]/g, ' ');
 
 const pics = {};
-for (const [id, l] of Object.entries(LOGOS)) l.png.forEach((src, i) => { const im = new Image(); im.onload = () => draw(); im.src = src; pics[id + i] = im; });
+for (const c of CATALOG) for (const [id, l] of Object.entries(c.logos || {})) l.png.forEach((src, i) => { const im = new Image(); im.onload = () => draw(); im.src = src; pics[c.id + '/' + id + i] = im; });
 
 function draw() { drawTo($('cv'), 203); }
 /**
@@ -355,25 +415,27 @@ function draw() { drawTo($('cv'), 203); }
 function drawTo(cv, dpi) {
   const k = dpi === 300 ? 300 / 203 : 1, size = Math.round(812 * k);
   if (cv.width !== size) { cv.width = size; cv.height = size; }
-  const p = current(), f = fields();
+  const p = current(), f = fields(), o = opts();
   const c = cv.getContext('2d');
   c.setTransform(1, 0, 0, 1, 0, 0); c.imageSmoothingEnabled = false;
   c.fillStyle = '#fff'; c.fillRect(0, 0, size, size); c.fillStyle = '#000';
-  if (!f) return false;
-  const L = layout(p, f);
-  const mod = dpi === 300 ? 4 : 3;
-  const total = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
-  let x = Math.round((size - total) / 2), bar = true;
-  const by = Math.round(24 * k), bh = Math.round(170 * k);
-  for (const w of L.bc.widths) { if (bar) c.fillRect(x, by, w * mod, bh); x += w * mod; bar = !bar; }
+  if (!f || !p) return false;
+  const L = layout(cat, p, f, o);
+  if (L.bc) {
+    const mod = dpi === 300 ? 4 : 3;
+    const total = L.bc.widths.reduce((a, b) => a + b, 0) * mod;
+    let x = Math.round((size - total) / 2), bar = true;
+    const by = Math.round(24 * k), bh = Math.round(170 * k);
+    for (const w of L.bc.widths) { if (bar) c.fillRect(x, by, w * mod, bh); x += w * mod; bar = !bar; }
+  }
   c.setTransform(k, 0, 0, k, 0, 0);
   for (const it of L.items) {
     if (it.t === 'fill') { c.fillStyle = '#000'; c.fillRect(it.x, it.y, it.w, it.h); }
     else if (it.t === 'box') { c.lineWidth = it.th; c.strokeStyle = '#000'; c.strokeRect(it.x + it.th / 2, it.y + it.th / 2, it.w - it.th, it.h - it.th); }
     else text(c, it);
   }
-  const choice = LOGOS[$('logo').value];
-  if (choice) choice.at.forEach((a, i) => { const im = pics[$('logo').value + i]; if (im && im.complete && im.naturalWidth) c.drawImage(im, a.x, a.y, a.w, a.h); });
+  const choice = cat.tipo === 'traza' ? null : (cat.logos || {})[o.logo];
+  if (choice) choice.at.forEach((a, i) => { const im = pics[cat.id + '/' + o.logo + i]; if (im && im.complete && im.naturalWidth) c.drawImage(im, a.x, a.y, a.w, a.h); });
   c.setTransform(1, 0, 0, 1, 0, 0);
   return true;
 }
@@ -387,15 +449,15 @@ function fields() {
   if (!lot || !sell) return null;
   return { lot, sell6: yymmdd(sell), sellMDY: mdy(sell) };
 }
-function check() {
-  const f = fields();
+function checkFor(c, p, f, qty) {
+  if (!p) return 'Esta empresa no tiene productos.';
   if (!f) return 'Falta el lote o la fecha de sell by.';
   if (!/^[\x20-\x7E]{1,20}$/.test(f.lot)) return 'El lote solo puede llevar letras sin acento, números y guiones.';
-  if (!/^\d{12}$/.test(current().upc)) return 'El UPC de este producto no tiene 12 dígitos.';
-  const q = Number($('qty').value);
-  if (!(q >= 1 && q <= 9999)) return 'La cantidad debe ser de 1 a 9999.';
+  if (c.tipo !== 'traza' && !/^\d{12}$/.test(p.upc || '')) return 'El UPC de este producto no tiene 12 dígitos.';
+  if (!(qty >= 1 && qty <= 9999)) return 'La cantidad debe ser de 1 a 9999.';
   return null;
 }
+const check = () => checkFor(cat, current(), fields(), Number($('qty').value));
 function say(t, kind) { const m = $('msg'); m.textContent = t; m.className = 'msg ' + (kind || ''); }
 
 // ── imprimir ──
@@ -436,29 +498,28 @@ async function sendToZebra(data) {
  * Zebra's Windows driver as shapes, and the printer draws them at its own
  * resolution (203, 300 or 600 dpi), so nothing is stretched or blurred.
  */
-function svgLabel() {
-  const p = current(), f = fields();
-  if (!f) return null;
-  const L = layout(p, f);
+function svgLabel(c, p, f, o) {
+  if (!f || !p) return null;
+  const L = layout(c, p, f, o);
   const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
   const out = [];
-  const total = L.bc.widths.reduce((a, b) => a + b, 0) * 3;
-  let x = Math.round((812 - total) / 2), bar = true;
-  for (const w of L.bc.widths) { if (bar) out.push(`<rect x="${x}" y="24" width="${w * 3}" height="170"/>`); x += w * 3; bar = !bar; }
+  if (L.bc) {
+    const total = L.bc.widths.reduce((a, b) => a + b, 0) * 3;
+    let x = Math.round((812 - total) / 2), bar = true;
+    for (const w of L.bc.widths) { if (bar) out.push(`<rect x="${x}" y="24" width="${w * 3}" height="170"/>`); x += w * 3; bar = !bar; }
+  }
   for (const it of L.items) {
     if (it.t === 'fill') out.push(`<rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}"/>`);
     else if (it.t === 'box') out.push(`<rect x="${it.x + it.th / 2}" y="${it.y + it.th / 2}" width="${it.w - it.th}" height="${it.h - it.th}" fill="none" stroke="#000" stroke-width="${it.th}"/>`);
     else for (const r of rowsOf(it)) out.push(`<text x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" font-size="${r.size}" textLength="${r.w.toFixed(1)}" lengthAdjust="spacingAndGlyphs"${it.rev ? ' fill="#fff"' : ''}>${esc(r.s)}</text>`);
   }
-  const choice = LOGOS[$('logo').value];
+  const choice = c.tipo === 'traza' ? null : (c.logos || {})[o.logo];
   if (choice) choice.at.forEach((a, i) => out.push(`<image x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" href="${choice.png[i]}"/>`));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 812 812" width="4in" height="4in" shape-rendering="crispEdges" font-family="Arial, Helvetica, sans-serif" font-weight="bold" dominant-baseline="text-before-edge"><rect width="812" height="812" fill="#fff"/><g fill="#000">${out.join('')}</g></svg>`;
 }
 /** Windows printing: one 4×4 page per label. */
-function windowsPrint() {
-  const qty = Number($('qty').value);
+function windowsPrint(svg, qty) {
   if (qty > 300) { say('Por Windows se imprimen hasta 300 de una vez. Para más, imprime en tandas o instala Zebra Browser Print.', 'err'); return false; }
-  const svg = svgLabel();
   if (!svg) return false;
   const area = $('printarea');
   area.innerHTML = Array.from({ length: qty }, () => `<div class="pg">${svg}</div>`).join('');
@@ -468,86 +529,178 @@ function windowsPrint() {
   return true;
 }
 function download(data) {
-  const p = current();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
-  a.download = `${p.code}-${$('lot').value.trim().toUpperCase()}-x${$('qty').value}.prn`;
+  a.download = `${current().code}-${$('lot').value.trim().toUpperCase()}-x${$('qty').value}.prn`;
   document.body.appendChild(a); a.click(); a.remove();
 }
-function current_zpl() { return zpl(current(), fields(), Number($('dpi').value), Number($('qty').value)); }
+const currentZpl = () => zpl(cat, current(), fields(), opts(), Number($('dpi').value), Number($('qty').value));
+const currentSvg = () => svgLabel(cat, current(), fields(), opts());
 
 $('print').onclick = async () => {
   const bad = check(); if (bad) return say(bad, 'err');
   say('Enviando a la impresora…');
-  const r = await sendToZebra(current_zpl());
+  const r = await sendToZebra(currentZpl());
   if (r.name) return say(`✅ Mandé ${$('qty').value} etiqueta(s) a ${r.name}.`, 'ok');
   if (r.error) return say(r.error, 'err');
   // No Browser Print on this computer: Windows prints it through the Zebra's driver.
-  if (windowsPrint()) say('Imprimiendo con Windows. En la ventana de impresión elige la Zebra (ZDesigner) la primera vez; después la recuerda. Tamaño 4×4, márgenes: ninguno.', 'ok');
+  if (windowsPrint(currentSvg(), Number($('qty').value))) say('Imprimiendo con Windows. En la ventana de impresión elige la Zebra (ZDesigner) la primera vez; después la recuerda. Tamaño 4×4, márgenes: ninguno.', 'ok');
 };
-$('winprint').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); if (windowsPrint()) say('Imprimiendo con Windows…', 'ok'); };
-$('download').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); download(current_zpl()); say('Archivo .prn descargado. Mándalo con Zebra Setup Utilities → Send file (no lo abras con doble clic).', 'ok'); };
+$('winprint').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); if (windowsPrint(currentSvg(), Number($('qty').value))) say('Imprimiendo con Windows…', 'ok'); };
+$('download').onclick = () => { const bad = check(); if (bad) return say(bad, 'err'); download(currentZpl()); say('Archivo .prn descargado. Mándalo con Zebra Setup Utilities → Send file (no lo abras con doble clic).', 'ok'); };
 // Say how this computer prints, before anyone clicks.
 browserPrint().then(bp => {
   $('how').textContent = bp.dev ? `Impresión directa con Zebra Browser Print → ${bp.dev.name}.` : bp.reached ? (bp.error || '') : 'Zebra Browser Print no está en esta computadora: se imprime con Windows (driver de la Zebra).';
 });
 
-// ── editar producto ──
-function fillEditor() {
-  const p = current();
-  for (const k of ['brand', 'name1', 'name2', 'english', 'pack', 'upc', 'days']) $('e_' + k).value = p[k] ?? '';
-}
-$('save').onclick = () => {
-  const p = current(); const e = {};
-  for (const k of ['brand', 'name1', 'name2', 'english', 'pack', 'upc', 'days']) e[k] = $('e_' + k).value.trim();
-  if (!/^\d{11,12}$/.test(e.upc)) return say('El UPC debe tener 11 o 12 dígitos.', 'err');
-  if (e.upc.length === 11) e.upc += upcCheck(e.upc);
-  if (e.upc.slice(11) !== upcCheck(e.upc.slice(0, 11))) return say('El último dígito del UPC no cuadra; revísalo.', 'err');
-  e.days = Number(e.days) || p.days;
-  edits[p.code] = e; saveEdits(edits); fillEditor(); autofill(); draw(); say('Guardado en esta computadora.', 'ok');
-};
-$('reset').onclick = () => { delete edits[current().code]; saveEdits(edits); fillEditor(); autofill(); draw(); say('Datos originales.', 'ok'); };
-
-// ── arranque ──
-for (const p of products()) {
-  const o = document.createElement('option');
-  o.value = p.code; o.textContent = `${p.code} · ${[p.brand, p.name1, p.name2].filter(Boolean).join(' · ')}`;
-  $('prod').appendChild(o);
-}
-$('fprod').value = toISO(new Date());
-const PREFS = '__STORE__-prefs';
-let prefs = {};
-try { prefs = JSON.parse(localStorage.getItem(PREFS) || '{}'); } catch {}
-$('prefmode').value = prefs.mode ?? 'auto';
-$('pref').value = prefs.pref ?? '';
-$('logo').value = prefs.logo ?? __DEFAULT_LOGO__;
-for (const k of ['b1', 'b2', 'b3']) $(k).value = prefs[k] ?? (__DEFAULT_TEXT__)[k] ?? '';
-const showPrefs = () => { $('pref').hidden = $('prefmode').value !== 'manual'; $('textbox').hidden = $('logo').value !== 'texto'; };
-const keepPrefs = () => {
+// ── pedidos por Telegram ──
+// Ana Sofi o Nexy dejan el pedido en cola-impresion.js, junto a este programa en
+// la carpeta de Google Drive. La computadora de la Zebra (la marcada en
+// Opciones avanzadas) lo lee cada 15 segundos y lo imprime una sola vez.
+const DONE = 'et-pedidos-hechos';
+const MAX_AGE = 6 * 3600e3;
+let busy = false, lastLook = null, pendingJobs = [];
+const isZebraPc = () => store.get('et-zebra-pc', false) === true;
+function jobLabel(j, c, p) { return `${j.qty} × ${p ? `${p.code} ${p.name1}${p.pack ? ' ' + p.pack : ''}` : j.code} (${c ? c.nombre : j.cat})`; }
+window.colaImpresion = async (jobs) => {
+  lastLook = new Date();
+  showQueue();
+  if (busy || !Array.isArray(jobs)) return;
+  busy = true;
   try {
-    localStorage.setItem(PREFS, JSON.stringify({ mode: $('prefmode').value, pref: $('pref').value.trim().toUpperCase(), logo: $('logo').value, b1: $('b1').value, b2: $('b2').value, b3: $('b3').value }));
-  } catch {}
+    const done = store.get(DONE, {});
+    for (const j of jobs.slice().sort((a, b) => a.at - b.at)) {
+      if (!j || !j.id || done[j.id] || Date.now() - Number(j.at) > MAX_AGE) continue;
+      // Marked first: a slow printer never gets the same order twice.
+      done[j.id] = Date.now(); store.set(DONE, done);
+      const c = setOf(j.cat), p = c && c.productos.find(x => x.code === j.code);
+      const f = c && p && fieldsFor(c, p, /^\d{4}-\d{2}-\d{2}$/.test(j.fecha || '') ? j.fecha : toISO(new Date()));
+      const o = { logo: c && c.tipo !== 'traza' ? (j.logo || prefsFor(c).logo || c.logo || 'none') : 'none', b: prefsFor(c || {}).b || ['', '', ''] };
+      const bad = checkFor(c || {}, p, f, Number(j.qty));
+      if (!c || !p || bad) { log(`⚠️ Pedido de Telegram sin imprimir: ${jobLabel(j, c, p)} — ${bad || 'no encontré ese producto'}`); continue; }
+      const r = await sendToZebra(zpl(c, p, f, o, Number($('dpi').value), Number(j.qty)));
+      if (r.name) log(`✅ Pedido de Telegram impreso: ${jobLabel(j, c, p)} · lote ${f.lot}`);
+      else { pendingJobs.push({ j, c, p, f, o }); showPending(); }
+    }
+    // Forget orders older than the queue keeps.
+    for (const [id, t] of Object.entries(done)) if (Date.now() - t > 2 * MAX_AGE) delete done[id];
+    store.set(DONE, done);
+  } finally { busy = false; }
 };
+function log(t) { const m = $('msg'); m.textContent = t; m.className = 'msg ' + (t.startsWith('✅') ? 'ok' : 'err'); }
+function showPending() {
+  $('pending').innerHTML = pendingJobs.map((x, i) => `<div class="pending">🖨️ Llegó un pedido de Telegram: <b>${jobLabel(x.j, x.c, x.p)}</b>. Esta computadora no tiene Zebra Browser Print, así que hay que darle clic.<button class="primary" data-i="${i}">Imprimir este pedido</button></div>`).join('');
+  $('pending').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const x = pendingJobs[Number(b.dataset.i)];
+    if (windowsPrint(svgLabel(x.c, x.p, x.f, x.o), Number(x.j.qty))) { pendingJobs.splice(Number(b.dataset.i), 1); showPending(); }
+  });
+}
+function showQueue() {
+  const q = $('queue');
+  if (!isZebraPc()) { q.className = 'queue off'; q.textContent = 'Pedidos por Telegram: apagados en esta computadora (se prenden en Opciones avanzadas, solo en la computadora de la Zebra).'; return; }
+  q.className = 'queue';
+  q.textContent = `Pedidos por Telegram: activos. ${lastLook ? `Última revisión ${lastLook.toLocaleTimeString()}.` : 'Esperando la primera revisión…'}`;
+}
+function poll() {
+  if (!isZebraPc() || location.hash.startsWith('#preview')) return;
+  const s = document.createElement('script');
+  s.src = 'cola-impresion.js?t=' + Date.now();
+  s.onload = s.onerror = () => { s.remove(); if (!lastLook) { lastLook = new Date(); showQueue(); } };
+  document.head.appendChild(s);
+}
+$('zebrapc').checked = isZebraPc();
+$('zebrapc').onchange = () => { store.set('et-zebra-pc', $('zebrapc').checked); showQueue(); poll(); };
+setInterval(poll, 15000);
+
+// ── empresas y productos ──
+const PREFS = 'et-prefs';
+function prefsFor(c) { return (store.get(PREFS, {})[c.id]) || {}; }
+function keepPrefs() {
+  const all = store.get(PREFS, {});
+  all[cat.id] = { logo: $('logo').value, b: [$('b1').value, $('b2').value, $('b3').value] };
+  all._letra = { mode: $('prefmode').value, pref: $('pref').value.trim().toUpperCase() };
+  store.set(PREFS, all);
+}
+function showCats(list) {
+  const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const words = fold($('find').value).split(/\s+/).filter(Boolean);
+  const box = $('cats');
+  if (words.length) {
+    const found = [];
+    for (const c of CATALOG) for (const p of c.productos) {
+      const hay = fold(`${c.nombre} ${p.code} ${p.brand || ''} ${p.name1} ${p.name2 || ''} ${p.pack || ''} ${p.empaque || ''}`);
+      if (words.every(w => hay.includes(w))) found.push({ c, p });
+    }
+    box.innerHTML = found.slice(0, 60).map(({ c, p }, i) => `<button class="found" data-c="${c.id}" data-p="${p.code}"><span>${p.name1} ${p.pack || p.name2 || ''}<br><small>${c.nombre} · ${p.code}</small></span></button>`).join('') || '<p class="small">Nada con esas letras.</p>';
+    box.querySelectorAll('button').forEach(b => b.onclick = () => { pick(b.dataset.c, b.dataset.p); $('find').value = ''; showCats(); });
+    return;
+  }
+  box.innerHTML = CATALOG.map(c => `<button data-c="${c.id}" class="${c === cat ? 'on' : ''}"><span>${c.nombre}</span><small>${c.productos.length}</small></button>`).join('');
+  box.querySelectorAll('button').forEach(b => b.onclick = () => pick(b.dataset.c));
+}
+function pick(id, code) {
+  cat = setOf(id) || CATALOG[0];
+  store.set('et-empresa', cat.id);
+  $('catname').textContent = cat.nombre;
+  $('prod').innerHTML = cat.productos.map(p => `<option value="${p.code}">${p.code} · ${[p.brand, p.name1, p.name2, p.pack, p.empaque].filter(Boolean).join(' · ')}</option>`).join('');
+  if (code) $('prod').value = code;
+  // Logos: only the 4×4 barcode labels of a company that has them.
+  const pr = prefsFor(cat);
+  $('logo').innerHTML = Object.entries(cat.logos || {}).map(([k, l]) => `<option value="${k}">${l.nombre || k}</option>`).join('') + '<option value="texto">Texto (escribirlo yo)</option><option value="none">Sin logo</option>';
+  $('logo').value = pr.logo && [...$('logo').options].some(o => o.value === pr.logo) ? pr.logo : cat.logo || 'none';
+  const txt = cat.texto || {};
+  ['b1', 'b2', 'b3'].forEach((k, i) => ($(k).value = (pr.b && pr.b[i]) ?? txt[k] ?? ''));
+  const noLogo = cat.tipo === 'traza' || cat.sinLogo;
+  if (noLogo) $('logo').value = 'none';
+  $('logobox').hidden = noLogo;
+  showPrefs();
+  showCats();
+  onProduct();
+}
+function onProduct() { showDays(); autofill(); draw(); say(''); }
+function showDays() {
+  const p = current(); if (!p) return;
+  const o = store.get(DAYS, {})[dayKey(cat, p)];
+  $('days').value = daysOf(cat, p);
+  $('daysreset').hidden = !o;
+  $('dayswhy').textContent = o ? `Cambiado en esta computadora (en la etiqueta: ${p.days} días).` : '';
+}
+$('daysave').onclick = () => {
+  const p = current(); const n = Number($('days').value);
+  if (!Number.isInteger(n) || n < 1 || n > 365) return say('Los días de vida van de 1 a 365.', 'err');
+  const all = store.get(DAYS, {});
+  if (n === Number(p.days)) delete all[dayKey(cat, p)]; else all[dayKey(cat, p)] = n;
+  store.set(DAYS, all); showDays(); autofill(); draw();
+  say(n === Number(p.days) ? 'Días de vida como en la etiqueta.' : `Guardado en esta computadora: ${n} días. Para cambiarlo para todos, pídeselo a Ana Sofi.`, 'ok');
+};
+$('daysreset').onclick = () => { const all = store.get(DAYS, {}); delete all[dayKey(cat, current())]; store.set(DAYS, all); showDays(); autofill(); draw(); say(`De nuevo ${current().days} días, como en la etiqueta.`, 'ok'); };
+
+const showPrefs = () => { $('pref').hidden = $('prefmode').value !== 'manual'; $('textbox').hidden = $('logo').value !== 'texto' || $('logobox').hidden; };
 $('prefmode').onchange = () => { showPrefs(); keepPrefs(); autofill(); draw(); };
 $('pref').oninput = () => { keepPrefs(); autofill(); draw(); };
 $('logo').onchange = () => { showPrefs(); keepPrefs(); draw(); };
 for (const k of ['b1', 'b2', 'b3']) $(k).oninput = () => { keepPrefs(); draw(); };
-// A client whose labels never carry a logo gets no logo choice at all.
-if (__HIDE_LOGO__) { $('logo').value = 'none'; $('logo').parentElement.hidden = true; $('textbox').hidden = true; }
-showPrefs();
-if (__HIDE_LOGO__) $('textbox').hidden = true;
-$('prod').onchange = () => { fillEditor(); autofill(); draw(); say(''); };
+$('prod').onchange = onProduct;
 $('fprod').onchange = () => { autofill(); draw(); };
+$('find').oninput = () => showCats();
 for (const id of ['lot', 'sell', 'qty', 'dpi']) $(id).oninput = () => draw();
-fillEditor(); autofill(); draw();
-// Vista previa para Ana Sofi: …html#preview&prod=CODE&logo=ID&fprod=AAAA-MM-DD → solo la etiqueta.
+
+// ── arranque ──
+$('fprod').value = toISO(new Date());
+const letra = store.get(PREFS, {})._letra || {};
+$('prefmode').value = letra.mode || 'auto';
+$('pref').value = letra.pref || '';
+pick(store.get('et-empresa', CATALOG[0].id));
+showQueue();
+poll();
+// Vista previa para Ana Sofi: …html#preview&cat=ID&prod=CODE&logo=ID&fprod=AAAA-MM-DD → solo la etiqueta.
 if (location.hash.startsWith('#preview')) {
   const q = new URLSearchParams(location.hash.slice(8));
-  if (q.get('prod')) $('prod').value = q.get('prod');
+  pick(q.get('cat') || cat.id, q.get('prod') || undefined);
   if (q.get('fprod')) $('fprod').value = q.get('fprod');
   autofill();
-  if (q.get('logo')) $('logo').value = q.get('logo');
-  const svg = svgLabel();
+  if (q.get('logo') && cat.tipo !== 'traza') $('logo').value = q.get('logo');
+  const svg = currentSvg();
   document.head.insertAdjacentHTML('beforeend', '<style>html,body{margin:0;background:#fff}#pv svg{display:block;width:812px;height:812px}</style>');
   document.body.innerHTML = `<div id="pv">${svg || ''}</div>`;
   document.title = 'listo';

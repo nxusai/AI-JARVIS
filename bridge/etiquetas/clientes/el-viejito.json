@@ -1,0 +1,46 @@
+{
+ "id": "el-viejito",
+ "nombre": "El Viejito",
+ "tipo": "traza",
+ "store": "et-el-viejito",
+ "productos": [
+  {
+   "code": "EV01",
+   "name1": "EL VIEJITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "EV02",
+   "name1": "EL VIEJITO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "REGULAR",
+   "days": 39
+  },
+  {
+   "code": "EV03",
+   "name1": "EL VIEJITO",
+   "pack": "14 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

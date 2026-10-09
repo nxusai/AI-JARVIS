@@ -1,0 +1,36 @@
+{
+ "id": "quesos-finos",
+ "nombre": "Quesos Finos",
+ "tipo": "traza",
+ "store": "et-quesos-finos",
+ "productos": [
+  {
+   "code": "QF01",
+   "name1": "QUESOS FINOS",
+   "pack": "5 LBS",
+   "lineas": [
+    "QUESOS FINOS LLC",
+    "4251 W. 129TH STREET"
+   ],
+   "empaque": "VACIO",
+   "days": 59,
+   "duda": "La dirección no trae ciudad ni código postal."
+  },
+  {
+   "code": "QF02",
+   "name1": "QUESOS FINOS",
+   "pack": "12 OZ",
+   "lineas": [
+    "QUESOS FINOS LLC",
+    "4251 W. 129TH STREET"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,21 @@
+{
+ "id": "tonanzin",
+ "nombre": "Tonanzin",
+ "tipo": "traza",
+ "store": "et-tonanzin",
+ "productos": [
+  {
+   "code": "TZ01",
+   "name1": "TONANZIN",
+   "pack": "5 LBS",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 54
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

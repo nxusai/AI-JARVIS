@@ -1,0 +1,35 @@
+{
+ "id": "el-gallito",
+ "nombre": "El Gallito",
+ "tipo": "traza",
+ "store": "et-el-gallito",
+ "productos": [
+  {
+   "code": "EG01",
+   "name1": "EL GALLITO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "2420 S. WOOD STREET",
+    "CHICAGO, IL 60608"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "EG02",
+   "name1": "REQUESON",
+   "pack": "12 OZ GALLITO",
+   "lineas": [
+    "2420 S. WOOD STREET",
+    "CHICAGO, IL 60608"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

@@ -1,0 +1,157 @@
+{
+ "id": "rio-lindo",
+ "nombre": "Río Lindo",
+ "tipo": "traza",
+ "store": "et-rio-lindo",
+ "productos": [
+  {
+   "code": "RL01",
+   "name1": "RIO LINDO",
+   "pack": "5 LIBRAS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "RL02",
+   "name1": "RIO LINDO",
+   "pack": "10 LIBRAS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "RL03",
+   "name1": "RIO LINDO",
+   "pack": "14 LBS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 44
+  },
+  {
+   "code": "RL04",
+   "name1": "RIO LINDO",
+   "pack": "14 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "RL05",
+   "name1": "RIO LINDO",
+   "pack": "FRESCO 5 LBS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "RL06",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "CANASTO 14 LBS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "RL07",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "CANASTO MOLIDO 14 LBS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "RL08",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "CUAJADA 12 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "RL09",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "CUAJADA 12 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 49
+  },
+  {
+   "code": "RL10",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "CUAJADA TERRON 14 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "RL11",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "OVALADO 12 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "REGULAR",
+   "days": 34
+  },
+  {
+   "code": "RL12",
+   "name1": "FRESCO RIO LINDO",
+   "pack": "PANELA 5 LBS",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "RL13",
+   "name1": "REQUESON",
+   "pack": "12 OZ",
+   "lineas": [
+    "1719 WHITEHEAD RD",
+    "BALTIMORE, MD 21207"
+   ],
+   "empaque": "REGULAR",
+   "days": 44,
+   "duda": "No dice marca, solo la dirección de Baltimore (la de Río Lindo y El Viejito)."
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

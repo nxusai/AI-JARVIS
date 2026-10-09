@@ -128,10 +128,8 @@ if (cmd === 'estado') {
   const carpeta = join(root, 'Etiquetas Mi Semago')
   mkdirSync(carpeta, { recursive: true })
   writeLabelConfig({ ...readLabelConfig(), carpeta })
-  for (const c of listClients()) {
-    const { shared } = publish(c, 'primera versión en la carpeta')
-    console.log(` ✅ ${c.nombre} → ${shared.split('/').pop()}`)
-  }
+  const { shared } = publish(null, 'primera versión en la carpeta')
+  console.log(` ✅ ${listClients().length} empresas en un solo programa → ${shared.split('/').pop()}`)
   console.log(`\n Carpeta lista: ${carpeta}`)
   console.log(' (En Google Drive se ve como "Mi unidad › Etiquetas Mi Semago".) Cada vez que Ana Sofi publique, el programa se actualiza ahí solo.')
   process.exit(0)

@@ -1,0 +1,68 @@
+{
+ "id": "delicias-del-rancho",
+ "nombre": "Delicias del Rancho",
+ "tipo": "traza",
+ "store": "et-delicias-del-rancho",
+ "productos": [
+  {
+   "code": "DR01",
+   "name1": "DELICIAS DEL RANCHO",
+   "pack": "5 LBS TIRAS",
+   "lineas": [
+    "4100 POWER LINE RD",
+    "POMPANO BEACH, FL 33073"
+   ],
+   "empaque": "VACIO",
+   "days": 62
+  },
+  {
+   "code": "DR02",
+   "name1": "DELICIAS DEL RANCHO",
+   "pack": "5 LIBRAS PRE-CUT",
+   "lineas": [
+    "4100 POWER LINE RD",
+    "POMPANO BEACH, FL 33073"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "DR03",
+   "name1": "DELICIAS DEL RANCHO",
+   "pack": "5 LBS BOLAS",
+   "lineas": [
+    "4100 POWER LINE RD",
+    "POMPANO BEACH, FL 33073"
+   ],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "DR04",
+   "name1": "DELICIAS DEL RANCHO",
+   "pack": "DESHEBRADO 12 OZ",
+   "lineas": [
+    "4100 POWER LINE RD",
+    "POMPANO BEACH, FL 33073"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  },
+  {
+   "code": "DR05",
+   "name1": "ARTESANAL",
+   "pack": "DELICIAS DEL RANCHO 12 OZ",
+   "lineas": [
+    "4100 POWER LINE RD",
+    "POMPANO BEACH, FL 33073"
+   ],
+   "empaque": "REGULAR",
+   "days": 44
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}

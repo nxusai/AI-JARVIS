@@ -1,0 +1,37 @@
+{
+ "id": "central-americana",
+ "nombre": "Central Americana",
+ "tipo": "traza",
+ "store": "et-central-americana",
+ "productos": [
+  {
+   "code": "CA01",
+   "name1": "CENTRAL AMERICANA",
+   "pack": "PRE CUT 5 LBS",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 54
+  },
+  {
+   "code": "CA02",
+   "name1": "CENTRAL AMERICANA",
+   "pack": "FRESCO 4/5 LBS",
+   "lineas": [],
+   "empaque": "VACIO",
+   "days": 59
+  },
+  {
+   "code": "CA03",
+   "name1": "CENTRAL AMERICANA",
+   "pack": "FRESCO CUADRADO 12/14 OZ",
+   "lineas": [],
+   "empaque": "REGULAR",
+   "days": 34
+  }
+ ],
+ "diseno": {},
+ "logos": {},
+ "logo_inicial": "none",
+ "texto_inicial": {},
+ "sin_logo": true
+}
