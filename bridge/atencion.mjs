@@ -12,6 +12,7 @@ import { runJob } from './routines.mjs'
 import { hub } from './console.mjs'
 import { readBrands } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
+import { envFor } from './apikeys.mjs'
 import { conversation } from './telegram.mjs'
 import { createMexico, readTasks as readMxTasks, readLog as readMxLog } from './equipo-mx.mjs'
 
@@ -726,7 +727,7 @@ export function toolsServer(token, groups, { forward } = {}) {
  * Start the client-service bot if it has been set up. Safe to call when it
  * hasn't: it does nothing.
  */
-export async function startAtencion({ model, effort, transcribe, runQuery = query }) {
+export async function startAtencion({ model, effort, transcribe, runQuery = query, smallModel = model }) {
   const cfg = readAtencion()
   if (!cfg) return
   const token = cfg.token
@@ -741,7 +742,7 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
   }
   console.log(`[jarvis] atención on as @${me.username}`)
 
-  const mexico = createMexico({ token, me, model, effort, runQuery, transcribe })
+  const mexico = createMexico({ token, me, model, effort, runQuery, transcribe, digestModel: smallModel })
   /**
    * The owner's own recent messages, by Telegram message id: the only orders
    * pasar_a_mi_nexy can pass on. The model gives a number; the words and the
@@ -764,6 +765,8 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
     systemPrompt: promptFor(),
     model,
     effort,
+    // Billed to the API credits when a key is set (see apikeys.mjs), not the owner's subscription.
+    env: envFor('atencion'),
     maxTurns: 16,
     permissionMode: 'default',
     cwd: homedir(),

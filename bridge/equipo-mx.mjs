@@ -7,6 +7,7 @@ import { hub } from './console.mjs'
 import { readBrands, readManual } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
 import { conversation } from './telegram.mjs'
+import { envFor } from './apikeys.mjs'
 import { api, fileOf, previewOf, readAtencion, readLink, safeName, say, sendFile } from './atencion.mjs'
 
 /**
@@ -312,7 +313,7 @@ export function mexicoTools(token, chat) {
 }
 
 /** NXUS México's Nexy, inside the client-service bot (see atencion.mjs). */
-export function createMexico({ token, me, model, effort, runQuery, transcribe }) {
+export function createMexico({ token, me, model, effort, runQuery, transcribe, digestModel = model }) {
   const chat = () => readAtencion()?.grupos?.mexico ?? null
   const server = mexicoTools(token, chat)
   const options = () => ({
@@ -323,6 +324,8 @@ export function createMexico({ token, me, model, effort, runQuery, transcribe })
     systemPrompt: promptMx(),
     model,
     effort,
+    // Billed to the API credits when a key is set (see apikeys.mjs).
+    env: envFor('mexico'),
     maxTurns: 14,
     permissionMode: 'default',
     cwd: homedir(),
@@ -520,8 +523,10 @@ export function createMexico({ token, me, model, effort, runQuery, transcribe })
           tools: [],
           settingSources: [],
           systemPrompt: "You keep a team's work memory. Answer only with the list, or NADA.",
-          model,
+          // A list of facts: the small model does it for a fraction of the cost.
+          model: digestModel,
           effort,
+          env: envFor('mexico'),
           maxTurns: 1,
           permissionMode: 'default',
           cwd: homedir(),

@@ -6,6 +6,7 @@ import { api, fileOf, previewOf, safeName, say } from './atencion.mjs'
 import { hub } from './console.mjs'
 import { labelTools, listClients, RECEIVED, LABELS_DIR } from './etiquetas.mjs'
 import { readTelegram } from './telegram-config.mjs'
+import { envFor } from './apikeys.mjs'
 import { conversation } from './telegram.mjs'
 
 /**
@@ -134,6 +135,8 @@ export async function startAnaSofi({ model, effort, transcribe, runQuery = query
     systemPrompt: prompt(),
     model,
     effort,
+    // Billed to the API credits when a key is set (see apikeys.mjs).
+    env: envFor('anasofi'),
     maxTurns: 20,
     permissionMode: 'default',
     cwd: LABELS_DIR,

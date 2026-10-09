@@ -179,6 +179,8 @@ const MODEL = process.env.JARVIS_MODEL ?? 'claude-sonnet-5-5'
  * more than pace.
  */
 const EFFORT = process.env.JARVIS_EFFORT ?? 'low'
+// The small model, for simple work that runs often: Ana Sofi's labels, the México group's memory.
+const SMALL_MODEL = process.env.JARVIS_SMALL_MODEL ?? 'claude-haiku-5-5'
 
 /**
  * Both spellings of every renamed built-in are listed on purpose. The SDK
@@ -1968,6 +1970,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
   void startAtencion({
     model: MODEL,
+    smallModel: SMALL_MODEL,
     effort: EFFORT,
     transcribe: (bytes) => {
       const key = elevenKey()
@@ -1976,7 +1979,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   })
   // Ana Sofi's own bot, for the clients' Zebra labels (scripts/anasofi.mjs).
   void startAnaSofi({
-    model: MODEL,
+    model: SMALL_MODEL,
     effort: EFFORT,
     transcribe: (bytes) => {
       const key = elevenKey()
