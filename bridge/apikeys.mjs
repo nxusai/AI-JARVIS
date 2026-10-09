@@ -5,19 +5,20 @@ import { join } from 'node:path'
 /**
  * Which Claude account pays for what.
  *
- * The owner's own subscription (the Claude login on this Mac) is for him: his
- * Nexy and building with Claude Code. The groups — client service, NXUS
- * México, Ana Sofi — run on API credits instead, with a key from the Claude
- * Console, so their use never spends his subscription and shows up apart in
- * the Console. One key for all the groups ("grupos"), or one for a space of
- * its own (atencion, mexico, anasofi) when a client should be billed apart.
- * Set with `node scripts/api.mjs`; without a key a space runs as before.
+ * The owner's subscription (the Claude login) is for building with Claude
+ * Code. Everything Nexy runs — his own Nexy (voice, console, his Telegram,
+ * routines) and the groups (client service, NXUS México, Ana Sofi) — runs on
+ * API credits instead, with a key from the Claude Console, so it never
+ * spends the subscription and shows up in the Console. One key for all of
+ * it ("grupos"), or one for a space of its own (personal, atencion, mexico,
+ * anasofi), e.g. to bill a client apart. Set with `node scripts/api.mjs`;
+ * without a key a space runs on the subscription, as before.
  *
- *   ~/.nexy/api.json   { grupos: "sk-ant-…", atencion?: …, mexico?: …, anasofi?: … }  (this Mac's user only)
+ *   ~/.nexy/api.json   { grupos: "sk-ant-…", personal?: …, atencion?: …, mexico?: …, anasofi?: … }  (this Mac's user only)
  */
 
 export const API_FILE = join(homedir(), '.nexy', 'api.json')
-export const SPACES = ['grupos', 'atencion', 'mexico', 'anasofi']
+export const SPACES = ['grupos', 'personal', 'atencion', 'mexico', 'anasofi']
 export const KEY_SHAPE = /^sk-ant-[\w-]{20,}$/
 
 export function readApiKeys() {

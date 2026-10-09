@@ -30,6 +30,7 @@ import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
 import { startAnaSofi } from './anasofi.mjs'
+import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
@@ -1755,7 +1756,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
     // An agent left to run in the background would report after Nexy has
     // finished speaking, into a turn nobody is listening to any more.
-    env: { ...process.env, CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1' },
+    // Billed to the API credits when a key is set (see apikeys.mjs), not the owner's subscription.
+    env: { ...(envFor('personal') ?? process.env), CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1' },
     // A plain system prompt, not the claude_code preset. The preset is
     // tuned for a coding agent — verbose, file-oriented, and a large chunk
     // of input tokens on every turn. Replacing it makes the persona stick,

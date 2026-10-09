@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// The API key the groups run on (see bridge/apikeys.mjs): client service,
-// NXUS México and Ana Sofi spend API credits instead of the owner's subscription.
+// The API key Nexy runs on (see bridge/apikeys.mjs): the owner's own Nexy and the
+// groups (client service, NXUS México, Ana Sofi) spend API credits; the owner's
+// subscription stays for building with Claude Code.
 //
-//   node scripts/api.mjs                 asks for the key (hidden), checks it and uses it for every group
-//   node scripts/api.mjs anasofi         the same, but only for one space (atencion, mexico or anasofi)
+//   node scripts/api.mjs                 asks for the key (hidden), checks it and uses it for all of Nexy
+//   node scripts/api.mjs anasofi         the same, but only for one space (personal, atencion, mexico or anasofi)
 //   node scripts/api.mjs estado          which spaces run on API credits
 //   node scripts/api.mjs quitar [space]  back to the subscription (all, or one space)
 //
@@ -14,7 +15,7 @@ import { API_FILE, checkKey, KEY_SHAPE, readApiKeys, SPACES, writeApiKeys } from
 
 const [cmd, arg] = process.argv.slice(2)
 const say = (s) => console.log(s)
-const NAMES = { grupos: 'todos los grupos', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)' }
+const NAMES = { grupos: 'todo Nexy (tu Nexy personal y los grupos)', personal: 'tu Nexy personal (voz, consola, tu Telegram, rutinas)', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)' }
 
 /** Read a line without showing it; from a pipe when there is no terminal. */
 function hidden(question) {
@@ -60,7 +61,7 @@ if (cmd === 'estado') {
     const own = keys[s]
     say(` ${NAMES[s]}: ${own ? 'créditos de API (llave propia) ✅' : keys.grupos ? 'créditos de API ✅' : 'tu suscripción'}`)
   }
-  say(' Tu Nexy personal y programar con Claude: tu suscripción.\n')
+  say(' Programar con Claude: tu suscripción.\n')
   process.exit(0)
 }
 
@@ -69,13 +70,13 @@ if (cmd === 'quitar') {
   if (arg && SPACES.includes(arg)) delete keys[arg]
   else for (const k of Object.keys(keys)) delete keys[k]
   writeApiKeys(keys)
-  say(`\n✅ ${arg && SPACES.includes(arg) ? NAMES[arg] : 'Todos los grupos'} vuelve(n) a tu suscripción. Reinicia Nexy (Ctrl+C y npm start).\n`)
+  say(`\n✅ ${arg && SPACES.includes(arg) ? NAMES[arg] : 'Todo Nexy'} vuelve a tu suscripción. Reinicia Nexy (Ctrl+C y npm start).\n`)
   process.exit(0)
 }
 
 const space = cmd ? cmd : 'grupos'
 if (!SPACES.includes(space)) {
-  say('Uso:\n  node scripts/api.mjs\n  node scripts/api.mjs atencion|mexico|anasofi\n  node scripts/api.mjs estado\n  node scripts/api.mjs quitar [atencion|mexico|anasofi]')
+  say('Uso:\n  node scripts/api.mjs\n  node scripts/api.mjs personal|atencion|mexico|anasofi\n  node scripts/api.mjs estado\n  node scripts/api.mjs quitar [personal|atencion|mexico|anasofi]')
   process.exit(1)
 }
 say(`\nPega la API key de Claude para ${NAMES[space]} y presiona Enter. No se va a ver mientras la pegas.`)
@@ -91,6 +92,6 @@ if (ok !== true) {
 }
 writeApiKeys({ ...readApiKeys(), [space]: key })
 say(`\n✅ Listo: ${NAMES[space]} → tus créditos de API (guardado en ${API_FILE}, solo tu usuario puede leerlo).`)
-say('   Tu Nexy personal y programar con Claude siguen con tu suscripción.')
+say('   Programar con Claude sigue con tu suscripción.')
 say('   Reinicia Nexy (Ctrl+C en su ventana y npm start) para que lo tome.\n')
 process.exit(0)
