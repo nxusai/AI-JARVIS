@@ -1983,6 +1983,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   void startAnaSofi({
     model: SMALL_MODEL,
     effort: EFFORT,
+    elevenKey,
     transcribe: (bytes) => {
       const key = elevenKey()
       return key ? transcribeVoice(key, bytes, 'nota.ogg') : Promise.resolve('')

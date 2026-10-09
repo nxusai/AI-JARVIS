@@ -276,7 +276,7 @@ export async function transcribe(key, bytes, name) {
   return String((await res.json()).text ?? '').trim()
 }
 
-async function speak(key, voiceId, text) {
+export async function speak(key, voiceId, text) {
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json' },

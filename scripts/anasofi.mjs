@@ -10,10 +10,10 @@
 // prompt, checked with Telegram and saved in ~/.nexy/anasofi.json, readable by
 // this Mac's user only. It is never printed.
 
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { ANASOFI_FILE, readAnaSofi, writeAnaSofi } from '../bridge/anasofi.mjs'
+import { ANASOFI_FILE, anaSofiVoice, readAnaSofi, writeAnaSofi } from '../bridge/anasofi.mjs'
 import { listClients, publish, readLabelConfig, sharedFolder, writeLabelConfig } from '../bridge/etiquetas.mjs'
 import { TOKEN_SHAPE } from '../bridge/telegram-config.mjs'
 
@@ -77,6 +77,13 @@ if (cmd === 'estado') {
     console.log(` La llave del bot no funciona (${err.message}). Vuelve a correr: node scripts/anasofi.mjs`)
   }
   console.log(` Grupo de etiquetas: ${cfg.grupo ? 'vinculado ✅' : 'falta (escribe /etiquetas dentro del grupo)'}`)
+  // The same ElevenLabs key Nexy uses (the elevenlabs MCP server's).
+  let key = process.env.ELEVENLABS_API_KEY ?? null
+  try {
+    key ??= JSON.parse(readFileSync(join(homedir(), '.claude.json'), 'utf8')).mcpServers?.elevenlabs?.env?.ELEVENLABS_API_KEY ?? null
+  } catch {}
+  const voz = await anaSofiVoice(key)
+  console.log(` Voz (para contestar notas de voz): ${voz ? 'la de Ana Sofi en ElevenLabs ✅' : key ? '⚠️ no encontré la voz de Ana Sofi (¿está conectada la agente de ventas? node scripts/ana-sofi.mjs estado); contestará solo con texto' : '⚠️ falta la llave de ElevenLabs; contestará solo con texto'}`)
   console.log(` Carpeta compartida: ${sharedFolder() ?? (readLabelConfig().carpeta ? `${readLabelConfig().carpeta} — NO la encuentro (¿Google Drive abierto?)` : 'falta (node scripts/anasofi.mjs carpeta)')}`)
   console.log(` Etiquetas: ${listClients().map((c) => `${c.nombre} (${c.productos.length})`).join(', ')}`)
   process.exit(0)
