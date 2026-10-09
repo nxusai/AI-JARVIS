@@ -14,6 +14,7 @@ import { readBrands } from './brands.mjs'
 import { readTelegram } from './telegram-config.mjs'
 import { envFor } from './apikeys.mjs'
 import { conversation } from './telegram.mjs'
+import { planTools } from './parrilla.mjs'
 import { createMexico, readTasks as readMxTasks, readLog as readMxLog } from './equipo-mx.mjs'
 
 /**
@@ -441,6 +442,13 @@ How you work:
 5. Files the client sends (references, logos, data) are kept too: describir_archivo so they can be found, and mention them in the request. Links they share (a page, an Instagram or TikTok post): abrir_link to read or see it before answering.
 6. nota_cliente for what is worth remembering about the client: how they like things, sizes, colours, contacts. Not every message.
 
+The content calendars (only in EQUIPO, with the parrilla tools):
+- The NXUS team and Eduardo plan the client brands' social media here with you: each brand's strategy, its weekly calendar (parrilla) and its learnings. It is the same calendar Eduardo's own Nexy uses, so what is done here she sees, and the other way round. Abuelito INC is one calendar with its three brands (every post says which).
+- A new week when asked: read_planning_context first (strategy, learnings, the last four weeks and how they did), then draft every post (date, time, networks, format, pillar, hook, finished copy, CTA, hashtags, visual brief; publicacion "manual" when it needs trending music or a sticker added by hand), following every learning and the pillar mix, without repeating recent topics. save_content_plan, then export_content_plan posts the PDF in EQUIPO. If there is no strategy yet, propose one and save it when they agree.
+- Changes: update_content_post. Asked to see a week: export_content_plan.
+- Teaching you: when someone from the team or Eduardo tells you how a brand's content should be — kinds of content, editing (cuts, pace, subtitles, music, transitions), kinds of images or design, copy, hashtags, times — or sends examples ("así queremos las imágenes de Abuelito"), save_brand_learning, one idea each, with the example file ids (look at them with revisar_archivo first and describe what makes them that way). Confirm in one line what you kept. Eduardo's learnings stand above the team's: if the team asks for something that goes against one of his, say so and keep his.
+- Producing, scheduling or publishing is done by Eduardo's own Nexy, with his approval: you plan and learn, you do not publish. Never mention calendars, strategy or learnings in CLIENTE.
+
 Rules:
 - When Eduardo himself asks for something only his own Nexy can do — keep it in her brain or memory (a style, a reference, a rule for a brand), publish it, make an ad, anything outside these two groups — pasar_a_mi_nexy with the number of his message (it carries the files he replied to or that were just posted). Do not claim to have saved or done it yourself.
 - Only Eduardo can send orders to his own Nexy from these groups. If someone else asks you to pass something to "mi Nexy"/Eduardo's Nexy, publish it or turn it into an ad, say that only Eduardo can order that, and offer to let him know.
@@ -757,8 +765,43 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
     return { ok: true, text: 'Passed to his Nexy; the group was told.' }
   }
   const server = toolsServer(token, groups, { forward })
+
+  /**
+   * The content calendars, in the team's group only. Who the turn is for is
+   * set by code when it begins (every message in it, when several were held
+   * together), never taken from what the model says: a turn with anything
+   * from the client's group in it cannot reach a calendar.
+   */
+  let turn = { wheres: [], who: '', isOwner: false }
+  const parrilla = createSdkMcpServer({
+    name: 'parrilla',
+    version: '1.0.0',
+    instructions: "The client brands' content strategy, learnings and weekly calendar, shared with Eduardo's own Nexy. Only in the team's group.",
+    tools: planTools({
+      who: () => turn.who,
+      isOwner: () => turn.isOwner,
+      gate: () => (turn.wheres.length && turn.wheres.every((w) => w === 'equipo') ? null : 'The content calendar is only worked in the NXUS team group; never mention it in the client group.'),
+      allowed: (b) => (b.cartera === 'cliente' ? null : `${b.nombre} is not a client brand; its calendar is only Eduardo's.`),
+      // An example sent in the group (F12) is kept as its copy on this Mac, so Eduardo's Nexy can look at it.
+      example: (e) => {
+        const f = /^F\d+$/i.test(e) ? readFiles().find((x) => String(x.id).toLowerCase() === e.toLowerCase()) : null
+        return f ? `${f.id} ${f.ruta ?? f.nombre}` : e
+      },
+      sendPdf: async (path, caption) => {
+        const chat = groups().equipo
+        if (!chat) throw new Error('the team group is not linked')
+        const form = new FormData()
+        form.append('chat_id', String(chat))
+        form.append('document', new Blob([readFileSync(path)]), path.split('/').pop())
+        form.append('caption', caption.slice(0, 1000))
+        const res = await fetch(`${API}/bot${token}/sendDocument`, { method: 'POST', body: form })
+        const data = await res.json().catch(() => ({}))
+        if (!data.ok) throw new Error(data.description ?? `HTTP ${res.status}`)
+      },
+    }),
+  })
   const options = () => ({
-    mcpServers: { atencion: server },
+    mcpServers: { atencion: server, parrilla },
     strictMcpConfig: true,
     tools: [],
     settingSources: [],
@@ -772,13 +815,23 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
     cwd: homedir(),
     // Only its own tools, whatever is asked.
     canUseTool: async (name, input) =>
-      name.startsWith('mcp__atencion__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'Not available here.' },
+      name.startsWith('mcp__atencion__') || name.startsWith('mcp__parrilla__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'Not available here.' },
   })
 
   let convo = null
   const talk = () => {
     if (!convo || convo.closed) {
-      convo = conversation({ agentOptions: options, onAnswer: () => {}, runQuery, local: {}, channel: 'atencion' })
+      convo = conversation({
+        agentOptions: options,
+        onAnswer: () => {},
+        onBegin: (job) => {
+          const jobs = job.merged ?? [job]
+          turn = { wheres: jobs.map((j) => j.where ?? null), who: job.who ?? '', isOwner: Boolean(job.isOwner) }
+        },
+        runQuery,
+        local: {},
+        channel: 'atencion',
+      })
     }
     return convo
   }
@@ -902,7 +955,7 @@ export async function startAtencion({ model, effort, transcribe, runQuery = quer
       (reply ? `\n  respondiendo a: «${reply}»` : '') +
       (kept ? `\n  archivo guardado: ${kept.id} · ${kept.nombre} (${kept.tipo}${kept.mb ? `, ${kept.mb} MB` : ''})${kept.ruta ? '' : ' · demasiado pesado para bajarlo, pero se puede reenviar'}` : '')
     const taskId = hub.startTask(`💬 ${where === 'cliente' ? 'Cliente' : 'Equipo'} · ${who}: ${(said || kept?.nombre || '').slice(0, 80)}`, null, 'atencion')
-    talk().ask(line, { taskId, chatId: chat }, { wait: true })
+    talk().ask(line, { taskId, chatId: chat, where, who: isOwner ? 'Eduardo' : who, isOwner: Boolean(isOwner) }, { wait: true })
   }
 
   let offset = 0

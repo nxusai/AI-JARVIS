@@ -338,7 +338,7 @@ const SUPERSEDED =
  * quickly become one request. Each request gets its answer from the result
  * that closes its turn.
  */
-export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQuery, local, channel = 'telegram' }) {
+export function conversation({ agentOptions, onAnswer, onSlow = () => {}, onBegin = () => {}, runQuery, local, channel = 'telegram' }) {
   let current = null
   const held = []
   let deliver = null
@@ -355,6 +355,8 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQue
   const begin = (content, job) => {
     job.started = Date.now()
     current = job
+    // Who the turn is for: the job, and any held with it (job.merged).
+    onBegin(job)
     lastSign = Date.now()
     const send = () => {
       if (!deliver) return setTimeout(send, 50)
@@ -373,6 +375,7 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, runQue
     const batch = mine.length ? mine : [held[0]]
     for (const b of batch) held.splice(held.indexOf(b), 1)
     const job = batch.at(-1).job
+    job.merged = batch.map((b) => b.job)
     for (const b of batch.slice(0, -1)) hub.endTask(b.job.taskId, 'interrupted', 'Se juntó con el mensaje siguiente.')
     if (batch.length > 1) job.what = batch.map((b) => b.job.what).filter(Boolean).join(' · ')
     const content = mergeContent(batch.map((b) => b.content))
