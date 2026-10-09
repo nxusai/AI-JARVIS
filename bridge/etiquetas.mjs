@@ -28,6 +28,25 @@ export const LABELS_DIR = join(homedir(), '.nexy', 'etiquetas')
 const HISTORY = join(LABELS_DIR, 'historial')
 export const RECEIVED = join(LABELS_DIR, 'recibidos')
 export const PUBLISHED = join(homedir(), 'Documents', 'Nexy', 'etiquetas')
+// Where the printer's computer reads the programs from: a Google Drive folder
+// synced on this Mac and on that computer (set with node scripts/anasofi.mjs carpeta).
+const CONFIG = join(LABELS_DIR, '_ajustes.json')
+export const readLabelConfig = () => {
+  try {
+    return JSON.parse(readFileSync(CONFIG, 'utf8')) ?? {}
+  } catch {
+    return {}
+  }
+}
+export function writeLabelConfig(cfg) {
+  mkdirSync(LABELS_DIR, { recursive: true })
+  writeFileSync(CONFIG, `${JSON.stringify(cfg, null, 2)}\n`)
+}
+/** The shared folder, when it is set and there. */
+export const sharedFolder = () => {
+  const f = readLabelConfig().carpeta
+  return f && existsSync(f) ? f : null
+}
 
 const ID = /^[a-z0-9-]{2,40}$/
 const KEEP_VERSIONS = 200
@@ -59,7 +78,7 @@ export function listClients() {
   return readdirSync(LABELS_DIR)
     .filter((f) => f.endsWith('.json'))
     .map((f) => readClient(f.slice(0, -5)))
-    .filter(Boolean)
+    .filter((c) => Array.isArray(c?.productos))
 }
 
 export function readClient(id) {
@@ -150,11 +169,49 @@ export function cleanProduct(p) {
   return { product: { code: out.code, brand: out.brand, name1: out.name1, name2: out.name2, english: out.english, pack: out.pack, upc: out.upc, days: out.days } }
 }
 
+/**
+ * Everything that would print wrong, before it prints: UPCs that do not check
+ * out, repeated codes or UPCs, shelf lives out of range, missing data, and
+ * texts so long the program has to shrink them a lot. Returns problems
+ * (must fix) and warnings (worth a look at the preview).
+ */
+export function review(c) {
+  const problems = []
+  const warnings = []
+  const seenCode = new Map()
+  const seenUpc = new Map()
+  // Roughly how many capital letters fit in a line at full size (from the layout).
+  const FIT = { brand: 22, name: 26, english: 42, pack: 34 }
+  for (const p of c.productos) {
+    const tag = p.code || '(sin código)'
+    if (!/^[\w.-]{1,20}$/.test(p.code ?? '')) problems.push(`${tag}: el código (ITEM) no es válido.`)
+    if (seenCode.has(p.code)) problems.push(`${tag}: el código está repetido.`)
+    seenCode.set(p.code, true)
+    if (!/^\d{12}$/.test(p.upc ?? '')) problems.push(`${tag}: el UPC no tiene 12 dígitos.`)
+    else if (p.upc[11] !== upcCheck(p.upc.slice(0, 11))) problems.push(`${tag}: el UPC ${p.upc} no cuadra (debería terminar en ${upcCheck(p.upc.slice(0, 11))}).`)
+    if (seenUpc.has(p.upc)) warnings.push(`${tag}: tiene el mismo UPC que ${seenUpc.get(p.upc)}; dos productos distintos normalmente no comparten UPC.`)
+    seenUpc.set(p.upc, tag)
+    if (!Number.isInteger(p.days) || p.days < 1 || p.days > 365) problems.push(`${tag}: los días de vida (${p.days}) no son válidos.`)
+    if (!p.name1) problems.push(`${tag}: no tiene nombre.`)
+    if (!p.pack) warnings.push(`${tag}: no tiene presentación.`)
+    if (!p.english) warnings.push(`${tag}: no tiene descripción en inglés.`)
+    const name = [p.name1, p.name2].filter(Boolean).join(' ')
+    if (name.length > FIT.name * 2) warnings.push(`${tag}: el nombre es muy largo (${name.length} letras); saldrá más chico. Mejor acortarlo.`)
+    if ((p.brand ?? '').length > FIT.brand) warnings.push(`${tag}: la marca es larga; saldrá más chica.`)
+    if ((p.english ?? '').length > FIT.english) warnings.push(`${tag}: la descripción en inglés es larga; saldrá más chica.`)
+    if ((p.pack ?? '').length > FIT.pack) warnings.push(`${tag}: la presentación es larga; saldrá más chica.`)
+    if (/[^\x20-\x7E\u00C0-\u017F·]/.test([p.brand, p.name1, p.name2, p.english, p.pack].join(''))) warnings.push(`${tag}: tiene caracteres raros (emojis o símbolos) que la impresora puede no tener.`)
+  }
+  if (!c.productos.length) problems.push('No tiene productos.')
+  if (!c.sin_logo && c.logo_inicial && c.logo_inicial !== 'none' && c.logo_inicial !== 'texto' && !c.logos?.[c.logo_inicial]) problems.push(`El logo que sale por defecto (${c.logo_inicial}) ya no existe.`)
+  return { problems, warnings }
+}
+
 // -- the program ------------------------------------------------------------------
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
-export function buildHtml(c) {
+export function buildHtml(c, version = '') {
   const logos = Object.fromEntries(Object.entries(c.logos ?? {}).map(([k, v]) => [k, { png: v.png, at: v.at, gfa: v.gfa }]))
   const options = Object.entries(c.logos ?? {})
     .map(([k, v]) => `          <option value="${esc(k)}">${esc(v.nombre ?? k)}</option>`)
@@ -163,6 +220,7 @@ export function buildHtml(c) {
   const t = readFileSync(TEMPLATE, 'utf8')
   return t
     .replace('__TITLE__', esc(`Etiquetas ${c.nombre}`))
+    .replace('__VERSION__', esc(version))
     .replace('__CLIENT__', esc(c.nombre))
     .replaceAll('__STORE__', c.store)
     .replace('__PRODUCTS__', json(c.productos))
@@ -176,12 +234,24 @@ export function buildHtml(c) {
 
 export const programName = (c) => (/^[\w.-]+\.html$/.test(c.archivo ?? '') ? c.archivo : null) ?? `Etiquetas-${slug(c.nombre).replace(/(^|-)([a-z])/g, (_, d, l) => `${d}${l.toUpperCase()}`)}.html`
 
-/** Build the program and keep it in ~/Documents/Nexy/etiquetas. */
-export function publish(c) {
+/**
+ * Build the program and keep it in ~/Documents/Nexy/etiquetas and, when it is
+ * set, in the shared Google Drive folder the printer's computer opens it from.
+ * The header says which version it is, so they can tell they have the latest.
+ */
+export function publish(c, nota = '') {
+  const when = new Date().toLocaleString('es-MX', { timeZone: 'America/New_York', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+  const html = buildHtml(c, `Versión del ${when}${nota ? ` · ${String(nota).slice(0, 80)}` : ''}`)
   mkdirSync(PUBLISHED, { recursive: true })
   const path = join(PUBLISHED, programName(c))
-  writeFileSync(path, buildHtml(c))
-  return path
+  writeFileSync(path, html)
+  const folder = sharedFolder()
+  let shared = null
+  if (folder) {
+    shared = join(folder, programName(c))
+    writeFileSync(shared, html)
+  }
+  return { path, shared }
 }
 
 // -- pictures ---------------------------------------------------------------------
@@ -496,19 +566,30 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
       ),
       tool(
         'publicar',
-        "Build the label program with every change so far and send it to the group, for the printer's computer. Say what changed.",
+        "Publish the label program with every change so far to the printer's computer (through the shared folder, or as a file in the group). Say what changed. Only after checking the previews.",
         { cliente: z.string(), que_cambio: z.string() },
         async ({ cliente, que_cambio }) => {
           const c = get(cliente)
           if (!c) return unknown(cliente)
-          const path = publish(c)
-          await postFile(
-            path,
-            `🆕 ${c.nombre}: ${que_cambio}\n\nEn la computadora de la Zebra: descarga este archivo y reemplaza el anterior (mismo nombre).`,
-          )
-          return ok(`Published and sent: ${path.split('/').pop()}.`)
+          const { problems } = review(c)
+          if (problems.length) return refuse(`Not published: fix these first:\n- ${problems.join('\n- ')}`)
+          const { path, shared } = publish(c, que_cambio)
+          // With the shared folder the printer's computer gets it by itself; without it, as a file.
+          if (shared) return ok(`Published: ${path.split('/').pop()} is updated in the shared folder; in a minute the printer's computer has it. Tell them in one line to reload the program (F5) and check the version line at the top.`)
+          await postFile(path, `🆕 ${c.nombre}: ${que_cambio}\n\nEn la computadora de la Zebra: descarga este archivo y reemplaza el anterior (mismo nombre).`)
+          return ok(`Published and sent as a file: ${path.split('/').pop()}.`)
         },
       ),
+      tool('revisar', "Check a whole label set for what would print wrong (bad UPCs, repeated codes, bad shelf life, missing data, texts too long). Run it before publishing new or many changes.", { cliente: z.string() }, async ({ cliente }) => {
+        const c = get(cliente)
+        if (!c) return unknown(cliente)
+        const { problems, warnings } = review(c)
+        return ok(
+          `${c.nombre}: ${c.productos.length} productos.\n` +
+            (problems.length ? `MUST FIX before publishing:\n- ${problems.join('\n- ')}\n` : 'No problems.\n') +
+            (warnings.length ? `Worth a look (check their previews):\n- ${warnings.join('\n- ')}` : 'No warnings.'),
+        )
+      }),
       tool('historial', "A label set's last changes, newest first: what, who and when (n = 1 is the last).", { cliente: z.string() }, async ({ cliente }) => {
         const c = get(cliente)
         if (!c) return unknown(cliente)

@@ -11,6 +11,7 @@
   header { padding:16px 20px; background:#15171a; color:#fff; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
   header h1 { margin:0; font-size:20px; }
   header span { color:#b8bdc6; font-size:13px; }
+  header .ver { margin-left:auto; color:#9fe0b0; }
   main { display:grid; grid-template-columns: minmax(300px, 420px) 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
   @media (max-width: 860px) { main { grid-template-columns: 1fr; padding:16px; } }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
@@ -46,6 +47,7 @@
 <header>
   <h1>Etiquetas 4×4 · __CLIENT__</h1>
   <span>Elige el producto, revisa lote y fechas, e imprime.</span>
+  <span class="ver">__VERSION__</span>
 </header>
 <main>
   <section class="card">

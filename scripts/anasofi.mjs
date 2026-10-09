@@ -4,14 +4,17 @@
 //   node scripts/anasofi.mjs           asks for the bot's token (hidden) and saves it
 //   node scripts/anasofi.mjs estado    shows the bot, its group and the label sets
 //   node scripts/anasofi.mjs apagar    disconnects the bot (the labels and their history stay)
+//   node scripts/anasofi.mjs carpeta [correo]   the Google Drive folder the printer's computer opens the programs from
 //
 // A bot of its own, made with @BotFather. The token is typed into a hidden
 // prompt, checked with Telegram and saved in ~/.nexy/anasofi.json, readable by
 // this Mac's user only. It is never printed.
 
-import { rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { ANASOFI_FILE, readAnaSofi, writeAnaSofi } from '../bridge/anasofi.mjs'
-import { listClients } from '../bridge/etiquetas.mjs'
+import { listClients, publish, readLabelConfig, sharedFolder, writeLabelConfig } from '../bridge/etiquetas.mjs'
 import { TOKEN_SHAPE } from '../bridge/telegram-config.mjs'
 
 const cmd = process.argv[2]
@@ -74,11 +77,37 @@ if (cmd === 'estado') {
     console.log(` La llave del bot no funciona (${err.message}). Vuelve a correr: node scripts/anasofi.mjs`)
   }
   console.log(` Grupo de etiquetas: ${cfg.grupo ? 'vinculado ✅' : 'falta (escribe /etiquetas dentro del grupo)'}`)
+  console.log(` Carpeta compartida: ${sharedFolder() ?? (readLabelConfig().carpeta ? `${readLabelConfig().carpeta} — NO la encuentro (¿Google Drive abierto?)` : 'falta (node scripts/anasofi.mjs carpeta)')}`)
   console.log(` Etiquetas: ${listClients().map((c) => `${c.nombre} (${c.productos.length})`).join(', ')}`)
   process.exit(0)
 } else if (cmd === 'apagar') {
   rmSync(ANASOFI_FILE, { force: true })
   console.log(' El bot de Ana Sofi quedó desconectado de esta Mac. Las etiquetas y su historial se quedan guardados. Reinicia Nexy.')
+  process.exit(0)
+} else if (cmd === 'carpeta') {
+  // Google Drive for desktop keeps each account under ~/Library/CloudStorage/GoogleDrive-<correo>.
+  const want = (process.argv[3] ?? '').toLowerCase()
+  const cloud = join(homedir(), 'Library', 'CloudStorage')
+  const drives = existsSync(cloud) ? readdirSync(cloud).filter((d) => d.startsWith('GoogleDrive-')) : []
+  const drive = want ? drives.find((d) => d.toLowerCase().includes(want)) : (drives.find((d) => /misemago/i.test(d)) ?? (drives.length === 1 ? drives[0] : null))
+  if (!drive) {
+    console.log(drives.length ? ` Hay varias cuentas de Google Drive: ${drives.map((d) => d.slice(12)).join(', ')}.\n Escribe cuál: node scripts/anasofi.mjs carpeta correo@ejemplo.com` : ' No encuentro Google Drive en esta Mac. Abre la app Google Drive (inicia sesión con la cuenta de Mi Semago) y vuelve a correr esto.')
+    process.exit(1)
+  }
+  const root = ['My Drive', 'Mi unidad'].map((n) => join(cloud, drive, n)).find((p) => existsSync(p))
+  if (!root) {
+    console.log(` No encuentro "Mi unidad" dentro de ${drive}. Abre la app Google Drive, espera a que termine de cargar y vuelve a intentarlo.`)
+    process.exit(1)
+  }
+  const carpeta = join(root, 'Etiquetas Mi Semago')
+  mkdirSync(carpeta, { recursive: true })
+  writeLabelConfig({ ...readLabelConfig(), carpeta })
+  for (const c of listClients()) {
+    const { shared } = publish(c, 'primera versión en la carpeta')
+    console.log(` ✅ ${c.nombre} → ${shared.split('/').pop()}`)
+  }
+  console.log(`\n Carpeta lista: ${carpeta}`)
+  console.log(' (En Google Drive se ve como "Mi unidad › Etiquetas Mi Semago".) Cada vez que Ana Sofi publique, el programa se actualiza ahí solo.')
   process.exit(0)
 } else if (!cmd) {
   const token = (await hidden(' Pega la llave (token) del bot de Ana Sofi y presiona Enter — no se verá mientras la pegas: ')).replace(/\s+/g, '')
@@ -101,6 +130,6 @@ if (cmd === 'estado') {
   console.log(' Siguiente: reinicia Nexy (npm start), agrega el bot al grupo y escribe /etiquetas dentro del grupo.')
   process.exit(0)
 } else {
-  console.log(' Uso: node scripts/anasofi.mjs [estado | apagar]')
+  console.log(' Uso: node scripts/anasofi.mjs [estado | apagar | carpeta [correo]]')
   process.exit(1)
 }
