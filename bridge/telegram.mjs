@@ -6,6 +6,7 @@ import { DONE, INBOX, MUSIC, VIDEO_DIR } from './video.mjs'
 import { hub, spendsMoney } from './console.mjs'
 import { RECEIVED_DIR, readBrands } from './brands.mjs'
 import { INVOICES_DIR } from './invoice-pdf.mjs'
+import { EXPORT_DIR as CONTENT_PLANS_DIR } from './parrilla.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession, loadSession, saveSession } from './session-store.mjs'
@@ -308,6 +309,7 @@ const stepName = (name) => {
     jarvis_crudo: 'revisando tu memoria',
     jarvis_brands: 'revisando la marca',
     jarvis_respaldo: 'el respaldo',
+    jarvis_parrilla: 'la parrilla de contenido',
   }[server]
   if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)
@@ -631,8 +633,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       tools: [
         tool(
           'send_file',
-          'Send the owner a finished video, an image or an invoice PDF in this chat, so they can see it before it is ' +
-            'published or created. Only files from the Nexy video folders, images they sent, or PDFs from invoice_pdf.',
+          'Send the owner a finished video, an image, an invoice PDF or a content calendar PDF in this chat, so they can see it before it is ' +
+            'published or created. Only files from the Nexy video folders, images they sent, PDFs from invoice_pdf or export_content_plan.',
           {
             path: z.string().describe('The file path, as edit_video or list_videos gave it.'),
             caption: z.string().optional().describe('A short line to go with it.'),
@@ -646,7 +648,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
             } catch {
               return { isError: true, content: [{ type: 'text', text: 'That file does not exist.' }] }
             }
-            const roots = [VIDEO_DIR, RECEIVED_DIR, INVOICES_DIR].map((d) => {
+            const roots = [VIDEO_DIR, RECEIVED_DIR, INVOICES_DIR, CONTENT_PLANS_DIR].map((d) => {
               try {
                 return realpathSync(d) + sep
               } catch {
@@ -654,7 +656,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
               }
             })
             if (!roots.some((r) => r && real.startsWith(r))) {
-              return { isError: true, content: [{ type: 'text', text: 'Only finished videos, images and invoice PDFs from the Nexy folders can be sent.' }] }
+              return { isError: true, content: [{ type: 'text', text: 'Only finished videos, images, invoice PDFs and content calendars from the Nexy folders can be sent.' }] }
             }
             const size = statSync(real).size
             if (size > BOT_UPLOAD_LIMIT) {

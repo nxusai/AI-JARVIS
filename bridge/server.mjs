@@ -29,6 +29,7 @@ import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
+import { CONTENT_PLAN_PROMPT, contentPlanServer } from './parrilla.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
@@ -239,7 +240,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -341,6 +342,11 @@ const WRITE_ALLOWLIST = new Set([
   // Copies Nexy's own folders to the drive the owner set up on this Mac, nothing else (see respaldo.mjs).
   'jarvis_respaldo__make_backup',
   'jarvis_respaldo__backup_status',
+  // Each brand's content strategy and weekly calendar: files on this Mac, and its PDF (see parrilla.mjs).
+  'jarvis_parrilla__save_content_strategy',
+  'jarvis_parrilla__save_content_plan',
+  'jarvis_parrilla__update_content_post',
+  'jarvis_parrilla__export_content_plan',
   'google-calendar__create-event',
   'google-calendar__create-events',
   'google-calendar__update-event',
@@ -1749,6 +1755,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_respaldo: backupServer(),
       // What each company's Meta ads are running now, read only (see anuncios.mjs).
       jarvis_anuncios: adsWatchServer(),
+      // Each brand's content strategy and weekly calendar, and its PDF (see parrilla.mjs).
+      jarvis_parrilla: contentPlanServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
@@ -1763,7 +1771,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),

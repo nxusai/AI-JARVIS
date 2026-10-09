@@ -256,7 +256,7 @@ export function publish(c, nota = '') {
 
 // -- pictures ---------------------------------------------------------------------
 
-const CHROMES = [
+export const CHROMES = [
   process.env.NEXY_CHROME,
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
@@ -268,7 +268,7 @@ const CHROMES = [
   '/usr/bin/google-chrome',
 ].filter(Boolean)
 
-const run = (cmd, args, { input, ms = 60_000 } = {}) =>
+export const run = (cmd, args, { input, ms = 60_000 } = {}) =>
   new Promise((resolve) => {
     let err = ''
     const out = []
