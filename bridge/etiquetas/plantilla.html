@@ -157,6 +157,8 @@
 <script>
 // Every label set (category): { id, nombre, tipo: 'gs1'|'traza', productos, diseno, logos, logo, texto, sinLogo }.
 const CATALOG = __CATALOG__;
+// The direct line for print orders (ntfy.sh): instant; Drive's queue file is the backup.
+const RELAY = __RELAY__;
 const $ = id => document.getElementById(id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -554,20 +556,28 @@ browserPrint().then(bp => {
 });
 
 // ── pedidos por Telegram ──
-// Ana Sofi o Nexy dejan el pedido en cola-impresion.js, junto a este programa en
-// la carpeta de Google Drive. La computadora de la Zebra (la marcada en
-// Opciones avanzadas) lo lee cada 15 segundos y lo imprime una sola vez.
+// Ana Sofi o Nexy mandan el pedido por dos caminos: el directo (llega en un
+// segundo) y cola-impresion.js en la carpeta de Google Drive (respaldo; se lee
+// cada 10 segundos). La computadora de la Zebra (la marcada en Opciones
+// avanzadas) imprime cada pedido una sola vez, venga por donde venga.
 const DONE = 'et-pedidos-hechos';
 const MAX_AGE = 6 * 3600e3;
-let busy = false, lastLook = null, pendingJobs = [];
+let busy = false, lastLook = null, pendingJobs = [], direct = 'off';
+const incoming = [];
 const isZebraPc = () => store.get('et-zebra-pc', false) === true;
 function jobLabel(j, c, p) { return `${j.qty} × ${p ? `${p.code} ${p.name1}${p.pack ? ' ' + p.pack : ''}` : j.code} (${c ? c.nombre : j.cat})`; }
-window.colaImpresion = async (jobs) => {
+window.colaImpresion = (jobs) => {
   lastLook = new Date();
   showQueue();
-  if (busy || !Array.isArray(jobs)) return;
+  if (Array.isArray(jobs)) incoming.push(...jobs);
+  drain();
+};
+async function drain() {
+  if (busy) return;
   busy = true;
   try {
+    while (incoming.length) {
+    const jobs = incoming.splice(0);
     const done = store.get(DONE, {});
     for (const j of jobs.slice().sort((a, b) => a.at - b.at)) {
       if (!j || !j.id || done[j.id] || Date.now() - Number(j.at) > MAX_AGE) continue;
@@ -583,10 +593,12 @@ window.colaImpresion = async (jobs) => {
       else { pendingJobs.push({ j, c, p, f, o }); showPending(); }
     }
     // Forget orders older than the queue keeps.
-    for (const [id, t] of Object.entries(done)) if (Date.now() - t > 2 * MAX_AGE) delete done[id];
-    store.set(DONE, done);
+    const kept = store.get(DONE, {});
+    for (const [id, t] of Object.entries(kept)) if (Date.now() - t > 2 * MAX_AGE) delete kept[id];
+    store.set(DONE, kept);
+    }
   } finally { busy = false; }
-};
+}
 function log(t) { const m = $('msg'); m.textContent = t; m.className = 'msg ' + (t.startsWith('✅') ? 'ok' : 'err'); }
 function showPending() {
   $('pending').innerHTML = pendingJobs.map((x, i) => `<div class="pending">🖨️ Llegó un pedido de Telegram: <b>${jobLabel(x.j, x.c, x.p)}</b>. Esta computadora no tiene Zebra Browser Print, así que hay que darle clic.<button class="primary" data-i="${i}">Imprimir este pedido</button></div>`).join('');
@@ -599,7 +611,8 @@ function showQueue() {
   const q = $('queue');
   if (!isZebraPc()) { q.className = 'queue off'; q.textContent = 'Pedidos por Telegram: apagados en esta computadora (se prenden en Opciones avanzadas, solo en la computadora de la Zebra).'; return; }
   q.className = 'queue';
-  q.textContent = `Pedidos por Telegram: activos. ${lastLook ? `Última revisión ${lastLook.toLocaleTimeString()}.` : 'Esperando la primera revisión…'}`;
+  const line = { on: 'Línea directa conectada: imprimen al momento.', wait: 'Conectando la línea directa…', off: 'Sin línea directa: llegan por Google Drive (hasta 2 minutos).' }[direct];
+  q.textContent = `Pedidos por Telegram: activos. ${line} ${lastLook ? `Última revisión ${lastLook.toLocaleTimeString()}.` : ''}`;
 }
 function poll() {
   if (!isZebraPc() || location.hash.startsWith('#preview')) return;
@@ -608,9 +621,26 @@ function poll() {
   s.onload = s.onerror = () => { s.remove(); if (!lastLook) { lastLook = new Date(); showQueue(); } };
   document.head.appendChild(s);
 }
+// The direct line: the program listens, and an order arrives the moment it is sent.
+let es = null;
+function listen() {
+  if (es) { es.close(); es = null; }
+  if (!isZebraPc() || !RELAY || !RELAY.canal || location.hash.startsWith('#preview') || typeof EventSource === 'undefined') { direct = 'off'; showQueue(); return; }
+  direct = 'wait'; showQueue();
+  // Orders sent in the last hours too, in case this computer was off: each prints once.
+  es = new EventSource(`${RELAY.url}/${RELAY.canal}/sse?since=${Math.floor((Date.now() - MAX_AGE) / 1000)}`);
+  es.onopen = () => { direct = 'on'; showQueue(); };
+  es.addEventListener('open', () => { direct = 'on'; showQueue(); });
+  es.onmessage = (e) => {
+    direct = 'on';
+    try { const d = JSON.parse(e.data); if (d.event && d.event !== 'message') return; window.colaImpresion([JSON.parse(d.message)]); } catch {}
+  };
+  es.onerror = () => { direct = 'wait'; showQueue(); };
+}
 $('zebrapc').checked = isZebraPc();
-$('zebrapc').onchange = () => { store.set('et-zebra-pc', $('zebrapc').checked); showQueue(); poll(); };
-setInterval(poll, 15000);
+$('zebrapc').onchange = () => { store.set('et-zebra-pc', $('zebrapc').checked); showQueue(); poll(); listen(); };
+setInterval(poll, 10000);
+listen();
 
 // ── empresas y productos ──
 const PREFS = 'et-prefs';

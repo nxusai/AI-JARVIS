@@ -1,6 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import { spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -46,6 +47,21 @@ export const readLabelConfig = () => {
 export function writeLabelConfig(cfg) {
   mkdirSync(LABELS_DIR, { recursive: true })
   writeFileSync(CONFIG, `${JSON.stringify(cfg, null, 2)}\n`)
+}
+/**
+ * The direct line to the printer's computer: a private channel on ntfy.sh, a
+ * free relay the program listens to, so an order prints in a second or two
+ * instead of waiting for Google Drive to sync. Its name is long and random and
+ * lives only here and in the program; what goes through it is only the
+ * product code, how many and the date. Drive's queue stays as the backup.
+ */
+export const RELAY = 'https://ntfy.sh'
+export function relayChannel() {
+  const cfg = readLabelConfig()
+  if (/^et-[0-9a-f]{32}$/.test(cfg.canal ?? '')) return cfg.canal
+  const canal = `et-${randomBytes(16).toString('hex')}`
+  writeLabelConfig({ ...cfg, canal })
+  return canal
 }
 /** The shared folder, when it is set and there. */
 export const sharedFolder = () => {
@@ -338,6 +354,7 @@ export function buildCatalog(version = '', sets = listClients()) {
     .replace('__TITLE__', 'Etiquetas Zebra 4×4')
     .replace('__VERSION__', esc(version))
     .replace('__CATALOG__', json(sets.map(forProgram)))
+    .replace('__RELAY__', json({ url: RELAY, canal: relayChannel() }))
 }
 /** Kept for callers that build one company: the whole program, opened on it. */
 export const buildHtml = (_c, version = '') => buildCatalog(version)
@@ -392,6 +409,8 @@ export function queuePrint({ c, p, qty, fecha, logo, quien }) {
   const job = { id: `${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, at: now, cat: c.id, code: p.code, qty, fecha, ...(logo ? { logo } : {}), quien: String(quien ?? '').slice(0, 60) }
   jobs.push(job)
   writeFileSync(file, `// Pedidos de impresión de Telegram (Ana Sofi y Nexy). Los lee Etiquetas.html.\nwindow.colaImpresion && window.colaImpresion(${JSON.stringify(jobs)});\n`)
+  // And straight away through the direct line; the program prints whichever arrives first, once.
+  void fetch(`${RELAY}/${relayChannel()}`, { method: 'POST', body: JSON.stringify(job), signal: AbortSignal.timeout(10_000) }).catch((err) => console.log(`[jarvis] etiquetas: direct line failed (${err.message}); Drive will carry it`))
   return { job, folder }
 }
 
@@ -579,7 +598,7 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
           if (logo && hit.c.tipo !== 'traza' && !['texto', 'none'].includes(logo) && !hit.c.logos?.[logo]) return refuse(`${hit.c.nombre} has no logo ${logo}.`)
           const r = queuePrint({ c: hit.c, p: hit.p, qty: cantidad, fecha: fecha || today(), logo, quien: who() })
           if (r.error) return refuse(r.error)
-          return ok(`Sent to the printer's computer: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}), production ${fecha || today()}. It prints within a minute if the program is open there and ticked as the Zebra's computer (Opciones avanzadas); if that computer has no Zebra Browser Print, a button appears there to print it.`)
+          return ok(`Sent to the printer's computer: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}), production ${fecha || today()}. It prints in a few seconds if the program is open there and ticked as the Zebra's computer (Opciones avanzadas); if that computer has no Zebra Browser Print, a button appears there to print it.`)
         },
       ),
       tool('productos', "A label set's products and its design settings.", { cliente: z.string() }, async ({ cliente }) => {
@@ -821,7 +840,7 @@ export function ownerLabelsServer() {
           if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return refuse('fecha is YYYY-MM-DD.')
           const r = queuePrint({ c: hit.c, p: hit.p, qty: cantidad, fecha: fecha || today(), logo, quien: 'Eduardo (Nexy)' })
           if (r.error) return refuse(r.error)
-          return ok(`Sent: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}). It prints within a minute if the program is open on the printer's computer.`)
+          return ok(`Sent: ${cantidad} × ${productLine(hit.p)} (${hit.c.nombre}). It prints in a few seconds if the program is open on the printer's computer.`)
         },
       ),
     ],
