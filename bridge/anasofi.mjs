@@ -8,7 +8,7 @@ import { hub } from './console.mjs'
 import { labelTools, listClients, RECEIVED, LABELS_DIR } from './etiquetas.mjs'
 import { readTelegram } from './telegram-config.mjs'
 import { envFor } from './apikeys.mjs'
-import { conversation, forSpeech, speak } from './telegram.mjs'
+import { conversation, forSpeech } from './telegram.mjs'
 import { findFfmpeg } from './video.mjs'
 
 /**
@@ -26,7 +26,9 @@ import { findFfmpeg } from './video.mjs'
  * (four frames and what is said in them) and links (a page's text, or frames
  * of an Instagram/TikTok/YouTube video). When someone talks to her with a
  * voice note she answers with one too, in her own ElevenLabs voice: the one of
- * Ana Sofi, Mi Semago's sales agent (or `voz` in anasofi.json).
+ * Ana Sofi, Mi Semago's sales agent, or one per language (`voz_es`, `voz_en`
+ * in anasofi.json, set with node scripts/anasofi.mjs voz). The language is
+ * told to ElevenLabs, so English sounds English and Spanish sounds Spanish.
  *
  *   ~/.nexy/anasofi.json                 the bot's token, its group and voice (owner-only file)
  *   ~/.nexy/etiquetas/bitacora.jsonl     what was said in the group
@@ -41,11 +43,22 @@ const VIDEO_EXT = /\.(mp4|mov|m4v|webm|avi|mkv)$/i
 const URLS = /https?:\/\/[^\s<>"']+/gi
 const MAX_LINKS = 2
 
-/** Her voice on ElevenLabs: set in anasofi.json, else the one of the sales agent Ana Sofi. */
+export const VOICE_ID = /^\w{10,40}$/
+
+/** Spanish or English, by the words it uses. */
+export function languageOf(text) {
+  const t = ` ${String(text).toLowerCase()} `
+  const count = (words) => words.reduce((n, w) => n + (t.split(new RegExp(`[^a-záéíóúñü]${w}[^a-záéíóúñü]`)).length - 1), 0)
+  const es = count(['que', 'el', 'la', 'los', 'las', 'de', 'para', 'con', 'por', 'una', 'es', 'está', 'y', 'tu', 'te', 'ya', 'sí', 'aquí']) + (/[ñ¿¡áéíóú]/.test(t) ? 3 : 0)
+  const en = count(['the', 'and', 'you', 'your', 'is', 'are', 'to', 'of', 'for', 'with', 'it', 'this', 'that', 'here', 'yes', 'i', 'we', 'can'])
+  return en > es ? 'en' : 'es'
+}
+
+/** Her voice on ElevenLabs for a language: its own if set, else `voz`, else the sales agent Ana Sofi's. */
 let voiceCache = null
-export async function anaSofiVoice(key) {
-  const set = readAnaSofi()?.voz
-  if (typeof set === 'string' && /^\w{10,40}$/.test(set)) return set
+export async function anaSofiVoice(key, lang) {
+  const cfg = readAnaSofi() ?? {}
+  for (const set of [lang && cfg[`voz_${lang}`], cfg.voz]) if (typeof set === 'string' && VOICE_ID.test(set)) return set
   if (voiceCache) return voiceCache
   try {
     const agentId = JSON.parse(readFileSync(join(homedir(), '.nexy', 'ventas.json'), 'utf8')).agentId
@@ -57,6 +70,26 @@ export async function anaSofiVoice(key) {
   } catch {
     return null
   }
+}
+
+/**
+ * Text to speech with the language set, so a voice made in one language does
+ * not carry its accent into the other. Turbo v2.5 is the model that takes the
+ * language; a voice note can wait the extra moment for its better sound.
+ */
+export async function speakAs(key, voiceId, text, lang) {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_turbo_v2_5',
+      language_code: lang,
+      voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0, use_speaker_boost: true },
+    }),
+  })
+  if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  return Buffer.from(await res.arrayBuffer())
 }
 
 /** The sound of a video, as an Ogg voice note for the transcriber. */
@@ -191,10 +224,11 @@ export async function startAnaSofi({ model, effort, transcribe, elevenKey = () =
   let spoken = false
   async function sayAloud(texto) {
     const key = elevenKey()
-    const voice = key && (await anaSofiVoice(key))
+    const lang = languageOf(texto)
+    const voice = key && (await anaSofiVoice(key, lang))
     if (!voice) return false
     try {
-      const audio = await speak(key, voice, forSpeech(texto))
+      const audio = await speakAs(key, voice, forSpeech(texto), lang)
       await upload(token, group(), 'sendVoice', 'voice', audio, 'anasofi.mp3', texto.length <= 1000 ? texto : '')
       if (texto.length > 1000) await say(token, group(), texto)
       return true

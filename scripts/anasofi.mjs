@@ -4,6 +4,7 @@
 //   node scripts/anasofi.mjs           asks for the bot's token (hidden) and saves it
 //   node scripts/anasofi.mjs estado    shows the bot, its group and the label sets
 //   node scripts/anasofi.mjs apagar    disconnects the bot (the labels and their history stay)
+//   node scripts/anasofi.mjs voz es|en <voice id>   her ElevenLabs voice for Spanish or English (voz … quitar: back to the sales agent's)
 //   node scripts/anasofi.mjs carpeta [correo]   the Google Drive folder the printer's computer opens the programs from
 //
 // A bot of its own, made with @BotFather. The token is typed into a hidden
@@ -13,7 +14,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { ANASOFI_FILE, anaSofiVoice, readAnaSofi, writeAnaSofi } from '../bridge/anasofi.mjs'
+import { ANASOFI_FILE, anaSofiVoice, readAnaSofi, VOICE_ID, writeAnaSofi } from '../bridge/anasofi.mjs'
 import { listClients, publish, readLabelConfig, sharedFolder, writeLabelConfig } from '../bridge/etiquetas.mjs'
 import { TOKEN_SHAPE } from '../bridge/telegram-config.mjs'
 
@@ -82,14 +83,32 @@ if (cmd === 'estado') {
   try {
     key ??= JSON.parse(readFileSync(join(homedir(), '.claude.json'), 'utf8')).mcpServers?.elevenlabs?.env?.ELEVENLABS_API_KEY ?? null
   } catch {}
-  const voz = await anaSofiVoice(key)
-  console.log(` Voz (para contestar notas de voz): ${voz ? 'la de Ana Sofi en ElevenLabs ✅' : key ? '⚠️ no encontré la voz de Ana Sofi (¿está conectada la agente de ventas? node scripts/ana-sofi.mjs estado); contestará solo con texto' : '⚠️ falta la llave de ElevenLabs; contestará solo con texto'}`)
+  for (const [lang, name] of [['es', 'español'], ['en', 'inglés']]) {
+    const voz = await anaSofiVoice(key, lang)
+    const own = cfg[`voz_${lang}`] === voz
+    console.log(` Voz en ${name}: ${voz ? (own ? `su voz propia (${voz}) ✅` : 'la de la agente Ana Sofi de ElevenLabs ✅') : key ? '⚠️ no encontré la voz de Ana Sofi; contestará solo con texto' : '⚠️ falta la llave de ElevenLabs; contestará solo con texto'}`)
+  }
   console.log(` Carpeta compartida: ${sharedFolder() ?? (readLabelConfig().carpeta ? `${readLabelConfig().carpeta} — NO la encuentro (¿Google Drive abierto?)` : 'falta (node scripts/anasofi.mjs carpeta)')}`)
   console.log(` Etiquetas: ${listClients().map((c) => `${c.nombre} (${c.productos.length})`).join(', ')}`)
   process.exit(0)
 } else if (cmd === 'apagar') {
   rmSync(ANASOFI_FILE, { force: true })
   console.log(' El bot de Ana Sofi quedó desconectado de esta Mac. Las etiquetas y su historial se quedan guardados. Reinicia Nexy.')
+  process.exit(0)
+} else if (cmd === 'voz') {
+  const [lang, id] = process.argv.slice(3)
+  const cfg = readAnaSofi()
+  if (!cfg) {
+    console.log(' Primero conecta el bot: node scripts/anasofi.mjs')
+    process.exit(1)
+  }
+  if (!['es', 'en'].includes(lang) || !(id === 'quitar' || VOICE_ID.test(id ?? ''))) {
+    console.log(' Uso: node scripts/anasofi.mjs voz es <Voice ID>   o   node scripts/anasofi.mjs voz en <Voice ID>\n (El Voice ID se copia en ElevenLabs → Voices → los tres puntitos de la voz → Copy voice ID.)')
+    process.exit(1)
+  }
+  const { [`voz_${lang}`]: _old, ...rest } = cfg
+  writeAnaSofi(id === 'quitar' ? rest : { ...rest, [`voz_${lang}`]: id })
+  console.log(` ✅ Voz en ${lang === 'es' ? 'español' : 'inglés'}: ${id === 'quitar' ? 'otra vez la de la agente Ana Sofi' : id}. Se usa desde la siguiente nota de voz (no hace falta reiniciar).`)
   process.exit(0)
 } else if (cmd === 'carpeta') {
   // Google Drive for desktop keeps each account under ~/Library/CloudStorage/GoogleDrive-<correo>.
@@ -137,6 +156,6 @@ if (cmd === 'estado') {
   console.log(' Siguiente: reinicia Nexy (npm start), agrega el bot al grupo y escribe /etiquetas dentro del grupo.')
   process.exit(0)
 } else {
-  console.log(' Uso: node scripts/anasofi.mjs [estado | apagar | carpeta [correo]]')
+  console.log(' Uso: node scripts/anasofi.mjs [estado | apagar | voz es|en <id> | carpeta [correo]]')
   process.exit(1)
 }
