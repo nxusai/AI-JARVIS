@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aurelius · Consola</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <div class="acceso" id="pantalla-sin-config" hidden>
+    <div class="tarjeta">
+      <h2>Falta un paso</h2>
+      <p>Abre el archivo <b>js/config.js</b> y pega los datos de tu proyecto de Supabase. Las instrucciones están en el README.</p>
+    </div>
+  </div>
+
+  <div class="acceso" id="pantalla-acceso" hidden>
+    <form class="tarjeta" id="form-acceso">
+      <div class="marca">
+        <h1 class="marca-nombre">AURELIUS</h1>
+        <p class="marca-lema">Consola del dueño</p>
+      </div>
+      <label class="campo">Correo
+        <input type="email" id="acceso-correo" autocomplete="username" required>
+      </label>
+      <label class="campo">Contraseña
+        <input type="password" id="acceso-clave" autocomplete="current-password" required>
+      </label>
+      <button class="btn btn-primario" type="submit">Entrar</button>
+      <p class="ayuda" id="acceso-mensaje" role="alert"></p>
+    </form>
+  </div>
+
+  <div id="consola" hidden>
+    <header class="c-cabecera">
+      <div class="c-cabecera-fila">
+        <span class="marca-nombre">AURELIUS</span>
+        <span class="espacio"></span>
+        <span class="c-usuario" id="usuario"></span>
+        <button class="btn btn-chico" id="btn-salir">Salir</button>
+      </div>
+      <nav class="c-pestanas" id="pestanas">
+        <button data-vista="hoy" class="activa">Hoy</button>
+        <button data-vista="calendario">Calendario</button>
+        <button data-vista="nomina">Nómina</button>
+        <button data-vista="empleados">Empleados</button>
+        <button data-vista="ajustes">Ajustes</button>
+      </nav>
+    </header>
+    <main class="c-contenido" id="contenido"></main>
+  </div>
+
+  <dialog class="modal" id="modal"></dialog>
+  <dialog class="modal" id="modal-foto"></dialog>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
