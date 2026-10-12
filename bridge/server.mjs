@@ -31,6 +31,7 @@ import { invoicesServer } from './invoice-pdf.mjs'
 import { backupServer } from './respaldo.mjs'
 import { CONTENT_PLAN_PROMPT, contentPlanServer } from './parrilla.mjs'
 import { ownerLabelsServer } from './etiquetas.mjs'
+import { EFFECTS_PROMPT, effectsServer } from './efectos.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
@@ -241,7 +242,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -475,6 +476,9 @@ function decideTool(name) {
     // and workshop.mjs), so their verbs — cut, remove, write — change nothing
     // outside it.
     if (server === 'jarvis_video' || server === 'jarvis_taller') return true
+    // Effects: scenes run in Remotion's headless browser and write only to
+    // ~/Movies/Nexy (see efectos.mjs), their code vetted before it is written.
+    if (server === 'jarvis_efectos') return true
 
     const tool = mcpToolOf(name)
     if (server === 'notion') return NOTION_READ.has(tool) || NOTION_WRITE.has(tool)
@@ -1765,6 +1769,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_parrilla: contentPlanServer(),
       // Mi Semago's Zebra labels: find one and print it there (see etiquetas.mjs).
       jarvis_etiquetas: ownerLabelsServer(),
+      // Motion graphics and 3D for the videos, with Remotion (see efectos.mjs).
+      jarvis_efectos: effectsServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
@@ -1779,7 +1785,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),

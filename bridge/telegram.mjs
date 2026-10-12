@@ -59,7 +59,7 @@ const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
  * (Higgsfield takes minutes per clip), music, cloning the owner's voice, and
  * an agent working through a long job.
  */
-const SLOW_STEP = /wait|video|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
+const SLOW_STEP = /wait|video|render|efectos|effects|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
 /** After this long on one request, she tells the owner she is still on it. */
 const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || 90_000
 /** How long "Aprobar todo en Notion" lasts. */
@@ -311,6 +311,7 @@ const stepName = (name) => {
     jarvis_respaldo: 'el respaldo',
     jarvis_parrilla: 'la parrilla de contenido',
     jarvis_etiquetas: 'las etiquetas',
+    jarvis_efectos: 'haciendo los efectos del video',
   }[server]
   if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)

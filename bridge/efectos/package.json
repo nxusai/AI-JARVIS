@@ -1,0 +1,15 @@
+{
+  "name": "nexy-efectos",
+  "private": true,
+  "description": "Nexy's effects workshop (Remotion): motion graphics and 3D for the brands' videos.",
+  "dependencies": {
+    "remotion": "4.0.528",
+    "@remotion/cli": "4.0.528",
+    "@remotion/three": "4.0.528",
+    "three": "0.186.1",
+    "@react-three/fiber": "9.8.1",
+    "@react-three/drei": "10.7.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}
