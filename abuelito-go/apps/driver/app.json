@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Abuelito Go",
+    "slug": "abuelito-go",
+    "scheme": "abuelitogo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.elabuelito.abuelitogo",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Abuelito Go usa tu ubicación para mostrar tu avance en la ruta y registrar dónde se hizo cada entrega.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Abuelito Go envía la ubicación de la camioneta a la oficina mientras la ruta está en curso, aunque la app esté en segundo plano.",
+        "NSCameraUsageDescription": "Abuelito Go usa la cámara para tomar la foto de cada entrega.",
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze"],
+        "UIBackgroundModes": ["location"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.elabuelito.abuelitogo",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "isIosBackgroundLocationEnabled": true,
+          "locationAlwaysAndWhenInUsePermission": "Abuelito Go envía la ubicación de la camioneta a la oficina mientras la ruta está en curso, aunque la app esté en segundo plano."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Abuelito Go usa la cámara para tomar la foto de cada entrega.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

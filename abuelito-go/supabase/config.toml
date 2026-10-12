@@ -1,0 +1,10 @@
+# Configuración mínima para `supabase start`; el CLI completa el resto con sus valores por defecto.
+project_id = "abuelito-go"
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["abuelitogo://"]

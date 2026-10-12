@@ -1,0 +1,24 @@
+{
+  "name": "abuelito-go",
+  "private": true,
+  "description": "Plataforma de rutas y entregas de El abuelito INC: panel web para despacho y app iPhone para choferes.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "web": "npm run dev -w @abuelito/web",
+    "chofer": "npm run start -w @abuelito/driver",
+    "test": "npm test -w @abuelito/shared",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "probar-db": "./scripts/probar-db.sh",
+    "crear-admin": "node scripts/crear-admin.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}

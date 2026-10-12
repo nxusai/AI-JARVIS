@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+# Expo
+.expo/
+ios/
+android/
+web-build/
+expo-env.d.ts
+# Supabase
+supabase/.branches/
+supabase/.temp/
+*.tsbuildinfo
