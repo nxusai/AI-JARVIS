@@ -50,8 +50,12 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
   íconos.
 - El código va empaquetado en un solo archivo compactado e ilegible.
   Las llaves se guardan en el llavero del sistema, no en archivos.
-- Disco cifrado (FileVault) y recuperación del Mac bloqueada con la contraseña
-  de Eduardo.
+- Sin Apple ID en el Mac mini: ni de Eduardo ni del cliente. El administrador
+  es una cuenta local ("Soporte NXUS") con contraseña que solo tiene Eduardo.
+- Disco cifrado (FileVault). Las herramientas de Recuperación piden la
+  contraseña del administrador local.
+- Tras un apagón, el usuario del cliente puede desbloquear el disco con su
+  propia contraseña, y eso no le da permisos de administrador.
 - Al arrancar, el cerebro revisa la firma de cada archivo. Si alguien lo
   modificó, se detiene y le avisa a Nexy.
 - Nexy recibe aviso si alguien entra como administrador o si el cerebro deja
@@ -74,17 +78,19 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
   Eduardo en Telegram.
 - No puede instalar programas, apagar el servicio ni cambiar candados sin esa
   contraseña.
-- Si borra o reinstala el Mac, Recuperación y el Bloqueo de activación piden la
-  contraseña y el Apple ID de Eduardo. Si aun así lo borra, el cerebro se
-  destruye sin dejar nada legible.
+- En Recuperación, todo lo que abre el disco (Terminal, Utilidad de Discos,
+  reinstalar conservando datos) pide la contraseña del administrador local.
+- Lo único que puede hacer sin ella es borrar el Mac completo. Eso destruye el
+  cerebro cifrado sin dejar nada legible: no se lleva código ni llaves. Nexy
+  avisa porque el cerebro deja de reportarse, y se reinstala desde el original.
 - El disco va soldado y cifrado por el chip del Mac, así que sacarlo no sirve
   de nada.
 - No hay acceso remoto para nadie más. El de Eduardo es con llave propia, sin
   contraseña que adivinar.
 - El único punto débil es la contraseña de administrador de Eduardo. Debe ser
   única para este Mac, de 16 caracteres o más y guardada solo en su
-  administrador de contraseñas. El Apple ID debe tener verificación en dos
-  pasos.
+  administrador de contraseñas. No se le da a nadie del cliente: el contrato
+  dice que la administración del equipo es de NXUS.
 
 ## Contacto entre las IA's
 
