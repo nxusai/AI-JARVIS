@@ -146,7 +146,8 @@ instalación, nunca en un chat.
 
 1. Preparar el Mac mini (cuando esté instalado).
 2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
-   1. separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy;
+   1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy
+      (`bridge/nucleo`; `node scripts/nucleo.mjs` revisa que siga limpio);
    2. programa propio que guarda todo en su carpeta, no en la de Nexy;
    3. empaquetador que firma y revisa fugas: si el paquete trae "Nexy", datos
       de Eduardo o llaves, no se arma;

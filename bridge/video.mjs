@@ -1,13 +1,13 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { basename, extname, join, sep } from 'node:path'
 import { activeBrand, findBrand, moldSources, readLogo, readManual } from './brands.mjs'
-import { vetTarget } from './net.mjs'
-import { REFS, fetchReference } from './reference.mjs'
+import { findFfmpeg } from './nucleo/medios.mjs'
+import { vetTarget } from './nucleo/red.mjs'
+import { REFS, fetchReference } from './nucleo/referencias.mjs'
 import { rawRoots } from './raw.mjs'
 
 /**
@@ -65,16 +65,8 @@ const AUDIO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|flac)$/i
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
 
-/** FFmpeg on this Mac, or null. */
-export function findFfmpeg() {
-  const candidates = [process.env.NEXY_FFMPEG, '/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg']
-  try {
-    candidates.push(createRequire(import.meta.url)('ffmpeg-static'))
-  } catch {
-    // Not installed.
-  }
-  return candidates.find((p) => p && existsSync(p)) ?? null
-}
+/** FFmpeg on this Mac, or null (the core's, shared with Ana Sofi). */
+export { findFfmpeg }
 
 /**
  * Run FFmpeg with an argument list (no shell). Resolves with everything it

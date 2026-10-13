@@ -9,7 +9,10 @@ import { INVOICES_DIR } from './invoice-pdf.mjs'
 import { EXPORT_DIR as CONTENT_PLANS_DIR } from './parrilla.mjs'
 import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
-import { clearSession, loadSession, saveSession } from './session-store.mjs'
+import { clearSession } from './nucleo/sesiones.mjs'
+import { api, chunks } from './nucleo/telegram.mjs'
+import { forSpeech as plainSpeech } from './nucleo/voz.mjs'
+import { conversation as runConversation } from './nucleo/conversacion.mjs'
 import { country, toE164 } from './contact-book.mjs'
 import { setRoutineRunner } from './routines.mjs'
 import { setSalesNotifier } from './ventas.mjs'
@@ -36,8 +39,6 @@ import { smoothBoss } from './speech.mjs'
 const API = 'https://api.telegram.org'
 /** Telegram's own limit is 4096; a little room for safety. */
 const MAX_MESSAGE = 3900
-/** Voice notes are for listening, not for reading an essay aloud. */
-const MAX_SPOKEN = 2500
 /** Telegram bots can only download files up to 20 MB. */
 const MAX_DOWNLOAD = 20 * 1024 * 1024
 /** The model reads images up to about this size; a bigger file is refused kindly. */
@@ -48,20 +49,10 @@ const MAX_IMAGES = 8
 const ALBUM_WAIT_MS = 1500
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
 
-/**
- * A turn with no sign of life for this long is stopped: a tool that never
- * answers would otherwise leave her "typing" for ever. Time spent waiting for
- * the owner's approval doesn't count.
- */
-const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || 5 * 60_000
-/**
- * Slow by nature, so they get longer: renders and edits, AI images and videos
- * (Higgsfield takes minutes per clip), music, cloning the owner's voice, and
- * an agent working through a long job.
- */
-const SLOW_STEP = /wait|video|render|efectos|effects|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
-/** After this long on one request, she tells the owner she is still on it. */
-const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || 90_000
+// How long a turn may go quiet, and when to say it is still on it: in the core
+// (nucleo/conversacion.mjs), set from here.
+const STUCK_MS = Number(process.env.NEXY_STUCK_MS) || undefined
+const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || undefined
 /** How long "Aprobar todo en Notion" lasts. */
 const NOTION_TRUST_MS = 60 * 60_000
 
@@ -94,54 +85,11 @@ const HELP =
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** Telegram's Bot API, JSON in and out. Never logs the URL: it holds the token. */
-async function api(token, method, params = {}, timeoutMs = 20_000) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    const res = await fetch(`${API}/bot${token}/${method}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(params),
-      signal: ctrl.signal,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!data.ok) {
-      const err = new Error(data.description ?? `HTTP ${res.status}`)
-      err.code = data.error_code ?? res.status
-      throw err
-    }
-    return data.result
-  } finally {
-    clearTimeout(timer)
-  }
-}
+// Telegram's Bot API and long messages: the core's.
+export { chunks }
 
-/** Split a long answer at paragraph or line breaks, never mid-word if avoidable. */
-export function chunks(text, max = MAX_MESSAGE) {
-  const out = []
-  let rest = String(text ?? '').trim()
-  while (rest.length > max) {
-    let cut = rest.lastIndexOf('\n\n', max)
-    if (cut < max / 2) cut = rest.lastIndexOf('\n', max)
-    if (cut < max / 2) cut = rest.lastIndexOf(' ', max)
-    if (cut < max / 2) cut = max
-    out.push(rest.slice(0, cut).trim())
-    rest = rest.slice(cut).trim()
-  }
-  if (rest) out.push(rest)
-  return out
-}
-
-/** Text as it should be heard: no links, no markup, nothing read out symbol by symbol. */
-export function forSpeech(text) {
-  return smoothBoss(text)
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/[*_#`>|~]+/g, '')
-    .replace(/[ \t]+/g, ' ')
-    .trim()
-    .slice(0, MAX_SPOKEN)
-}
+/** Text as it should be heard: no links, no markup, and "Boss" said straight through. */
+export const forSpeech = (text) => plainSpeech(smoothBoss(text))
 
 const TOOL_LABEL = {
   gmail__send_email: 'Enviar correo',
@@ -317,214 +265,8 @@ const stepName = (name) => {
   return who ?? (server ? server : tool)
 }
 
-/** Several messages as one: text joined, images kept. */
-function mergeContent(list) {
-  if (list.every((c) => typeof c === 'string')) return list.join('\n\n')
-  return list.flatMap((c) => (typeof c === 'string' ? [{ type: 'text', text: c }] : c))
-}
-
-/** Put a note in front of a message, whatever its shape. */
-const withNote = (note, content) => (typeof content === 'string' ? `${note}\n\n${content}` : [{ type: 'text', text: note }, ...content])
-
-const SUPERSEDED =
-  '[The owner wrote this while you were still on the previous request, so that work was stopped where it was. ' +
-  'If this corrects or replaces it, do it the new way; do not repeat steps that already ran or anything they rejected.]'
-
-/**
- * One running conversation with the agent, one request at a time.
- *
- * A message that arrives while she works does not wait in a queue: the owner
- * is usually correcting her ("no, el due by es el 8"), so the current work
- * stops (with any approval it was waiting on) and the new message is taken
- * up at once, with the old one still in context. Several messages sent
- * quickly become one request. Each request gets its answer from the result
- * that closes its turn.
- */
-export function conversation({ agentOptions, onAnswer, onSlow = () => {}, onBegin = () => {}, runQuery, local, channel = 'telegram' }) {
-  let current = null
-  const held = []
-  let deliver = null
-  let closed = false
-
-  async function* prompts() {
-    while (!closed) {
-      const content = await new Promise((r) => (deliver = r))
-      if (closed || content == null) return
-      yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null }
-    }
-  }
-
-  const begin = (content, job) => {
-    job.started = Date.now()
-    current = job
-    // Who the turn is for: the job, and any held with it (job.merged).
-    onBegin(job)
-    lastSign = Date.now()
-    const send = () => {
-      if (!deliver) return setTimeout(send, 50)
-      const r = deliver
-      deliver = null
-      r(content)
-    }
-    send()
-  }
-
-  /** The held messages, as one request: the earlier ones end as part of it. */
-  const next = () => {
-    if (!held.length || closed) return
-    // The owner's own messages go first, together; a routine runs on its own after.
-    const mine = held.filter((b) => !b.job.solo)
-    const batch = mine.length ? mine : [held[0]]
-    for (const b of batch) held.splice(held.indexOf(b), 1)
-    const job = batch.at(-1).job
-    job.merged = batch.map((b) => b.job)
-    for (const b of batch.slice(0, -1)) hub.endTask(b.job.taskId, 'interrupted', 'Se juntó con el mensaje siguiente.')
-    if (batch.length > 1) job.what = batch.map((b) => b.job.what).filter(Boolean).join(' · ')
-    const content = mergeContent(batch.map((b) => b.content))
-    begin(batch.some((b) => b.superseded) ? withNote(SUPERSEDED, content) : content, job)
-  }
-
-  // Pick up where the last conversation left off, across restarts.
-  const resume = loadSession(channel)
-  if (resume) console.log(`[jarvis] ${channel}: continuing the previous conversation`)
-  const session = runQuery({
-    prompt: prompts(),
-    options: {
-      ...agentOptions({ local, channelPrompt: CHANNEL_PROMPT, currentTask: () => current?.taskId ?? null }),
-      ...(resume ? { resume } : {}),
-    },
-  })
-
-  // The watchdog. Every message from the agent is a sign of life; a turn that
-  // goes quiet for STUCK_MS, and isn't waiting on the owner, is interrupted and
-  // the owner is told which step it was stuck on.
-  let lastSign = Date.now()
-  const watchdog = setInterval(() => {
-    const job = current
-    if (!job || job.stopped) return
-    if (hub.waitingOnOwner(job.taskId)) {
-      lastSign = Date.now()
-      return
-    }
-    const step = hub.runningStepName(job.taskId)
-    // A long job says so once, so the owner never wonders whether she stopped.
-    if (!job.toldSlow && Date.now() - (job.started ?? Date.now()) > SLOW_NOTICE_MS) {
-      job.toldSlow = true
-      onSlow(job, step)
-    }
-    if (Date.now() - lastSign < (step && SLOW_STEP.test(step) ? STUCK_MS * 3 : STUCK_MS)) return
-    console.log(`[jarvis] telegram: turn stuck${step ? ` on ${step}` : ''}; stopping it`)
-    halt(`Me quedé atorada${step ? ` esperando a ${stepName(step)}` : ''} y lo detuve. ¿Lo intento otra vez?`)
-  }, 15_000)
-
-  /** Stop the current turn; it ends with `reason` as its answer, or silently. */
-  function halt(reason, silent = false) {
-    const job = current
-    if (!job || job.stopped !== undefined) return false
-    job.stopped = reason
-    job.silent = silent
-    // Pending approvals first: the SDK finishes the turn only once they settle.
-    hub.cancelApprovals(job.taskId)
-    Promise.resolve(session.interrupt?.()).catch(() => {})
-    return true
-  }
-
-  const done = (async () => {
-    try {
-      for await (const msg of session) {
-        lastSign = Date.now()
-        if (msg.session_id && (msg.type === 'result' || (msg.type === 'system' && msg.subtype === 'init'))) {
-          saveSession(channel, msg.session_id)
-        }
-        // Which connectors are up, for the console, as the voice session does.
-        if (msg.type === 'system' && msg.subtype === 'init' && Array.isArray(msg.mcp_servers)) {
-          hub.setServers(msg.mcp_servers.map((s) => ({ name: s.name, status: s.status })))
-        }
-        if (msg.type === 'assistant') {
-          for (const block of msg.message?.content ?? []) {
-            if (block.type === 'tool_use') {
-              hub.startStep(current?.taskId, block.id, block.name, block.input, msg.parent_tool_use_id ?? null)
-            }
-          }
-        } else if (msg.type === 'user' && Array.isArray(msg.message?.content)) {
-          for (const block of msg.message.content) {
-            if (block?.type === 'tool_result') hub.endStep(block.tool_use_id, block.is_error === true, block.content)
-          }
-        } else if (msg.type === 'result') {
-          const job = current
-          current = null
-          const stopped = job?.stopped !== undefined
-          const ok = msg.subtype === 'success' && !stopped
-          const text = stopped ? job.stopped : ok ? String(msg.result ?? '').trim() : 'No pude terminar eso. Inténtalo otra vez, por favor.'
-          if (!ok && !stopped) console.error(`[jarvis] telegram turn failed: ${msg.subtype}`)
-          if (job) {
-            hub.endTask(job.taskId, stopped ? 'interrupted' : ok ? 'done' : 'error', text)
-            if (!job.silent) onAnswer(job, text || 'Listo.')
-          }
-          lastSign = Date.now()
-          next()
-        }
-      }
-    } catch (err) {
-      console.error('[jarvis] telegram session error:', err?.message ?? err)
-      // A conversation that cannot be picked up again is dropped, so the next
-      // message starts a fresh one instead of failing the same way.
-      clearSession(channel)
-      for (const job of [current, ...held.splice(0).map((b) => b.job)].filter(Boolean)) {
-        hub.endTask(job.taskId, 'error', '')
-        onAnswer(job, 'Tuve un problema y reinicié la conversación. ¿Me lo repites?')
-      }
-      current = null
-    } finally {
-      closed = true
-      clearInterval(watchdog)
-    }
-  })()
-
-  return {
-    get closed() {
-      return closed
-    },
-    get busy() {
-      return Boolean(current) || held.length > 0
-    },
-    /** What she is on right now, for a status line while the owner waits. */
-    status() {
-      const job = current
-      if (!job) return null
-      return { what: job.what ?? '', started: job.started ?? Date.now(), step: hub.runningStepName(job.taskId), waiting: held.length }
-    },
-    /**
-     * `content` is the owner's words, or a list of image and text blocks.
-     * `wait`: files, contacts and routines wait their turn instead of
-     * stopping the work in progress. Returns true when it took over.
-     */
-    ask(content, job, { wait = false } = {}) {
-      if (!current) {
-        begin(content, job)
-        return false
-      }
-      // Stopping a routine for the owner is fine; a routine never stops the owner's work.
-      const takeOver = !wait && !job.solo
-      held.push({ content, job, superseded: takeOver })
-      if (takeOver) halt('', true)
-      return takeOver
-    },
-    /** /cancelar: stop now, and drop anything sent meanwhile. */
-    stop(reason) {
-      for (const b of held.splice(0)) hub.endTask(b.job.taskId, 'interrupted', '')
-      return halt(reason)
-    },
-    close() {
-      closed = true
-      deliver?.(null)
-      session.close?.()
-      for (const job of [current, ...held.splice(0).map((b) => b.job)].filter(Boolean)) hub.endTask(job.taskId, 'interrupted', '')
-      current = null
-      return done
-    },
-  }
-}
+/** One running conversation (the core's), with this console, prompt and step names. */
+export const conversation = (o) => runConversation({ hub, channelPrompt: CHANNEL_PROMPT, stepName, stuckMs: STUCK_MS, slowNoticeMs: SLOW_NOTICE_MS, ...o })
 
 /** "Sigo con X (4 min, ahora: editando el video)". */
 function busyLine(st, queued) {
