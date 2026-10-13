@@ -63,6 +63,29 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
 - El contrato incluye licencia de uso y confidencialidad: el programa es de
   NXUS.
 
+## Si un técnico del cliente intenta entrar
+
+- Terminal está bloqueada con un código de Tiempo en pantalla que solo tiene
+  Eduardo.
+- Si logra abrir una terminal, como usuario estándar no puede leer la carpeta
+  del programa. Cualquier comando de administrador (`sudo`) pide la contraseña
+  de Eduardo.
+- Cada intento fallido de contraseña de administrador le llega como alarma a
+  Eduardo en Telegram.
+- No puede instalar programas, apagar el servicio ni cambiar candados sin esa
+  contraseña.
+- Si borra o reinstala el Mac, Recuperación y el Bloqueo de activación piden la
+  contraseña y el Apple ID de Eduardo. Si aun así lo borra, el cerebro se
+  destruye sin dejar nada legible.
+- El disco va soldado y cifrado por el chip del Mac, así que sacarlo no sirve
+  de nada.
+- No hay acceso remoto para nadie más. El de Eduardo es con llave propia, sin
+  contraseña que adivinar.
+- El único punto débil es la contraseña de administrador de Eduardo. Debe ser
+  única para este Mac, de 16 caracteres o más y guardada solo en su
+  administrador de contraseñas. El Apple ID debe tener verificación en dos
+  pasos.
+
 ## Contacto entre las IA's
 
 Mi Semago distribuye los quesos de Abuelito Inc y VAYRO, por eso:
