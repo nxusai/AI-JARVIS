@@ -28,3 +28,5 @@ export const TMP = 'nexy'
 export const FFMPEG_OVERRIDE = process.env.NEXY_FFMPEG
 export const YTDLP_OVERRIDE = process.env.NEXY_YTDLP
 export const CHROME_OVERRIDE = process.env.NEXY_CHROME
+/** Where a brain keeps the key its program is sealed with; Nexy has none. */
+export const SEAL_KEY = null

@@ -20,3 +20,5 @@ export const TMP = 'cerebro'
 export const FFMPEG_OVERRIDE = undefined
 export const YTDLP_OVERRIDE = undefined
 export const CHROME_OVERRIDE = undefined
+/** The owner's public key, installed once, outside the program (see firma.mjs). */
+export const SEAL_KEY = join(HOME, 'firma.pub')

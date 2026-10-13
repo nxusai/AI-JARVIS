@@ -160,9 +160,14 @@ oculta del cerebro el día de la instalación, nunca en un chat.
       (`bridge/cerebro`): `cerebro.mjs` (las IA's), `llaves.mjs` (pantalla
       oculta de llaves) e `instalar.sh` (usuario escondido `_cerebro`,
       carpeta cerrada y arranque solo con el Mac, sin ventanas);
-   3. empaquetador que revisa fugas (✅ `node scripts/cerebro.mjs armar`: si
-      algo dice "Nexy", "NXUS" o el correo de Eduardo, no se arma) y que firma
-      (pendiente);
+   3. ✅ empaquetador que revisa fugas y firma (`node scripts/cerebro.mjs
+      armar`): si algo dice "Nexy", "NXUS" o el correo de Eduardo, no se arma.
+      Cada paquete va firmado con la llave de Eduardo
+      (`~/.nexy/cerebro/firma-privada.pem`, entra en su respaldo; huella con
+      `node scripts/cerebro.mjs llave`). El Mac mini guarda la llave pública
+      la primera vez (Eduardo compara la huella) y solo instala paquetes
+      firmados con ella. Al arrancar revisa el sello: si un archivo cambió,
+      sobra o falta, no prende ninguna IA y lo dice en su estado;
    4. canal de Nexy al cerebro: Nexy entra con su llave a dejar paquetes y a
       leer reportes; el cerebro no tiene ninguna llave hacia Nexy;
    5. prueba completa en una Mac de ensayo.

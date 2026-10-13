@@ -1,8 +1,9 @@
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
-import { DATA, TAG } from '../nucleo/lugar.mjs'
+import { ASSETS, DATA, SEAL_KEY, TAG } from '../nucleo/lugar.mjs'
 import { transcribe } from '../nucleo/voz.mjs'
+import { checkSeal } from './firma.mjs'
 
 /**
  * A client's brain: the program that runs on their Mac mini (see
@@ -10,7 +11,12 @@ import { transcribe } from '../nucleo/voz.mjs'
  * labels — and nothing else: no console, no voice page, no owner's tools.
  *
  * Built into one file by scripts/cerebro.mjs, with cerebro/lugar.mjs in place
- * of the core's, so all it reads and writes is in the brain's own folder:
+ * of the core's, so all it reads and writes is in the brain's own folder.
+ * Before anything starts, it checks its own seal (firma.mjs): if a file was
+ * touched, it starts no AI and says so in its state.
+ *
+ *   node cerebro.mjs                                start the brain
+ *   node cerebro.mjs verificar <carpeta> <llave>   check a package's seal (the installer does)
  *
  *   <data>/cerebro.json   { dueno: Telegram id of the owner, modelo?, esfuerzo? }
  *   <data>/llaves.json    { claude, elevenlabs }  (set with llaves.mjs; the service user only)
@@ -68,6 +74,19 @@ export async function main() {
   beat()
   setInterval(beat, 60_000)
 
+  // The seal, on the package as installed (a build for tests has none).
+  if (VERSION !== 'desarrollo') {
+    let key = null
+    try {
+      key = readFileSync(SEAL_KEY, 'utf8')
+    } catch {
+      // checkSeal says there is none.
+    }
+    const seal = checkSeal(ASSETS, key)
+    state.sello = seal.ok ? 'bien' : seal.why
+    if (!seal.ok) return warn(`El sello del programa no cuadra (${seal.why}): no arranca ninguna IA. Reinstala el paquete firmado.`)
+  }
+
   const cfg = readConfig()
   const keys = readKeys()
   if (!keys.claude) warn('Falta la llave de Claude: corre llaves.mjs. Ninguna IA arranca sin ella.')
@@ -98,4 +117,17 @@ export async function main() {
 }
 
 // Started directly (the package's cerebro.mjs), not imported by a test.
-if (process.argv[1] && /cerebro\.mjs$/.test(process.argv[1])) void main()
+if (process.argv[1] && /cerebro\.mjs$/.test(process.argv[1])) {
+  if (process.argv[2] === 'verificar') {
+    let key = null
+    try {
+      key = readFileSync(process.argv[4], 'utf8')
+    } catch {
+      // checkSeal says there is none.
+    }
+    const r = checkSeal(process.argv[3], key)
+    console.log(r.ok ? ` ✅ Sello correcto (versión ${r.version}).` : ` ❌ Sello incorrecto: ${r.why}.`)
+    process.exit(r.ok ? 0 : 1)
+  }
+  void main()
+}
