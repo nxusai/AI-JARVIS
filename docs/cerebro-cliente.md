@@ -25,6 +25,44 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
 - El Mac mini solo acepta paquetes firmados con la llave que vive en la Mac de
   Eduardo. Si una actualización falla, regresa solo a la versión anterior.
 
+## Nexy guarda el original
+
+- Nada del cliente desaparece de Nexy. Nexy guarda el original de cada IA:
+  personalidad, reglas, productos, etiquetas y voces. El cerebro solo recibe
+  una copia.
+- Lo único que "se muda" es dónde contesta cada bot de Telegram, porque un bot
+  solo puede contestar desde un lugar a la vez.
+- Lo que pasa en el cerebro (conversaciones, impresiones, leads, cambios hechos
+  por el cliente) sube a Nexy como copia, para que Eduardo lo siga viendo todo.
+- Los cambios de datos hechos en Nexy (productos, días, prompts) llegan al
+  cerebro en un minuto.
+- Los cambios de programa llegan en la noche o cuando Eduardo lo ordene, con
+  regreso automático a la versión anterior si fallan.
+- Si alguien en el cerebro cambia algo con permiso (por ejemplo, los días de
+  vida por medio de Ana Sofi), el cambio sube a Nexy y se guarda en el original.
+
+## Candados
+
+- El usuario del cliente es estándar, sin permisos de administrador. Terminal
+  y las herramientas de desarrollo están bloqueadas para ese usuario.
+- El programa corre como servicio oculto con su propio usuario del sistema.
+  Su carpeta no la puede abrir el usuario del cliente y no hay ventanas ni
+  íconos.
+- El código va empaquetado en un solo archivo compactado e ilegible.
+  Las llaves se guardan en el llavero del sistema, no en archivos.
+- Disco cifrado (FileVault) y recuperación del Mac bloqueada con la contraseña
+  de Eduardo.
+- Al arrancar, el cerebro revisa la firma de cada archivo. Si alguien lo
+  modificó, se detiene y le avisa a Nexy.
+- Nexy recibe aviso si alguien entra como administrador o si el cerebro deja
+  de reportarse.
+- Desde Nexy se puede apagar el cerebro y borrar sus llaves a distancia.
+- Las IA's no tienen herramientas para leer su propio código, y la regla de no
+  revelar sus instrucciones es fija.
+- El Mac mini queda en un lugar con llave.
+- El contrato incluye licencia de uso y confidencialidad: el programa es de
+  NXUS.
+
 ## Contacto entre las IA's
 
 Mi Semago distribuye los quesos de Abuelito Inc y VAYRO, por eso:
