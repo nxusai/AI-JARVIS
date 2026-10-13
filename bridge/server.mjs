@@ -35,6 +35,7 @@ import { EFFECTS_PROMPT, effectsServer } from './efectos.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
+import { startBrainWatch } from './cerebros.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -2015,6 +2016,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   startSales({ elevenKey, zone: TIME_ZONE })
   // Each company's Meta ads, watched with a read-only key: the owner hears when one starts.
   startAdsWatch()
+  // The clients' brains: the owner hears when one stops, is touched, or someone tries to get in.
+  startBrainWatch()
 }
 
 wss.on('connection', (socket, req) => {

@@ -154,8 +154,8 @@ oculta del cerebro el día de la instalación, nunca en un chat.
 
 1. Preparar el Mac mini (cuando esté instalado). Además de los candados:
    prender "Inicio de sesión remoto" solo para "Soporte NXUS", y una red
-   privada entre la Mac de Eduardo y el Mac mini (recomendado: Tailscale,
-   gratis, sin abrir puertos en el internet del cliente).
+   privada entre la Mac de Eduardo y el Mac mini: Tailscale (decidido),
+   gratis, sin abrir puertos en el internet del cliente.
 2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
    1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy
       (`bridge/nucleo`; `node scripts/nucleo.mjs` revisa que siga limpio);
@@ -196,3 +196,17 @@ oculta del cerebro el día de la instalación, nunca en un chat.
 5. Crear a Regina (Abuelito Inc).
 6. Crear a Vivian (VAYRO).
 7. Agregar en Nexy el panel "Cerebros": salud, versión y gasto de cada IA.
+   ✅ Ya están las alarmas (`startBrainWatch` en `bridge/cerebros.mjs`): cada
+   5 minutos Nexy pregunta a cada cerebro y le avisa a Eduardo en su Telegram
+   cuando:
+   - no contesta 15 minutos;
+   - está apagado o trabado;
+   - el sello no cuadra;
+   - una IA no está prendida;
+   - el cerebro deja un aviso;
+   - alguien escribe mal la contraseña de administrador;
+   - alguien entra a la pantalla con la cuenta de administrador.
+
+   Cada alarma llega una vez al empezar y otra al resolverse. Las de
+   seguridad salen de los registros del Mac y se confirman el día de la
+   instalación.

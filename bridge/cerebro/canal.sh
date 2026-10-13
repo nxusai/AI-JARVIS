@@ -5,7 +5,9 @@
 # turn, does nothing but the orders below. The brain itself holds no key, no
 # address and no way into the owner's system: it is only ever asked.
 #
-#   estado          how the brain is (its state file, and whether the service is loaded)
+#   estado          how the brain is (its state file, whether the service is loaded) and,
+#                   from the Mac's own records of the last minutes, failed administrator
+#                   passwords and the administrator signing in at the screen
 #   espejo          a copy of the label sets, the group's record and the state, to keep upstairs
 #   registro        the last lines of its log
 #   paquete         installs the signed package that comes in (the installer checks the seal)
@@ -34,7 +36,16 @@ service() { [ -x "$LAUNCHCTL" ] && "$LAUNCHCTL" "$@"; }
 case "$ORDER" in
   estado)
     if service print "system/$LABEL" >/dev/null 2>&1; then LOADED=true; else LOADED=false; fi
-    printf '{"servicio":%s,"estado":%s}\n' "$LOADED" "$(cat "$DATA/estado.json" 2>/dev/null || echo null)"
+    FAILED=""
+    LOGINS=""
+    if [ -x /usr/bin/log ]; then
+      FAILED="$(/usr/bin/log show --last 7m --style compact --predicate 'process == "sudo" OR process == "authd" OR process == "loginwindow"' 2>/dev/null | grep -iE 'incorrect password|authentication fail|failed to authenticate' | tail -n 10)"
+    fi
+    # The administrator at the screen (not this door, which comes in by SSH).
+    [ -n "${SUDO_USER:-}" ] && LOGINS="$(last -n 5 "$SUDO_USER" 2>/dev/null | grep -i console)"
+    SECURITY="null"
+    [ -n "$NODE" ] && SECURITY="$(printf '%s\n---\n%s' "$FAILED" "$LOGINS" | "$NODE" -e 'let t="";process.stdin.on("data",d=>t+=d).on("end",()=>{const [a,b]=t.split("\n---\n");const l=(x)=>(x||"").split("\n").map(s=>s.trim()).filter(Boolean);console.log(JSON.stringify({fallidos:l(a),entradas:l(b)}))})')"
+    printf '{"servicio":%s,"estado":%s,"seguridad":%s}\n' "$LOADED" "$(cat "$DATA/estado.json" 2>/dev/null || echo null)" "$SECURITY"
     ;;
   espejo)
     cd "$DATA" || exit 1

@@ -166,3 +166,108 @@ export function buildData({ labels = false } = {}) {
   const key = createPrivateKey(readFileSync(SIGNING_KEY, 'utf8'))
   return `${sign(null, Buffer.from(body), key).toString('base64')}\n${body}`
 }
+
+// -- the watch -------------------------------------------------------------------
+
+const WATCH_FILE = join(MIRRORS, 'vigilancia.json')
+const EVERY_MS = 5 * 60_000
+/** Three looks in a row with no answer (15 minutes) before saying it does not answer. */
+const MISSES = 3
+/** A heartbeat older than this means the brain is stuck, though its service is up. */
+const STALE_MS = 6 * 60_000
+
+const hhmm = (ms) => new Date(ms).toLocaleTimeString('es-MX', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
+
+/**
+ * One look at every brain. Compares with what was seen before and returns
+ * the messages for the owner: each problem once when it starts and once when
+ * it is over, never every five minutes. The first look at a brain only
+ * learns its records, so old ones are not reported as new.
+ */
+export async function checkBrains({ now = Date.now(), getState = brainState, memoryFile = WATCH_FILE } = {}) {
+  let memory = {}
+  try {
+    memory = JSON.parse(readFileSync(memoryFile, 'utf8')) ?? {}
+  } catch {
+    memory = {}
+  }
+  const messages = []
+  for (const name of Object.keys(readBrains())) {
+    const m = (memory[name] ??= { misses: 0, open: {}, seen: [], lastNotice: '' })
+    const first = !m.looked
+    m.looked = true
+    // Each problem has a key: told when it appears, and "resolved" when it goes away.
+    const problems = {}
+    let s = null
+    try {
+      s = await getState(name)
+      m.misses = 0
+      m.answered = now
+    } catch (err) {
+      m.misses += 1
+      if (m.misses >= MISSES) problems.mudo = `🚨 El cerebro ${name} no contesta desde las ${hhmm(m.answered ?? now - MISSES * EVERY_MS)} (${err.message}). Puede ser el internet del cliente, un apagón o que alguien lo desconectó.`
+    }
+    if (s) {
+      const e = s.estado ?? {}
+      if (!s.servicio) problems.apagado = `🚨 El cerebro ${name} está apagado: sus IA's no contestan. Si no lo apagaste tú: node scripts/cerebro.mjs prender ${name}`
+      else if (!e.latido || now - Date.parse(e.latido) > STALE_MS) problems.trabado = `🚨 El cerebro ${name} está prendido pero no da señales desde ${e.latido ? `las ${hhmm(Date.parse(e.latido))}` : 'que arrancó'}. Prueba: node scripts/cerebro.mjs reiniciar ${name}`
+      if (e.sello && e.sello !== 'bien') problems[`sello:${e.sello}`] = `🚨 El sello del cerebro ${name} no cuadra (${e.sello}): alguien tocó su programa y no prendió ninguna IA. Reinstálalo con: node scripts/cerebro.mjs enviar ${name}`
+      for (const [ia, st] of Object.entries(e.ias ?? {})) if (st !== 'prendida') problems[`ia:${ia}:${st}`] = `⚠️ En el cerebro ${name}, ${ia === 'anasofi' ? 'Ana Sofi' : ia} está ${st}.`
+      // The brain's own notices, and the Mac's records: each told once.
+      const notices = (e.avisos ?? []).filter((a) => a.at > m.lastNotice)
+      if (notices.length) m.lastNotice = notices.at(-1).at
+      const seen = new Set(m.seen)
+      const fresh = [...(s.seguridad?.fallidos ?? []).map((l) => ['falla', l]), ...(s.seguridad?.entradas ?? []).map((l) => ['entrada', l])].filter(([, l]) => !seen.has(l))
+      m.seen = [...m.seen, ...fresh.map(([, l]) => l)].slice(-200)
+      if (!first) {
+        for (const a of notices.slice(-3)) messages.push(`⚠️ Cerebro ${name}: ${a.text}`)
+        const fails = fresh.filter(([k]) => k === 'falla')
+        if (fails.length) messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nSi no fuiste tú, alguien está intentando entrar.`)
+        for (const [, l] of fresh.filter(([k]) => k === 'entrada').slice(-3)) messages.push(`🔐 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador: ${l.slice(0, 160)}. Si no fuiste tú, avísame.`)
+      }
+    }
+    // Problems that start, and problems that are over.
+    for (const [key, text] of Object.entries(problems)) if (!m.open[key]) messages.push(text)
+    for (const key of Object.keys(m.open)) if (!problems[key]) messages.push(`✅ Cerebro ${name}: ${{ mudo: 'volvió a contestar', apagado: 'está prendido otra vez', trabado: 'volvió a dar señales' }[key.split(':')[0]] ?? (key.startsWith('sello') ? 'el sello ya cuadra' : 'se resolvió el aviso')}.`)
+    m.open = Object.fromEntries(Object.keys(problems).map((k) => [k, true]))
+  }
+  mkdirSync(dirname(memoryFile), { recursive: true })
+  writeFileSync(memoryFile, `${JSON.stringify(memory, null, 1)}\n`)
+  return messages
+}
+
+/** To the owner's own Telegram (Nexy's bot), like the ads' alerts. */
+async function tellOwner(text) {
+  const tg = readTelegram()
+  if (!tg?.token || !tg.owner?.id) return false
+  try {
+    await fetch(`https://api.telegram.org/bot${tg.token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: tg.owner.id, text: text.slice(0, 4000) }),
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Every five minutes while Nexy is on, when there are brains. */
+export function startBrainWatch() {
+  if (!Object.keys(readBrains()).length) return
+  let busy = false
+  const run = async () => {
+    if (busy) return
+    busy = true
+    try {
+      for (const m of await checkBrains()) await tellOwner(m)
+    } catch (err) {
+      console.log(`[jarvis] brain watch: ${err.message}`)
+    } finally {
+      busy = false
+    }
+  }
+  setTimeout(run, 30_000).unref?.()
+  setInterval(run, EVERY_MS).unref?.()
+  console.log(`[jarvis] brain watch on (${Object.keys(readBrains()).join(', ')})`)
+}
