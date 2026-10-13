@@ -126,20 +126,33 @@ ejemplo, Abuelito Cheese, Meat y Corn no tienen Finanzas).
 
 ## Cuentas
 
-Todas están a nombre del cliente, nunca de NXUS ni de Eduardo:
+A nombre del cliente (el cliente paga su uso), nunca de NXUS:
 
-- llave de Claude;
-- ElevenLabs;
-- Google;
-- bots de Telegram.
+- Claude (console.anthropic.com), con el correo de la empresa;
+- ElevenLabs, con el correo de la empresa;
+- Google (Mi Semago ya la tiene: info@misemago.com).
 
-La única cuenta de administrador del Mac mini es la de Eduardo.
+Se quedan de Eduardo, para no perder el control:
+
+- los bots de Telegram (Ana Sofi, Regina, Vivian), creados en el BotFather de
+  Eduardo; si algo pasa, Eduardo les cambia la llave y el cerebro se queda
+  mudo;
+- la cuenta de administrador del Mac mini ("Soporte NXUS").
+
+Las llaves se escriben solo en la pantalla oculta del cerebro el día de la
+instalación, nunca en un chat.
 
 ## Orden de construcción
 
 1. Preparar el Mac mini (cuando esté instalado).
-2. Crear el programa "Cerebro" con perfiles y el canal de actualización
-   firmado, con regreso a la versión anterior.
+2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
+   1. separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy;
+   2. programa propio que guarda todo en su carpeta, no en la de Nexy;
+   3. empaquetador que firma y revisa fugas: si el paquete trae "Nexy", datos
+      de Eduardo o llaves, no se arma;
+   4. canal de Nexy al cerebro: Nexy entra con su llave a dejar paquetes y a
+      leer reportes; el cerebro no tiene ninguna llave hacia Nexy;
+   5. prueba completa en una Mac de ensayo.
 3. Mudar a Ana Sofi y las etiquetas (se apaga en Nexy el mismo día).
 4. Crear la mesa interna entre IA's.
 5. Crear a Regina (Abuelito Inc).
