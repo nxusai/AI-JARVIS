@@ -11,7 +11,7 @@ import { readTelegram, writeTelegram } from './telegram-config.mjs'
 import { isVideo, postPreview } from './post-preview.mjs'
 import { clearSession } from './nucleo/sesiones.mjs'
 import { api, chunks } from './nucleo/telegram.mjs'
-import { forSpeech as plainSpeech } from './nucleo/voz.mjs'
+import { forSpeech as plainSpeech, transcribe } from './nucleo/voz.mjs'
 import { conversation as runConversation } from './nucleo/conversacion.mjs'
 import { country, toE164 } from './contact-book.mjs'
 import { setRoutineRunner } from './routines.mjs'
@@ -211,19 +211,7 @@ export function describeApproval(view) {
   return lines.join('\n').slice(0, MAX_MESSAGE)
 }
 
-export async function transcribe(key, bytes, name) {
-  const form = new FormData()
-  form.append('model_id', 'scribe_v1')
-  form.append('tag_audio_events', 'false')
-  form.append('file', new Blob([bytes], { type: 'audio/ogg' }), name)
-  const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-    method: 'POST',
-    headers: { 'xi-api-key': key },
-    body: form,
-  })
-  if (!res.ok) throw new Error(`Scribe ${res.status}: ${(await res.text()).slice(0, 200)}`)
-  return String((await res.json()).text ?? '').trim()
-}
+export { transcribe }
 
 export async function speak(key, voiceId, text) {
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {

@@ -103,7 +103,7 @@ const slug = (s) =>
 const CATALOG_VERSION = 3
 // Sets that are gone. Updates copy new files over old ones without deleting any,
 // so a retired seed can still be lying in bridge/etiquetas/clientes: never use it.
-const RETIRED = new Set(['depensa'])
+export const RETIRED = new Set(['depensa'])
 const CATALOG_FILE = join(LABELS_DIR, '_catalogo.json')
 let seeded = false
 function seed() {

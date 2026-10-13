@@ -19,35 +19,40 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CORE = join(ROOT, 'bridge', 'nucleo')
-const BRAIN_PLACE = join(ROOT, 'bridge', 'cerebro', 'lugar.mjs')
+const BRAIN = join(ROOT, 'bridge', 'cerebro')
+const BRAIN_PLACE = join(BRAIN, 'lugar.mjs')
 /** The packages the brain installs next to its program. */
 export const PACKAGES = ['@anthropic-ai/claude-agent-sdk', 'zod', 'ffmpeg-static']
 /** Words that must never reach a brain. */
 export const FORBIDDEN = /nexy|jarvis|nxus|ramos ?& ?co|contacto@/i
-/** The entry points a brain runs. */
-export const ENTRIES = [join(CORE, 'anasofi.mjs')]
+/** What a brain runs: the program, and the keys screen. Built as these names. */
+export const ENTRIES = { 'cerebro.mjs': join(BRAIN, 'main.mjs'), 'llaves.mjs': join(BRAIN, 'llaves.mjs') }
 
 const problems = []
 
-// 1. Imports.
+// 1. Imports: the core only imports itself; the brain, itself and the core.
 const node = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)])
-for (const f of readdirSync(CORE).filter((f) => f.endsWith('.mjs'))) {
-  const src = readFileSync(join(CORE, f), 'utf8')
+const inside = (to, dirs) => dirs.some((d) => !relative(d, to).startsWith('..'))
+for (const [dir, allowed] of [
+  [CORE, [CORE]],
+  [BRAIN, [BRAIN, CORE]],
+]) for (const f of readdirSync(dir).filter((f) => f.endsWith('.mjs'))) {
+  const src = readFileSync(join(dir, f), 'utf8')
   for (const [, spec] of src.matchAll(/(?:^|\n)\s*(?:import|export)\b[^'"]*?from\s+['"]([^'"]+)['"]/g)) {
     if (spec.startsWith('.')) {
-      const to = resolve(CORE, spec)
-      if (relative(CORE, to).startsWith('..')) problems.push(`${f} imports ${spec}, outside the core`)
+      if (!inside(resolve(dir, spec), allowed)) problems.push(`${relative(ROOT, join(dir, f))} imports ${spec}, outside what goes to a brain`)
     } else if (!node.has(spec) && !PACKAGES.some((p) => spec === p || spec.startsWith(`${p}/`))) {
       problems.push(`${f} imports the package ${spec}, which the brain does not install`)
     }
   }
 }
 
-/** The core as one file, the way the brain gets it. */
-export async function buildCore({ outfile, write = false, minify = true } = {}) {
+/** One of the brain's programs as one file, the way the brain gets it. */
+export async function buildBrain(name, { outfile, write = false, minify = true, version = 'desarrollo' } = {}) {
   const { build } = await import('esbuild')
   return build({
-    entryPoints: ENTRIES,
+    entryPoints: [ENTRIES[name]],
+    define: { __CEREBRO_VERSION__: JSON.stringify(version) },
     bundle: true,
     platform: 'node',
     format: 'esm',
@@ -56,7 +61,7 @@ export async function buildCore({ outfile, write = false, minify = true } = {}) 
     legalComments: 'none',
     external: PACKAGES,
     write,
-    outfile: outfile ?? join(ROOT, 'cerebro.mjs'),
+    outfile: outfile ?? join(ROOT, name),
     logLevel: 'silent',
     plugins: [
       {
@@ -69,24 +74,36 @@ export async function buildCore({ outfile, write = false, minify = true } = {}) 
   })
 }
 
+/** Where a text says something that must never reach a brain. */
+export function leaks(text, where) {
+  const found = []
+  for (const m of String(text).matchAll(new RegExp(FORBIDDEN.source, 'gi'))) {
+    found.push(`${where} says "${m[0]}": …${text.slice(Math.max(0, m.index - 60), m.index + 60).replace(/\s+/g, ' ')}…`)
+    if (found.length >= 10) break
+  }
+  return found
+}
+
 // 2. Leaks, in what would really go.
-if (!problems.length) {
+const run = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])
+if (run && !problems.length) {
   try {
-    const out = await buildCore()
-    const code = out.outputFiles[0].text
-    const lines = code.split(/(?<=[;{}])/)
-    for (const m of code.matchAll(new RegExp(FORBIDDEN.source, 'gi'))) {
-      const at = m.index
-      problems.push(`the built core says "${m[0]}": …${code.slice(Math.max(0, at - 60), at + 60).replace(/\s+/g, ' ')}…`)
-      if (problems.length > 20) break
+    let size = 0
+    for (const name of Object.keys(ENTRIES)) {
+      const code = (await buildBrain(name)).outputFiles[0].text
+      size += code.length
+      problems.push(...leaks(code, name))
     }
-    if (!problems.length) console.log(`✅ The core is clean: ${ENTRIES.length} entry, ${(code.length / 1024).toFixed(0)} KB built, ${lines.length} statements, nothing of Nexy.`)
+    if (!problems.length) console.log(`✅ The core is clean: ${Object.keys(ENTRIES).join(' and ')} built (${(size / 1024).toFixed(0)} KB), nothing of Nexy.`)
   } catch (err) {
     problems.push(`could not build the core: ${err.message}`)
   }
 }
 
-if (problems.length) {
+if (run && problems.length) {
   console.log(`❌ The core is not ready to leave:\n${problems.map((p) => `- ${p}`).join('\n')}`)
   process.exitCode = 1
 }
+
+/** What is wrong with the core's imports (empty when nothing). */
+export const importProblems = () => [...problems]

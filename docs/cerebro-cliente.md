@@ -49,7 +49,8 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
   Su carpeta no la puede abrir el usuario del cliente y no hay ventanas ni
   íconos.
 - El código va empaquetado en un solo archivo compactado e ilegible.
-  Las llaves se guardan en el llavero del sistema, no en archivos.
+  Las llaves van en un archivo que solo el usuario escondido del cerebro
+  (`_cerebro`) puede abrir, dentro del disco cifrado.
 - Sin Apple ID en el Mac mini: ni de Eduardo ni del cliente. El administrador
   es una cuenta local ("Soporte NXUS") con contraseña que solo tiene Eduardo.
 - Disco cifrado (FileVault). Las herramientas de Recuperación piden la
@@ -155,12 +156,24 @@ oculta del cerebro el día de la instalación, nunca en un chat.
 2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
    1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy
       (`bridge/nucleo`; `node scripts/nucleo.mjs` revisa que siga limpio);
-   2. programa propio que guarda todo en su carpeta, no en la de Nexy;
-   3. empaquetador que firma y revisa fugas: si el paquete trae "Nexy", datos
-      de Eduardo o llaves, no se arma;
+   2. ✅ programa propio que guarda todo en su carpeta, no en la de Nexy
+      (`bridge/cerebro`): `cerebro.mjs` (las IA's), `llaves.mjs` (pantalla
+      oculta de llaves) e `instalar.sh` (usuario escondido `_cerebro`,
+      carpeta cerrada y arranque solo con el Mac, sin ventanas);
+   3. empaquetador que revisa fugas (✅ `node scripts/cerebro.mjs armar`: si
+      algo dice "Nexy", "NXUS" o el correo de Eduardo, no se arma) y que firma
+      (pendiente);
    4. canal de Nexy al cerebro: Nexy entra con su llave a dejar paquetes y a
       leer reportes; el cerebro no tiene ninguna llave hacia Nexy;
    5. prueba completa en una Mac de ensayo.
+
+   Pendiente de decidir en el paso 4: el cerebro corre con su propio usuario
+   escondido, y Google Drive para escritorio vive en la sesión del usuario
+   del cliente, así que el cerebro no puede escribir en esa carpeta. La
+   impresión no depende de Drive (va por la línea directa). Para que el
+   programa de etiquetas se actualice solo en la compu de la Zebra, el
+   cerebro subirá el archivo a Drive directo por internet, con permiso solo
+   sobre esa carpeta.
 3. Mudar a Ana Sofi y las etiquetas (se apaga en Nexy el mismo día).
 4. Crear la mesa interna entre IA's.
 5. Crear a Regina (Abuelito Inc).

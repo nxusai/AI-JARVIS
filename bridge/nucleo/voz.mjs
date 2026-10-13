@@ -46,3 +46,18 @@ export async function speakAs(key, voiceId, text, lang) {
   if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 200)}`)
   return Buffer.from(await res.arrayBuffer())
 }
+
+/** A voice note, as text (ElevenLabs Scribe). */
+export async function transcribe(key, bytes, name) {
+  const form = new FormData()
+  form.append('model_id', 'scribe_v1')
+  form.append('tag_audio_events', 'false')
+  form.append('file', new Blob([bytes], { type: 'audio/ogg' }), name)
+  const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+    method: 'POST',
+    headers: { 'xi-api-key': key },
+    body: form,
+  })
+  if (!res.ok) throw new Error(`Scribe ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  return String((await res.json()).text ?? '').trim()
+}
