@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { envFor } from './apikeys.mjs'
+import { anaSofiMoved } from './cerebros.mjs'
 import { hub } from './console.mjs'
 import { anaSofiVoice as voiceFor, startAnaSofi as start } from './nucleo/anasofi.mjs'
 import { readTelegram } from './telegram-config.mjs'
@@ -29,8 +30,13 @@ async function salesAgentVoice(key) {
 /** Her voice for a language, with the sales agent's as the last resort. */
 export const anaSofiVoice = (key, lang) => voiceFor(key, lang, salesAgentVoice)
 
-export const startAnaSofi = (o) =>
-  start({
+export const startAnaSofi = (o) => {
+  // Telegram lets a bot answer from one place only: once she answers from a client's brain, not here.
+  if (anaSofiMoved()) {
+    console.log('[jarvis] Ana Sofi answers from the client\'s brain now; not starting her here')
+    return Promise.resolve()
+  }
+  return start({
     // Billed to the API credits when a key is set (see apikeys.mjs).
     env: () => envFor('anasofi'),
     ownerId: () => readTelegram()?.owner?.id ?? null,
@@ -38,3 +44,4 @@ export const startAnaSofi = (o) =>
     fallbackVoice: salesAgentVoice,
     ...o,
   })
+}

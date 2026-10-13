@@ -6,6 +6,17 @@
  *   node scripts/cerebro.mjs armar     builds and signs it in ~/Documents/Nexy/cerebro/Cerebro-<version>
  *   node scripts/cerebro.mjs llave     the signing key's fingerprint (made the first time)
  *
+ * And the door into each brain (bridge/cerebros.mjs, bridge/cerebro/canal.sh):
+ *
+ *   node scripts/cerebro.mjs conectar <nombre> <dirección> <usuario>   remember a brain (its Mac mini, the administrator account)
+ *   node scripts/cerebro.mjs estado [nombre]                           how it is
+ *   node scripts/cerebro.mjs enviar [nombre]                           build, sign and install the program on it
+ *   node scripts/cerebro.mjs datos [nombre] [--etiquetas] [--forzar]   send the group, voices, owner and line (and the label sets)
+ *   node scripts/cerebro.mjs espejo [nombre]                           take a copy of its labels
+ *   node scripts/cerebro.mjs registro|reiniciar|apagar|prender [nombre]
+ *   node scripts/cerebro.mjs borrar-llaves [nombre]                    emergency: wipe its keys and stop it
+ * With one brain, the name can be left out.
+ *
  * Every package is signed with the owner's key, ~/.nexy/cerebro/firma-privada.pem,
  * made once on this Mac and never copied anywhere: a brain only accepts
  * packages signed with it (bridge/cerebro/firma.mjs). Keep it in the backup;
@@ -20,9 +31,10 @@ import { execFileSync } from 'node:child_process'
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign } from 'node:crypto'
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { RETIRED } from '../bridge/nucleo/etiquetas.mjs'
+import { brainState, buildData, doorKey, mirror, order, readBrains, saveBrain } from '../bridge/cerebros.mjs'
 import { fingerprint, MANIFEST, PUBLIC_KEY, SIGNATURE } from '../bridge/cerebro/firma.mjs'
 import { buildBrain, ENTRIES, importProblems, leaks, PACKAGES } from './nucleo.mjs'
 
@@ -63,6 +75,9 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   const files = {}
   for (const name of Object.keys(ENTRIES)) files[name] = (await buildBrain(name, { version })).outputFiles[0].text
   files['instalar.sh'] = readFileSync(join(BRAIN, 'instalar.sh'), 'utf8')
+  files['canal.sh'] = readFileSync(join(BRAIN, 'canal.sh'), 'utf8')
+  // The door's key, so this system can reach the brain once installed.
+  files['canal.pub'] = `${doorKey()}\n`
   files['etiquetas/plantilla.html'] = readFileSync(join(LABELS, 'plantilla.html'), 'utf8')
   for (const f of readdirSync(join(LABELS, 'clientes')).filter((f) => f.endsWith('.json') && !RETIRED.has(f.slice(0, -5)))) {
     files[`etiquetas/clientes/${f}`] = readFileSync(join(LABELS, 'clientes', f), 'utf8')
@@ -91,6 +106,80 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   return { dir, version, files: Object.keys(files).length }
 }
 
+const DOOR = ['estado', 'enviar', 'datos', 'espejo', 'registro', 'reiniciar', 'apagar', 'prender', 'borrar-llaves']
+
+/** Which brain: the one named, or the only one there is. */
+function pick(args) {
+  const names = Object.keys(readBrains())
+  const named = args.find((a) => !a.startsWith('--'))
+  if (named) return names.includes(named) ? named : (console.log(` ❌ No hay un cerebro llamado ${named}. Están: ${names.join(', ') || 'ninguno'}.`), null)
+  if (names.length === 1) return names[0]
+  console.log(names.length ? ` Di cuál: ${names.join(', ')}.` : ' Todavía no hay cerebros. Primero: node scripts/cerebro.mjs conectar <nombre> <dirección> <usuario>')
+  return null
+}
+
+const answer = (r) => (r.out.toString().trim() || r.err || `respondió ${r.code}`)
+
+async function door(what, args) {
+  const name = pick(args)
+  if (!name) return 1
+  try {
+    if (what === 'estado') {
+      const s = await brainState(name)
+      const e = s.estado ?? {}
+      const ago = e.latido ? Math.round((Date.now() - Date.parse(e.latido)) / 60_000) : null
+      console.log(` Cerebro ${name}: ${s.servicio ? 'servicio cargado' : '⚠️ servicio apagado'}`)
+      console.log(` Versión: ${e.version ?? '?'} · último latido: ${ago === null ? 'nunca' : ago <= 2 ? 'ahora' : `hace ${ago} min`}`)
+      console.log(` Sello: ${e.sello === 'bien' ? '✅ correcto' : `❌ ${e.sello ?? 'sin revisar'}`}`)
+      for (const [ia, st] of Object.entries(e.ias ?? {})) console.log(` ${ia === 'anasofi' ? 'Ana Sofi' : ia}: ${st}`)
+      for (const a of (e.avisos ?? []).slice(-5)) console.log(` ⚠️ ${a.text}`)
+      return 0
+    }
+    if (what === 'enviar') {
+      const { dir, version } = await buildPackage()
+      console.log(` Paquete ${version} armado y firmado. Enviando…`)
+      const tar = execFileSync('tar', ['-czf', '-', '-C', dirname(dir), basename(dir)], { maxBuffer: 200 * 1024 * 1024 })
+      const r = await order(name, 'paquete', tar)
+      console.log(answer(r))
+      return r.code === 0 ? 0 : 1
+    }
+    if (what === 'datos') {
+      const labels = args.includes('--etiquetas')
+      if (labels && !args.includes('--forzar')) {
+        const { differ } = await mirror(name)
+        if (differ.length) {
+          console.log(` ⚠️ En el cerebro hay ${differ.length} empresas de etiquetas distintas a las de aquí: ${differ.join(', ')}.`)
+          console.log(' Mandarlas borraría lo que se cambió allá. Revisa la copia (node scripts/cerebro.mjs espejo) o, si estás seguro (por ejemplo, la primera vez), agrega --forzar.')
+          return 1
+        }
+      }
+      signingKey()
+      const r = await order(name, 'datos', buildData({ labels }))
+      console.log(answer(r))
+      return r.code === 0 ? 0 : 1
+    }
+    if (what === 'espejo') {
+      const { dir, differ, adopted } = await mirror(name)
+      console.log(` ✅ Copia del cerebro ${name} guardada en ${dir}`)
+      console.log(differ.length ? ` Distintas a las de aquí: ${differ.join(', ')}` : ' Las etiquetas son iguales a las de aquí.')
+      if (adopted.length) console.log(` Se guardaron aquí los cambios hechos allá: ${adopted.join(', ')}`)
+      return 0
+    }
+    if (what === 'borrar-llaves') {
+      const rl = (await import('node:readline')).createInterface({ input: process.stdin, output: process.stdout })
+      const sure = await new Promise((r) => rl.question(` Esto borra las llaves del cerebro ${name} y lo apaga. Escribe borrar para seguir: `, r))
+      rl.close()
+      if (sure.trim() !== 'borrar') return console.log(' No se hizo nada.'), 1
+    }
+    const r = await order(name, what)
+    console.log(answer(r))
+    return r.code === 0 ? 0 : 1
+  } catch (err) {
+    console.log(` ❌ No se pudo hablar con el cerebro ${name}: ${err.message}`)
+    return 1
+  }
+}
+
 const cmd = process.argv[2]
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (cmd === 'armar') {
@@ -109,8 +198,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`${fresh ? ' 🔑 Llave de firma creada.\n' : ''} Huella de tu llave de firma: ${fingerprint(publicPem)}`)
     console.log(' El día de la instalación, el Mac mini debe mostrar esta misma huella.')
     console.log(` Está en ${SIGNING_KEY}: nunca la copies a otro lado que no sea tu respaldo.`)
+  } else if (cmd === 'conectar') {
+    const [, , , name, host, usuario] = process.argv
+    try {
+      saveBrain(name, { ...(readBrains()[name] ?? {}), host, usuario })
+      console.log(` ✅ Cerebro "${name}" guardado: ${usuario}@${host}. Pruébalo con: node scripts/cerebro.mjs estado ${name}`)
+    } catch (err) {
+      console.log(` ❌ ${err.message}. Uso: node scripts/cerebro.mjs conectar mi-semago <dirección> <usuario>`)
+      process.exitCode = 1
+    }
+  } else if (DOOR.includes(cmd)) {
+    process.exitCode = await door(cmd, process.argv.slice(3))
   } else {
-    console.log(' Uso: node scripts/cerebro.mjs armar | llave')
+    console.log(' Uso: node scripts/cerebro.mjs armar | llave | conectar | estado | enviar | datos | espejo | registro | reiniciar | apagar | prender | borrar-llaves')
     process.exitCode = 1
   }
 }

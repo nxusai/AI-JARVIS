@@ -152,7 +152,10 @@ oculta del cerebro el día de la instalación, nunca en un chat.
 
 ## Orden de construcción
 
-1. Preparar el Mac mini (cuando esté instalado).
+1. Preparar el Mac mini (cuando esté instalado). Además de los candados:
+   prender "Inicio de sesión remoto" solo para "Soporte NXUS", y una red
+   privada entre la Mac de Eduardo y el Mac mini (recomendado: Tailscale,
+   gratis, sin abrir puertos en el internet del cliente).
 2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
    1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy
       (`bridge/nucleo`; `node scripts/nucleo.mjs` revisa que siga limpio);
@@ -168,8 +171,17 @@ oculta del cerebro el día de la instalación, nunca en un chat.
       la primera vez (Eduardo compara la huella) y solo instala paquetes
       firmados con ella. Al arrancar revisa el sello: si un archivo cambió,
       sobra o falta, no prende ninguna IA y lo dice en su estado;
-   4. canal de Nexy al cerebro: Nexy entra con su llave a dejar paquetes y a
-      leer reportes; el cerebro no tiene ninguna llave hacia Nexy;
+   4. ✅ canal de Nexy al cerebro (`bridge/cerebros.mjs`,
+      `bridge/cerebro/canal.sh`): Nexy entra por SSH con su propia llave
+      (`~/.nexy/cerebro/canal_ed25519`), que en el Mac mini solo puede correr
+      la "puerta" con una lista cerrada de órdenes: estado, espejo, registro,
+      paquete (firmado), datos (firmados y más nuevos que los últimos),
+      reiniciar, apagar, prender y borrar-llaves. El cerebro no tiene ninguna
+      llave ni dirección hacia Nexy. Desde la Mac de Eduardo:
+      `node scripts/cerebro.mjs conectar | estado | enviar | datos | espejo | …`.
+      `datos --etiquetas` no pisa cambios hechos en el cerebro (pide
+      `--forzar`). Cuando Ana Sofi ya contesta desde el cerebro, `espejo` guarda
+      en Nexy los cambios hechos allá, y Nexy ya no prende su propia Ana Sofi;
    5. prueba completa en una Mac de ensayo.
 
    Pendiente de decidir en el paso 4: el cerebro corre con su propio usuario

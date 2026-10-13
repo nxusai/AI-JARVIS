@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
 import { ASSETS, DATA, SEAL_KEY, TAG } from '../nucleo/lugar.mjs'
 import { transcribe } from '../nucleo/voz.mjs'
+import { applyData } from './datos.mjs'
 import { checkSeal } from './firma.mjs'
 
 /**
@@ -17,6 +18,7 @@ import { checkSeal } from './firma.mjs'
  *
  *   node cerebro.mjs                                start the brain
  *   node cerebro.mjs verificar <carpeta> <llave>   check a package's seal (the installer does)
+ *   node cerebro.mjs datos <archivo> <llave>       apply signed data from the owner (canal.sh does)
  *
  *   <data>/cerebro.json   { dueno: Telegram id of the owner, modelo?, esfuerzo? }
  *   <data>/llaves.json    { claude, elevenlabs }  (set with llaves.mjs; the service user only)
@@ -128,6 +130,21 @@ if (process.argv[1] && /cerebro\.mjs$/.test(process.argv[1])) {
     const r = checkSeal(process.argv[3], key)
     console.log(r.ok ? ` ✅ Sello correcto (versión ${r.version}).` : ` ❌ Sello incorrecto: ${r.why}.`)
     process.exit(r.ok ? 0 : 1)
+  }
+  if (process.argv[2] === 'datos') {
+    let key = null
+    try {
+      key = readFileSync(process.argv[4], 'utf8')
+    } catch {
+      // applyData says there is none.
+    }
+    try {
+      console.log(` ✅ Datos aplicados: ${applyData(process.argv[3], key).join(', ') || 'nada que cambiar'}.`)
+      process.exit(0)
+    } catch (err) {
+      console.log(` ❌ No se aplicaron los datos: ${err.message}.`)
+      process.exit(1)
+    }
   }
   void main()
 }

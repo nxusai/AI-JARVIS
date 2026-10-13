@@ -16,6 +16,9 @@
 #   - /Library/Application Support/Cerebro/programa   the program (root's; the brain's user can read it, nobody else)
 #   - /Library/Application Support/Cerebro/datos      keys, label sets, conversations (the brain's user only)
 #   - /Library/LaunchDaemons/org.cerebro.ia.plist     starts it with the Mac, hidden, and again if it stops
+#   - the door for the owner's system (canal.sh): its SSH key, in the
+#     administrator's account, can run only /usr/local/libexec/cerebro-canal,
+#     and sudo lets that account run only that, without a password
 set -euo pipefail
 
 LABEL="org.cerebro.ia"
@@ -147,6 +150,35 @@ PLIST
 chown root:wheel "$PLIST"
 chmod 644 "$PLIST"
 launchctl bootstrap system "$PLIST"
+
+# The door. Only when the package brings the owner's system's key, and only
+# for the administrator who runs this (the "Soporte" account).
+ADMIN="${SUDO_USER:-}"
+CANAL="/usr/local/libexec/cerebro-canal"
+if [ -f "$PROGRAM/canal.pub" ] && [ -n "$ADMIN" ] && [ "$ADMIN" != "root" ]; then
+  mkdir -p /usr/local/libexec
+  cp "$PROGRAM/canal.sh" "$CANAL"
+  chown root:wheel "$CANAL"
+  chmod 755 "$CANAL"
+  SUDOERS="/etc/sudoers.d/cerebro-canal"
+  printf 'Defaults!%s env_keep += "SSH_ORIGINAL_COMMAND"\n%s ALL=(root) NOPASSWD: %s\n' "$CANAL" "$ADMIN" "$CANAL" > "$SUDOERS.nuevo"
+  chmod 440 "$SUDOERS.nuevo"
+  if visudo -cf "$SUDOERS.nuevo" >/dev/null; then mv "$SUDOERS.nuevo" "$SUDOERS"; else rm -f "$SUDOERS.nuevo"; fail "No pude preparar el permiso de la puerta."; fi
+  ADMIN_HOME="$(dscl . -read "/Users/$ADMIN" NFSHomeDirectory | awk '{print $2}')"
+  mkdir -p "$ADMIN_HOME/.ssh"
+  touch "$ADMIN_HOME/.ssh/authorized_keys"
+  # The door's key replaces the one before; the administrator's own keys stay.
+  grep -v ' cerebro-canal$' "$ADMIN_HOME/.ssh/authorized_keys" > "$ADMIN_HOME/.ssh/authorized_keys.nuevo" || true
+  printf 'command="sudo -n %s",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s\n' "$CANAL" "$(cat "$PROGRAM/canal.pub")" >> "$ADMIN_HOME/.ssh/authorized_keys.nuevo"
+  mv "$ADMIN_HOME/.ssh/authorized_keys.nuevo" "$ADMIN_HOME/.ssh/authorized_keys"
+  chown -R "$ADMIN" "$ADMIN_HOME/.ssh"
+  chmod 700 "$ADMIN_HOME/.ssh"
+  chmod 600 "$ADMIN_HOME/.ssh/authorized_keys"
+  say "✅ Puerta lista: el sistema del dueño puede revisar y actualizar este cerebro, y nada más."
+  if ! systemsetup -getremotelogin 2>/dev/null | grep -qi ': on'; then
+    say "⚠️ Falta prender Inicio de sesión remoto: Ajustes del Sistema → General → Compartir → Inicio de sesión remoto (solo para $ADMIN)."
+  fi
+fi
 
 say "✅ Cerebro instalado ($(cat "$PROGRAM/version.txt" 2>/dev/null || echo '?')). Arranca solo con el Mac, sin ventanas."
 say "Siguiente: sudo \"$NODE\" \"$PROGRAM/llaves.mjs\""

@@ -105,6 +105,7 @@ const CATALOG_VERSION = 3
 // so a retired seed can still be lying in bridge/etiquetas/clientes: never use it.
 export const RETIRED = new Set(['depensa'])
 const CATALOG_FILE = join(LABELS_DIR, '_catalogo.json')
+export const REMOVED_FILE = join(LABELS_DIR, '_quitados.json')
 let seeded = false
 function seed() {
   if (seeded) return
@@ -130,7 +131,9 @@ function seed() {
       if (dr.productos.some((p) => repeated.has(p.code))) saveClient({ ...dr, productos: dr.productos.filter((p) => !repeated.has(p.code)) }, { quien: 'actualización', que: 'quitó CH1135 y CH1101, que ya están en Mi Semago' })
     }
   }
-  if (existsSync(SEEDS)) for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !RETIRED.has(f.slice(0, -5)) && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
+  // Sets removed on purpose here (a brain told to drop one) are never seeded back either.
+  const removed = new Set(readJson(REMOVED_FILE) ?? [])
+  if (existsSync(SEEDS)) for (const f of readdirSync(SEEDS)) if (f.endsWith('.json') && !RETIRED.has(f.slice(0, -5)) && !removed.has(f.slice(0, -5)) && !existsSync(join(LABELS_DIR, f))) copyFileSync(join(SEEDS, f), join(LABELS_DIR, f))
   writeFileSync(CATALOG_FILE, `${JSON.stringify({ version: CATALOG_VERSION })}\n`)
 }
 const readJson = (f) => {
