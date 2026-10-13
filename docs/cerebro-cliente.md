@@ -126,21 +126,28 @@ ejemplo, Abuelito Cheese, Meat y Corn no tienen Finanzas).
 
 ## Cuentas
 
-A nombre del cliente (el cliente paga su uso), nunca de NXUS:
+La suscripción de Claude con la que Eduardo construye es su herramienta de
+trabajo: nunca entra al cerebro. Que el cliente la pague es parte del cobro
+mensual de NXUS.
 
-- Claude (console.anthropic.com), con el correo de la empresa;
-- ElevenLabs, con el correo de la empresa;
-- Google (Mi Semago ya la tiene: info@misemago.com).
+Lo que usa el cerebro sale de las cuentas de Eduardo, separado y con tope:
 
-Se quedan de Eduardo, para no perder el control:
+- Claude: un espacio de trabajo propio en console.anthropic.com
+  ("Cerebro Mi Semago") con límite de gasto mensual y su propia llave. El
+  gasto sale separado y se le cobra al cliente.
+- ElevenLabs: una llave aparte ("Cerebro Mi Semago") solo con voz a texto y
+  texto a voz, con tope de créditos. La voz de Ana Sofi es de Eduardo y no
+  se copia a ningún lado.
+- Google: la del cliente (Mi Semago ya la tiene: info@misemago.com), solo
+  para la carpeta de etiquetas.
+- Bots de Telegram (Ana Sofi, Regina, Vivian): del BotFather de Eduardo; si
+  algo pasa, Eduardo cambia la llave y el cerebro se queda mudo.
+- Administrador del Mac mini: "Soporte NXUS".
 
-- los bots de Telegram (Ana Sofi, Regina, Vivian), creados en el BotFather de
-  Eduardo; si algo pasa, Eduardo les cambia la llave y el cerebro se queda
-  mudo;
-- la cuenta de administrador del Mac mini ("Soporte NXUS").
-
-Las llaves se escriben solo en la pantalla oculta del cerebro el día de la
-instalación, nunca en un chat.
+El cliente no tiene usuario en Claude ni en ElevenLabs, así que no hay
+accesos que pedir. Cualquier llave del cerebro se puede cancelar desde la
+cuenta de Eduardo al instante. Las llaves se escriben solo en la pantalla
+oculta del cerebro el día de la instalación, nunca en un chat.
 
 ## Orden de construcción
 
