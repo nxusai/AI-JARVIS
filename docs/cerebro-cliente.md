@@ -184,28 +184,15 @@ oculta del cerebro el día de la instalación, nunca en un chat.
       en Nexy los cambios hechos allá, y Nexy ya no prende su propia Ana Sofi;
    5. prueba completa en una Mac de ensayo.
 
-   Pendiente de decidir en el paso 4: el cerebro corre con su propio usuario
-   escondido, y Google Drive para escritorio vive en la sesión del usuario
-   del cliente, así que el cerebro no puede escribir en esa carpeta. La
-   impresión no depende de Drive (va por la línea directa). Para que el
-   programa de etiquetas se actualice solo en la compu de la Zebra, el
-   cerebro subirá el archivo a Drive directo por internet, con permiso solo
-   sobre esa carpeta.
-3. Mudar a Ana Sofi y las etiquetas (se apaga en Nexy el mismo día).
-4. Crear la mesa interna entre IA's.
-5. Crear a Regina (Abuelito Inc).
-6. Crear a Vivian (VAYRO).
-7. Agregar en Nexy el panel "Cerebros": salud, versión y gasto de cada IA.
-   ✅ Ya están las alarmas (`startBrainWatch` en `bridge/cerebros.mjs`): cada
-   5 minutos Nexy pregunta a cada cerebro y le avisa a Eduardo en su Telegram
-   cuando:
-   - no contesta 15 minutos;
-   - está apagado o trabado;
-   - el sello no cuadra;
-   - una IA no está prendida;
-   - el cerebro deja un aviso;
-   - alguien escribe mal la contraseña de administrador;
-   - alguien entra a la pantalla con la cuenta de administrador.
+   ✅ Drive: el cerebro corre con su propio usuario escondido y Google Drive
+   para escritorio vive en la sesión del cliente, así que el cerebro no
+   escribe en esa carpeta. En su lugar, un Apps Script en la cuenta de Mi
+   Semago (`bridge/cerebro/drive-google.gs`) recibe el programa de etiquetas
+   y la cola de impresión por internet. Solo escribe esos dos archivos, solo
+   en "Etiquetas Mi Semago" y solo con su clave. La dirección y la clave se
+   ponen en `llaves.mjs`. Si Drive falla al publicar, Ana Sofi manda el
+   archivo al grupo. La impresión no depende de Drive: va por la línea
+   directa.
 
    Cada alarma llega una vez al empezar y otra al resolverse. Las de
    seguridad salen de los registros del Mac y se confirman el día de la

@@ -64,6 +64,17 @@ export function relayChannel() {
   writeLabelConfig({ ...cfg, canal })
   return canal
 }
+/**
+ * Where there is no synced folder on this computer (a brain runs as a hidden
+ * user, away from Google Drive), the two shared files go through this writer
+ * instead: (name, content) → Promise. Set by the brain (cerebro/drive.mjs).
+ */
+let remoteWriter = null
+export function setRemoteFolder(writer) {
+  remoteWriter = writer
+}
+const viaRemote = () => !sharedFolder() && Boolean(remoteWriter)
+
 /** The shared folder, when it is set and there. */
 export const sharedFolder = () => {
   const f = readLabelConfig().carpeta
@@ -378,11 +389,17 @@ export function publish(_c, nota = '') {
   writeFileSync(path, html)
   const folder = sharedFolder()
   let shared = null
+  let uploading = null
   if (folder) {
     shared = join(folder, PROGRAM)
     writeFileSync(shared, html)
+  } else if (viaRemote()) {
+    shared = `Drive/${PROGRAM}`
+    uploading = remoteWriter(PROGRAM, html)
+    // Whoever waits on it hears how it went; nobody waiting must not bring the program down.
+    uploading.catch(() => {})
   }
-  return { path, shared }
+  return { path, shared, uploading }
 }
 
 // -- printing from Telegram ---------------------------------------------------------
@@ -398,7 +415,8 @@ const MAX_JOBS = 60
  * the lot and sell by itself, from the production date and the days of life.
  */
 export function queuePrint({ c, p, qty, fecha, logo, quien }) {
-  const folder = sharedFolder()
+  const remote = viaRemote()
+  const folder = sharedFolder() ?? (remote ? LABELS_DIR : null)
   if (!folder) return { error: 'The shared Google Drive folder is not set up on this Mac (node scripts/anasofi.mjs carpeta), so nothing can reach the printer from here.' }
   const file = join(folder, QUEUE_FILE)
   let jobs = []
@@ -412,7 +430,11 @@ export function queuePrint({ c, p, qty, fecha, logo, quien }) {
   jobs = jobs.filter((j) => now - Number(j.at) < JOB_HOURS * 3600e3).slice(-MAX_JOBS + 1)
   const job = { id: `${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, at: now, cat: c.id, code: p.code, qty, fecha, ...(logo ? { logo } : {}), quien: String(quien ?? '').slice(0, 60) }
   jobs.push(job)
-  writeFileSync(file, `// Pedidos de impresión de Telegram. Los lee Etiquetas.html.\nwindow.colaImpresion && window.colaImpresion(${JSON.stringify(jobs)});\n`)
+  const queue = `// Pedidos de impresión de Telegram. Los lee Etiquetas.html.\nwindow.colaImpresion && window.colaImpresion(${JSON.stringify(jobs)});\n`
+  mkdirSync(folder, { recursive: true })
+  writeFileSync(file, queue)
+  // Without the synced folder, Drive's copy goes over the internet (the backup way; the direct line is first).
+  if (remote) void remoteWriter(QUEUE_FILE, queue).catch((err) => console.log(`${TAG} etiquetas: Drive did not take the queue (${err.message}); the direct line carries it`))
   // And straight away through the direct line; the program prints whichever arrives first, once.
   void fetch(`${RELAY}/${relayChannel()}`, { method: 'POST', body: JSON.stringify(job), signal: AbortSignal.timeout(10_000) }).catch((err) => console.log(`${TAG} etiquetas: direct line failed (${err.message}); Drive will carry it`))
   return { job, folder }
@@ -761,7 +783,15 @@ export function labelTools({ who, files, post, postPhoto, postFile }) {
           if (!c) return unknown(cliente)
           const { problems } = review(c)
           if (problems.length) return refuse(`Not published: fix these first:\n- ${problems.join('\n- ')}`)
-          const { path, shared } = publish(c, que_cambio)
+          const { path, shared, uploading } = publish(c, que_cambio)
+          if (uploading) {
+            try {
+              await uploading
+            } catch (err) {
+              await postFile(path, `🆕 ${c.nombre}: ${que_cambio}\n\nEn la computadora de la Zebra: descarga este archivo y reemplaza el anterior (mismo nombre).`)
+              return ok(`Drive did not take it (${err.message}), so it was sent to the group as a file instead: ${path.split('/').pop()}. Tell them, and that Eduardo will look at the Drive link.`)
+            }
+          }
           // With the shared folder the printer's computer gets it by itself; without it, as a file.
           if (shared) return ok(`Published: ${path.split('/').pop()} (every company in one program) is updated in the shared folder; in a minute the printer's computer has it. Tell them in one line to reload the program (F5) and check the version line at the top.`)
           await postFile(path, `🆕 ${c.nombre}: ${que_cambio}\n\nEn la computadora de la Zebra: descarga este archivo y reemplaza el anterior (mismo nombre).`)

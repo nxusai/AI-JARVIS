@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { readAnaSofi, writeAnaSofi } from '../nucleo/anasofi.mjs'
 import { DATA } from '../nucleo/lugar.mjs'
 import { api } from '../nucleo/telegram.mjs'
+import { DRIVE_KEY, DRIVE_URL, driveWorks } from './drive.mjs'
 
 /**
  * The brain's keys screen. The owner runs it on the client's Mac mini, as
@@ -95,11 +96,11 @@ async function claudeWorks(key) {
 }
 
 /** Ask for one key until it is good, or keep the one there is (Enter). */
-async function ask(label, { has, shape, check, show = false }) {
+async function ask(label, { has, shape, check, show = false, optional = false }) {
   for (let tries = 0; tries < 3; tries++) {
-    const value = (await hidden(` ${label}${has ? ' (Enter = dejar la que ya está)' : ''}: `, show)).replace(/\s+/g, '')
+    const value = (await hidden(` ${label}${has ? ' (Enter = dejar la que ya está)' : optional ? ' (Enter = después)' : ''}: `, show)).replace(/\s+/g, '')
     if (!value) {
-      if (has) return null
+      if (has || optional) return null
       console.log(' Hace falta. Inténtalo otra vez.')
       continue
     }
@@ -143,6 +144,7 @@ if (cmd === 'estado') {
   console.log(` ElevenLabs (Cerebro): ${mark(keys.elevenlabs)}`)
   console.log(` Bot de Ana Sofi:      ${bot ? `✅ @${bot.bot ?? '?'}` : '❌ falta'}`)
   console.log(` Dueño (Telegram):     ${config.dueno ? '✅ puesto' : '❌ falta'}`)
+  console.log(` Drive (etiquetas):    ${keys.drive_url && keys.drive_clave ? '✅ conectado' : '❌ falta'}`)
   process.exit(0)
 } else if (cmd) {
   console.log(' Uso: llaves.mjs [estado]')
@@ -166,8 +168,14 @@ const token = await ask('Llave (token) del bot de Ana Sofi', {
   },
 })
 const dueno = await ask('Tu número de cuenta de Telegram (el dueño)', { has: Boolean(config.dueno), shape: /^\d{4,15}$/, show: true })
+const driveUrl = await ask('Dirección de Drive (la de la aplicación web, termina en /exec)', { has: Boolean(keys.drive_url), shape: DRIVE_URL, optional: true })
+let driveKey = null
+if (driveUrl || keys.drive_url) {
+  const url = driveUrl ?? keys.drive_url
+  driveKey = await ask('Clave de Drive (la que dio preparar)', { has: Boolean(keys.drive_clave) && !driveUrl, shape: DRIVE_KEY, check: (k) => driveWorks(url, k) })
+}
 
-writePrivate(KEYS_FILE, { ...keys, ...(claude ? { claude } : {}), ...(eleven ? { elevenlabs: eleven } : {}) })
+writePrivate(KEYS_FILE, { ...keys, ...(claude ? { claude } : {}), ...(eleven ? { elevenlabs: eleven } : {}), ...(driveUrl && driveKey ? { drive_url: driveUrl } : {}), ...(driveKey ? { drive_clave: driveKey } : {}) })
 if (token) writeAnaSofi({ ...(bot ?? {}), token, bot: me?.username ?? bot?.bot ?? null, grupo: bot?.grupo ?? null })
 if (dueno) writePrivate(CONFIG_FILE, { ...config, dueno: Number(dueno) })
 handOver()

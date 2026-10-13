@@ -1,9 +1,11 @@
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
+import { setRemoteFolder } from '../nucleo/etiquetas.mjs'
 import { ASSETS, DATA, SEAL_KEY, TAG } from '../nucleo/lugar.mjs'
 import { transcribe } from '../nucleo/voz.mjs'
 import { applyData } from './datos.mjs'
+import { driveWriter } from './drive.mjs'
 import { checkSeal } from './firma.mjs'
 
 /**
@@ -21,7 +23,7 @@ import { checkSeal } from './firma.mjs'
  *   node cerebro.mjs datos <archivo> <llave>       apply signed data from the owner (canal.sh does)
  *
  *   <data>/cerebro.json   { dueno: Telegram id of the owner, modelo?, esfuerzo? }
- *   <data>/llaves.json    { claude, elevenlabs }  (set with llaves.mjs; the service user only)
+ *   <data>/llaves.json    { claude, elevenlabs, drive_url?, drive_clave? }  (set with llaves.mjs; the service user only)
  *   <data>/anasofi.json   Ana Sofi's bot, group and voices
  *   <data>/estado.json    how the brain is, every minute
  */
@@ -94,6 +96,10 @@ export async function main() {
   if (!keys.claude) warn('Falta la llave de Claude: corre llaves.mjs. Ninguna IA arranca sin ella.')
   if (!/^\d{4,15}$/.test(String(cfg.dueno ?? ''))) warn('Falta el dueño (id de Telegram) en cerebro.json.')
   if (!keys.claude) return
+
+  // The printer's computer gets the label program and the queue through Drive, over the internet.
+  if (keys.drive_url && keys.drive_clave) setRemoteFolder(driveWriter({ url: keys.drive_url, clave: keys.drive_clave }))
+  else warn('Falta la conexión con Drive (llaves.mjs): las etiquetas imprimen por la línea directa, pero el programa de la Zebra no se actualiza solo.')
 
   if (readAnaSofi()) {
     state.ias.anasofi = 'prendida'
