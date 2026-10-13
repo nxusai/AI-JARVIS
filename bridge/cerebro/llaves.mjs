@@ -155,8 +155,10 @@ console.log('\n Llaves del cerebro. Nada de lo que pegues se verá en la pantall
 const claude = await ask('Llave de Claude ("Cerebro Mi Semago")', { has: Boolean(keys.claude), shape: CLAUDE_KEY, check: claudeWorks })
 const eleven = await ask('Llave de ElevenLabs ("Cerebro Mi Semago")', { has: Boolean(keys.elevenlabs), shape: ELEVEN_KEY })
 let me = null
+// Ana Sofi's bot goes last on moving day, once Nexy no longer answers with it (Enter = después).
 const token = await ask('Llave (token) del bot de Ana Sofi', {
   has: Boolean(bot),
+  optional: true,
   shape: BOT_TOKEN,
   check: async (t) => {
     try {
@@ -167,7 +169,8 @@ const token = await ask('Llave (token) del bot de Ana Sofi', {
     }
   },
 })
-const dueno = await ask('Tu número de cuenta de Telegram (el dueño)', { has: Boolean(config.dueno), shape: /^\d{4,15}$/, show: true })
+// The owner also comes with the data from the owner's system (Enter = después).
+const dueno = await ask('Tu número de cuenta de Telegram (el dueño)', { has: Boolean(config.dueno), shape: /^\d{4,15}$/, show: true, optional: true })
 const driveUrl = await ask('Dirección de Drive (la de la aplicación web, termina en /exec)', { has: Boolean(keys.drive_url), shape: DRIVE_URL, optional: true })
 let driveKey = null
 if (driveUrl || keys.drive_url) {
@@ -176,7 +179,9 @@ if (driveUrl || keys.drive_url) {
 }
 
 writePrivate(KEYS_FILE, { ...keys, ...(claude ? { claude } : {}), ...(eleven ? { elevenlabs: eleven } : {}), ...(driveUrl && driveKey ? { drive_url: driveUrl } : {}), ...(driveKey ? { drive_clave: driveKey } : {}) })
-if (token) writeAnaSofi({ ...(bot ?? {}), token, bot: me?.username ?? bot?.bot ?? null, grupo: bot?.grupo ?? null })
+// The group and voices may already be there, sent before the bot (datos): kept.
+const before = readJson(join(DATA, 'anasofi.json'))
+if (token) writeAnaSofi({ ...before, token, bot: me?.username ?? before.bot ?? null, grupo: before.grupo ?? null })
 if (dueno) writePrivate(CONFIG_FILE, { ...config, dueno: Number(dueno) })
 handOver()
 console.log('\n ✅ Listo. Para revisar sin ver las llaves: llaves.mjs estado\n')

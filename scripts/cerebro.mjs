@@ -15,6 +15,8 @@
  *   node scripts/cerebro.mjs espejo [nombre]                           take a copy of its labels
  *   node scripts/cerebro.mjs registro|reiniciar|apagar|prender [nombre]
  *   node scripts/cerebro.mjs borrar-llaves [nombre]                    emergency: wipe its keys and stop it
+ *   node scripts/cerebro.mjs mudar-anasofi [nombre]                    moving day: the labels and her group go to the brain, and Nexy stops answering with her bot
+ *   node scripts/cerebro.mjs regresar-anasofi [nombre]                 calls the move off: the brain stops, and she answers from Nexy again
  * With one brain, the name can be left out.
  *
  * Every package is signed with the owner's key, ~/.nexy/cerebro/firma-privada.pem,
@@ -33,7 +35,7 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, wr
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { RETIRED } from '../bridge/nucleo/etiquetas.mjs'
+import { listClients, RETIRED } from '../bridge/nucleo/etiquetas.mjs'
 import { brainState, buildData, doorKey, mirror, order, readBrains, saveBrain } from '../bridge/cerebros.mjs'
 import { fingerprint, MANIFEST, PUBLIC_KEY, SIGNATURE } from '../bridge/cerebro/firma.mjs'
 import { buildBrain, ENTRIES, importProblems, leaks, PACKAGES } from './nucleo.mjs'
@@ -76,6 +78,8 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   for (const name of Object.keys(ENTRIES)) files[name] = (await buildBrain(name, { version })).outputFiles[0].text
   files['instalar.sh'] = readFileSync(join(BRAIN, 'instalar.sh'), 'utf8')
   files['canal.sh'] = readFileSync(join(BRAIN, 'canal.sh'), 'utf8')
+  // The Apps Script to paste in the client's Google account (Drive), at hand on the Mac mini.
+  files['drive-google.gs'] = readFileSync(join(BRAIN, 'drive-google.gs'), 'utf8')
   // The door's key, so this system can reach the brain once installed.
   files['canal.pub'] = `${doorKey()}\n`
   files['etiquetas/plantilla.html'] = readFileSync(join(LABELS, 'plantilla.html'), 'utf8')
@@ -106,7 +110,7 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   return { dir, version, files: Object.keys(files).length }
 }
 
-const DOOR = ['estado', 'enviar', 'datos', 'espejo', 'registro', 'reiniciar', 'apagar', 'prender', 'borrar-llaves']
+const DOOR = ['estado', 'enviar', 'datos', 'espejo', 'registro', 'reiniciar', 'apagar', 'prender', 'borrar-llaves', 'mudar-anasofi', 'regresar-anasofi']
 
 /** Which brain: the one named, or the only one there is. */
 function pick(args) {
@@ -163,6 +167,28 @@ async function door(what, args) {
       console.log(` ✅ Copia del cerebro ${name} guardada en ${dir}`)
       console.log(differ.length ? ` Distintas a las de aquí: ${differ.join(', ')}` : ' Las etiquetas son iguales a las de aquí.')
       if (adopted.length) console.log(` Se guardaron aquí los cambios hechos allá: ${adopted.join(', ')}`)
+      return 0
+    }
+    if (what === 'mudar-anasofi') {
+      const st = await brainState(name)
+      if (st.estado?.sello && st.estado.sello !== 'bien') return console.log(` ❌ El sello del cerebro no cuadra (${st.estado.sello}). Reinstálalo antes de mudarla.`), 1
+      signingKey()
+      const r = await order(name, 'datos', buildData({ labels: true }))
+      console.log(answer(r))
+      if (r.code !== 0) return 1
+      saveBrain(name, { ...readBrains()[name], anasofi: 'cerebro' })
+      console.log(` ✅ Las ${listClients().length} empresas de etiquetas, su grupo y sus voces ya están en el cerebro ${name}.`)
+      console.log(' Ahora, en este orden:')
+      console.log('   1. Reinicia Nexy (Ctrl + C y npm start): ya no contestará con el bot de Ana Sofi.')
+      console.log('   2. En el Mac mini pon la llave del bot: sudo node "/Library/Application Support/Cerebro/programa/llaves.mjs" (Enter en todo lo demás).')
+      console.log(' Si algo sale mal: node scripts/cerebro.mjs regresar-anasofi')
+      return 0
+    }
+    if (what === 'regresar-anasofi') {
+      const r = await order(name, 'apagar').catch((err) => ({ code: 1, out: Buffer.from(''), err: err.message }))
+      console.log(r.code === 0 ? ` El cerebro ${name} quedó apagado.` : ` ⚠️ No pude apagar el cerebro (${answer(r)}). Apágalo desde el Mac mini antes de seguir, o contestarán los dos.`)
+      saveBrain(name, { ...readBrains()[name], anasofi: undefined })
+      console.log(' ✅ Ana Sofi vuelve a Nexy: reinicia Nexy (Ctrl + C y npm start).')
       return 0
     }
     if (what === 'borrar-llaves') {

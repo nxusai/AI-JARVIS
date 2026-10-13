@@ -86,7 +86,7 @@ if (cmd === 'estado') {
   for (const [lang, name] of [['es', 'español'], ['en', 'inglés']]) {
     const voz = await anaSofiVoice(key, lang)
     const own = cfg[`voz_${lang}`] === voz
-    console.log(` Voz en ${name}: ${voz ? (own ? `su voz propia (${voz}) ✅` : 'la de la agente Ana Sofi de ElevenLabs ✅') : key ? '⚠️ no encontré la voz de Ana Sofi; contestará solo con texto' : '⚠️ falta la llave de ElevenLabs; contestará solo con texto'}`)
+    console.log(` Voz en ${name}: ${voz ? (own ? `su voz propia (${voz}) ✅` : `la de la agente Ana Sofi de ElevenLabs ✅ — para el cerebro del cliente fíjala con: node scripts/anasofi.mjs voz ${lang} ${voz}`) : key ? '⚠️ no encontré la voz de Ana Sofi; contestará solo con texto' : '⚠️ falta la llave de ElevenLabs; contestará solo con texto'}`)
   }
   console.log(` Carpeta compartida: ${sharedFolder() ?? (readLabelConfig().carpeta ? `${readLabelConfig().carpeta} — NO la encuentro (¿Google Drive abierto?)` : 'falta (node scripts/anasofi.mjs carpeta)')}`)
   console.log(` Etiquetas: ${listClients().map((c) => `${c.nombre} (${c.productos.length})`).join(', ')}`)

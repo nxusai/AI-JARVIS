@@ -174,6 +174,11 @@ if [ -f "$PROGRAM/canal.pub" ] && [ -n "$ADMIN" ] && [ "$ADMIN" != "root" ]; the
   chown -R "$ADMIN" "$ADMIN_HOME/.ssh"
   chmod 700 "$ADMIN_HOME/.ssh"
   chmod 600 "$ADMIN_HOME/.ssh/authorized_keys"
+  # SSH only with keys, only for the administrator: no password to guess from the network.
+  mkdir -p /etc/ssh/sshd_config.d
+  printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\nAllowUsers %s\n' "$ADMIN" > /etc/ssh/sshd_config.d/100-cerebro.conf
+  chmod 644 /etc/ssh/sshd_config.d/100-cerebro.conf
+  launchctl kickstart -k system/com.openssh.sshd >/dev/null 2>&1 || true
   say "✅ Puerta lista: el sistema del dueño puede revisar y actualizar este cerebro, y nada más."
   if ! systemsetup -getremotelogin 2>/dev/null | grep -qi ': on'; then
     say "⚠️ Falta prender Inicio de sesión remoto: Ajustes del Sistema → General → Compartir → Inicio de sesión remoto (solo para $ADMIN)."
