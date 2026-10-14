@@ -1,0 +1,62 @@
+import { getStore } from '@netlify/blobs'
+
+/**
+ * Lo que comparten las funciones del portal: los prospectos guardados en
+ * Netlify, el aviso a Telegram y las respuestas.
+ *
+ * Variables de entorno (Netlify → Site configuration → Environment variables):
+ *   TELEGRAM_TOKEN   el bot "NXUS Portal" (solo manda avisos)
+ *   TELEGRAM_CHAT    tu número de cuenta de Telegram
+ *   AGENDA_URL       la aplicación web de google/agenda.gs
+ *   AGENDA_CLAVE     la clave que dio "preparar"
+ *   STRIPE_KEY       llave restringida de Stripe (solo leer pagos de Checkout)
+ *   PAGO_MX, PAGO_US los links de pago de la consultoría (pesos y dólares)
+ *   NEXY_CLAVE       la llave con la que Nexy lee los prospectos
+ */
+
+export const env = (k) => (typeof Netlify !== 'undefined' ? Netlify.env.get(k) : process.env[k]) ?? ''
+
+export const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } })
+
+const ID = /^[0-9a-f-]{36}$/
+export const store = () => getStore({ name: 'prospectos', consistency: 'strong' })
+export async function readLead(id) {
+  if (!ID.test(String(id ?? ''))) return null
+  return store().get(id, { type: 'json' })
+}
+export async function saveLead(lead) {
+  lead.actualizado = new Date().toISOString()
+  await store().setJSON(lead.id, lead)
+  return lead
+}
+
+/** Texto limpio y corto, de lo que mande el navegador. */
+export const clean = (v, max = 200) => [...String(v ?? '')].map((ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch)).join('').trim().slice(0, max)
+
+/** Un aviso a tu Telegram. Si falla, el portal sigue. */
+export async function avisar(text) {
+  const token = env('TELEGRAM_TOKEN')
+  const chat = env('TELEGRAM_CHAT')
+  if (!token || !chat) return
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: text.slice(0, 4000), disable_web_page_preview: true }),
+    })
+  } catch {
+    // el aviso es extra; el prospecto ya quedó guardado
+  }
+}
+
+/** Una llamada a la agenda de Google (google/agenda.gs). */
+export async function agenda(body) {
+  const url = env('AGENDA_URL')
+  if (!url) throw new Error('la agenda no está conectada todavía')
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, clave: env('AGENDA_CLAVE') }), redirect: 'follow' })
+  const data = await res.json().catch(() => null)
+  if (!data?.ok) throw new Error(data?.error ?? `la agenda respondió ${res.status}`)
+  return data
+}
+
+export const quien = (l) => `${l.contacto?.nombre || l.de || 'Alguien'}${l.contacto?.empresa ? ` · ${l.contacto.empresa}` : ''}`

@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Empezar · NXUS AI</title>
+<meta name="description" content="IA, software y marketing diseñados alrededor de tu negocio. Cuéntanos de tu empresa en 2 minutos.">
+<link rel="icon" href="/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* The client's path to a meeting with NXUS AI, one screen at a time, in the catalog's night-blue look. */
+:root {
+  --bg: #05080f; --panel: #0b1120; --panel-2: #10182c; --line: #1c2741;
+  --ink: #eef3ff; --ink-2: #a9b4cf; --ink-3: #6e7a96;
+  --cyan: #4fd8f7; --violet: #8b6cff; --cyan-soft: rgba(79, 216, 247, .12);
+  --ok: #3fd29a; --ok-soft: rgba(63, 210, 154, .13); --bad: #ff7a7a;
+  --display: "Sora", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+main { max-width: 560px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 16px; min-height: 100dvh; }
+h1, h2 { font-family: var(--display); margin: 0; letter-spacing: -.015em; text-wrap: balance; }
+h1 { font-size: clamp(30px, 8vw, 40px); font-weight: 800; line-height: 1.08; }
+h2 { font-size: 26px; font-weight: 800; line-height: 1.15; }
+p { margin: 0; color: var(--ink-2); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.logo { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; }
+.logo img { width: 32px; mix-blend-mode: screen; }
+.mono { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); }
+.grad { background: linear-gradient(90deg, var(--cyan), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tiny { font-size: 13px; color: var(--ink-3); }
+.hero { border-radius: 18px; overflow: hidden; aspect-ratio: 3 / 2; max-width: 100%; position: relative; }
+.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, var(--bg)); }
+.chip { display: inline-flex; font-size: 13px; padding: 3px 11px; border-radius: 99px; background: var(--cyan-soft); color: var(--cyan); font-weight: 600; width: fit-content; }
+.progress { height: 3px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width .3s; }
+.btn { border: 0; background: linear-gradient(90deg, var(--cyan), #6aa8ff 55%, var(--violet)); color: #04101a; padding: 14px 16px; border-radius: 12px; font-weight: 700; width: 100%; }
+.btn[disabled] { opacity: .5; cursor: wait; }
+.back { align-self: flex-start; border: 0; background: none; padding: 4px 0; color: var(--cyan); font-weight: 600; font-size: 15px; }
+.err { color: var(--bad); font-size: 14px; }
+.lines { display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.card.on { border-color: rgba(79, 216, 247, .5); }
+.card > button { width: 100%; text-align: left; background: none; border: 0; padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
+.card b { font-family: var(--display); font-size: 16px; }
+.card .sub { font-size: 13.5px; color: var(--ink-2); }
+.card .count { grid-row: 1 / span 2; grid-column: 2; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.card.on .count { color: var(--cyan); }
+.items { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 14px 14px; }
+.pill { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2); border-radius: 99px; padding: 7px 12px; font-size: 14px; }
+.pill[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-soft); font-weight: 600; }
+.jarvis { margin: 0 14px 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2); }
+.jarvis img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.jarvis .in { padding: 13px; display: flex; flex-direction: column; gap: 9px; }
+.jarvis .q1 { font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.3; }
+.jarvis p { font-size: 14px; }
+.chat { display: flex; flex-direction: column; gap: 6px; }
+.chat span { font-size: 13.5px; padding: 7px 10px; border-radius: 10px; max-width: 92%; }
+.chat .you { align-self: flex-end; background: var(--line); }
+.chat .ai { align-self: flex-start; background: var(--cyan-soft); border: 1px solid rgba(79, 216, 247, .3); }
+.chat .ai b { color: var(--cyan); }
+.fine { font-size: 11px; color: var(--ink-3); }
+.q { display: flex; flex-direction: column; gap: 7px; }
+.q label { font-weight: 600; font-size: 15px; }
+.q input, .q textarea { width: 100%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; padding: 11px 12px; font: inherit; }
+.q textarea { min-height: 84px; resize: vertical; }
+.pills { display: flex; flex-wrap: wrap; gap: 7px; }
+.path { display: flex; flex-direction: column; gap: 10px; }
+.path button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 15px; display: flex; flex-direction: column; gap: 4px; }
+.path b { font-family: var(--display); font-size: 17px; }
+.path .k { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.path .d { color: var(--ink-2); font-size: 14px; }
+.path button.rec { border-color: rgba(79, 216, 247, .55); background: linear-gradient(180deg, rgba(79, 216, 247, .08), transparent); }
+.days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.days button { flex: 0 0 64px; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 0; display: flex; flex-direction: column; align-items: center; font-size: 12px; color: var(--ink-2); }
+.days b { font-family: var(--mono); font-size: 17px; color: var(--ink); }
+.days button[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-soft); }
+.slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.slots button { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 10px 0; font-family: var(--mono); font-size: 14px; }
+.slots button[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); }
+.summary { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.summary div { display: flex; justify-content: space-between; gap: 12px; }
+.summary div > span:first-child { color: var(--ink-3); }
+.summary div > span:last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.summary small { display: block; color: var(--ok); font-size: 12px; font-weight: 600; }
+.done { width: 60px; height: 60px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; font-size: 28px; align-self: center; }
+.center { text-align: center; align-items: center; }
+.ok-box { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink-2); }
+.ok-box input { accent-color: var(--cyan); margin-top: 3px; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script>
+// The catalog (NXUS_AI_Catalogo). What the client marks travels as "Line: item".
+const LINES = [
+  { id: 'neural', name: 'NXUS Neural', sub: 'Sistema nervioso empresarial con IA', items: ['Consulta', 'Coordina', 'Controla'] },
+  { id: 'software', name: 'Software a la medida', sub: 'Tu operación, convertida en software', items: ['Asistencia y horarios', 'Ventas y CRM', 'Inventarios y compras', 'Rutas y entregas', 'Apps y portales', 'Procesos internos'] },
+  { id: 'atencion', name: 'Atención y ventas con IA', sub: 'Conversaciones que mueven el negocio', items: ['WhatsApp y mensajes', 'Agentes de voz', 'Seguimiento comercial', 'Asistentes internos'] },
+  { id: 'marketing', name: 'Marketing y producción', sub: 'Haz que tu marca se vea diferente', items: ['Estrategia y redes', 'Publicidad digital', 'Identidad y diseño', 'Foto, video y dron', 'Contenido con IA', 'Edición y formatos'] },
+  { id: 'web', name: 'Web, conexiones y datos', sub: 'Tus herramientas, trabajando juntas', items: ['Websites y tiendas', 'Integraciones', 'Datos y reportes'] },
+]
+const JARVIS = `<div class="jarvis"><img src="/img/neural.jpg" alt="Cerebro de luz conectado a toda la empresa"><div class="in">
+  <span class="q1">¿Recuerdas a JARVIS, el asistente de Tony Stark en Iron Man? Imagina esa idea aplicada a tu empresa.</span>
+  <p>Una IA que conoce tu negocio y conecta tus herramientas, tu información y a tu equipo. Le hablas o le escribes como a una persona, y ella consulta, coordina y te avisa.</p>
+  <div class="chat"><span class="you">¿Cuántos pedidos salieron ayer y cuáles van tarde?</span><span class="ai"><b>NXUS Neural:</b> Salieron 38. Van tarde 3 de la ruta norte; ya le avisé al chofer y a ventas.</span><span class="you">Avísame si el inventario baja de 50 cajas.</span><span class="ai"><b>NXUS Neural:</b> Listo. Cuando baje te aviso y te dejo la orden de compra lista para que la apruebes.</span></div>
+  <p>Tú decides qué puede ver y hacer: las acciones importantes siempre esperan tu aprobación.</p>
+  <span class="fine">La referencia a ficción es ilustrativa; NXUS AI desarrolla una solución independiente.</span></div></div>`
+const PASOS = ['bienvenida', 'catalogo', 'diagnostico', 'camino', 'datos', 'pago', 'agenda', 'listo']
+const API = '/.netlify/functions'
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+
+// Who the link is for: empezar.nxusai.org/juan-perez → "Juan".
+const slug = decodeURIComponent(location.pathname.slice(1)).replace(/[^\w-]/g, '').slice(0, 60)
+const firstName = slug ? slug.split('-')[0].replace(/^./, (c) => c.toUpperCase()) : ''
+
+// Everything the client has filled, kept in this browser so a reload or the trip to Stripe loses nothing.
+const blank = () => ({ id: '', slug, step: 'bienvenida', chosen: [], open: 'neural', answers: {}, camino: '', contacto: { nombre: firstName, empresa: '', direccion: '', whatsapp: '', correo: '' }, acepta: true, cita: null })
+let st = blank()
+try {
+  const saved = JSON.parse(localStorage.getItem('nxus-portal') || 'null')
+  if (saved && saved.slug === slug) st = { ...st, ...saved }
+} catch {}
+const keep = () => { try { localStorage.setItem('nxus-portal', JSON.stringify(st)) } catch {} }
+let error = '', busy = false, horarios = null, dia = 0, hora = ''
+
+async function call(path, body) {
+  const res = await fetch(`${API}/${path}`, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {})
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok && !data.pagado && data.error) throw new Error(data.error)
+  return data
+}
+const go = (step) => { st.step = step; error = ''; keep(); render(); scrollTo({ top: 0 }) }
+const back = { catalogo: 'bienvenida', diagnostico: 'catalogo', camino: 'diagnostico', datos: 'camino', pago: 'datos', agenda: () => (st.camino === 'consulta' ? 'pago' : 'datos') }
+
+function screen() {
+  const pct = { bienvenida: 0, catalogo: 25, diagnostico: 45, camino: 60, datos: 72, pago: 82, agenda: 92, listo: 100 }[st.step]
+  const top = `<div class="top"><span class="logo"><img src="/img/logo.png" alt="">NXUS AI</span></div>${pct ? `<div class="progress"><i style="width:${pct}%"></i></div>` : ''}`
+  const b = back[st.step]
+  const backBtn = b && !(st.step === 'agenda' && st.camino === 'consulta') ? `<button class="back" data-back>← Atrás</button>` : ''
+  const err = error ? `<p class="err" role="alert">${esc(error)}</p>` : ''
+  switch (st.step) {
+    case 'bienvenida': return `${top}
+      <div class="hero"><img src="/img/hero.jpg" alt="Ciudad conectada con un globo de datos"></div>
+      ${firstName ? `<span class="chip">Hola, ${esc(firstName)}</span>` : ''}
+      <span class="mono">Catálogo de soluciones</span>
+      <h1>Tu empresa. Conectada. <span class="grad">Inteligente.</span></h1>
+      <p>IA, software y marketing diseñados alrededor de tu negocio. Cuéntanos qué necesitas y te decimos por dónde empezar.</p>
+      <button class="btn" data-go="catalogo">Ver soluciones</button>
+      <p class="tiny" style="text-align:center">Toma 2 minutos · Sin compromiso</p>`
+    case 'catalogo': return `${top}${backBtn}
+      <h2>¿Qué te interesa?</h2><p>Abre una línea y marca lo que necesitas. Puedes elegir de varias.</p>
+      <div class="lines">${LINES.map((l) => {
+        const n = st.chosen.filter((c) => c.startsWith(`${l.name}: `)).length
+        return `<div class="card ${n ? 'on' : ''}"><button data-open="${l.id}" aria-expanded="${st.open === l.id}"><b>${l.name}</b><span class="count">${n ? `${n} ✓` : st.open === l.id ? '−' : '+'}</span><span class="sub">${l.sub}</span></button>
+          ${st.open === l.id ? `${l.id === 'neural' ? JARVIS : ''}<div class="items">${l.items.map((t) => `<button class="pill" data-item="${esc(`${l.name}: ${t}`)}" aria-pressed="${st.chosen.includes(`${l.name}: ${t}`)}">${t}</button>`).join('')}</div>` : ''}</div>`
+      }).join('')}</div>
+      ${err}<button class="btn" data-next="catalogo">Continuar${st.chosen.length ? ` (${st.chosen.length})` : ''}</button>`
+    case 'diagnostico': {
+      const pill = (k, opts) => `<div class="pills">${opts.map((o) => `<button class="pill" data-a="${k}" data-v="${o}" aria-pressed="${st.answers[k] === o}">${o}</button>`).join('')}</div>`
+      return `${top}${backBtn}<h2>Cuéntanos de tu empresa</h2>
+      <div class="q"><label>Giro</label>${pill('giro', ['Distribución', 'Comercio', 'Servicios', 'Industria', 'Restaurantes', 'Otro'])}</div>
+      <div class="q"><label>¿Cuántas personas trabajan?</label>${pill('tamano', ['1 a 5', '6 a 20', '21 a 100', 'Más de 100'])}</div>
+      <div class="q"><label>¿Dónde operan?</label>${pill('pais', ['México', 'USA', 'Ambos'])}</div>
+      <div class="q"><label>¿Qué tanto te urge?</label>${pill('urgencia', ['Urgente: lo necesito ya', 'Pronto: este mes', 'Planeándolo: 1 a 3 meses', 'Sin prisa: solo explorando'])}</div>
+      <div class="q"><label for="quiere">¿Qué te gustaría que tu empresa pudiera hacer?</label><textarea id="quiere" data-ans="quiere" maxlength="1500" placeholder="Cuéntanoslo con tus palabras">${esc(st.answers.quiere)}</textarea></div>
+      ${err}<button class="btn" data-next="diagnostico">Ver mis opciones</button>`
+    }
+    case 'camino': return `${top}${backBtn}<h2>¿Cómo quieres seguir?</h2>
+      <p>Las dos opciones terminan en una reunión con nosotros.</p>
+      <div class="path">
+        <button class="rec" data-camino="consulta"><span class="chip" style="margin-bottom:4px">Recomendado para ti</span><span class="k">Consultoría · se paga antes de agendar</span><b>Plan para tu empresa</b><span class="d">Pagas, eliges tu horario y revisamos juntos tu operación. Te llevas un plan concreto, con prioridades y alcance.</span></button>
+        <button data-camino="propuesta"><span class="k">Reunión sin costo</span><b>Quiero mi propuesta</b><span class="d">Agenda una reunión y te presentamos el paquete que más le conviene a tu empresa.</span></button>
+      </div>`
+    case 'datos': {
+      const c = st.contacto
+      const f = (k, label, extra = '') => `<div class="q"><label for="c-${k}">${label}</label><input id="c-${k}" data-c="${k}" value="${esc(c[k])}" ${extra}></div>`
+      return `${top}${backBtn}<h2>Tus datos</h2><p>Para confirmarte la reunión y mandarte todo por escrito.</p>
+      ${f('nombre', 'Tu nombre', 'autocomplete="name" maxlength="80"')}
+      ${f('empresa', 'Tu empresa', 'autocomplete="organization" maxlength="120"')}
+      ${f('direccion', 'Dirección del negocio', 'autocomplete="street-address" maxlength="200" placeholder="Calle, número, colonia, ciudad"')}
+      <div class="q"><label for="c-whatsapp">Tu WhatsApp</label><input id="c-whatsapp" data-c="whatsapp" value="${esc(c.whatsapp)}" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="+52 …"><span class="tiny">Confírmalo o corrígelo.</span></div>
+      ${f('correo', 'Tu correo', 'inputmode="email" autocomplete="email" maxlength="120" placeholder="tu@empresa.com"')}
+      <label class="ok-box"><input type="checkbox" id="acepta" ${st.acepta ? 'checked' : ''}> Acepto que NXUS AI me contacte por WhatsApp y correo sobre mi solicitud.</label>
+      ${err}<button class="btn" data-next="datos" ${busy ? 'disabled' : ''}>${st.camino === 'consulta' ? 'Continuar al pago' : 'Elegir horario'}</button>`
+    }
+    case 'pago': return `${top}${backBtn}<h2>Paga tu consultoría</h2><p>Después de pagar eliges tu horario.</p>
+      <div class="summary"><div><span>Consultoría</span><span>Plan para tu empresa</span></div><div><span>A nombre de</span><span>${esc(st.contacto.nombre)}</span></div></div>
+      <p class="tiny">El pago es en Stripe, seguro. NXUS AI nunca ve los datos de tu tarjeta.</p>
+      ${err}<button class="btn" data-pagar ${busy ? 'disabled' : ''}>Ir a pagar</button>`
+    case 'agenda': {
+      if (!horarios) return `${top}${backBtn}<h2>Elige tu horario</h2>${error ? err : '<p>Buscando horarios libres…</p>'}`
+      const porDia = {}
+      for (const h of horarios) {
+        const k = new Date(h).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' })
+        ;(porDia[k] ??= []).push(h)
+      }
+      const dias = Object.values(porDia)
+      if (!dias.length) return `${top}${backBtn}<h2>Elige tu horario</h2><p>Por ahora no hay horarios libres. Te escribimos para agendar.</p>`
+      const d = dias[Math.min(dia, dias.length - 1)]
+      const t = (iso, o) => new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', ...o })
+      return `${top}${backBtn}${st.camino === 'consulta' ? '<span class="chip">Pago recibido ✓</span>' : ''}
+      <h2>Elige tu horario</h2><p>${st.camino === 'consulta' ? 'Consultoría' : 'Reunión para presentarte tu propuesta'} por Google Meet · hora de Ciudad de México.</p>
+      <div class="days">${dias.map((x, i) => `<button data-dia="${i}" aria-pressed="${i === dia}"><span>${t(x[0], { weekday: 'short' })}</span><b>${t(x[0], { day: 'numeric' })}</b><span>${t(x[0], { month: 'short' })}</span></button>`).join('')}</div>
+      <div class="slots">${d.map((h) => `<button data-hora="${h}" aria-pressed="${h === hora}">${t(h, { hour: '2-digit', minute: '2-digit', hour12: false })}</button>`).join('')}</div>
+      ${err}<button class="btn" data-agendar ${!hora || busy ? 'disabled' : ''}>Confirmar reunión</button>`
+    }
+    case 'listo': {
+      const c = st.contacto
+      const cuando = st.cita ? new Date(st.cita.inicio).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''
+      return `<div class="top"><span class="logo"><img src="/img/logo.png" alt="">NXUS AI</span></div><div class="progress"><i style="width:100%"></i></div>
+      <div class="done">✓</div>
+      <h2 class="center" style="text-align:center">¡Listo, ${esc(c.nombre.split(' ')[0])}!</h2>
+      <p style="text-align:center">Tu ${st.camino === 'consulta' ? 'consultoría' : 'reunión para tu propuesta'} quedó para el <b>${esc(cuando)}</b> (hora de Ciudad de México).</p>
+      <div class="summary">
+        <div><span>WhatsApp</span><span>${esc(c.whatsapp)}<small>Almacenado ✓</small></span></div>
+        <div><span>Correo</span><span>${esc(c.correo)}<small>Almacenado ✓</small></span></div>
+        <div><span>Dirección</span><span>${esc(c.direccion || '—')}<small>Almacenado ✓</small></span></div>
+        <div><span>Calendario</span><span>Invitación con Meet ✓</span></div>
+        ${st.camino === 'consulta' ? '<div><span>Pago</span><span>Recibido ✓</span></div>' : ''}
+      </div>
+      ${st.cita?.meet ? `<p class="tiny" style="text-align:center">Link de la reunión: <a href="${esc(st.cita.meet)}" style="color:var(--cyan)">${esc(st.cita.meet)}</a></p>` : ''}
+      <p class="tiny" style="text-align:center">Te mandamos la confirmación a tu correo. ¡Nos vemos pronto!</p>`
+    }
+  }
+}
+
+function render() { document.getElementById('app').innerHTML = screen() }
+
+async function loadHorarios() {
+  horarios = null; render()
+  try { horarios = (await call('horarios')).horarios ?? [] } catch (e) { error = 'No pudimos ver la agenda en este momento. Intenta en unos minutos.'; horarios = null }
+  render()
+}
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('button')
+  if (!t || t.disabled) return
+  const d = t.dataset
+  if ('back' in d) { const b = back[st.step]; go(typeof b === 'function' ? b() : b); if (st.step === 'agenda') loadHorarios(); return }
+  if (d.go) return go(d.go)
+  if (d.open) { st.open = st.open === d.open ? '' : d.open; keep(); return render() }
+  if (d.item) { st.chosen = st.chosen.includes(d.item) ? st.chosen.filter((x) => x !== d.item) : [...st.chosen, d.item]; keep(); return render() }
+  if (d.a) { st.answers[d.a] = d.v; keep(); return render() }
+  if (d.camino) { st.camino = d.camino; return go('datos') }
+  if (d.dia) { dia = Number(d.dia); hora = ''; return render() }
+  if (d.hora) { hora = d.hora; return render() }
+  if (d.next === 'catalogo') return st.chosen.length ? go('diagnostico') : ((error = 'Elige al menos una opción.'), render())
+  if (d.next === 'diagnostico') {
+    const falta = ['giro', 'tamano', 'pais', 'urgencia'].filter((k) => !st.answers[k])
+    return falta.length ? ((error = 'Contesta las preguntas con botones.'), render()) : go('camino')
+  }
+  if (d.next === 'datos') {
+    const c = st.contacto
+    if (!c.nombre.trim() || !c.empresa.trim() || !c.whatsapp.trim()) return (error = 'Escribe tu nombre, tu empresa y tu WhatsApp.'), render()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.correo.trim())) return (error = 'Revisa tu correo.'), render()
+    if (!st.acepta) return (error = 'Necesitamos tu permiso para contactarte.'), render()
+    busy = true; error = ''; render()
+    try {
+      await call('lead', { accion: 'guardar', id: st.id, lineas: st.chosen, diagnostico: st.answers, camino: st.camino, contacto: c })
+      busy = false
+      if (st.camino === 'consulta') return go('pago')
+      go('agenda'); return loadHorarios()
+    } catch (err) { busy = false; error = err.message; return render() }
+  }
+  if ('pagar' in d) {
+    busy = true; render()
+    try { const { url } = await call('pago', { id: st.id }); keep(); location.href = url } catch (err) { busy = false; error = err.message; render() }
+    return
+  }
+  if ('agendar' in d) {
+    busy = true; error = ''; render()
+    try {
+      const r = await call('agendar', { id: st.id, inicio: hora })
+      busy = false; st.cita = r.cita; go('listo')
+    } catch (err) { busy = false; error = `${err.message}. Elige otro horario.`; await loadHorarios() }
+  }
+})
+document.addEventListener('input', (e) => {
+  const d = e.target.dataset ?? {}
+  if (d.c) st.contacto[d.c] = e.target.value
+  if (d.ans) st.answers[d.ans] = e.target.value
+  if (e.target.id === 'acepta') st.acepta = e.target.checked
+  keep()
+})
+document.addEventListener('change', (e) => { if (e.target.id === 'acepta') { st.acepta = e.target.checked; keep() } })
+
+async function start() {
+  // Back from Stripe: check the payment, then on to the calendar.
+  const pagado = new URLSearchParams(location.search).get('pagado')
+  if (pagado && st.id) {
+    history.replaceState(null, '', location.pathname)
+    st.step = 'pago'; render()
+    try {
+      const r = await call(`pago?id=${encodeURIComponent(st.id)}&session_id=${encodeURIComponent(pagado)}`)
+      if (r.pagado) { go('agenda'); return loadHorarios() }
+      error = 'Todavía no vemos tu pago. Si ya pagaste, espera un minuto y recarga.'
+    } catch (err) { error = err.message }
+    return render()
+  }
+  render()
+  if (!st.id) {
+    try { st.id = (await call('lead', { accion: 'abrio', de: slug })).id; keep() } catch {}
+  }
+  if (st.step === 'agenda') loadHorarios()
+}
+start()
+</script>
+</body>
+</html>

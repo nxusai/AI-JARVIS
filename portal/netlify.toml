@@ -1,0 +1,10 @@
+# El portal de NXUS AI en Netlify (empezar.nxusai.org).
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Cada cliente tiene su link (empezar.nxusai.org/juan-perez): todos abren la misma página.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
