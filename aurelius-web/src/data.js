@@ -15,8 +15,9 @@ export const site = {
   phoneIntl: '525573573060',
   instagram: 'https://www.instagram.com/aurelius.mx/',
   facebook: '', // CONFIRMAR: pega aquí el link de Facebook cuando exista
-  tiktok: '', // CONFIRMAR: pega aquí el link de TikTok cuando exista
-  // Dirección (tal como aparece en Google Maps) — CONFIRMAR
+  tiktok: 'https://www.tiktok.com/@aureliusmx',
+  domain: 'https://aureliusmx.com',
+  // Dirección tal como aparece en Google Maps («Aurelius Coacalco»)
   address: {
     street: 'Plaza Allende, C. Ignacio Allende 20-A N. 2, Zacuauhtitla',
     locality: 'San Francisco Coacalco',
@@ -24,11 +25,13 @@ export const site = {
     postalCode: '55700',
   },
   mapsQuery: 'Aurelius Coacalco',
-  // Horario — CONFIRMAR (tomado de publicaciones en TikTok)
+  geo: { lat: 19.6324759, lng: -99.1005516 },
+  // Ficha exacta de Google Maps (abre directo el negocio)
+  mapsCid: '10890260874571343718',
+  // Horario: todos los días de 1:00 pm a 10:00 pm.
   // day: 0 = domingo … 6 = sábado; horas en formato 24h
   hours: [
-    { days: [0, 1, 2, 3, 4], open: 14, close: 22, label: 'Domingo a jueves', text: '2:00 pm – 10:00 pm' },
-    { days: [5, 6], open: 14, close: 24, label: 'Viernes y sábado', text: '2:00 pm – 12:00 am' },
+    { days: [0, 1, 2, 3, 4, 5, 6], open: 13, close: 22, label: 'Todos los días', text: '1:00 pm – 10:00 pm' },
   ],
   // Integración futura de IA para «El Oráculo».
   // Cuando exista un backend, pon aquí su URL. Debe aceptar POST
@@ -39,13 +42,14 @@ export const site = {
 export const wa = (text) =>
   `https://wa.me/${site.phoneIntl}?text=${encodeURIComponent(text)}`;
 
-export const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.mapsQuery)}`;
-export const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(site.mapsQuery)}&navigate=yes`;
+export const mapsUrl = `https://maps.google.com/?cid=${site.mapsCid}`;
+export const wazeUrl = `https://waze.com/ul?ll=${site.geo.lat},${site.geo.lng}&navigate=yes`;
 
 // La Ruta de la Conquista: lo que entra en el come todo.
 export const provinces = [
   {
     id: 'tacos',
+    img: 'img/menu/tacos.webp', // provisional: reemplazar por foto propia
     numeral: 'I',
     name: 'Tacos',
     icon: 'taco',
@@ -55,6 +59,7 @@ export const provinces = [
   },
   {
     id: 'quesadillas',
+    img: 'img/menu/quesadillas.webp', // provisional: reemplazar por foto propia
     numeral: 'II',
     name: 'Quesadillas',
     icon: 'quesadilla',
@@ -64,6 +69,7 @@ export const provinces = [
   },
   {
     id: 'flautas',
+    img: 'img/menu/flautas.webp', // provisional: reemplazar por foto propia
     numeral: 'III',
     name: 'Flautas',
     icon: 'flauta',
@@ -73,6 +79,7 @@ export const provinces = [
   },
   {
     id: 'pozole',
+    img: 'img/menu/pozole.webp', // provisional: reemplazar por foto propia
     numeral: 'IV',
     name: 'Pozole',
     icon: 'pozole',
@@ -82,6 +89,7 @@ export const provinces = [
   },
   {
     id: 'chicken',
+    img: 'img/menu/alitas.webp', // provisional: reemplazar por foto propia
     numeral: 'V',
     name: 'Chicken Empire',
     icon: 'wing',
@@ -91,6 +99,7 @@ export const provinces = [
   },
   {
     id: 'burgers',
+    img: 'img/menu/burger.webp', // provisional: reemplazar por foto propia
     numeral: 'VI',
     name: 'Burgers',
     icon: 'burger',
@@ -100,6 +109,7 @@ export const provinces = [
   },
   {
     id: 'snacks',
+    img: 'img/menu/snacks.webp', // provisional: reemplazar por foto propia
     numeral: 'VII',
     name: 'Snacks',
     icon: 'fries',
@@ -191,6 +201,10 @@ export const laws = [
     a: 'Toda la Ruta de la Conquista: tacos, quesadillas, flautas, pozole, alitas, boneless, popcorn chicken, burgers y snacks. Tú decides cuándo parar.',
   },
   {
+    q: '¿Las bebidas están incluidas?',
+    a: 'El come todo no incluye bebidas. Pero si tu sed también quiere conquistar, pregunta por el paquete «All you can beer» y recorre El camino del brindis.',
+  },
+  {
     q: '¿Tengo que reservar?',
     a: 'No es obligatorio. Pero si vienes con toda tu legión, mándanos WhatsApp y te apartamos el campo de batalla.',
   },
@@ -235,4 +249,28 @@ export const carta = [
   { name: 'Papas a la francesa', text: 'Se llaman francesas, pero nunca han salido de Coacalco.' },
   { name: 'Chips Sabritas style', text: 'Las que ya conoces, pero más ricas, más naturales y más grandes.' },
   { name: 'Tacos, quesadillas, flautas y pozole', text: 'Lo clásico del imperio, empacado para que conquistes desde el sillón.' },
+];
+
+// «All you can beer» · El camino del brindis (página 5 del menú come todo).
+// CONFIRMAR: condiciones del paquete (el menú dice «Aplican términos y condiciones»).
+export const brindis = [
+  { name: 'Cantarito cervecero', text: 'Cerveza, naranja, toronja, limón, refresco de toronja y sal/chile.' },
+  { name: 'Mango habanero', text: 'Cerveza, mango, limón, chamoy y chile habanero.', hot: true },
+  { name: 'Tamarindo de guerra', text: 'Cerveza, tamarindo, limón, chamoy y chile.' },
+  { name: 'Gladiadora de mango', text: 'Cerveza, mango, chamoy, Tajín y limón.' },
+  { name: 'Chelada imperial', text: 'Cerveza, limón y sal.' },
+  { name: 'Michelada Aurelius', text: 'Cerveza, limón, salsas, chile y escarchado. La firma de la casa.' },
+];
+
+// Créditos de las fotos ilustrativas (Wikimedia Commons). Cuando una
+// foto provisional se reemplace por una propia, borra su crédito aquí.
+export const photoCredits = [
+  { what: "Tacos", author: "Popo le Chien", license: "CC BY-SA 3.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/", source: "https://commons.wikimedia.org/wiki/File:Tacos_2.jpg" },
+  { what: "Quesadillas", author: "Popo le Chien", license: "CC BY-SA 3.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/", source: "https://commons.wikimedia.org/wiki/File:Quesadilla_2.jpg" },
+  { what: "Flautas", author: "Jon Sullivan", license: "Public domain", licenseUrl: "", source: "https://commons.wikimedia.org/wiki/File:Tortillas_flautas.jpg" },
+  { what: "Pozole", author: "El Nuevo Doge", license: "CC0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", source: "https://commons.wikimedia.org/wiki/File:Pozole,_Mazatl%C3%A1n,_13_de_marzo_de_2023_02.jpg" },
+  { what: "Alitas", author: "Charli Lopez from Rochester, USA", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:Buffalo_Wings_(6676460575).jpg" },
+  { what: "Burger", author: "Ceeseven", license: "CC BY-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/", source: "https://commons.wikimedia.org/wiki/File:Bacon_Cheeseburger_on_plate.JPG" },
+  { what: "Nachos", author: "Mack Male from Edmonton, AB, Canada", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Nachos_(2897113413).jpg" },
+  { what: "Michelada", author: "Missvain", license: "CC BY 4.0", licenseUrl: "https://creativecommons.org/licenses/by/4.0/", source: "https://commons.wikimedia.org/wiki/File:Michelada_at_Mitote_Food_Park_-_April_2023_-_Sarah_Stierch.jpg" },
 ];

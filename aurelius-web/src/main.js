@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import {
-  site, wa, mapsUrl, wazeUrl, provinces, fireLevels, ranks, conquests, laws, gallery, carta,
+  site, wa, mapsUrl, wazeUrl, provinces, fireLevels, ranks, conquests, laws, gallery, carta, brindis, photoCredits,
 } from './data.js';
 import { icons, laurel, flag, svgInstagram, svgFacebook, svgTiktok, svgWhatsApp } from './icons.js';
 import { embers } from './embers.js';
@@ -37,6 +37,10 @@ function wireLinks() {
     .map(([href, label, svg]) => `<a href="${href}" target="_blank" rel="noopener" aria-label="${label}">${svg}</a>`)
     .join('');
   $('#year').textContent = new Date().getFullYear();
+  $('#credits').innerHTML = photoCredits
+    .map((c) => `<li>${c.what}: «${c.author}», <a href="${c.source}" target="_blank" rel="noopener">Wikimedia Commons</a>${c.licenseUrl ? `, <a href="${c.licenseUrl}" target="_blank" rel="noopener">${c.license}</a>` : `, ${c.license}`}</li>`)
+    .join('');
+  if (!photoCredits.length) $('.footer__credits').remove();
 }
 
 /* ═════════ SEO: datos estructurados ═════════ */
@@ -48,9 +52,11 @@ function jsonLd() {
     '@type': 'Restaurant',
     name: 'Aurelius Coacalco',
     alternateName: 'Aurelius · La conquista del come todo',
-    image: ['https://www.aurelius.mx/img/og.jpg'],
-    logo: 'https://www.aurelius.mx/img/icon-512.png',
-    url: 'https://www.aurelius.mx/',
+    image: [`${site.domain}/img/og.jpg`],
+    logo: `${site.domain}/img/icon-512.png`,
+    url: `${site.domain}/`,
+    hasMap: mapsUrl,
+    geo: { '@type': 'GeoCoordinates', latitude: site.geo.lat, longitude: site.geo.lng },
     telephone: `+${site.phoneIntl}`,
     servesCuisine: ['Mexicana', 'Tacos', 'Alitas', 'Hamburguesas'],
     priceRange: '$',
@@ -88,9 +94,11 @@ function renderRoute() {
     provinces
       .map(
         (p) => `
-      <article class="province" id="prov-${p.id}">
+      <article class="province${p.img ? ' province--photo' : ''}" id="prov-${p.id}">
+        ${p.img
+          ? `<figure class="province__photo"><img src="${p.img}" alt="${p.name}" width="1200" height="900" loading="lazy" draggable="false" /><figcaption>Imagen ilustrativa</figcaption></figure>`
+          : `<div class="province__bg" aria-hidden="true">${icons[p.icon]}</div>`}
         <span class="province__num" aria-hidden="true">${p.numeral}</span>
-        <div class="province__bg" aria-hidden="true">${icons[p.icon]}</div>
         <div class="province__icon">${icons[p.icon]}</div>
         <p class="province__lore">Provincia ${p.numeral} · ${p.lore}</p>
         <h3>${p.name}</h3>
@@ -136,6 +144,35 @@ function mountFire() {
     set(+b.dataset.i);
   });
   set(+range.value);
+}
+
+/* ═════════ All you can beer ═════════ */
+function renderBeer() {
+  const last = brindis.length - 1;
+  $('#brindisList').innerHTML = brindis
+    .map(
+      (b, i) => `
+      <li class="toast${i === last ? ' toast--signature' : ''}">
+        <span class="toast__cup" aria-hidden="true"></span>
+        <div class="toast__body">
+          <h3>${b.name}${b.hot ? '<span class="hot">Pica</span>' : ''}${i === last ? '<span class="star">De la casa</span>' : ''}</h3>
+          <p>${b.text}</p>
+        </div>
+      </li>`,
+    )
+    .join('');
+  if (reduced) return;
+  const box = $('.beer__bubbles');
+  for (let i = 0; i < 22; i++) {
+    const b = document.createElement('i');
+    const size = 6 + Math.random() * 18;
+    Object.assign(b.style, {
+      left: `${Math.random() * 100}%`, width: `${size}px`, height: `${size}px`,
+      animationDuration: `${7 + Math.random() * 9}s`, animationDelay: `${-Math.random() * 12}s`,
+    });
+    b.style.setProperty('--dx', `${Math.random() * 60 - 30}px`);
+    box.appendChild(b);
+  }
 }
 
 /* ═════════ El coliseo (juego) ═════════ */
@@ -589,6 +626,12 @@ function animate() {
   });
   gsap.fromTo('.story__frame img', { yPercent: 8 }, { yPercent: -4, ease: 'none', scrollTrigger: { trigger: '.story', start: 'top bottom', end: 'bottom top', scrub: true } });
 
+  // tarro que se llena con el scroll y brindis que entran
+  gsap.fromTo('#mugLiquid', { y: 150 }, { y: 0, ease: 'none', scrollTrigger: { trigger: '#brindis', start: 'top 70%', end: 'center 50%', scrub: true } });
+  $$('.toast').forEach((t, i) => {
+    gsap.from(t, { x: 60, opacity: 0, duration: 0.9, ease: 'power3.out', delay: (i % 2) * 0.08, scrollTrigger: { trigger: t, start: 'top 90%', once: true } });
+  });
+
   // footer: AURELIUS gigante
   gsap.from('.footer__big', { yPercent: 40, opacity: 0, duration: 1.4, ease: 'power4.out', scrollTrigger: { trigger: '.footer', start: 'top 85%', once: true } });
 
@@ -631,6 +674,7 @@ async function init() {
   jsonLd();
   renderRoute();
   mountFire();
+  renderBeer();
   mountArena();
   renderConquests();
   renderGallery();

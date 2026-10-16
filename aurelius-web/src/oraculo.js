@@ -43,6 +43,10 @@ const intents = [
       `¿Vienes con toda tu legión? ${link(wa('Hola Aurelius, quiero apartar mesa para un grupo.'), 'Escríbenos por WhatsApp')} y te apartamos el campo de batalla.`,
   },
   {
+    keys: ['cerveza', 'beer', 'chela', 'bebida', 'michelada', 'tomar', 'trago', 'alcohol'],
+    reply: () => 'El come todo no incluye bebidas, pero tenemos el paquete <b>All you can beer</b>: Cantarito cervecero, Mango habanero, Tamarindo de guerra, Gladiadora de mango, Chelada imperial y la Michelada Aurelius. Pregunta en el templo por las condiciones. 🍺',
+  },
+  {
     keys: ['picante', 'salsa', 'fuego', 'pica', 'alitas', 'boneless'],
     reply: () => 'Las alitas y boneless se bañan en el fuego digno de tu temple. Pregunta a tu mesero por el arsenal de salsas del día. 🔥',
   },

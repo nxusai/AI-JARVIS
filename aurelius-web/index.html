@@ -6,15 +6,15 @@
     <title>Aurelius Coacalco · Come Todo $259 | La conquista del come todo</title>
     <meta name="description" content="Aurelius Coacalco: el come todo de tacos, quesadillas, flautas, pozole, alitas, boneless y burgers por $259. Tú decides cuándo parar. No vienes a comer, vienes a conquistar." />
     <meta name="theme-color" content="#0b0906" />
-    <link rel="canonical" href="https://www.aurelius.mx/" />
+    <link rel="canonical" href="https://aureliusmx.com/" />
 
     <meta property="og:type" content="restaurant" />
     <meta property="og:locale" content="es_MX" />
     <meta property="og:site_name" content="Aurelius Coacalco" />
     <meta property="og:title" content="Aurelius · La conquista del come todo — $259" />
     <meta property="og:description" content="Tacos, quesadillas, flautas, pozole, alitas y burgers sin límite por $259. Tú decides cuándo parar." />
-    <meta property="og:image" content="https://www.aurelius.mx/img/og.jpg" />
-    <meta property="og:url" content="https://www.aurelius.mx/" />
+    <meta property="og:image" content="https://aureliusmx.com/img/og.jpg" />
+    <meta property="og:url" content="https://aureliusmx.com/" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png" />
@@ -75,11 +75,12 @@
       <nav aria-label="Menú móvil">
         <a href="#cometodo"><i>I</i>Come todo</a>
         <a href="#ruta"><i>II</i>La ruta</a>
-        <a href="#coliseo"><i>III</i>El coliseo</a>
-        <a href="#conquistas"><i>IV</i>Conquistas</a>
-        <a href="#historia"><i>V</i>Historia</a>
-        <a href="#templo"><i>VI</i>El templo</a>
-        <a href="#ubicacion"><i>VII</i>Ubicación</a>
+        <a href="#brindis"><i>III</i>All you can beer</a>
+        <a href="#coliseo"><i>IV</i>El coliseo</a>
+        <a href="#conquistas"><i>V</i>Conquistas</a>
+        <a href="#historia"><i>VI</i>Historia</a>
+        <a href="#templo"><i>VII</i>El templo</a>
+        <a href="#ubicacion"><i>VIII</i>Ubicación</a>
       </nav>
       <p class="drawer__foot">Sabor · Poder · Gloria</p>
     </div>
@@ -232,6 +233,41 @@
             <p class="fire__text" id="fireText">Un cosquilleo. Tu abuelita aprobaría.</p>
             <p class="fire__note">Pregunta por las salsas del día: tu mesero conoce todo el arsenal.</p>
           </div>
+        </div>
+      </section>
+
+      <!-- ═════════ ALL YOU CAN BEER ═════════ -->
+      <section class="beer" id="brindis">
+        <div class="beer__bubbles" aria-hidden="true"></div>
+        <div class="wrap beer__grid">
+          <div class="beer__intro">
+            <p class="eyebrow">All you can beer</p>
+            <h2 class="title">El camino <span class="gold-text">del brindis</span></h2>
+            <p class="lead">El come todo no incluye bebidas… pero la sed también se conquista. Pide el paquete <strong>All you can beer</strong> y recorre las seis estaciones del brindis.</p>
+            <div class="beer__visual">
+            <figure class="beer__photo"><img src="img/menu/michelada.webp" alt="Michelada escarchada con limón" width="1200" height="900" loading="lazy" /><figcaption>Imagen ilustrativa</figcaption></figure>
+            <div class="mug" id="mug" aria-hidden="true">
+              <svg viewBox="0 0 160 200">
+                <defs>
+                  <clipPath id="mugClip"><path d="M22 34h96l-6 150a10 10 0 0 1-10 9H38a10 10 0 0 1-10-9z"/></clipPath>
+                  <linearGradient id="beerG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf4a"/><stop offset="1" stop-color="#d9861a"/></linearGradient>
+                </defs>
+                <g clip-path="url(#mugClip)">
+                  <rect x="0" y="0" width="160" height="200" fill="rgba(255,255,255,0.04)"/>
+                  <g id="mugLiquid">
+                    <rect x="0" y="40" width="160" height="200" fill="url(#beerG)"/>
+                    <path d="M0 40 q10 -14 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 v-30 h-160z" fill="#fff7e2"/>
+                    <circle class="mb" cx="50" cy="160" r="2.5"/><circle class="mb" cx="80" cy="175" r="2"/><circle class="mb" cx="98" cy="150" r="3"/><circle class="mb" cx="64" cy="130" r="1.8"/>
+                  </g>
+                </g>
+                <path d="M22 34h96l-6 150a10 10 0 0 1-10 9H38a10 10 0 0 1-10-9z" fill="none" stroke="#f4b521" stroke-width="4" stroke-linejoin="round"/>
+                <path d="M118 66h12a18 18 0 0 1 18 18v36a18 18 0 0 1-18 18h-16" fill="none" stroke="#f4b521" stroke-width="4"/>
+              </svg>
+            </div>
+            </div>
+            <p class="beer__note">No incluido en el come todo. Aplican términos y condiciones. Evita el exceso.</p>
+          </div>
+          <ol class="brindis" id="brindisList"></ol>
         </div>
       </section>
 
@@ -438,6 +474,10 @@
         </nav>
         <div class="footer__social" id="social"></div>
       </div>
+      <details class="footer__credits wrap">
+        <summary>Créditos de imágenes ilustrativas</summary>
+        <ul id="credits"></ul>
+      </details>
       <p class="footer__legal wrap">© <span id="year"></span> Aurelius Coacalco. Todos los derechos del imperio reservados. Ninguna dieta fue respetada en la creación de este sitio.</p>
     </footer>
 

@@ -339,6 +339,16 @@ body.is-loading .nav { transform: translate(-50%, -140%); }
 .province--final .btn--gold { background: var(--ink); color: var(--gold); }
 .province--final .laurel-big { width: 120px; color: var(--ink); margin-bottom: 8px; }
 
+/* fotos de la ruta */
+.province--photo { padding-top: 0; }
+.province__photo { position: relative; margin: 0 -32px 0; height: 210px; overflow: hidden; border-radius: 24px 24px 0 0; }
+.province__photo img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); transition: transform 1.2s var(--ease); }
+.province:hover .province__photo img { transform: scale(1.12); }
+.province__photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 9, 6, 0.1) 40%, var(--ink-3) 100%); }
+.province__photo figcaption, .beer__photo figcaption { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(11, 9, 6, 0.65); color: var(--muted); }
+.province--photo .province__icon { position: relative; z-index: 1; margin-top: -40px; background: var(--ink-3); width: 64px; height: 64px; padding: 12px; margin-bottom: 16px; }
+.province--photo .province__num { top: 140px; z-index: 1; color: var(--gold); text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8); }
+
 /* ───────── Fuego ───────── */
 .fire { padding: clamp(80px, 12vw, 150px) 0; overflow: hidden; }
 .fire__glow { position: absolute; left: 50%; top: 60%; width: 900px; height: 900px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(228, 80, 30, 0.35), transparent 60%); opacity: 0.4; pointer-events: none; transition: opacity 0.6s, transform 0.6s; }
@@ -361,6 +371,49 @@ body.is-loading .nav { transform: translate(-50%, -140%); }
 .fire__sauce { margin: 6px 0 14px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; font-size: 13px; color: var(--fire); }
 .fire__text { margin: 0 auto 18px; font-size: 19px; max-width: 360px; min-height: 3em; }
 .fire__note { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* ───────── All you can beer ───────── */
+.beer { padding: clamp(80px, 12vw, 150px) 0; overflow: hidden; background: radial-gradient(80% 60% at 20% 30%, rgba(244, 181, 33, 0.16), transparent 70%), linear-gradient(180deg, var(--ink), #170f05 50%, var(--ink)); }
+.beer__bubbles { position: absolute; inset: 0; pointer-events: none; }
+.beer__bubbles i { position: absolute; bottom: -20px; border-radius: 50%; border: 1.5px solid rgba(255, 213, 106, 0.45); background: rgba(255, 213, 106, 0.08); animation: rise linear infinite; }
+@keyframes rise { to { transform: translate3d(var(--dx, 0), -110vh, 0); opacity: 0; } }
+.beer__grid { position: relative; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(30px, 6vw, 80px); align-items: start; }
+.beer__grid > * { min-width: 0; }
+.beer__intro { position: sticky; top: 100px; }
+.beer__intro strong { color: var(--gold); }
+.mug { width: clamp(140px, 16vw, 200px); margin: 6px 0 20px; filter: drop-shadow(0 20px 40px rgba(244, 181, 33, 0.25)); }
+.mug svg { width: 100%; height: auto; overflow: visible; }
+.mug .mb { fill: rgba(255, 255, 255, 0.7); animation: mb 2.4s ease-in infinite; }
+.mug .mb:nth-child(4) { animation-delay: 0.6s; } .mug .mb:nth-child(5) { animation-delay: 1.2s; } .mug .mb:nth-child(6) { animation-delay: 1.8s; }
+@keyframes mb { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(-110px); opacity: 0; } }
+.beer__note { font-size: 13px; color: var(--muted); margin: 0; }
+.beer__visual { display: flex; align-items: flex-end; gap: 22px; margin: 10px 0 22px; }
+.beer__visual .mug { margin: 0; flex-shrink: 0; }
+.beer__photo { position: relative; margin: 0; width: min(260px, 50%); aspect-ratio: 4 / 5; border-radius: 20px; overflow: hidden; transform: rotate(4deg); border: 1px solid var(--line); box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
+.beer__photo img { width: 100%; height: 100%; object-fit: cover; }
+.brindis { list-style: none; margin: 0; padding: 0; position: relative; display: grid; gap: 18px; counter-reset: b; }
+.brindis::before { content: ''; position: absolute; left: 31px; top: 30px; bottom: 30px; width: 2px; background: repeating-linear-gradient(180deg, rgba(244, 181, 33, 0.5) 0 8px, transparent 8px 16px); }
+.toast { position: relative; display: grid; grid-template-columns: 64px 1fr; gap: 18px; align-items: center; padding: 18px 22px 18px 0; counter-increment: b; }
+.toast__cup { position: relative; z-index: 1; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--ink-3); border: 2px solid var(--gold); color: var(--gold); font-family: var(--f-roman); font-weight: 900; font-size: 15px; transition: background 0.3s, color 0.3s, transform 0.4s var(--ease); }
+.toast__cup::after { content: counter(b, upper-roman); }
+.toast:hover .toast__cup { background: var(--gold); color: var(--ink); transform: rotate(-12deg) scale(1.08); }
+.toast__body { padding: 18px 22px; border-radius: 18px; background: rgba(30, 23, 14, 0.85); border: 1px solid var(--line); transition: border-color 0.3s, transform 0.4s var(--ease); }
+.toast:hover .toast__body { border-color: rgba(244, 181, 33, 0.6); transform: translateX(6px); }
+.toast h3 { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: 28px; line-height: 1; margin: 0 0 6px; color: var(--marble); display: flex; align-items: center; gap: 10px; }
+.toast h3 .hot { font-family: var(--f-body); font-size: 11px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 8px; border-radius: 999px; background: var(--fire); color: var(--marble); }
+.toast h3 .star { font-family: var(--f-body); font-size: 11px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 8px; border-radius: 999px; background: var(--gold); color: var(--ink); }
+.toast p { margin: 0; color: var(--muted); }
+.toast--signature .toast__body { background: linear-gradient(140deg, #3a2a0c, var(--ink-3)); border-color: rgba(244, 181, 33, 0.5); }
+@media (max-width: 1080px) {
+  .beer__grid { grid-template-columns: 1fr; }
+  .beer__intro { position: static; }
+}
+@media (max-width: 760px) {
+  .toast { grid-template-columns: 52px 1fr; gap: 12px; padding-right: 0; }
+  .toast__cup { width: 52px; height: 52px; font-size: 13px; }
+  .brindis::before { left: 25px; }
+  .toast h3 { font-size: 24px; flex-wrap: wrap; }
+}
 
 /* ───────── Coliseo ───────── */
 .arena { padding: clamp(80px, 12vw, 150px) 0; background: radial-gradient(70% 60% at 50% 0%, rgba(244, 181, 33, 0.1), transparent 70%); }
@@ -533,7 +586,11 @@ body.is-loading .nav { transform: translate(-50%, -140%); }
 .footer__social a { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: var(--gold); transition: background 0.3s, color 0.3s; }
 .footer__social a:hover { background: var(--gold); color: var(--ink); }
 .footer__social svg { width: 22px; height: 22px; }
-.footer__legal { margin-top: 40px; font-size: 13px; color: #7e735f; text-align: center; }
+.footer__credits { margin-top: 36px; font-size: 12px; color: #7e735f; }
+.footer__credits summary { cursor: pointer; text-align: center; }
+.footer__credits ul { margin: 12px auto 0; padding: 0; list-style: none; display: grid; gap: 4px; text-align: center; }
+.footer__credits a { text-decoration: underline; }
+.footer__legal { margin-top: 24px; font-size: 13px; color: #7e735f; text-align: center; }
 
 /* ───────── Dock móvil ───────── */
 .dock { display: none; }
@@ -618,7 +675,9 @@ body.is-loading .nav { transform: translate(-50%, -140%); }
   .route__map { display: none; }
   .route__track { flex-direction: column; padding: 0 var(--gutter); gap: 18px; }
   .province { flex: none; min-height: 0; padding: 28px 24px; }
-  .province__num { font-size: 110px; }
+  .province__num { font-size: 52px; }
+  .province__photo { margin: 0 -24px; height: 180px; }
+  .province--photo .province__num { top: 116px; }
   .arena__buttons { grid-template-columns: 1fr 1fr; gap: 10px; }
   .food-btn { padding: 14px 12px; gap: 10px; flex-direction: column; align-items: flex-start; }
   .food-btn svg { width: 34px; height: 34px; }

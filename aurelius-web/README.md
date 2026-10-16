@@ -21,6 +21,7 @@ Una sola página con animaciones (GSAP + Lenis), pensada para celular y computad
 | **El templo** | Galería arrastrable con fotos del local y platillos, y lightbox |
 | **A domicilio** | Carta con descripciones chistosas, **sin precios**, y pedido por WhatsApp |
 | **Las leyes del imperio** | Preguntas frecuentes |
+| **All you can beer** | El camino del brindis: tarro que se llena con el scroll y las 6 bebidas del paquete |
 | **Ubicación** | Mapa, horario, indicador «Abierto ahora / Cerrado» en hora de CDMX, Google Maps, Waze y llamada |
 | **Únete a la legión** | Bolsa de trabajo por WhatsApp |
 | **El Oráculo** | Chat flotante: **la entrada para la IA**. Hoy responde con reglas; ya está listo para conectarle una IA |
@@ -46,26 +47,39 @@ npm run dev      # abre http://localhost:5173
 npm run build    # genera la versión final en dist/
 ```
 
-## Publicarlo y conectar el dominio (paso a paso)
+## Publicarlo y conectar el dominio `aureliusmx.com` (Squarespace)
 
-Recomendación: **Vercel**. Es gratis, rápido y tiene HTTPS automático.
+### 1. Publicar en Vercel (gratis)
 
 1. Entra a <https://vercel.com> e inicia sesión con tu cuenta de GitHub.
 2. Haz clic en **Add New… → Project** e importa el repositorio **`nxusai/ai-jarvis`**.
 3. En **Root Directory**, haz clic en *Edit* y elige **`aurelius-web`**. Vercel detecta Vite solo.
-4. En **Branch**, usa `claude/gallant-dijkstra-0ntsat`, o la rama `main` cuando la unas.
-5. Haz clic en **Deploy**. En un minuto tendrás una URL tipo `aurelius-xxxx.vercel.app`. Revísala desde tu celular.
-6. Para el dominio, ve a **Settings → Domains → Add** y escribe tu dominio (ej. `aurelius.mx` y `www.aurelius.mx`).
-7. Vercel te dirá qué registros DNS poner. En el panel de tu dominio (GoDaddy, Namecheap, Hostinger, etc.):
-   - Registro **A** para `@` → `76.76.21.21`
-   - Registro **CNAME** para `www` → `cname.vercel-dns.com`
+4. Haz clic en **Deploy**. En un minuto tendrás una URL tipo `aurelius-xxxx.vercel.app`. Ábrela en tu celular y revísala.
+   (Vercel publica la rama principal. Si el sitio aún vive en la rama `claude/gallant-dijkstra-0ntsat`, cámbiala en **Settings → Git → Production Branch** o une la rama a `main`.)
 
-   Usa los valores exactos que te muestre Vercel si son distintos.
-8. Espera de 5 minutos a 1 hora. Vercel activa el candado HTTPS solo.
+### 2. Agregar el dominio en Vercel
 
-> Si tu dominio **no** es `www.aurelius.mx`, reemplaza esa dirección en `index.html`
-> (canonical y og:url/og:image), `public/robots.txt`, `public/sitemap.xml` y en
-> `jsonLd()` de `src/main.js`.
+1. En tu proyecto de Vercel ve a **Settings → Domains**.
+2. Escribe `aureliusmx.com` y dale **Add**. Acepta también agregar `www.aureliusmx.com` (Vercel lo ofrece solo y redirige uno al otro).
+3. Vercel te mostrará los registros DNS que necesita. Normalmente son:
+
+| Tipo | Host | Valor |
+|---|---|---|
+| A | `@` | `76.76.21.21` |
+| CNAME | `www` | `cname.vercel-dns.com` |
+
+Si Vercel te muestra otros valores, usa **los que te muestre Vercel**.
+
+### 3. Poner los registros en Squarespace
+
+1. Entra a <https://account.squarespace.com/domains> y haz clic en **aureliusmx.com**.
+2. Ve a **DNS** → **DNS Settings**.
+3. En **Squarespace Defaults** (o **Google Workspace / Squarespace presets**), **borra** los registros A y CNAME de `@` y `www` que apuntan a Squarespace. Si no los borras, chocan con los de Vercel.
+   No borres los registros MX si usas correo con ese dominio.
+4. En **Custom Records**, haz clic en **Add record**:
+   - Tipo **A**, Host `@`, Data `76.76.21.21`
+   - Tipo **CNAME**, Host `www`, Data `cname.vercel-dns.com`
+5. Guarda. En 5 minutos a unas horas, Vercel marcará el dominio como ✅ **Valid** y activará el candado HTTPS solo.
 
 **Netlify** también funciona: ya incluye `netlify.toml`. Usa *Base directory* = `aurelius-web`.
 
@@ -80,14 +94,22 @@ POST { "messages": [{ "role": "user", "content": "¿a qué hora abren?" }] }
 y espera de respuesta `{ "reply": "texto" }`. Si la IA falla, regresa solo a las respuestas por reglas.
 Desde código también puedes usar `window.AureliusOracle.open()` y `window.AureliusOracle.ask("…")`.
 
-## Pendientes por confirmar
+## Fotos provisionales
 
-- [ ] **Horario**: lo tomé de publicaciones en TikTok (dom–jue 2–10 pm, vie–sáb 2 pm–12 am).
-- [ ] **Dirección exacta**: puse la de Google Maps («Plaza Allende, C. Ignacio Allende 20-A N. 2, Zacuauhtitla»). En TikTok aparece «Allende 10C».
-- [ ] **Dominio**: el sitio asume `www.aurelius.mx`.
-- [ ] **Facebook y TikTok**: no encontré las cuentas. Pega los links en `site.facebook` / `site.tiktok` y aparecen solos.
-- [ ] **Salsas**: el selector «Choose your fire» usa niveles genéricos. Si me pasas la lista real de salsas, pongo sus nombres.
-- [ ] **Bebidas**: no sé si el come todo las incluye, así que el sitio no lo menciona.
-- [ ] **Fotos de comida**: solo tengo tostada de pata y enchiladas. Con fotos de tacos, alitas, burgers y pozole el sitio sube de nivel; cada provincia de la ruta puede llevar su foto.
-- [ ] **Video**: un clip vertical de 10–15 s del local o del trompo se puede poner de fondo en el hero.
-- [ ] **Países**: Italia está marcado como «En campaña» y los demás como «Próximamente». Ajusta en `conquests`.
+Las fotos de la Ruta de la Conquista (tacos, quesadillas, flautas, pozole, alitas, burger, nachos)
+y la michelada del brindis son **imágenes ilustrativas** de Wikimedia Commons con licencia libre.
+Llevan la etiqueta «Imagen ilustrativa» y sus créditos aparecen en el pie de página.
+
+Para poner tus fotos: reemplaza el archivo en `public/img/menu/` con el mismo nombre
+(`tacos.webp`, `quesadillas.webp`, `flautas.webp`, `pozole.webp`, `alitas.webp`, `burger.webp`,
+`snacks.webp`, `michelada.webp`). Luego borra su crédito en `photoCredits` de `src/data.js`.
+Si ya todas son tuyas, quita también `<figcaption>Imagen ilustrativa</figcaption>` en
+`src/main.js` e `index.html`.
+
+## Pendientes
+
+- [ ] **All you can beer**: la página 4 del menú es una imagen que no se pudo leer. El sitio lista las 6 bebidas de «El camino del brindis» y dice «Aplican términos y condiciones», sin precio (como pediste). Si quieres poner las condiciones, van en `src/data.js` → `brindis`.
+- [ ] **Facebook**: no encontré la cuenta. Pega el link en `site.facebook` y aparece solo.
+- [ ] **Salsas**: el selector «Choose your fire» usa niveles genéricos (sin picante → nivel infierno).
+- [ ] **Fotos propias** de cada platillo y un video vertical del local para la portada.
+- [ ] **Países**: Italia está marcado como «En campaña» y los demás como «Próximamente». Se ajusta en `conquests`.
