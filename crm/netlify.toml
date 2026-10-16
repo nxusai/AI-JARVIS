@@ -1,0 +1,17 @@
+# Centro de trabajo Mi Semago · Abuelito (ver docs/guia-crm.md)
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
