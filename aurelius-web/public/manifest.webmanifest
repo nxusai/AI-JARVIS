@@ -1,0 +1,12 @@
+{
+  "name": "Aurelius Coacalco · La conquista del come todo",
+  "short_name": "Aurelius",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0906",
+  "theme_color": "#0b0906",
+  "icons": [
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
