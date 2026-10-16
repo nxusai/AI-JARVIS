@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Aurelius Coacalco · Come Todo $259 | La conquista del come todo</title>
+    <meta name="description" content="Aurelius Coacalco: el come todo de tacos, quesadillas, flautas, pozole, alitas, boneless y burgers por $259. Tú decides cuándo parar. No vienes a comer, vienes a conquistar." />
+    <meta name="theme-color" content="#0b0906" />
+    <link rel="canonical" href="https://aureliusmx.com/" />
+
+    <meta property="og:type" content="restaurant" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content="Aurelius Coacalco" />
+    <meta property="og:title" content="Aurelius · La conquista del come todo — $259" />
+    <meta property="og:description" content="Tacos, quesadillas, flautas, pozole, alitas y burgers sin límite por $259. Tú decides cuándo parar." />
+    <meta property="og:image" content="https://aureliusmx.com/img/og.jpg" />
+    <meta property="og:url" content="https://aureliusmx.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preload" as="image" href="img/logo.webp" />
+
+    <script type="application/ld+json" id="ld-json"></script>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body class="is-loading">
+    <a class="skip" href="#main">Saltar al contenido</a>
+
+    <!-- ═════════ PRELOADER ═════════ -->
+    <div class="loader" id="loader" aria-hidden="true">
+      <div class="loader__crest">
+        <div class="loader__laurel" data-laurel="11"></div>
+        <img src="img/logo.webp" alt="" width="992" height="820" />
+      </div>
+      <div class="loader__word">AURELIUS</div>
+      <div class="loader__line" id="loaderLine">Calentando el comal…</div>
+      <div class="loader__bar"><span id="loaderBar"></span></div>
+      <div class="loader__pct" id="loaderPct">0</div>
+    </div>
+
+    <div class="grain" aria-hidden="true"></div>
+    <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+    <div class="cursor" id="cursor" aria-hidden="true"><span></span></div>
+
+    <!-- ═════════ NAV ═════════ -->
+    <header class="nav" id="nav">
+      <a class="nav__brand" href="#inicio" aria-label="Aurelius, ir al inicio">
+        <img src="img/logo.webp" alt="" width="992" height="820" />
+        <span>AURELIUS</span>
+      </a>
+      <nav class="nav__links" aria-label="Principal">
+        <a href="#cometodo">Come todo</a>
+        <a href="#ruta">La ruta</a>
+        <a href="#coliseo">El coliseo</a>
+        <a href="#historia">Historia</a>
+        <a href="#templo">El templo</a>
+        <a href="#ubicacion">Ubicación</a>
+      </nav>
+      <a class="btn btn--gold btn--sm nav__cta" data-wa="Hola Aurelius, quiero información para ir a conquistar el come todo 🔥" href="#">
+        <span>Conquistar · $259</span>
+      </a>
+      <button class="nav__burger" id="burger" aria-label="Abrir menú" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span>
+      </button>
+    </header>
+
+    <div class="drawer" id="drawer" aria-hidden="true">
+      <nav aria-label="Menú móvil">
+        <a href="#cometodo"><i>I</i>Come todo</a>
+        <a href="#ruta"><i>II</i>La ruta</a>
+        <a href="#brindis"><i>III</i>All you can beer</a>
+        <a href="#coliseo"><i>IV</i>El coliseo</a>
+        <a href="#conquistas"><i>V</i>Conquistas</a>
+        <a href="#historia"><i>VI</i>Historia</a>
+        <a href="#templo"><i>VII</i>El templo</a>
+        <a href="#ubicacion"><i>VIII</i>Ubicación</a>
+      </nav>
+      <p class="drawer__foot">Sabor · Poder · Gloria</p>
+    </div>
+
+    <main id="main">
+      <!-- ═════════ HERO ═════════ -->
+      <section class="hero" id="inicio">
+        <div class="hero__bg" aria-hidden="true">
+          <img src="img/interior-1.webp" alt="" />
+        </div>
+        <canvas class="embers" id="embers" aria-hidden="true"></canvas>
+        <div class="hero__ghost" aria-hidden="true">AURELIUS</div>
+
+        <div class="hero__inner">
+          <div class="hero__copy">
+            <p class="kicker"><span class="dot"></span> Coacalco · Estado de México</p>
+            <h1 class="hero__title">
+              <span class="line"><span>No vienes</span></span>
+              <span class="line"><span>a comer.</span></span>
+              <span class="line"><span class="gold-text">Vienes a</span></span>
+              <span class="line"><span class="gold-text shimmer">conquistar.</span></span>
+            </h1>
+            <p class="hero__sub">El come todo de tacos, quesadillas, flautas, pozole, alitas y burgers. <strong>Un solo tributo. Tú decides cuándo parar.</strong></p>
+            <div class="hero__ctas">
+              <a class="btn btn--gold magnetic" href="#ruta"><span>Ver la ruta de la conquista</span></a>
+              <a class="btn btn--ghost magnetic" data-maps href="#"><span>Llévame a Aurelius</span></a>
+            </div>
+          </div>
+
+          <div class="hero__crest" id="crest">
+            <div class="hero__halo" aria-hidden="true"></div>
+            <img class="hero__logo" src="img/logo.webp" alt="Logotipo de Aurelius: emperador con corona de laurel y llamas" width="992" height="820" />
+            <div class="coin" aria-label="Come todo por 259 pesos">
+              <svg class="coin__ring" viewBox="0 0 200 200" aria-hidden="true">
+                <defs><path id="coinPath" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" /></defs>
+                <text><textPath href="#coinPath">TÚ DECIDES CUÁNDO PARAR ✦ TÚ DECIDES CUÁNDO PARAR ✦ </textPath></text>
+              </svg>
+              <div class="coin__face">
+                <small>Come todo</small>
+                <strong><sup>$</sup>259</strong>
+                <small>por guerrero</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a class="hero__scroll" href="#manifiesto" aria-label="Bajar">
+          <span>Desliza, conquistador</span>
+          <i></i>
+        </a>
+      </section>
+
+      <!-- ═════════ MARQUEE ═════════ -->
+      <div class="marquees" aria-hidden="true">
+        <div class="marquee marquee--gold"><div class="marquee__track" data-marquee="1">
+          <span>Sabor</span><b>✦</b><span>Poder</span><b>✦</b><span>Gloria</span><b>✦</b><span>Conquistando el come todo</span><b>✦</b><span>$259</span><b>✦</b>
+        </div></div>
+        <div class="marquee marquee--dark"><div class="marquee__track" data-marquee="-1">
+          <span>Tacos</span><b>⚡</b><span>Quesadillas</span><b>⚡</b><span>Flautas</span><b>⚡</b><span>Pozole</span><b>⚡</b><span>Alitas</span><b>⚡</b><span>Boneless</span><b>⚡</b><span>Burgers</span><b>⚡</b>
+        </div></div>
+      </div>
+
+      <!-- ═════════ MANIFIESTO ═════════ -->
+      <section class="manifesto" id="manifiesto">
+        <div class="wrap">
+          <p class="eyebrow">El manifiesto</p>
+          <p class="manifesto__text" id="manifestoText">
+            Aurelius no vino a inventar el come todo. Vino a <em>conquistarlo.</em>
+            Todo lo que ya amas — tacos, quesadillas, flautas, pozole, alitas y burgers —
+            servido hasta que <em>tú</em> digas basta. Aquí no hay límite.
+            Solo tu voluntad.
+          </p>
+          <div class="stats">
+            <div class="stat"><strong data-count="1">0</strong><span>solo precio</span></div>
+            <div class="stat"><strong data-count="7">0</strong><span>provincias de sabor</span></div>
+            <div class="stat"><strong>∞</strong><span>órdenes</span></div>
+            <div class="stat"><strong data-count="0">0</strong><span>remordimientos</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ CÓMO FUNCIONA ═════════ -->
+      <section class="how" id="cometodo">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="eyebrow">El come todo</p>
+            <h2 class="title">La conquista en <span class="gold-text">tres actos</span></h2>
+          </header>
+          <ol class="acts">
+            <li class="act tilt">
+              <span class="act__num">I</span>
+              <h3>Llegas con hambre</h3>
+              <p>Y con dignidad. La dignidad la vas a ir perdiendo, el hambre también.</p>
+            </li>
+            <li class="act act--gold tilt">
+              <span class="act__num">II</span>
+              <h3>Pagas un solo tributo</h3>
+              <p class="act__price"><sup>$</sup>259</p>
+              <p>Por guerrero. Sin letras chiquitas de sabor: todo el imperio a tu mesa.</p>
+            </li>
+            <li class="act tilt">
+              <span class="act__num">III</span>
+              <h3>Conquistas sin límite</h3>
+              <p>Pides, comes, repites. Tú decides cuándo parar. Nosotros solo aplaudimos.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═════════ LA RUTA DE LA CONQUISTA ═════════ -->
+      <section class="route" id="ruta">
+        <div class="route__intro wrap">
+          <p class="eyebrow">Lo que entra en tu come todo</p>
+          <h2 class="title">La ruta de <span class="gold-text">la conquista</span></h2>
+          <p class="lead">Siete provincias. Un solo emperador: tú. <span class="hide-mobile">Desliza y avanza por el mapa.</span></p>
+        </div>
+        <div class="route__pin" id="routePin">
+          <div class="route__map" aria-hidden="true">
+            <div class="route__line"><span id="routeFill"></span></div>
+            <div class="route__stops" id="routeStops"></div>
+          </div>
+          <div class="route__track" id="routeTrack"></div>
+        </div>
+      </section>
+
+      <!-- ═════════ CHOOSE YOUR FIRE ═════════ -->
+      <section class="fire" id="fuego">
+        <div class="fire__glow" id="fireGlow" aria-hidden="true"></div>
+        <div class="wrap fire__grid">
+          <div>
+            <p class="eyebrow">Choose your fire</p>
+            <h2 class="title">Elige el fuego <span class="gold-text">digno de tu temple</span></h2>
+            <p class="lead">Alitas y boneless bañados en el nivel de valor que tú elijas. Mueve la flama y descubre quién eres.</p>
+            <div class="fire__control">
+              <input type="range" min="0" max="4" step="1" value="1" id="fireRange" aria-label="Nivel de picante" />
+              <div class="fire__ticks" id="fireTicks"></div>
+            </div>
+          </div>
+          <div class="fire__card" aria-live="polite">
+            <div class="fire__flame" id="fireFlame" aria-hidden="true">
+              <svg viewBox="0 0 120 160"><defs>
+                <radialGradient id="fg1" cx="50%" cy="70%" r="60%"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f4b521"/><stop offset="1" stop-color="#e4501e"/></radialGradient>
+              </defs>
+              <path class="flame-outer" d="M60 4c8 26 40 42 40 86a40 40 0 0 1-80 0c0-22 12-30 16-48 6 12 6 20 12 24C50 50 46 28 60 4z" fill="url(#fg1)"/>
+              <path class="flame-inner" d="M60 70c4 12 20 20 20 40a20 20 0 0 1-40 0c0-12 8-16 10-26 4 6 4 10 8 12-2-10 0-18 2-26z" fill="#fff3c4" opacity=".85"/>
+              </svg>
+            </div>
+            <p class="fire__level" id="fireLevel">Legionario</p>
+            <p class="fire__sauce" id="fireSauce">Picor suave</p>
+            <p class="fire__text" id="fireText">Un cosquilleo. Tu abuelita aprobaría.</p>
+            <p class="fire__note">Pregunta por las salsas del día: tu mesero conoce todo el arsenal.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ ALL YOU CAN BEER ═════════ -->
+      <section class="beer" id="brindis">
+        <div class="beer__bubbles" aria-hidden="true"></div>
+        <div class="wrap beer__grid">
+          <div class="beer__intro">
+            <p class="eyebrow">All you can beer</p>
+            <h2 class="title">El camino <span class="gold-text">del brindis</span></h2>
+            <p class="lead">El come todo no incluye bebidas… pero la sed también se conquista. Pide el paquete <strong>All you can beer</strong> y recorre las seis estaciones del brindis.</p>
+            <div class="beer__visual">
+            <figure class="beer__photo"><img src="img/menu/michelada.webp" alt="Michelada escarchada con limón" width="1200" height="900" loading="lazy" /><figcaption>Imagen ilustrativa</figcaption></figure>
+            <div class="mug" id="mug" aria-hidden="true">
+              <svg viewBox="0 0 160 200">
+                <defs>
+                  <clipPath id="mugClip"><path d="M22 34h96l-6 150a10 10 0 0 1-10 9H38a10 10 0 0 1-10-9z"/></clipPath>
+                  <linearGradient id="beerG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf4a"/><stop offset="1" stop-color="#d9861a"/></linearGradient>
+                </defs>
+                <g clip-path="url(#mugClip)">
+                  <rect x="0" y="0" width="160" height="200" fill="rgba(255,255,255,0.04)"/>
+                  <g id="mugLiquid">
+                    <rect x="0" y="40" width="160" height="200" fill="url(#beerG)"/>
+                    <path d="M0 40 q10 -14 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 v-30 h-160z" fill="#fff7e2"/>
+                    <circle class="mb" cx="50" cy="160" r="2.5"/><circle class="mb" cx="80" cy="175" r="2"/><circle class="mb" cx="98" cy="150" r="3"/><circle class="mb" cx="64" cy="130" r="1.8"/>
+                  </g>
+                </g>
+                <path d="M22 34h96l-6 150a10 10 0 0 1-10 9H38a10 10 0 0 1-10-9z" fill="none" stroke="#f4b521" stroke-width="4" stroke-linejoin="round"/>
+                <path d="M118 66h12a18 18 0 0 1 18 18v36a18 18 0 0 1-18 18h-16" fill="none" stroke="#f4b521" stroke-width="4"/>
+              </svg>
+            </div>
+            </div>
+            <p class="beer__note">No incluido en el come todo. Aplican términos y condiciones. Evita el exceso.</p>
+          </div>
+          <ol class="brindis" id="brindisList"></ol>
+        </div>
+      </section>
+
+      <!-- ═════════ EL COLISEO (juego) ═════════ -->
+      <section class="arena" id="coliseo">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="eyebrow">El coliseo</p>
+            <h2 class="title">¿Qué tan <span class="gold-text">conquistador</span> eres?</h2>
+            <p class="lead">Toca lo que te comerías en tu come todo y descubre tu rango en el imperio. Sin juzgar. Bueno, un poquito.</p>
+          </header>
+          <div class="arena__grid">
+            <div class="arena__buttons" id="arenaButtons"></div>
+            <div class="arena__panel">
+              <div class="arena__plate" id="arenaPlate" aria-hidden="true"></div>
+              <div class="arena__count"><strong id="arenaCount">0</strong><span>órdenes conquistadas</span></div>
+              <div class="arena__rank">
+                <p class="arena__rankname" id="arenaRank">Turista</p>
+                <p class="arena__ranktext" id="arenaRankText">Llegaste a ver. Todavía no conquistas nada.</p>
+                <div class="arena__bar"><span id="arenaBar"></span></div>
+                <p class="arena__next" id="arenaNext"></p>
+              </div>
+              <div class="arena__actions">
+                <button class="btn btn--gold btn--sm" id="arenaShare"><span>Retar a un amigo</span></button>
+                <button class="btn btn--ghost btn--sm" id="arenaReset"><span>Reiniciar</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ NUEVAS CONQUISTAS ═════════ -->
+      <section class="conquests" id="conquistas">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="eyebrow">El imperio se expande</p>
+            <h2 class="title">Próximas <span class="gold-text">conquistas</span></h2>
+            <p class="lead">El come todo mexicano fue solo el inicio. Vienen cocinas de otros países dentro del mismo come todo. Vota por la siguiente.</p>
+          </header>
+          <div class="conquests__grid" id="conquestGrid"></div>
+        </div>
+      </section>
+
+      <!-- ═════════ HISTORIA ═════════ -->
+      <section class="story" id="historia">
+        <div class="wrap story__grid">
+          <div class="story__visual">
+            <div class="story__frame">
+              <div class="story__flash" aria-hidden="true"></div>
+              <img src="img/statue.webp" alt="Aurelius, el emperador de mármol con playera roja sosteniendo un rayo" width="1024" height="1418" loading="lazy" />
+            </div>
+            <p class="story__quote">«Quien controla su mente, crea su realidad.»</p>
+          </div>
+          <div class="story__chapters">
+            <p class="eyebrow">Nuestra historia</p>
+            <h2 class="title">No nace de una receta.<br /><span class="gold-text">Nace de una promesa.</span></h2>
+            <article class="chapter">
+              <span class="chapter__num">I · La promesa</span>
+              <p>Fanático de los tacos y las quesadillas desde siempre, este sueño empezó hace años, en medio de la soledad, el hambre y los sacrificios.</p>
+            </article>
+            <article class="chapter">
+              <span class="chapter__num">II · La lucha</span>
+              <p>Trabajando como repartidor bajo la lluvia, el frío extremo y los calores más intensos. Visitando hospitales sin un peso en el bolsillo. Y aun así, seguía soñando con abrir un lugar que no solo vendiera comida, sino que hablara sin palabras.</p>
+            </article>
+            <article class="chapter">
+              <span class="chapter__num">III · La filosofía</span>
+              <p>Con audios de filosofía estoica en los audífonos, escuchando a Marco Aurelio mientras luchaba con su mente para no rendirse. Aprendió que el dominio propio es más fuerte que cualquier excusa: que el dolor se supera, que la mente se entrena y que la virtud vale más que el impulso.</p>
+            </article>
+            <article class="chapter">
+              <span class="chapter__num">IV · La conquista</span>
+              <p>Así nació Aurelius: un espacio donde lo sencillo es sagrado y cada platillo lleva una intención. No abrimos para encajar en el mundo. Abrimos para recordarte que puedes construir uno nuevo. Y empezamos conquistando el come todo.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ MISIÓN · VISIÓN · VALORES ═════════ -->
+      <section class="pillars" id="imperio">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="eyebrow">Las tablas del imperio</p>
+            <h2 class="title">Misión, visión <span class="gold-text">y valores</span></h2>
+          </header>
+          <div class="tablets">
+            <article class="tablet tilt">
+              <span class="tablet__tag">Misión</span>
+              <h3>Conquistar el hambre</h3>
+              <p>Servir el come todo más honesto, abundante y sabroso de Coacalco, con el alma de la taquería mexicana, donde cada persona decide hasta dónde llegar y sale sintiéndose emperador.</p>
+            </article>
+            <article class="tablet tablet--gold tilt">
+              <span class="tablet__tag">Visión</span>
+              <h3>El imperio del come todo</h3>
+              <p>Ser la marca que redefine el come todo en México y conquistar nuevas cocinas del mundo — Italia, Corea y más allá — sin perder nunca el sabor ni la virtud que nos vio nacer.</p>
+            </article>
+            <article class="tablet tilt">
+              <span class="tablet__tag">Valores</span>
+              <h3>Los cinco pilares</h3>
+              <ul class="values">
+                <li><b>Virtud.</b> Hacemos lo correcto aunque nadie vea.</li>
+                <li><b>Abundancia.</b> Nadie se va con hambre.</li>
+                <li><b>Disciplina.</b> La calidad no se negocia.</li>
+                <li><b>Hermandad.</b> Aquí se come en legión.</li>
+                <li><b>Desmadre con honor.</b> La diversión también es sagrada.</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ EL TEMPLO (galería) ═════════ -->
+      <section class="temple" id="templo">
+        <div class="wrap">
+          <header class="section-head section-head--row">
+            <div>
+              <p class="eyebrow">El templo</p>
+              <h2 class="title">Aurelius aprueba <span class="gold-text">este desmadre</span></h2>
+            </div>
+            <a class="btn btn--ghost btn--sm" data-ig href="#"><span>Síguenos en Instagram</span></a>
+          </header>
+        </div>
+        <div class="gallery" id="gallery"></div>
+      </section>
+
+      <!-- ═════════ A DOMICILIO ═════════ -->
+      <section class="delivery" id="domicilio">
+        <div class="wrap delivery__grid">
+          <div class="delivery__img">
+            <img src="img/para-llevar.webp" alt="Cajas para llevar de Aurelius" width="1080" height="1350" loading="lazy" />
+          </div>
+          <div>
+            <p class="eyebrow">A domicilio</p>
+            <h2 class="title">El imperio llega <span class="gold-text">a tu puerta</span></h2>
+            <p class="lead">¿Hoy no hay energía para conquistar en persona? Pide de nuestra carta por WhatsApp y conquista desde el sillón.</p>
+            <ul class="carta" id="carta"></ul>
+            <a class="btn btn--gold magnetic" data-wa="Hola Aurelius 👋 quiero ordenar a domicilio:" href="#"><span>Ordenar por WhatsApp</span></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ LEYES (FAQ) ═════════ -->
+      <section class="laws" id="leyes">
+        <div class="wrap laws__grid">
+          <header class="section-head">
+            <p class="eyebrow">Preguntas frecuentes</p>
+            <h2 class="title">Las leyes <span class="gold-text">del imperio</span></h2>
+            <p class="lead">Todo lo que un buen conquistador debe saber antes de la batalla.</p>
+          </header>
+          <div class="accordion" id="laws"></div>
+        </div>
+      </section>
+
+      <!-- ═════════ UBICACIÓN ═════════ -->
+      <section class="visit" id="ubicacion">
+        <div class="wrap visit__grid">
+          <div class="visit__info">
+            <p class="eyebrow">Ubicación</p>
+            <h2 class="title">El campo <span class="gold-text">de batalla</span></h2>
+            <p class="status" id="openStatus"><span></span>Consultando al oráculo…</p>
+            <dl class="visit__list">
+              <div><dt>Dirección</dt><dd id="addr"></dd></div>
+              <div><dt>Horario</dt><dd id="hours"></dd></div>
+              <div><dt>WhatsApp</dt><dd><a data-wa="Hola Aurelius 👋" href="#" id="phoneLink"></a></dd></div>
+            </dl>
+            <div class="visit__btns">
+              <a class="btn btn--gold btn--sm" data-maps href="#"><span>Google Maps</span></a>
+              <a class="btn btn--ghost btn--sm" data-waze href="#"><span>Waze</span></a>
+              <a class="btn btn--ghost btn--sm" data-tel href="#"><span>Llamar</span></a>
+            </div>
+          </div>
+          <div class="visit__map">
+            <iframe title="Mapa de Aurelius Coacalco" loading="lazy" referrerpolicy="no-referrer-when-downgrade" id="mapFrame"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════ LEGIÓN (empleo) ═════════ -->
+      <section class="legion">
+        <div class="wrap legion__inner">
+          <div>
+            <p class="eyebrow">Bolsa de trabajo</p>
+            <h2 class="title title--sm">¿Quieres servir <span class="gold-text">al imperio?</span></h2>
+            <p>Buscamos guerreros para cocina, piso y caja. Experiencia deseable; actitud, obligatoria.</p>
+          </div>
+          <a class="btn btn--gold magnetic" data-wa="Hola Aurelius, quiero unirme a la legión. Me interesa trabajar con ustedes." href="#"><span>Únete a la legión</span></a>
+        </div>
+      </section>
+    </main>
+
+    <!-- ═════════ FOOTER ═════════ -->
+    <footer class="footer">
+      <div class="footer__big" aria-hidden="true">AURELIUS</div>
+      <div class="wrap footer__grid">
+        <div>
+          <img class="footer__logo" src="img/logo.webp" alt="" width="992" height="820" loading="lazy" />
+          <p class="footer__motto">Sabor · Poder · Gloria</p>
+        </div>
+        <nav class="footer__nav" aria-label="Pie de página">
+          <a href="#cometodo">Come todo</a>
+          <a href="#ruta">La ruta</a>
+          <a href="#conquistas">Conquistas</a>
+          <a href="#historia">Historia</a>
+          <a href="#leyes">Preguntas</a>
+          <a href="#ubicacion">Ubicación</a>
+        </nav>
+        <div class="footer__social" id="social"></div>
+      </div>
+      <details class="footer__credits wrap">
+        <summary>Créditos de imágenes ilustrativas</summary>
+        <ul id="credits"></ul>
+      </details>
+      <p class="footer__legal wrap">© <span id="year"></span> Aurelius Coacalco. Todos los derechos del imperio reservados. Ninguna dieta fue respetada en la creación de este sitio.</p>
+    </footer>
+
+    <!-- ═════════ BARRA MÓVIL ═════════ -->
+    <div class="dock" id="dock">
+      <a data-maps href="#"><span>Cómo llegar</span></a>
+      <a class="dock__price" href="#cometodo"><strong>$259</strong><span>come todo</span></a>
+      <a data-wa="Hola Aurelius 👋" href="#"><span>WhatsApp</span></a>
+    </div>
+
+    <!-- ═════════ ORÁCULO (entrada para IA) ═════════ -->
+    <button class="oracle-btn" id="oracleBtn" aria-label="Abrir el Oráculo de Aurelius" aria-expanded="false" aria-controls="oracle">
+      <img src="img/logo.webp" alt="" width="992" height="820" />
+      <span class="oracle-btn__label">Pregúntale al Oráculo</span>
+    </button>
+    <section class="oracle" id="oracle" role="dialog" aria-label="El Oráculo de Aurelius" aria-hidden="true">
+      <header class="oracle__head">
+        <div>
+          <strong>El Oráculo</strong>
+          <small>Sabe todo del imperio · IA muy pronto</small>
+        </div>
+        <button class="oracle__close" id="oracleClose" aria-label="Cerrar">×</button>
+      </header>
+      <div class="oracle__log" id="oracleLog" aria-live="polite"></div>
+      <div class="oracle__chips" id="oracleChips"></div>
+      <form class="oracle__form" id="oracleForm">
+        <input id="oracleInput" type="text" autocomplete="off" placeholder="Pregunta lo que quieras…" aria-label="Tu pregunta" />
+        <button type="submit" aria-label="Enviar">➤</button>
+      </form>
+    </section>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Foto ampliada">
+      <button class="lightbox__close" aria-label="Cerrar">×</button>
+      <figure><img alt="" /><figcaption></figcaption></figure>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
