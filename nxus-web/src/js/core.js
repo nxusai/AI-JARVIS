@@ -23,18 +23,17 @@ const nav = document.getElementById('nav');
 const page = document.body.dataset.page;
 document.querySelectorAll(`[data-nav="${page}"]`).forEach((a) => a.setAttribute('aria-current', 'page'));
 const bar = document.querySelector('.progress-bar');
-let lastY = 0;
 const onScroll = () => {
   const y = scrollY;
   nav.classList.toggle('scrolled', y > 10);
-  nav.classList.toggle('hidden', y > 400 && y > lastY + 2 && !document.body.classList.contains('menu-open'));
-  if (y < lastY - 2) nav.classList.remove('hidden');
-  lastY = y;
   const max = document.documentElement.scrollHeight - innerHeight;
   bar?.style.setProperty('--p', max > 0 ? (y / max).toFixed(4) : 0);
 };
 addEventListener('scroll', onScroll, { passive: true });
 onScroll();
+// La sección actual queda a la vista en la fila de secciones del celular.
+const current = document.querySelector('.nav-strip [aria-current="page"]');
+if (current) current.parentElement.scrollLeft = current.offsetLeft - 16;
 
 const burger = document.querySelector('.burger');
 burger?.addEventListener('click', () => {

@@ -5,8 +5,7 @@
 .page-hero .aura-v { width: 700px; height: 700px; right: -200px; top: 0; }
 
 /* Barra de capítulos (estilo Apple) */
-.chapters { position: sticky; top: var(--nav-h); z-index: 50; background: rgba(0, 0, 0, .7); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-block: 1px solid var(--line); transition: top .5s var(--ease); }
-.nav.hidden ~ main .chapters { top: 0; }
+.chapters { position: sticky; top: calc(var(--nav-h) + env(safe-area-inset-top, 0px)); z-index: 50; background: rgba(0, 0, 0, .7); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-block: 1px solid var(--line); transition: top .5s var(--ease); }
 .chapters .wrap { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-block: 8px; }
 .chapters .wrap::-webkit-scrollbar { display: none; }
 .chapters a { flex-shrink: 0; font-size: 13.5px; color: var(--ink-2); padding: 7px 14px; border-radius: 999px; transition: color .2s, background .2s; }

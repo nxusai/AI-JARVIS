@@ -126,21 +126,28 @@ tgPhone.querySelector('.tg-input').addEventListener('submit', (e) => {
   chat.say(text, reply);
 });
 
-/* ---------- D · Voz ---------- */
+/* ---------- D · Voz ----------
+   Audio grabado con voz neuronal; el anillo se mueve con el volumen real del audio. */
 const stage = document.querySelector('.voice-stage');
 const vc = stage.querySelector('.voice-viz');
 const vctx = vc.getContext('2d');
-let level = 0, target = .08, talking = false;
+let level = 0, analyser = null, freq = null, playing = false;
 function drawVoice(t) {
   requestAnimationFrame(drawVoice);
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const s = vc.clientWidth;
+  if (!s) return;
   if (vc.width !== s * dpr) { vc.width = s * dpr; vc.height = s * dpr; }
   vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   vctx.clearRect(0, 0, s, s);
-  if (talking) target = .25 + Math.abs(Math.sin(t / 90) * Math.sin(t / 233)) * .75;
-  else target = .06;
-  level += (target - level) * .15;
+  let target = .06;
+  if (playing && analyser) {
+    analyser.getByteFrequencyData(freq);
+    let sum = 0;
+    for (let i = 2; i < 60; i++) sum += freq[i];
+    target = Math.min(1, sum / 58 / 150);
+  } else if (playing) target = .25 + Math.abs(Math.sin(t / 90) * Math.sin(t / 233)) * .75;
+  level += (target - level) * .25;
   const c = s / 2, R = s * .3, bars = 120;
   const g = vctx.createRadialGradient(c, c, 0, c, c, s / 2);
   g.addColorStop(0, `rgba(10,108,255,${.12 + level * .25})`);
@@ -149,13 +156,13 @@ function drawVoice(t) {
   vctx.fillStyle = g;
   vctx.fillRect(0, 0, s, s);
   vctx.lineCap = 'round';
+  vctx.lineWidth = Math.max(1.5, s / 220);
   for (let i = 0; i < bars; i++) {
     const a = (i / bars) * Math.PI * 2 - Math.PI / 2;
-    const n = Math.sin(i * .5 + t / 300) * .5 + Math.sin(i * 1.7 - t / 170) * .5;
-    const len = 6 + Math.abs(n) * s * .16 * level + s * .01;
+    const band = analyser && playing ? freq[4 + (i < bars / 2 ? i : bars - i) % 80] / 255 : Math.abs(Math.sin(i * .5 + t / 300) * .5 + Math.sin(i * 1.7 - t / 170) * .5);
+    const len = 6 + band * s * .16 * Math.max(level, .15) + s * .01;
     const u = i / bars;
-    vctx.strokeStyle = u < .5 ? `rgba(${Math.round(u * 2 * 10)},${Math.round(229 - u * 2 * 121)},255,.9)` : `rgba(${Math.round(10 + (u - .5) * 2 * 155)},${Math.round(108 - (u - .5) * 2 * 80)},255,.9)`;
-    vctx.lineWidth = Math.max(1.5, s / 220);
+    vctx.strokeStyle = u < .5 ? `rgba(${Math.round(u * 20)},${Math.round(229 - u * 242)},255,.9)` : `rgba(${Math.round(10 + (u - .5) * 310)},${Math.round(108 - (u - .5) * 160)},255,.9)`;
     vctx.beginPath();
     vctx.moveTo(c + Math.cos(a) * R, c + Math.sin(a) * R);
     vctx.lineTo(c + Math.cos(a) * (R + len), c + Math.sin(a) * (R + len));
@@ -167,8 +174,8 @@ function drawVoice(t) {
   vctx.lineWidth = 2;
   vctx.stroke();
   const core = vctx.createRadialGradient(c, c, 0, c, c, R * .8);
-  core.addColorStop(0, `rgba(255,255,255,${.25 + level * .6})`);
-  core.addColorStop(.25, `rgba(0,229,255,${.25 + level * .4})`);
+  core.addColorStop(0, `rgba(255,255,255,${.2 + level * .6})`);
+  core.addColorStop(.25, `rgba(0,229,255,${.2 + level * .4})`);
   core.addColorStop(1, 'rgba(10,108,255,0)');
   vctx.fillStyle = core;
   vctx.beginPath();
@@ -177,53 +184,62 @@ function drawVoice(t) {
 }
 requestAnimationFrame(drawVoice);
 
+const LINES = [
+  ['audio/voz-1.mp3', '¡Buenos días, jefe! Ya revisé todo. Ayer cerramos en $48,000, 12% arriba del martes pasado.'],
+  ['audio/voz-2.mp3', 'Hoy tienes 3 pendientes y una reunión a las 4. ¿Te los leo, o prefieres que yo me encargue?'],
+];
+const audio = new Audio();
+audio.preload = 'auto';
 const log = document.querySelector('.voice-log');
-const vbtn = document.querySelector('.voice-btn');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  return vs.find((v) => /es[-_]MX/i.test(v.lang)) || vs.find((v) => /es[-_]US/i.test(v.lang)) || vs.find((v) => /^es/i.test(v.lang));
-}
-function speak(text) {
-  return new Promise((resolve) => {
-    if (!('speechSynthesis' in window)) { setTimeout(resolve, text.length * 55); return; }
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'es-MX';
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.rate = 1.03;
-    u.onend = resolve;
-    u.onerror = resolve;
-    speechSynthesis.speak(u);
-    setTimeout(resolve, text.length * 90 + 3000); // por si el navegador no avisa
-  });
-}
-const line = (who, text, you) => {
+const vbtns = document.querySelectorAll('.voice-btn, .voice-play');
+const line = (who, text) => {
   const p = document.createElement('p');
-  if (you) p.className = 'you';
   p.innerHTML = `<b>${who}:</b> `;
   p.append(text);
   log.append(p);
-  while (log.children.length > 3) log.firstElementChild.remove();
+  while (log.children.length > 2) log.firstElementChild.remove();
 };
-let voiceBusy = false;
-vbtn.addEventListener('click', async () => {
-  if (voiceBusy) { speechSynthesis?.cancel(); return; }
-  voiceBusy = true;
-  const name = getName();
+function setPlaying(on) {
+  playing = on;
+  stage.classList.toggle('talking', on);
+  vbtns.forEach((b) => b.querySelector('.vb-ic, .vp-ic').textContent = on ? '■' : '▶');
+}
+function playFile(src) {
+  return new Promise((resolve) => {
+    audio.src = src; // relativo a la página: /audio en el sitio, ./audio en la vista previa
+    audio.onended = () => resolve(true);
+    audio.onerror = () => resolve(false);
+    audio.play().catch(() => resolve(false));
+  });
+}
+let run = 0;
+async function speak() {
+  const id = ++run;
+  if (!analyser) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ctx.createMediaElementSource(audio);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      freq = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser);
+      analyser.connect(ctx.destination);
+      ctx.resume?.();
+    } catch { analyser = null; }
+  }
   log.innerHTML = '';
-  line('Tú', `“Hey, ${name}, ¿cómo va el día?”`, true);
-  await sleep(700);
-  talking = true; stage.classList.add('talking');
-  const a = `Hola, jefe. Soy ${name}. Hoy llevamos cuarenta y ocho mil pesos en ventas, doce por ciento más que el martes pasado.`;
-  line(name, a);
-  await speak(a);
-  const b = 'Tienes tres pendientes y una reunión a las cuatro. ¿Quieres que te los lea?';
-  line(name, b);
-  await speak(b);
-  talking = false; stage.classList.remove('talking');
-  voiceBusy = false;
-});
+  setPlaying(true);
+  for (const [src, text] of LINES) {
+    line(getName(), text);
+    const ok = await playFile(src);
+    if (id !== run || !ok) break;
+  }
+  if (id === run) setPlaying(false);
+}
+vbtns.forEach((b) => b.addEventListener('click', () => {
+  if (playing) { run++; audio.pause(); setPlaying(false); return; }
+  speak();
+}));
 
 /* ---------- E · Consola ---------- */
 const svgNS = 'http://www.w3.org/2000/svg';
