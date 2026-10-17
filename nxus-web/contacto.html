@@ -42,8 +42,16 @@
               </select>
             </div>
             <div class="field">
+              <label>¿Cómo quieres empezar?</label>
+              <div class="pills" role="radiogroup" aria-label="Cómo quieres empezar" data-camino>
+                <button type="button" class="pill" aria-pressed="false" data-v="propuesta">Reunión sin costo para mi propuesta</button>
+                <button type="button" class="pill" aria-pressed="false" data-v="consultoria">Consultoría: plan para mi empresa</button>
+                <button type="button" class="pill" aria-pressed="false" data-v="dudas">Solo tengo dudas</button>
+              </div>
+            </div>
+            <div class="field">
               <label>¿Qué te interesa?</label>
-              <div class="pills" role="group" aria-label="Intereses">
+              <div class="pills" role="group" aria-label="Intereses" data-intereses>
                 <button type="button" class="pill" aria-pressed="false">Mi propio Jarvis</button>
                 <button type="button" class="pill" aria-pressed="false">Atención y ventas con IA</button>
                 <button type="button" class="pill" aria-pressed="false">Agentes de voz</button>
@@ -59,8 +67,7 @@
           </form>
 
           <div class="side-cards">
-            <a class="card glow side-card" href="https://empezar.nxusai.org" data-reveal style="--d:.1s"><span>📅</span><b>Agenda una reunión</b><p>Elige tu horario y platiquemos por Google Meet. Sin costo.</p><span class="link-arrow" style="font-size:15px">empezar.nxusai.org</span></a>
-            <a class="card glow side-card" href="mailto:contacto@nxusai.org" data-reveal style="--d:.18s"><span>✉️</span><b>Escríbenos</b><p>contacto@nxusai.org</p></a>
+            <a class="card glow side-card" href="mailto:contacto@nxusai.org" data-reveal style="--d:.1s"><span>✉️</span><b>Escríbenos</b><p>contacto@nxusai.org</p></a>
             <a class="card glow side-card" href="https://www.instagram.com/nxusai/" target="_blank" rel="noopener" data-reveal style="--d:.26s"><span>📸</span><b>Instagram</b><p>Mira lo que estamos construyendo: @nxusai</p></a>
             <a class="card glow side-card" href="/jarvis" data-reveal style="--d:.34s"><span>🤖</span><b>Prueba la demo</b><p>Bautiza a tu IA y escríbele en vivo.</p></a>
           </div>

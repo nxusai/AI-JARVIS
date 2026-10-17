@@ -140,3 +140,4 @@
   .ind-picker::-webkit-scrollbar { display: none; }
   .ind-btn { scroll-snap-align: start; padding: 14px 12px; }
 }
+.form-copy { width: 100%; min-height: 150px; margin-top: 8px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03); color: var(--ink-2); padding: 14px; font: 13px/1.5 var(--mono); resize: vertical; }

@@ -87,7 +87,7 @@ const R = [
     k: /precio|cuesta|costo|cotiza|plan|paquete/,
     s: [
       { ai: 'Cada IA se diseña a la medida de tu negocio, por eso el precio depende de lo que conectemos 🙂' },
-      { ai: 'Agenda una reunión sin costo en **empezar.nxusai.org** y te presentamos tu propuesta.' },
+      { ai: 'Déjanos tus datos en la página de **Contacto** y te presentamos tu propuesta en una reunión sin costo.' },
     ],
   },
   {

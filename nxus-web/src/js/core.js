@@ -10,6 +10,13 @@ export { gsap, ScrollTrigger };
 export const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement;
 
+/* ---------- Cada página abre desde arriba ----------
+   Salvo que la dirección traiga una sección (#telegram); el navegador no debe
+   restaurar a media página al entrar desde el menú. */
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+const toTop = () => { if (!location.hash) scrollTo(0, 0); };
+toTop();
+
 /* ---------- Scroll suave ---------- */
 export const lenis = reduced ? null : new Lenis({ duration: 1.15, smoothWheel: true });
 if (lenis) {
@@ -56,6 +63,15 @@ document.addEventListener('click', (e) => {
 });
 // Volver con el botón "atrás" desde la caché del navegador no debe dejar el telón puesto.
 addEventListener('pageshow', (e) => { if (e.persisted) root.classList.remove('leaving'); });
+
+// Si la dirección trae una sección que existe, llegar a ella ya con todo cargado.
+function goToHash() {
+  const id = location.hash.slice(1);
+  const target = /^[\w-]+$/.test(id) && document.getElementById(id);
+  if (!target || target.tagName === 'FORM') return;
+  if (lenis) lenis.scrollTo(target, { offset: -100, immediate: true });
+  else target.scrollIntoView();
+}
 
 /* ---------- Anclas dentro de la página, con scroll suave ---------- */
 document.addEventListener('click', (e) => {
@@ -177,5 +193,9 @@ paintName();
 document.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
 
 // Las imágenes y fuentes cambian alturas: recalcular los disparadores cuando todo cargó.
-addEventListener('load', () => ScrollTrigger.refresh());
+addEventListener('load', () => {
+  ScrollTrigger.refresh();
+  if (location.hash) goToHash();
+  else { scrollTo(0, 0); lenis?.scrollTo(0, { immediate: true }); }
+});
 document.fonts?.ready.then(() => ScrollTrigger.refresh());
