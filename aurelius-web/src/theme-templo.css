@@ -1,0 +1,183 @@
+/* ═══════════════════════════════════════════════════════════
+   AURELIUS · Tema «Templo»
+   Piedra travertino y mármol de la Roma de Marco Aurelio.
+   Se carga después de style.css y sustituye el fondo negro
+   por tonos crema de piedra caliza, con oro viejo y terracota.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* piedra */
+  --stone: #ece2d0;        /* travertino claro: fondo principal */
+  --stone-2: #e1d3bb;      /* piedra en sombra suave */
+  --stone-3: #f7f1e6;      /* mármol: tarjetas */
+  --stone-deep: #cdbdaa;   /* piedra del relieve */
+  --bronze: #5b4630;       /* sombra tallada del relieve */
+
+  /* texto sobre piedra */
+  --ink: #241a10;
+  --parchment: #3b2d1f;
+  --marble: #22180e;
+  --muted: #6f5d47;
+  --line: rgba(122, 92, 52, 0.24);
+
+  /* tarjetas */
+  --ink-2: #efe5d4;
+  --ink-3: var(--stone-3);
+
+  /* oro viejo para texto; oro claro para rellenos */
+  --gold: #8f6512;
+  --gold-2: #b8862a;
+  --gold-deep: #6b4a0b;
+  --gold-fill: #d6a63a;
+  --gold-fill-2: #f0c96a;
+
+  --fire: #b8461c;
+  --blood: #7a2a16;     /* terracota romana */
+
+  --greek: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 19h8V5h16v10h-8V9h-4v10h28' fill='none' stroke='%238f6512' stroke-width='2'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--stone);
+  background-image:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 252, 245, 0.6), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0035 .012' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .27 0 0 0 -1.1 .62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E");
+}
+.grain { opacity: 0.05; mix-blend-mode: multiply; }
+
+/* ── Oro: texto con degradado oscuro, rellenos claros ── */
+.gold-text { background-image: linear-gradient(100deg, var(--gold-deep) 0%, var(--gold) 30%, var(--gold-2) 50%, var(--gold) 70%, var(--gold-deep) 100%); }
+::selection { background: var(--gold-fill); color: var(--ink); }
+.skip, .btn--gold, .nav__links a:hover, .nav__links a.is-active, .nav__burger, .marquee--gold,
+.route__stop.is-on, .toast:hover .toast__cup, .toast h3 .star, .food-btn .badge, .country__status--done,
+.lightbox__close, .law.is-open .law__icon, .footer__social a:hover, .msg--me, .oracle__chips button:hover,
+.oracle__form button, .dock__price { background-color: var(--gold-fill); }
+.btn--gold { color: var(--ink); box-shadow: 0 12px 30px -12px rgba(143, 101, 18, 0.55); }
+.btn--gold:hover { box-shadow: 0 18px 40px -12px rgba(143, 101, 18, 0.7); }
+.btn--ghost { border-color: rgba(143, 101, 18, 0.55); color: var(--gold); }
+.btn--ghost::before { background: var(--gold-fill); }
+.route__line span { background: var(--gold-fill); box-shadow: 0 0 10px rgba(214, 166, 58, 0.7); }
+.route__stop.is-on { border-color: var(--gold-fill); box-shadow: 0 0 18px rgba(214, 166, 58, 0.6); color: var(--ink); }
+.loader__bar span, .arena__bar span { background: linear-gradient(90deg, var(--gold-fill), var(--fire)); }
+.progress span { background: linear-gradient(90deg, var(--fire), var(--gold-fill)); }
+.cursor span { border-color: var(--gold); }
+.cursor.is-hover span { background: rgba(214, 166, 58, 0.18); }
+
+/* ── Estructura: piedra en lugar de negro ── */
+.loader, .drawer { background: var(--stone); }
+.loader__crest img { filter: drop-shadow(0 10px 30px rgba(91, 70, 48, 0.35)); }
+.nav { background: rgba(247, 241, 230, 0.78); border-color: var(--line); box-shadow: 0 10px 30px -18px rgba(60, 40, 20, 0.45); }
+.nav__brand { color: var(--gold); }
+.nav__links a { color: var(--muted); }
+.drawer a { color: var(--marble); }
+
+/* hero: la foto del local se funde con la piedra */
+.hero__bg img { opacity: 0.16; filter: sepia(0.8) saturate(0.6) contrast(0.9); mix-blend-mode: multiply; }
+.hero__bg::after {
+  background:
+    radial-gradient(55% 55% at 70% 45%, rgba(214, 166, 58, 0.28), transparent 70%),
+    radial-gradient(80% 80% at 50% 50%, transparent 35%, var(--stone) 88%),
+    linear-gradient(180deg, rgba(236, 226, 208, 0.2), var(--stone) 98%);
+}
+.hero__ghost { -webkit-text-stroke: 1px rgba(143, 101, 18, 0.16); }
+.hero__halo { background: radial-gradient(circle, rgba(240, 201, 106, 0.55), rgba(184, 70, 28, 0.12) 45%, transparent 70%); }
+.hero__halo::before { border-color: rgba(143, 101, 18, 0.35); }
+.hero__logo { filter: drop-shadow(0 30px 40px rgba(91, 70, 48, 0.35)); }
+.coin { background: radial-gradient(circle at 35% 30%, #ffe7a3, var(--gold-fill) 45%, #9c7016 100%); }
+.hero__scroll i { background: linear-gradient(var(--gold), transparent); }
+.hero__scroll i::after { background: var(--bronze); }
+.kicker { color: var(--gold); }
+
+/* marquesinas: oro claro y terracota */
+.marquee--gold { color: var(--ink); box-shadow: 0 20px 50px -24px rgba(143, 101, 18, 0.6); }
+.marquee--dark { background: var(--blood); color: #f6e9cf; border-color: rgba(0, 0, 0, 0.1); }
+
+/* manifiesto y cifras */
+.stat { background: var(--stone-3); }
+.stats { background: var(--line); }
+
+/* tarjetas */
+.act { background: linear-gradient(160deg, var(--stone-3), var(--ink-2)); box-shadow: 0 30px 50px -40px rgba(60, 40, 20, 0.6); }
+.act--gold, .province--final, .tablet--gold { background: linear-gradient(160deg, var(--gold-fill-2), var(--gold-fill) 45%, #a8781a); }
+.province--final .btn--gold { background: var(--ink); color: var(--gold-fill-2); }
+
+/* ruta */
+.route { background: linear-gradient(180deg, var(--stone), var(--stone-2) 30%, var(--stone-2) 70%, var(--stone)); }
+.route__line { background: repeating-linear-gradient(90deg, rgba(143, 101, 18, 0.4) 0 8px, transparent 8px 16px); }
+.route__stop { background: var(--stone-3); border-color: rgba(143, 101, 18, 0.4); }
+.province { background: linear-gradient(170deg, var(--stone-3) 0%, #efe4d1 100%); box-shadow: 0 30px 60px -40px rgba(60, 40, 20, 0.7); }
+.province__photo::after { background: linear-gradient(180deg, rgba(247, 241, 230, 0) 45%, var(--stone-3) 100%); }
+.province__photo figcaption, .beer__photo figcaption { background: rgba(247, 241, 230, 0.85); color: var(--muted); }
+.province--photo .province__num { color: #f7ecd2; text-shadow: 0 4px 18px rgba(0, 0, 0, 0.55); }
+.province__icon { background: rgba(214, 166, 58, 0.14); }
+.province--photo .province__icon { background: var(--stone-3); }
+.chips li { background: rgba(214, 166, 58, 0.14); border-color: rgba(143, 101, 18, 0.3); color: var(--parchment); }
+.province__quip { color: var(--parchment); }
+
+/* fuego */
+.fire__glow { background: radial-gradient(circle, rgba(184, 70, 28, 0.28), transparent 60%); }
+.fire__card { background: rgba(247, 241, 230, 0.85); }
+.fire__level { color: var(--fire); }
+.fire__sauce { color: var(--gold); }
+.fire input[type='range']::-webkit-slider-thumb { background: var(--stone-3); }
+
+/* cerveza */
+.beer { background: radial-gradient(80% 60% at 20% 30%, rgba(214, 166, 58, 0.22), transparent 70%), linear-gradient(180deg, var(--stone), var(--stone-2) 50%, var(--stone)); }
+.beer__bubbles i { border-color: rgba(143, 101, 18, 0.35); background: rgba(240, 201, 106, 0.18); }
+.beer__intro strong { color: var(--gold); }
+.mug svg > path { stroke: var(--gold); }
+.mug { filter: drop-shadow(0 20px 30px rgba(143, 101, 18, 0.25)); }
+.brindis::before { background: repeating-linear-gradient(180deg, rgba(143, 101, 18, 0.45) 0 8px, transparent 8px 16px); }
+.toast__cup { border-color: var(--gold); }
+.toast__body { background: rgba(247, 241, 230, 0.9); }
+.toast--signature .toast__body { background: linear-gradient(140deg, #f3dfb0, var(--stone-3)); border-color: rgba(143, 101, 18, 0.45); }
+
+/* coliseo */
+.arena { background: radial-gradient(70% 60% at 50% 0%, rgba(214, 166, 58, 0.18), transparent 70%); }
+.food-btn:hover { background: #f1e6d1; border-color: var(--gold); }
+
+/* conquistas */
+.country--done { background: linear-gradient(160deg, #f3e2bb, var(--stone-3)); }
+.country__status--next { color: #fff6e3; }
+
+/* historia: la estatua de mármol sobre arenisca */
+.story { background: linear-gradient(180deg, var(--stone), #e4d2b3 50%, var(--stone)); }
+.story__frame { background: radial-gradient(circle at 50% 30%, #c79a64, #7d5636 75%); border-color: rgba(91, 70, 48, 0.4); }
+.story__frame::before { opacity: 0.12; }
+.story__quote { color: var(--gold); }
+
+/* tablas de mármol */
+.tablet { box-shadow: 0 30px 60px -30px rgba(60, 40, 20, 0.55), inset 0 0 0 1px rgba(122, 92, 52, 0.15); }
+
+/* galería y carta */
+.shot { background: var(--stone-2); box-shadow: 0 30px 60px -40px rgba(60, 40, 20, 0.7); }
+.delivery__img { box-shadow: 0 40px 80px -40px rgba(60, 40, 20, 0.7); }
+.carta li { border-bottom-color: rgba(143, 101, 18, 0.28); }
+
+/* ubicación: mapa en tono sepia claro */
+.visit__map iframe { filter: sepia(0.45) saturate(0.75) contrast(0.95) brightness(1.02); }
+.status.is-open span { background: #2f9e5b; }
+
+/* legión: terracota con texto crema */
+.legion__inner { background: linear-gradient(120deg, var(--blood), #5e1f10 60%, #4a2a17); border-color: rgba(214, 166, 58, 0.35); }
+.legion__inner p, .legion .title { color: #f6e9cf; }
+.legion .eyebrow { color: var(--gold-fill-2); }
+.legion .eyebrow::before { background: var(--gold-fill-2); }
+.legion .gold-text { background-image: linear-gradient(100deg, #d6a63a, #f0c96a, #d6a63a); }
+
+/* pie */
+.footer { border-top-color: var(--line); }
+.footer__big { background: linear-gradient(180deg, var(--gold-2), rgba(143, 101, 18, 0.06)); -webkit-background-clip: text; background-clip: text; }
+.footer__credits, .footer__legal { color: #8a785f; }
+
+/* barra móvil y oráculo */
+.dock { background: rgba(247, 241, 230, 0.94); border-color: rgba(143, 101, 18, 0.35); box-shadow: 0 20px 40px -14px rgba(60, 40, 20, 0.5); }
+.dock a { color: var(--gold); }
+.oracle-btn { background: var(--stone-3); border-color: rgba(143, 101, 18, 0.5); }
+.oracle-btn img { background: var(--ink); }
+.oracle { background: rgba(250, 246, 238, 0.98); border-color: rgba(143, 101, 18, 0.35); box-shadow: 0 40px 80px -20px rgba(60, 40, 20, 0.5); }
+.oracle__head { background: linear-gradient(120deg, var(--gold-fill-2), var(--gold-fill)); }
+.oracle__close { background: var(--ink); color: var(--gold-fill-2); }
+.oracle__form input { background: var(--stone); color: var(--parchment); }
+.msg a { color: var(--gold); }
