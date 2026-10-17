@@ -248,6 +248,7 @@ const stepName = (name) => {
     jarvis_parrilla: 'la parrilla de contenido',
     jarvis_etiquetas: 'las etiquetas',
     jarvis_efectos: 'haciendo los efectos del video',
+    jarvis_reels: 'editando tu reel',
   }[server]
   if (!who && /^gmail-/.test(server)) return 'el correo de la empresa'
   return who ?? (server ? server : tool)

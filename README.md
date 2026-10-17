@@ -164,6 +164,17 @@ A few things you can say:
 > account** are not stored on disk, so the bridge cannot see them — it works from
 > the servers in `~/.claude.json` (about 14), not the claude.ai ones.
 
+### The Reels studio
+
+Send a raw recording (Telegram or AirDrop) and say *"edit this reel"*: the
+studio (`bridge/reels.mjs`, engine in `bridge/reels/motor.mjs`) transcribes it,
+cuts pauses, filler sounds and retakes, frames it 9:16, adds punch-in zooms,
+word-by-word captions, a hook title, levelled voice and ducked music. It learns
+your style from reference reels you send, a short interview and your feedback
+on every edit, and re-renders a tweak without transcribing again. Set up local
+transcription once with `brew install ffmpeg whisper-cpp && npm run reels:setup`.
+Guide (Spanish): `docs/guia-reels.md`.
+
 ### JARVIS controls the interface
 
 He drives the UI through MCP tools the bridge exposes:

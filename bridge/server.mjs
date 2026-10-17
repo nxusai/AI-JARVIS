@@ -32,6 +32,7 @@ import { backupServer } from './respaldo.mjs'
 import { CONTENT_PLAN_PROMPT, contentPlanServer } from './parrilla.mjs'
 import { ownerLabelsServer } from './etiquetas.mjs'
 import { EFFECTS_PROMPT, effectsServer } from './efectos.mjs'
+import { REELS_PROMPT, reelsServer } from './reels.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
@@ -480,6 +481,9 @@ function decideTool(name) {
     // Effects: scenes run in Remotion's headless browser and write only to
     // ~/Movies/Nexy (see efectos.mjs), their code vetted before it is written.
     if (server === 'jarvis_efectos') return true
+    // Reels: reads only from the Nexy folders and writes only to ~/Movies/Nexy
+    // and its own data in ~/.nexy/reels (see reels.mjs).
+    if (server === 'jarvis_reels') return true
 
     const tool = mcpToolOf(name)
     if (server === 'notion') return NOTION_READ.has(tool) || NOTION_WRITE.has(tool)
@@ -1772,6 +1776,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_etiquetas: ownerLabelsServer(),
       // Motion graphics and 3D for the videos, with Remotion (see efectos.mjs).
       jarvis_efectos: effectsServer(),
+      // The owner's Reels studio: edits raw recordings in their style and learns it (see reels.mjs).
+      jarvis_reels: reelsServer(elevenKey),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
@@ -1786,7 +1792,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + REELS_PROMPT + memoryPrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),
@@ -2235,7 +2241,7 @@ wss.on('connection', (socket, req) => {
   let lastSign = Date.now()
   let stuckNote = null
   const VOICE_STUCK_MS = Number(process.env.NEXY_VOICE_STUCK_MS) || 3 * 60_000
-  const SLOW_VOICE_STEP = /wait|video|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
+  const SLOW_VOICE_STEP = /wait|video|reel|render|taller|editor|crudo|higgsfield|generat|music|voice|clone|speak|elevenlabs|agent|task/i
   const watchdog = setInterval(() => {
     const task = openTasks[0]
     if (!task || closed) return
