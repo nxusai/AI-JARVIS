@@ -78,9 +78,10 @@ function splitHeroTitle() {
 }
 
 function heroOrbit() {
-  const picks = ['queso-cotija', 'crema-mexicana', 'chorizo', 'pupusas-frijol'].map(productById);
-  const spots = [[0, 14], [84, 30], [2, 56], [82, 70]];
-  $('#orbit').innerHTML = picks.map((p, i) => `<img src="${imgOf(p)}" alt="" style="left:${spots[i][0]}%;top:${spots[i][1]}%" width="120" height="150" />`).join('');
+  // Recortes sin fondo (public/img/cut/) para que se fundan con el verde del hero.
+  const picks = ['queso-cotija', 'crema-mexicana', 'chorizo-mexicano-14-oz', 'salsa-verde'];
+  const spots = [[0, 12], [84, 26], [0, 54], [80, 72]];
+  $('#orbit').innerHTML = picks.map((f, i) => `<img src="img/cut/${f}.webp" alt="" style="left:${spots[i][0]}%;top:${spots[i][1]}%" width="120" height="150" />`).join('');
   if (reduced) return;
   $$('#orbit img').forEach((img, i) => {
     gsap.to(img, { y: i % 2 ? 16 : -16, rotate: i % 2 ? 6 : -6, duration: 2.4 + i * 0.3, yoyo: true, repeat: -1, ease: 'sine.inOut' });
