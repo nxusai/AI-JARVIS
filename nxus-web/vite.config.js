@@ -25,10 +25,29 @@ const partials = () => ({
   },
 });
 
+// Vista previa (ARTIFACT=1): rutas relativas y ligas a archivos .html, para
+// servir el sitio desde una subcarpeta sin direcciones limpias.
+const preview = process.env.ARTIFACT === '1';
+const relative = () => ({
+  name: 'nxus-relative',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html) {
+      const pages = PAGES.filter((p) => p !== 'index').join('|');
+      return html
+        .replace(/href="\/(#[^"]*)?"/g, 'href="index.html$1"')
+        .replace(new RegExp(`href="/(${pages})(#[^"]*)?"`, 'g'), 'href="$1.html$2"')
+        .replace(/(src|href)="\/(img\/|favicon\.svg|manifest\.webmanifest)/g, '$1="$2')
+        .replace(/<title>NXUS AI · [^<]*<\/title>/, '<title>NXUS AI</title>');
+    },
+  },
+});
+
 export default defineConfig({
-  base: '/',
-  plugins: [partials()],
+  base: preview ? './' : '/',
+  plugins: [partials(), ...(preview ? [relative()] : [])],
   build: {
+    outDir: preview ? 'dist-preview' : 'dist',
     target: 'es2020',
     assetsInlineLimit: 0,
     rollupOptions: {
