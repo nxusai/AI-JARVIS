@@ -1,0 +1,10 @@
+{
+  "name": "El Abuelito Inc.",
+  "short_name": "El Abuelito",
+  "description": "¡Solo lo mejor...! Quesos, cremas, carnes y antojitos latinos.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff8ec",
+  "theme_color": "#0b7a3e",
+  "icons": [{ "src": "favicon.png", "sizes": "256x256", "type": "image/png" }]
+}

@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>El Abuelito Inc. | ¡Solo lo mejor...! Quesos, cremas y carnes latinas</title>
+  <meta name="description" content="El Abuelito: quesos frescos, cremas, carnes, moles, antojitos y postres con el auténtico sabor latino desde 1998. Paterson, NJ. Mayoreo para tiendas, carnicerías y restaurantes." />
+  <meta name="theme-color" content="#0b7a3e" />
+  <link rel="canonical" href="https://abuelitocheese.com/" />
+  <link rel="alternate" hreflang="es" href="https://abuelitocheese.com/" />
+  <link rel="alternate" hreflang="en" href="https://abuelitocheese.com/?lang=en" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="El Abuelito Inc." />
+  <meta property="og:title" content="El Abuelito | ¡Solo lo mejor...!" />
+  <meta property="og:description" content="Quesos, cremas, carnes, moles, antojitos y postres con el auténtico sabor latino. Desde 1998." />
+  <meta property="og:image" content="https://abuelitocheese.com/img/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Lilita+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="img/ui/abuelito.webp" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "El Abuelito Inc.",
+    "alternateName": "El Abuelito Cheese",
+    "url": "https://abuelitocheese.com",
+    "logo": "https://abuelitocheese.com/img/ui/logo.png",
+    "slogan": "¡Solo lo mejor...!",
+    "foundingDate": "1998",
+    "email": "contacto@abuelitocheese.com",
+    "telephone": "+1-973-345-3503",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "607 Main St",
+      "addressLocality": "Paterson",
+      "addressRegion": "NJ",
+      "postalCode": "07503",
+      "addressCountry": "US"
+    },
+    "sameAs": [
+      "https://www.instagram.com/elabuelito_inc/",
+      "https://www.facebook.com/profile.php?id=61572668835839"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#catalogo">Saltar al catálogo</a>
+
+  <!-- Pantalla de carga -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <img src="img/ui/abuelito.webp" alt="" class="loader__abuelo" width="180" height="284" />
+    <p class="loader__msg" id="loaderMsg">Calentando el comal…</p>
+    <div class="loader__bar"><span></span></div>
+  </div>
+
+  <!-- Encabezado -->
+  <header class="nav" id="nav">
+    <a href="#inicio" class="nav__logo" aria-label="El Abuelito — inicio">
+      <img src="img/ui/logo.webp" alt="El Abuelito ¡Solo lo mejor...!" width="140" height="90" />
+    </a>
+    <nav class="nav__links" aria-label="Principal">
+      <a href="#departamentos" data-i18n="nav.depts">Departamentos</a>
+      <a href="#recetas" data-i18n="nav.recipes">Recetas</a>
+      <a href="#historia" data-i18n="nav.story">Historia</a>
+      <a href="#calidad" data-i18n="nav.quality">Calidad</a>
+      <a href="#mayoreo" data-i18n="nav.wholesale">Mayoreo</a>
+      <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+    </nav>
+    <div class="nav__actions">
+      <button class="lang" id="langBtn" aria-label="Change language / Cambiar idioma"><span data-lang="es">ES</span><span data-lang="en">EN</span></button>
+      <button class="btn btn--small btn--red nav__ask" data-open-chat><span class="nav__askicon">💬</span><span data-i18n="nav.ask">Pregúntale al Abuelito</span></button>
+      <button class="burger" id="burger" aria-label="Menú" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+
+  <!-- Menú móvil -->
+  <div class="mmenu" id="mmenu" hidden>
+    <a href="#departamentos" data-i18n="nav.depts">Departamentos</a>
+    <a href="#recetas" data-i18n="nav.recipes">Recetas</a>
+    <a href="#historia" data-i18n="nav.story">Historia</a>
+    <a href="#calidad" data-i18n="nav.quality">Calidad</a>
+    <a href="#mayoreo" data-i18n="nav.wholesale">Mayoreo</a>
+    <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+  </div>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="inicio">
+      <div class="papel" id="papel" aria-hidden="true"></div>
+      <div class="hero__bg" aria-hidden="true"></div>
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <p class="kicker kicker--light" data-i18n="hero.kicker">Desde 1998 · Paterson, NJ</p>
+          <h1 class="hero__title" id="heroTitle" data-i18n="hero.title">¡Bienvenidos, mis nietos!</h1>
+          <p class="hero__script" aria-hidden="true">¡Solo lo mejor...!</p>
+          <p class="hero__sub" data-i18n="hero.sub">Quesos, cremas, carnes, moles, antojitos y postres con el auténtico sabor de nuestra tierra. Hechos con el cariño de siempre para toda la familia latina.</p>
+          <div class="hero__ctas">
+            <a href="#departamentos" class="btn btn--yellow btn--big" data-i18n="hero.cta1">Ver productos</a>
+            <button class="btn btn--ghost btn--big" data-open-chat><span data-i18n="hero.cta2">Pregúntale al Abuelito</span> 💬</button>
+          </div>
+        </div>
+        <div class="hero__stage" id="heroStage">
+          <div class="hero__sun" aria-hidden="true"></div>
+          <div class="orbit" id="orbit" aria-hidden="true"></div>
+          <button class="hero__abuelo" data-open-chat aria-label="Platicar con El Abuelito">
+            <img src="img/ui/abuelito.webp" alt="El Abuelito saludando" width="420" height="662" id="abueloImg" />
+          </button>
+          <div class="bubble" id="heroBubble" data-i18n="hero.bubble">¡Hola, mijo! ¿Qué se te antoja hoy?</div>
+        </div>
+      </div>
+      <ul class="stats" id="stats">
+        <li><b data-count="28">0</b><span data-i18n="stats.years">años de tradición</span></li>
+        <li><b data-count="100" data-suffix="+">0</b><span data-i18n="stats.products">productos</span></li>
+        <li><b data-count="6">0</b><span data-i18n="stats.depts">departamentos</span></li>
+        <li><b data-count="8">0</b><span data-i18n="stats.countries">países de sabor</span></li>
+      </ul>
+    </section>
+
+    <!-- Marquesina -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track" id="marquee1"></div>
+    </div>
+
+    <!-- DEPARTAMENTOS -->
+    <section class="section depts" id="departamentos">
+      <header class="section__head">
+        <p class="kicker" data-i18n="depts.kicker">Recorre la tienda</p>
+        <h2 class="title" data-i18n="depts.title">Departamentos del Abuelito</h2>
+        <p class="lead" data-i18n="depts.sub">Escoge un pasillo y descubre todo lo que tenemos para tu mesa.</p>
+      </header>
+      <div class="depts__grid" id="deptGrid"></div>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <section class="section catalog" id="catalogo">
+      <header class="section__head">
+        <p class="kicker" data-i18n="cat.kicker">Catálogo</p>
+        <h2 class="title" data-i18n="cat.title">Todo lo bueno, en un solo lugar</h2>
+      </header>
+      <div class="catalog__bar" id="catBar">
+        <div class="tabs" id="deptTabs" role="tablist"></div>
+        <label class="search">
+          <span aria-hidden="true">🔎</span>
+          <input type="search" id="catSearch" data-i18n-ph="cat.search" placeholder="Busca: cotija, pupusas, chorizo…" autocomplete="off" />
+        </label>
+      </div>
+      <div class="chips" id="groupChips"></div>
+      <p class="catalog__count" id="catCount" aria-live="polite"></p>
+      <div class="grid" id="productGrid"></div>
+      <p class="catalog__empty" id="catEmpty" hidden data-i18n="cat.empty">No encontré nada con eso, mijo.</p>
+    </section>
+
+    <!-- NOVEDADES -->
+    <section class="section news" id="novedades">
+      <header class="section__head section__head--row">
+        <div>
+          <p class="kicker kicker--light" data-i18n="new.kicker">Recién salidos de la cocina</p>
+          <h2 class="title title--light" data-i18n="new.title">Novedades</h2>
+        </div>
+        <p class="news__hint" data-i18n="new.drag">Arrastra para ver más →</p>
+      </header>
+      <div class="news__rail" id="newsRail"></div>
+    </section>
+
+    <!-- RUTA DEL QUESO -->
+    <section class="section route" id="ruta">
+      <header class="section__head">
+        <p class="kicker" data-i18n="route.kicker">Un viaje por Latinoamérica</p>
+        <h2 class="title" data-i18n="route.title">La ruta del queso</h2>
+        <p class="lead" data-i18n="route.sub">Cada país tiene su queso y su crema.</p>
+      </header>
+      <div class="route__flags" id="routeFlags" role="tablist"></div>
+      <div class="route__panel" id="routePanel"></div>
+    </section>
+
+    <!-- ANTOJOS -->
+    <section class="section crave" id="antojos">
+      <div class="crave__abuelo" aria-hidden="true"><img src="img/ui/abuelito.webp" alt="" width="220" height="347" /></div>
+      <header class="section__head">
+        <p class="kicker" data-i18n="crave.kicker">Juega con el Abuelito</p>
+        <h2 class="title" data-i18n="crave.title">¿Qué se te antoja hoy?</h2>
+        <p class="lead" data-i18n="crave.sub">Toca un antojo y te digo qué llevar.</p>
+      </header>
+      <div class="crave__chips" id="craveChips"></div>
+      <div class="crave__result" id="craveResult" aria-live="polite"></div>
+    </section>
+
+    <!-- VIDEO -->
+    <section class="video" id="video">
+      <video id="promoVideo" src="video/abuelito-cocina.mp4" poster="img/ui/video-poster.webp" muted loop playsinline preload="none"></video>
+      <div class="video__overlay">
+        <p class="kicker kicker--light" data-i18n="video.kicker">En la cocina con el Abuelito</p>
+        <h2 class="title title--light" data-i18n="video.title">Donde nace la afición del sabor</h2>
+        <button class="video__play" id="videoPlay" aria-label="Ver video con sonido"><span>▶</span><em data-i18n="video.play">Ver video</em></button>
+      </div>
+    </section>
+
+    <!-- RECETAS -->
+    <section class="section recipes" id="recetas">
+      <header class="section__head">
+        <p class="kicker" data-i18n="recipes.kicker">Recetas del Abuelito</p>
+        <h2 class="title" data-i18n="recipes.title">Cocina como en casa</h2>
+        <p class="lead" data-i18n="recipes.sub">Recetas fáciles con nuestros productos.</p>
+      </header>
+      <div class="recipes__grid" id="recipeGrid"></div>
+    </section>
+
+    <!-- HISTORIA -->
+    <section class="section story" id="historia">
+      <div class="story__wrap">
+        <div class="story__letter">
+          <p class="kicker" data-i18n="story.kicker">Nuestra historia</p>
+          <h2 class="title" data-i18n="story.title">Una tradición familiar</h2>
+          <p class="story__text" data-i18n="story.letter"></p>
+          <p class="story__sign" data-i18n="story.sign">Don Miguel Torres</p>
+          <p class="story__memory"><span aria-hidden="true">🕯️</span> <span data-i18n="story.memory"></span></p>
+        </div>
+        <ol class="timeline" id="timeline"></ol>
+      </div>
+    </section>
+
+    <!-- CALIDAD -->
+    <section class="section quality" id="calidad">
+      <div class="quality__wrap">
+        <div>
+          <p class="kicker kicker--light" data-i18n="quality.kicker">Calidad y garantía</p>
+          <h2 class="title title--light" data-i18n="quality.title">La calidad no es una promesa, es nuestra filosofía</h2>
+          <p class="lead lead--light" data-i18n="quality.text"></p>
+        </div>
+        <ul class="pillars">
+          <li><span class="pillars__ico">🔬</span><b data-i18n="quality.p1"></b><p data-i18n="quality.p1t"></p></li>
+          <li><span class="pillars__ico">✅</span><b data-i18n="quality.p2"></b><p data-i18n="quality.p2t"></p></li>
+          <li><span class="pillars__ico">👵🏽</span><b data-i18n="quality.p3"></b><p data-i18n="quality.p3t"></p></li>
+          <li><span class="pillars__ico">❄️</span><b data-i18n="quality.p4"></b><p data-i18n="quality.p4t"></p></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MAYOREO -->
+    <section class="section wholesale" id="mayoreo">
+      <div class="wholesale__card">
+        <div class="wholesale__img"><img src="img/ui/hero-family.webp" alt="El Abuelito con toda su familia de productos" loading="lazy" width="1600" height="1050" /></div>
+        <div class="wholesale__copy">
+          <p class="kicker" data-i18n="whole.kicker">Para negocios</p>
+          <h2 class="title" data-i18n="whole.title">¿Tienes tienda, carnicería o taquería?</h2>
+          <p class="lead" data-i18n="whole.text"></p>
+          <ul class="checks">
+            <li data-i18n="whole.b1"></li>
+            <li data-i18n="whole.b2"></li>
+            <li data-i18n="whole.b3"></li>
+          </ul>
+          <a href="#contacto" class="btn btn--red btn--big" data-wholesale data-i18n="whole.cta">Quiero ser cliente</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTAGRAM -->
+    <section class="section ig">
+      <header class="section__head">
+        <h2 class="title"><a id="igLink" target="_blank" rel="noopener"><span data-i18n="ig.title">Síguenos en Instagram</span> <span class="ig__handle">@elabuelito_inc</span></a></h2>
+      </header>
+      <div class="ig__grid" id="igGrid"></div>
+    </section>
+
+    <!-- CONTACTO -->
+    <section class="section contact" id="contacto">
+      <div class="contact__wrap">
+        <div class="contact__info">
+          <p class="kicker" data-i18n="contact.kicker">Estamos para servirte</p>
+          <h2 class="title" data-i18n="contact.title">Platica con nosotros</h2>
+          <ul class="contact__list" id="contactList"></ul>
+          <div class="faq">
+            <h3 data-i18n="faq.title">Preguntas frecuentes</h3>
+            <div id="faqList"></div>
+          </div>
+        </div>
+        <form class="form" id="contactForm" novalidate>
+          <label><span data-i18n="form.name">Nombre</span><input name="name" required autocomplete="name" /></label>
+          <div class="form__row">
+            <label><span data-i18n="form.email">Correo</span><input name="email" type="email" required autocomplete="email" /></label>
+            <label><span data-i18n="form.phone">Teléfono</span><input name="phone" type="tel" autocomplete="tel" /></label>
+          </div>
+          <label><span data-i18n="form.type">¿Quién eres?</span>
+            <select name="type" id="formType">
+              <option value="t1" data-i18n="form.t1">Cliente / familia</option>
+              <option value="t2" data-i18n="form.t2">Tienda o supermercado</option>
+              <option value="t3" data-i18n="form.t3">Restaurante, taquería o pupusería</option>
+              <option value="t4" data-i18n="form.t4">Distribuidor</option>
+              <option value="t5" data-i18n="form.t5">Otro</option>
+            </select>
+          </label>
+          <label class="form__biz" id="formBiz" hidden><span data-i18n="form.business">Nombre del negocio (opcional)</span><input name="business" autocomplete="organization" /></label>
+          <label><span data-i18n="form.msg">Mensaje</span><textarea name="msg" rows="4" required></textarea></label>
+          <button class="btn btn--green btn--big" type="submit" data-i18n="form.send">Enviar mensaje</button>
+          <p class="form__ok" id="formOk" hidden data-i18n="form.sent"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__papel" aria-hidden="true"></div>
+    <div class="footer__inner">
+      <img src="img/ui/logo.webp" alt="El Abuelito" width="180" height="116" loading="lazy" />
+      <nav class="footer__links">
+        <a href="#departamentos" data-i18n="nav.depts">Departamentos</a>
+        <a href="#recetas" data-i18n="nav.recipes">Recetas</a>
+        <a href="#historia" data-i18n="nav.story">Historia</a>
+        <a href="#calidad" data-i18n="nav.quality">Calidad</a>
+        <a href="#mayoreo" data-i18n="nav.wholesale">Mayoreo</a>
+        <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+      </nav>
+      <div class="footer__social" id="footerSocial"></div>
+      <p class="footer__small"><span data-i18n="footer.labels"></span></p>
+      <p class="footer__small">© 1998–<span id="year">2026</span> El Abuelito Inc. <span data-i18n="footer.rights"></span> <span data-i18n="footer.made"></span></p>
+    </div>
+  </footer>
+
+  <!-- Barra móvil -->
+  <nav class="mbar" aria-label="Accesos rápidos">
+    <a href="#catalogo"><span>🧀</span><em data-i18n="mobile.products">Productos</em></a>
+    <button data-open-chat class="mbar__ask"><img src="img/ui/abuelito.webp" alt="" width="44" height="69" /><em data-i18n="mobile.ask">Abuelito IA</em></button>
+    <a id="mbarCall"><span>📞</span><em data-i18n="mobile.call">Llamar</em></a>
+  </nav>
+
+  <!-- Ficha de producto -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer__scrim" data-close></div>
+    <article class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <button class="drawer__close" data-close aria-label="Cerrar">✕</button>
+      <div class="drawer__body" id="drawerBody"></div>
+    </article>
+  </div>
+
+  <!-- Receta -->
+  <div class="modal" id="recipeModal" hidden>
+    <div class="modal__scrim" data-close></div>
+    <article class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="recipeTitle">
+      <button class="drawer__close" data-close aria-label="Cerrar">✕</button>
+      <div id="recipeBody"></div>
+    </article>
+  </div>
+
+  <!-- Chat del Abuelito (IA) -->
+  <button class="fab" id="chatFab" data-open-chat aria-label="Abrir chat con El Abuelito">
+    <img src="img/ui/abuelito.webp" alt="" width="64" height="101" />
+    <span class="fab__ping"></span>
+  </button>
+  <section class="chat" id="chat" hidden aria-label="Chat con El Abuelito">
+    <header class="chat__head">
+      <img src="img/ui/abuelito.webp" alt="" width="44" height="69" />
+      <div><b data-i18n="chat.title">El Abuelito</b><small data-i18n="chat.status">En línea</small></div>
+      <button class="chat__close" id="chatClose" aria-label="Cerrar chat">✕</button>
+    </header>
+    <div class="chat__log" id="chatLog" aria-live="polite"></div>
+    <div class="chat__suggest" id="chatSuggest"></div>
+    <form class="chat__form" id="chatForm">
+      <input id="chatInput" maxlength="500" autocomplete="off" data-i18n-ph="chat.placeholder" placeholder="Escríbele al Abuelito…" aria-label="Mensaje" />
+      <button type="submit" aria-label="Enviar">➤</button>
+    </form>
+    <p class="chat__disc" data-i18n="chat.disclaimer"></p>
+  </section>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
