@@ -196,3 +196,71 @@
   .orbit { width: calc(100% - 70px); }
   .ring .it span { font-size: 10px; padding: 4px 8px; }
 }
+
+/* A2 · De la película a la realidad: el año corre de 2008 a hoy con el scroll */
+.film { position: relative; height: 260vh; --film: #ff9f43; --film-2: #e63946; }
+.film-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 55%, rgba(230, 57, 70, .16), transparent 60%), #000; transition: background 1s var(--ease); }
+.film.real .film-pin { background: radial-gradient(ellipse at 50% 55%, rgba(10, 108, 255, .2), transparent 60%), #000; }
+.film-pin::after { /* grano de película mientras es ficción */
+  content: ""; position: absolute; inset: -50%; pointer-events: none; opacity: .09; transition: opacity 1s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 1s steps(6) infinite;
+}
+.film.real .film-pin::after { opacity: 0; }
+@keyframes grain { 0% { transform: translate(0, 0); } 33% { transform: translate(-4%, 3%); } 66% { transform: translate(3%, -5%); } 100% { transform: translate(-2%, 2%); } }
+.film-in { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.film .eyebrow { color: var(--film); transition: color .8s; }
+.film.real .eyebrow { color: var(--cyan); }
+.film-year { line-height: .85; }
+.fy {
+  display: inline-block; font-size: clamp(110px, 25vw, 340px); font-weight: 900; letter-spacing: -.06em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffd29a, var(--film) 45%, var(--film-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 50px rgba(230, 57, 70, .35));
+}
+.film.real .fy { background-image: var(--grad); filter: drop-shadow(0 0 60px rgba(0, 229, 255, .4)); animation: glitch .5s steps(2) 1; }
+@keyframes glitch { 0% { transform: translate(3px, -2px) skewX(-6deg); } 50% { transform: translate(-3px, 2px) skewX(4deg); } 100% { transform: none; } }
+.film-states { position: relative; width: min(760px, 100%); min-height: 7.5em; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.38; letter-spacing: -.02em; }
+.fs { position: absolute; inset: 0; color: var(--ink-2); transition: opacity .2s; }
+.fs b { color: var(--ink); }
+.fs-b { opacity: 0; }
+.film-acr { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
+.film-acr b { color: var(--ink-2); font-weight: 500; }
+
+.film-hud { position: absolute; inset: calc(var(--nav-h) + 20px) var(--gutter) 24px; pointer-events: none; z-index: 1; }
+.hud-c { position: absolute; width: 34px; height: 34px; border: 2px solid var(--film); opacity: .7; transition: border-color .8s; }
+.film.real .hud-c { border-color: var(--cyan); }
+.hud-c.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.hud-c.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.hud-c.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.hud-c.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.hud-scan { position: absolute; left: 0; right: 0; height: 2px; top: 0; background: linear-gradient(90deg, transparent, var(--film), transparent); opacity: .35; animation: scan 4s linear infinite; }
+.film.real .hud-scan { background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+@keyframes scan { to { top: 100%; } }
+.hud-tag { position: absolute; top: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; color: var(--film); transition: color .8s; }
+.film.real .hud-tag { color: var(--cyan); }
+.hud-tag-l { left: 48px; }
+.hud-tag-r { right: 48px; }
+.hud-ring { position: absolute; left: 50%; top: 50%; width: min(760px, 120vw); aspect-ratio: 1; transform: translate(-50%, -50%); opacity: .5; }
+.hud-ring i { position: absolute; border-radius: 50%; border: 1px solid rgba(255, 159, 67, .25); transition: border-color .8s; }
+.hud-ring i:nth-child(1) { inset: 0; border-style: dashed; animation: spin 60s linear infinite; }
+.hud-ring i:nth-child(2) { inset: 9%; border-top-color: var(--film); border-width: 2px; animation: spin 12s linear infinite reverse; }
+.hud-ring i:nth-child(3) { inset: 20%; border-left-color: var(--film-2); animation: spin 20s linear infinite; }
+.film.real .hud-ring i { border-color: rgba(0, 229, 255, .18); }
+.film.real .hud-ring i:nth-child(2) { border-top-color: var(--cyan); }
+.film.real .hud-ring i:nth-child(3) { border-left-color: var(--violet); }
+@media (max-width: 600px) { .hud-tag { font-size: 9.5px; } .hud-tag-l { left: 40px; } .hud-tag-r { right: 40px; } .film-states { min-height: 9.5em; } }
+
+/* A3 · Ficción vs realidad */
+.fvr { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.fvr-card { border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); padding: 26px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+.fvr-card::before { content: ""; position: absolute; inset: 0 0 50% 0; background: linear-gradient(180deg, rgba(230, 57, 70, .08), transparent); pointer-events: none; }
+.fvr-k { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #ff9f43; }
+.fvr-k.now { color: var(--cyan); }
+.fvr-card p { color: var(--ink-3); font-size: 15px; text-decoration: line-through; text-decoration-color: transparent; transition: text-decoration-color .6s; }
+.fvr-card p.now { color: var(--ink); font-size: 16.5px; font-weight: 500; text-decoration: none; }
+.fvr-arrow { height: 1px; margin: 12px 0; background: linear-gradient(90deg, #ff9f43, var(--cyan), var(--violet)); transform-origin: left; transform: scaleX(0); transition: transform 1.2s .3s var(--ease); }
+.fvr-card.in .fvr-arrow { transform: scaleX(1); }
+.fvr-close { margin-top: 56px; text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.fvr-legal { max-width: 640px; font-size: 12.5px; }
+@media (max-width: 900px) { .fvr { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .fvr { grid-template-columns: 1fr; } }

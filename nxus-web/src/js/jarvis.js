@@ -25,6 +25,30 @@ document.querySelector('.namer').addEventListener('submit', (e) => {
 input.addEventListener('input', () => { if (input.value.trim()) setName(input.value); else setName('Jarvis'); markChip(getName()); });
 chips.forEach((c) => c.addEventListener('click', () => { input.value = c.dataset.pick; baptize(c.dataset.pick); }));
 
+/* ---------- A2 · De 2008 a hoy ---------- */
+const film = document.querySelector('.film');
+const fy = film.querySelector('.fy');
+const fsA = film.querySelector('.fs-a');
+const fsB = film.querySelector('.fs-b');
+const mode = film.querySelector('.hud-mode');
+const pct = film.querySelector('.hud-pct');
+const NOW = Math.max(2026, new Date().getFullYear());
+const cl = (v) => Math.min(1, Math.max(0, v));
+function filmAt(p) {
+  const k = cl((p - .25) / .4);
+  fy.textContent = Math.round(2008 + (NOW - 2008) * k);
+  fsA.style.opacity = 1 - cl((p - .25) / .15);
+  fsB.style.opacity = cl((p - .62) / .12);
+  pct.textContent = String(Math.round(k * 100)).padStart(3, '0');
+  const real = k >= 1;
+  if (real !== film.classList.contains('real')) {
+    film.classList.toggle('real', real);
+    mode.textContent = real ? 'REALIDAD' : 'CIENCIA FICCIÓN';
+  }
+}
+if (reduced) filmAt(1);
+else ScrollTrigger.create({ trigger: film, start: 'top top', end: 'bottom bottom', scrub: true, onUpdate: (st) => filmAt(st.progress) });
+
 /* ---------- C · Telegram ---------- */
 const SCENARIOS = {
   ventas: [

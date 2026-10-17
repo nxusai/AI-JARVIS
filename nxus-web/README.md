@@ -5,7 +5,7 @@ Sitio estático (Vite + GSAP + Lenis), una página por sección:
 | Dirección | Archivo | Qué tiene |
 |---|---|---|
 | `/` | `index.html` | La esfera de partículas que se vuelve el logo, manifiesto, teaser de Jarvis, soluciones, "un día con tu IA", industrias, comparativa |
-| `/jarvis` | `jarvis.html` | La demo: bautizar la IA, chat de Telegram en vivo (5 escenarios + el visitante le escribe), voz, consola, integraciones, equipo, control y cómo se hace |
+| `/jarvis` | `jarvis.html` | La demo: bautizar la IA, de la película (2008) a la realidad, ficción vs. realidad, chat de Telegram en vivo (5 escenarios + el visitante le escribe), voz, consola, integraciones, equipo, control y cómo se hace |
 | `/soluciones` | `soluciones.html` | Las 6 líneas del catálogo |
 | `/industrias` | `industrias.html` | Selector de 16 industrias con lo que hace la IA en cada una |
 | `/proceso` | `proceso.html` | Los 5 pasos, formas de empezar y preguntas frecuentes |
