@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="170 320 925 600" role="img" aria-label="NXUS AI">
+  <defs>
+    <linearGradient id="g" x1="177" y1="0" x2="1090" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00E5FF"/>
+      <stop offset=".52" stop-color="#0A6CFF"/>
+      <stop offset="1" stop-color="#A51CFF"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#g)" d="M177 326H305L645 717L558 816L294 497V916H177Z"/>
+  <path fill="url(#g)" d="M495 393H663L801 560L943 393H1090L866 656L1080 916H928L790 747L642 916H484L714 656Z"/>
+</svg>

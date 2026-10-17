@@ -1,0 +1,19 @@
+{
+  "name": "nxus-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sitio web de NXUS AI — inteligencia artificial para cualquier negocio.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "lenis": "^1.3.4"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <!-- @head -->
+    <title>Contacto · Hablemos de tu negocio · NXUS AI</title>
+    <meta name="description" content="Cuéntanos de tu negocio y te decimos cómo la inteligencia artificial puede ayudarte. Escríbenos o agenda una reunión sin costo con NXUS AI.">
+    <meta property="og:title" content="Contacto · NXUS AI">
+    <meta property="og:description" content="Hablemos de tu negocio.">
+    <link rel="stylesheet" href="/src/css/base.css">
+    <link rel="stylesheet" href="/src/css/components.css">
+    <link rel="stylesheet" href="/src/css/pages.css">
+  </head>
+  <body data-page="contacto">
+    <!-- @nav -->
+    <main>
+      <section class="page-hero center" style="padding-bottom:50px">
+        <div class="aura aura-c"></div><div class="aura aura-v"></div>
+        <div class="grid-bg"></div>
+        <div class="wrap">
+          <span class="eyebrow" data-reveal>Contacto</span>
+          <h1 class="display" data-split>Hablemos de<br><span class="grad-text">tu negocio.</span></h1>
+          <p class="lead" data-reveal style="--d:.3s">Cuéntanos qué te gustaría que tu empresa pudiera hacer. Te respondemos en menos de un día hábil.</p>
+        </div>
+      </section>
+
+      <section class="section-sm" style="padding-top:0">
+        <div class="wrap contact-grid">
+          <form class="card form" id="form" novalidate data-reveal>
+            <div class="two">
+              <div class="field"><label for="f-nombre">Tu nombre</label><input id="f-nombre" name="nombre" autocomplete="name" maxlength="80" required></div>
+              <div class="field"><label for="f-empresa">Tu empresa</label><input id="f-empresa" name="empresa" autocomplete="organization" maxlength="120" required></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="f-whatsapp">WhatsApp</label><input id="f-whatsapp" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="+52 …" required></div>
+              <div class="field"><label for="f-correo">Correo</label><input id="f-correo" name="correo" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="tu@empresa.com" required></div>
+            </div>
+            <div class="field">
+              <label for="f-giro">Industria</label>
+              <select id="f-giro" name="giro">
+                <option value="">Elige una…</option>
+                <option>Restaurantes</option><option>Distribución</option><option>Comercio / Retail</option><option>Servicios</option><option>Salud</option><option>Inmobiliaria</option><option>Industria / Manufactura</option><option>Educación</option><option>E-commerce</option><option>Otra</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>¿Qué te interesa?</label>
+              <div class="pills" role="group" aria-label="Intereses">
+                <button type="button" class="pill" aria-pressed="false">Mi propio Jarvis</button>
+                <button type="button" class="pill" aria-pressed="false">Atención y ventas con IA</button>
+                <button type="button" class="pill" aria-pressed="false">Agentes de voz</button>
+                <button type="button" class="pill" aria-pressed="false">Software a la medida</button>
+                <button type="button" class="pill" aria-pressed="false">Marketing y contenido</button>
+                <button type="button" class="pill" aria-pressed="false">Web e integraciones</button>
+              </div>
+            </div>
+            <div class="field"><label for="f-mensaje">¿Qué te gustaría que tu empresa pudiera hacer?</label><textarea id="f-mensaje" name="mensaje" maxlength="1500" placeholder="Cuéntanoslo con tus palabras"></textarea></div>
+            <p class="form-err" role="alert"></p>
+            <button class="btn btn-grad" type="submit" style="align-self:flex-start">Enviar <span class="arrow">→</span></button>
+            <p class="small dim">Al enviar aceptas que NXUS AI te contacte por WhatsApp y correo sobre tu solicitud.</p>
+          </form>
+
+          <div class="side-cards">
+            <a class="card glow side-card" href="https://empezar.nxusai.org" data-reveal style="--d:.1s"><span>📅</span><b>Agenda una reunión</b><p>Elige tu horario y platiquemos por Google Meet. Sin costo.</p><span class="link-arrow" style="font-size:15px">empezar.nxusai.org</span></a>
+            <a class="card glow side-card" href="mailto:contacto@nxusai.org" data-reveal style="--d:.18s"><span>✉️</span><b>Escríbenos</b><p>contacto@nxusai.org</p></a>
+            <a class="card glow side-card" href="https://www.instagram.com/nxusai/" target="_blank" rel="noopener" data-reveal style="--d:.26s"><span>📸</span><b>Instagram</b><p>Mira lo que estamos construyendo: @nxusai</p></a>
+            <a class="card glow side-card" href="/jarvis" data-reveal style="--d:.34s"><span>🤖</span><b>Prueba la demo</b><p>Bautiza a tu IA y escríbele en vivo.</p></a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- @footer -->
+    <script type="module" src="/src/js/contacto.js"></script>
+  </body>
+</html>

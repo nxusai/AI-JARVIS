@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <!-- @head -->
+    <title>Tu Jarvis · La IA de tu empresa, con el nombre que quieras · NXUS AI</title>
+    <meta name="description" content="Mira en vivo cómo funciona tu propio asistente de IA: le escribes por Telegram, le hablas con tu voz, lo ves trabajar en su consola y se conecta a todas tus herramientas.">
+    <meta property="og:title" content="Tu propio Jarvis · NXUS AI">
+    <meta property="og:description" content="Ponle nombre a la IA de tu empresa y mírala trabajar en vivo.">
+    <link rel="stylesheet" href="/src/css/base.css">
+    <link rel="stylesheet" href="/src/css/components.css">
+    <link rel="stylesheet" href="/src/css/jarvis.css">
+  </head>
+  <body data-page="jarvis">
+    <!-- @nav -->
+    <main>
+      <!-- A · Bautízalo -->
+      <section class="j-hero">
+        <div class="reactor" aria-hidden="true">
+          <i class="r r1"></i><i class="r r2"></i><i class="r r3"></i><i class="r r4"></i><i class="r-core"></i>
+        </div>
+        <div class="grid-bg"></div>
+        <div class="wrap j-hero-in center">
+          <span class="eyebrow" data-reveal>Demostración en vivo</span>
+          <h1 class="j-title" data-reveal style="--d:.1s">Conoce a<br><span class="j-name grad-text" data-ai-name>Jarvis</span></h1>
+          <p class="lead" data-reveal style="--d:.25s">La inteligencia artificial de tu empresa. Le escribes, le hablas, la ves trabajar y se conecta con todo. <b>Y se llama como tú quieras.</b></p>
+          <form class="namer" data-reveal style="--d:.4s" autocomplete="off">
+            <label for="ai-name">¿Cómo se va a llamar la tuya?</label>
+            <div class="namer-box">
+              <input id="ai-name" maxlength="18" placeholder="Escribe un nombre…" spellcheck="false">
+              <button class="btn btn-grad btn-sm" type="submit">Bautizar</button>
+            </div>
+            <div class="namer-chips">
+              <button type="button" class="chip" data-pick="Jarvis">Jarvis</button>
+              <button type="button" class="chip" data-pick="Nexy">Nexy</button>
+              <button type="button" class="chip" data-pick="Ana Sofi">Ana Sofi</button>
+              <button type="button" class="chip" data-pick="Atlas">Atlas</button>
+              <button type="button" class="chip" data-pick="Luna">Luna</button>
+              <button type="button" class="chip" data-pick="Max">Max</button>
+            </div>
+          </form>
+        </div>
+        <div class="j-index" data-reveal style="--d:.6s">
+          <a href="#telegram">💬 Telegram</a><a href="#voz">🎙️ Voz</a><a href="#consola">🖥️ Consola</a><a href="#integraciones">🔌 Integraciones</a><a href="#equipo">👥 Equipo</a><a href="#seguridad">🔒 Control</a><a href="#como">🛠️ Cómo se hace</a>
+        </div>
+      </section>
+
+      <!-- B · Qué es -->
+      <section class="section">
+        <div class="wrap-narrow">
+          <p class="scrub j-scrub" data-scrub="equipo,permiso">No es un chatbot. Es un miembro más de tu equipo: conoce tu negocio, recuerda todo, trabaja con tus herramientas, nunca se cansa y te pide permiso antes de hacer algo importante.</p>
+        </div>
+      </section>
+
+      <!-- C · Telegram -->
+      <section class="section j-tg" id="telegram">
+        <div class="aura aura-b" style="width:800px;height:800px;right:-250px;top:0"></div>
+        <div class="wrap tg-grid">
+          <div class="stack-lg tg-copy">
+            <span class="eyebrow" data-reveal>1 · Le escribes</span>
+            <h2 class="h2" data-split>Le mandas un mensaje.<br><span class="grad-text">Y se hace.</span></h2>
+            <p class="lead" data-reveal>Desde Telegram (o WhatsApp), como le escribirías a tu mejor empleado. Texto, notas de voz, fotos o documentos. <b><span data-ai-name>Jarvis</span> entiende, hace el trabajo y te pide tu aprobación con un botón.</b></p>
+            <div class="scenarios" role="tablist" data-reveal>
+              <button role="tab" class="scn on" data-scn="ventas"><span>💼</span><b>Ventas</b><small>Leads, cotizaciones y cierres</small></button>
+              <button role="tab" class="scn" data-scn="operacion"><span>📦</span><b>Operación</b><small>Pedidos, inventario y rutas</small></button>
+              <button role="tab" class="scn" data-scn="marketing"><span>📣</span><b>Marketing</b><small>Posts, anuncios y video</small></button>
+              <button role="tab" class="scn" data-scn="finanzas"><span>💸</span><b>Finanzas</b><small>Cobranza, facturas y reportes</small></button>
+              <button role="tab" class="scn" data-scn="clientes"><span>🤝</span><b>Tus clientes</b><small>Atención 24/7 con tu marca</small></button>
+            </div>
+            <p class="small" data-reveal>👉 También puedes escribirle tú: pregúntale por <i>ventas, inventario, agenda, facturas, redes o anuncios.</i></p>
+          </div>
+          <div class="tg-phone" data-reveal="scale">
+            <!-- @phone -->
+          </div>
+        </div>
+        <div class="wrap caps" data-reveal>
+          <div><b>Texto</b><span>Como en un chat normal</span></div>
+          <div><b>Notas de voz</b><span>Le hablas y te entiende</span></div>
+          <div><b>Fotos y archivos</b><span>Lee tickets, facturas, listas</span></div>
+          <div><b>Botones</b><span>Apruebas con un toque</span></div>
+          <div><b>Alertas</b><span>Te avisa antes que nadie</span></div>
+        </div>
+      </section>
+
+      <!-- D · Voz -->
+      <section class="section j-voice" id="voz">
+        <div class="wrap voice-grid">
+          <div class="voice-stage" data-reveal="scale">
+            <canvas class="voice-viz" aria-hidden="true"></canvas>
+            <div class="voice-wake"><span>“Hey, <span data-ai-name>Jarvis</span>”</span></div>
+          </div>
+          <div class="stack-lg">
+            <span class="eyebrow" data-reveal>2 · Le hablas</span>
+            <h2 class="h2" data-split>Dile “Hey, <span class="grad-text" data-ai-name>Jarvis</span>”.<br>Y te contesta.</h2>
+            <p class="lead" data-reveal>Con una voz natural y propia, en español o inglés. Lo interrumpes cuando quieras, como a una persona. Incluso <b>te llama por teléfono</b> cuando algo urge, o hace llamadas por ti.</p>
+            <div class="voice-log" aria-live="polite"></div>
+            <div class="row" data-reveal>
+              <button class="btn btn-primary voice-btn" type="button" data-magnetic><span class="vb-ic">▶</span> Escuchar a <span data-ai-name>Jarvis</span></button>
+              <span class="small">Usa la voz de tu navegador. La real se diseña a tu gusto.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- E · Consola -->
+      <section class="section j-console" id="consola">
+        <div class="wrap center stack" style="margin-bottom:56px">
+          <span class="eyebrow" data-reveal>3 · Lo ves trabajar</span>
+          <h2 class="h2" data-split>Su consola.<br><span class="grad-text">Tu centro de mando.</span></h2>
+          <p class="lead" data-reveal style="max-width:720px">Una pantalla hecha para tu empresa donde ves en vivo qué está haciendo, con quién habla, qué departamento trabaja y qué espera tu aprobación.</p>
+        </div>
+        <div class="wrap">
+          <div class="window console" data-reveal="scale">
+            <div class="window-bar"><i></i><i></i><i></i><span>consola · <span data-ai-name>Jarvis</span></span></div>
+            <div class="cs">
+              <aside class="cs-side">
+                <div class="cs-me"><span class="tg-avatar"><img src="/img/logo.svg" alt=""></span><div><b data-ai-name>Jarvis</b><small><i class="live"></i>En línea · 24/7</small></div></div>
+                <nav class="cs-deps">
+                  <span class="on">🧠 Dirección</span><span>📣 Marketing</span><span>🎯 Publicidad</span><span>💼 Ventas</span><span>📦 Operación</span><span>💸 Finanzas</span><span>🤝 Atención</span>
+                </nav>
+                <div class="cs-stats">
+                  <div><b data-cs="tareas">128</b><small>tareas hoy</small></div>
+                  <div><b data-cs="ahorro">6.4 h</b><small>ahorradas</small></div>
+                </div>
+              </aside>
+              <div class="cs-map">
+                <svg viewBox="0 0 600 440" class="map" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="mg" x1="0" x2="1"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a51cff"/></linearGradient>
+                    <radialGradient id="mcore"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#00e5ff"/><stop offset="1" stop-color="#0a6cff" stop-opacity="0"/></radialGradient>
+                  </defs>
+                  <g class="map-links"></g>
+                  <g class="map-pulses"></g>
+                  <g class="map-nodes"></g>
+                </svg>
+              </div>
+              <aside class="cs-feed">
+                <div class="cs-h">Actividad en vivo <i class="live"></i></div>
+                <ul class="feed"></ul>
+                <div class="approve">
+                  <small>Espera tu aprobación</small>
+                  <b>Mover $2,000 al anuncio B en Meta Ads</b>
+                  <div class="row"><button class="btn btn-sm btn-grad" type="button" data-approve>Aprobar</button><button class="btn btn-sm btn-ghost" type="button" data-approve="no">Rechazar</button></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+          <div class="console-caps">
+            <div data-reveal><b>Mapa de tu empresa</b><p>Cada departamento, cada agente y cada herramienta conectada. Los pulsos son trabajo real pasando entre ellos.</p></div>
+            <div data-reveal style="--d:.1s"><b>Actividad en vivo</b><p>Todo lo que hace queda escrito: qué, cuándo y por qué. Nada pasa a tus espaldas.</p></div>
+            <div data-reveal style="--d:.2s"><b>Aprobaciones</b><p>Lo importante (pagos, publicaciones, envíos) espera tu “sí”, desde la consola o desde Telegram.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- F · Integraciones -->
+      <section class="section j-int" id="integraciones">
+        <div class="wrap int-grid">
+          <div class="stack-lg">
+            <span class="eyebrow" data-reveal>4 · Se conecta con todo</span>
+            <h2 class="h2" data-split>Si tu negocio lo usa,<br><span class="grad-text"><span data-ai-name>Jarvis</span> lo maneja.</span></h2>
+            <p class="lead" data-reveal>Correo, calendario, redes, anuncios, facturación, inventarios, tu CRM, tu página web, tu impresora de etiquetas. Y si una herramienta no existe, <b>la construimos</b>.</p>
+            <div class="int-cats" data-reveal>
+              <span>📧 Correo y agenda</span><span>💬 Mensajería</span><span>📱 Redes sociales</span><span>🎯 Publicidad</span><span>💳 Pagos y facturas</span><span>📊 Datos y reportes</span><span>🎨 Diseño y video</span><span>🖨️ Equipos físicos</span>
+            </div>
+          </div>
+          <div class="orbit" data-reveal="scale" aria-hidden="true">
+            <div class="orbit-core"><img src="/img/logo.svg" alt=""></div>
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- G · Equipo -->
+      <section class="section j-team" id="equipo">
+        <div class="wrap">
+          <div class="center stack" style="margin-bottom:56px">
+            <span class="eyebrow" data-reveal>5 · Un equipo completo</span>
+            <h2 class="h2" data-split><span data-ai-name>Jarvis</span> no trabaja solo.<br><span class="muted">Dirige a un equipo de especialistas.</span></h2>
+            <p class="lead" data-reveal style="max-width:720px">Detrás de tu IA hay agentes expertos organizados por departamento, igual que una empresa. Tú hablas con uno; él reparte el trabajo.</p>
+          </div>
+          <div class="team">
+            <div class="card glow dep dep-main" data-reveal><span class="dep-ic">🧠</span><b>Dirección</b><p>Tu memoria, los manuales de cada marca, las aprobaciones y quién hace qué.</p><div class="agents"><span data-ai-name>Jarvis</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.05s"><span class="dep-ic">📣</span><b>Marketing</b><p>Estrategia, ganchos, guiones, captions, edición de video y publicación.</p><div class="agents"><span>Estratega</span><span>Guionista</span><span>Editor de video</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.1s"><span class="dep-ic">🎯</span><b>Publicidad</b><p>Campañas en Meta y Google: público, presupuesto, textos y vigilancia diaria.</p><div class="agents"><span>Media buyer</span><span>Copywriter</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.15s"><span class="dep-ic">💼</span><b>Ventas</b><p>Leads, seguimiento por WhatsApp, cotizaciones e investigación de prospectos.</p><div class="agents"><span>Cerrador</span><span>Investigador</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.2s"><span class="dep-ic">📦</span><b>Operación</b><p>Pedidos, inventarios, rutas, etiquetas y proveedores.</p><div class="agents"><span>Logística</span><span>Compras</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.25s"><span class="dep-ic">💸</span><b>Finanzas</b><p>Facturas, cobranza, conciliación y reportes para decidir con datos.</p><div class="agents"><span>Cobranza</span><span>Analista</span></div></div>
+            <div class="card glow dep" data-reveal style="--d:.3s"><span class="dep-ic">🤝</span><b>Atención</b><p>Tus clientes reciben respuesta en segundos, con tu tono y tu marca.</p><div class="agents"><span>Recepción</span><span>Soporte</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Superpoderes -->
+      <section class="section-sm">
+        <div class="wrap">
+          <div class="powers">
+            <div data-reveal><span>🧠</span><b>Memoria</b><p>Recuerda clientes, precios, acuerdos y tus preferencias.</p></div>
+            <div data-reveal style="--d:.05s"><span>⏰</span><b>Rutinas</b><p>Reportes, recordatorios y revisiones a la hora que digas.</p></div>
+            <div data-reveal style="--d:.1s"><span>👁️</span><b>Visión</b><p>Lee fotos, tickets, documentos y pantallas.</p></div>
+            <div data-reveal style="--d:.15s"><span>📞</span><b>Llamadas</b><p>Te marca cuando algo urge y llama a quien autorices.</p></div>
+            <div data-reveal style="--d:.2s"><span>🎨</span><b>Crea</b><p>Imágenes, videos, diseños y textos con tu marca.</p></div>
+            <div data-reveal style="--d:.25s"><span>🌐</span><b>Investiga</b><p>Navega internet y te trae la respuesta con fuentes.</p></div>
+            <div data-reveal style="--d:.3s"><span>📄</span><b>Documentos</b><p>Facturas, cotizaciones, contratos y reportes en PDF.</p></div>
+            <div data-reveal style="--d:.35s"><span>🏢</span><b>Multi-marca</b><p>Maneja varias empresas, cada una con su voz y sus reglas.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- H · Control -->
+      <section class="section j-sec" id="seguridad">
+        <div class="aura aura-v" style="width:700px;height:700px;left:-200px;top:20%"></div>
+        <div class="wrap sec-grid">
+          <div class="stack-lg sec-copy">
+            <span class="eyebrow" data-reveal>6 · Tú tienes el control</span>
+            <h2 class="h2" data-split>Poderoso.<br><span class="grad-text">Y bajo tu mando.</span></h2>
+            <p class="lead" data-reveal>Tu IA sólo hace lo que tú permites. Lo importante espera tu aprobación y tu información se queda contigo.</p>
+          </div>
+          <div class="sec-cards">
+            <div class="card sec" data-reveal><span>✅</span><b>Aprobaciones</b><p>Pagos, publicaciones y mensajes importantes no salen sin tu “sí”.</p></div>
+            <div class="card sec" data-reveal style="--d:.08s"><span>🖥️</span><b>Cerebro privado</b><p>Puede vivir en una computadora dentro de tu oficina, no en la nube de alguien más.</p></div>
+            <div class="card sec" data-reveal style="--d:.16s"><span>🔐</span><b>Cifrado y firmado</b><p>Disco cifrado, llaves protegidas y actualizaciones firmadas que se revierten solas si fallan.</p></div>
+            <div class="card sec" data-reveal style="--d:.24s"><span>👤</span><b>Permisos por persona</b><p>Cada quien ve y pide sólo lo que le toca. Tú decides quién habla con tu IA.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- I · Cómo lo construimos -->
+      <section class="section j-how" id="como">
+        <div class="wrap-narrow">
+          <div class="center stack" style="margin-bottom:64px">
+            <span class="eyebrow" data-reveal>7 · Cómo lo hacemos</span>
+            <h2 class="h2" data-split>De la idea a tu IA<br><span class="grad-text">trabajando.</span></h2>
+          </div>
+          <ol class="steps">
+            <i class="steps-line"><i></i></i>
+            <li data-reveal><span class="n">01</span><div><b>Nombre y personalidad</b><p>Le damos nombre, carácter, forma de hablar y las reglas de tu empresa.</p></div></li>
+            <li data-reveal><span class="n">02</span><div><b>Su voz</b><p>Diseñamos una voz propia, en español e inglés, para que suene a tu marca.</p></div></li>
+            <li data-reveal><span class="n">03</span><div><b>Conexiones</b><p>La conectamos a tu correo, agenda, redes, ventas, inventario y lo que uses.</p></div></li>
+            <li data-reveal><span class="n">04</span><div><b>Su consola</b><p>Construimos tu centro de mando con tus departamentos, tus números y tus aprobaciones.</p></div></li>
+            <li data-reveal><span class="n">05</span><div><b>Aprende tu negocio</b><p>Le enseñamos tus productos, precios, clientes y procesos. Desde el día uno sabe cómo trabajas.</p></div></li>
+            <li data-reveal><span class="n">06</span><div><b>Entrega y evolución</b><p>Llega a tu Telegram, la instalamos con tu equipo y sigue creciendo cada semana.</p></div></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- J · Llamado -->
+      <section class="cta-final noise">
+        <div class="aura aura-v" style="width:900px;height:900px;left:50%;top:50%;transform:translate(-50%,-50%)"></div>
+        <div class="grid-bg"></div>
+        <div class="wrap stack-lg center">
+          <img class="mark" src="/img/logo.svg" alt="">
+          <h2 class="h1" data-split><span data-ai-name>Jarvis</span> está listo<br><span class="grad-text">para trabajar contigo.</span></h2>
+          <p class="lead" data-reveal>Agenda una reunión sin costo y te mostramos cómo se vería en tu empresa.</p>
+          <div class="row" data-reveal>
+            <a class="btn btn-primary" href="https://empezar.nxusai.org" data-magnetic>Quiero el mío <span class="arrow">→</span></a>
+            <a class="btn btn-ghost" href="/soluciones" data-magnetic>Ver todas las soluciones</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- @footer -->
+    <script type="module" src="/src/js/jarvis.js"></script>
+  </body>
+</html>
