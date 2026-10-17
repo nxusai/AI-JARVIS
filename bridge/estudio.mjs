@@ -3,6 +3,7 @@ import { extname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { hub } from './console.mjs'
 import { conversation } from './nucleo/conversacion.mjs'
+import { REFS } from './nucleo/referencias.mjs'
 import { findWhisper, findWhisperModel } from './reels/motor.mjs'
 import {
   INTERVIEW,
@@ -38,6 +39,7 @@ import { DONE, INBOX, MUSIC, findFfmpeg, resolveSource } from './video.mjs'
  *   POST /estudio/api/proyecto/borrar     { id }
  *   GET  /estudio/api/onda?id=&fuente=    a recording's waveform
  *   POST /estudio/api/subir?nombre=       a video, as the request body, into ~/Movies/Nexy/entrada
+ *                                         (&destino=referencias: into the references folder, a reel to copy)
  *   GET  /estudio/media?path=             a video or song from the Nexy folders, with byte ranges
  *
  * And a socket at ws://localhost:<port>/estudio: the owner's chat with Nexy
@@ -181,6 +183,7 @@ export async function handleStudioRequest(req, res, cors, elevenKey) {
           estilos: listStyles(),
           gustos: { ...taste, pendientes: Object.keys(INTERVIEW).filter((k) => !taste.respuestas[k]).map((k) => ({ clave: k, pregunta: INTERVIEW[k] })) },
           entrada: files(INBOX, VIDEO_EXT),
+          referencias: files(REFS, VIDEO_EXT),
           musica: files(MUSIC, AUDIO_EXT),
           listos: files(DONE, VIDEO_EXT),
           renders: renders(),
@@ -243,13 +246,15 @@ export async function handleStudioRequest(req, res, cors, elevenKey) {
         return true
       }
       case 'POST /estudio/api/subir': {
+        // Into the inbox (to edit), or the references folder (a reel whose editing to copy).
+        const dir = url.searchParams.get('destino') === 'referencias' ? REFS : INBOX
         const raw = String(url.searchParams.get('nombre') ?? 'video.mp4')
         const ext = VIDEO_EXT.test(raw) ? extname(raw).toLowerCase() : '.mp4'
-        const base = raw.replace(/\.[^.]+$/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '-').slice(0, 60) || 'video'
-        mkdirSync(INBOX, { recursive: true })
+        const base = raw.replace(/\.[^.]+$/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '-').slice(0, 60) || 'video'
+        mkdirSync(dir, { recursive: true })
         let name = `${base}${ext}`
-        for (let n = 2; existsSync(join(INBOX, name)); n++) name = `${base}-${n}${ext}`
-        const out = join(INBOX, name)
+        for (let n = 2; existsSync(join(dir, name)); n++) name = `${base}-${n}${ext}`
+        const out = join(dir, name)
         if (Number(req.headers['content-length'] ?? 0) > MAX_UPLOAD) return json(413, { error: 'Ese video pesa demasiado.' }), true
         try {
           await pipeline(req, createWriteStream(out))

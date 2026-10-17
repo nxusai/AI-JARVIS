@@ -6,6 +6,7 @@ import { Inspector } from './Inspector'
 import { Library } from './Library'
 import { player } from './player'
 import { Preview } from './Preview'
+import { References } from './References'
 import { Timeline } from './Timeline'
 import { Transcript } from './Transcript'
 import type { ChatMessage, Edit, ProjectView, RenderState, Status } from './types'
@@ -345,6 +346,21 @@ export default function Estudio() {
         onDelete={(pid) => api.deleteProject(pid).then(() => (pid === id && setId(null), loadStatus()))}
         onDeleteStyle={(n) => api.deleteStyle(n).then(loadStatus)}
         onRefresh={loadStatus}
+        references={
+          <References
+            status={status}
+            project={view?.proyecto.nombre ?? null}
+            onRefresh={loadStatus}
+            onApplyStyle={(estilo) => edit({ estilo, ajustes: null })}
+            onStudy={(source, name, apply) =>
+              socket.current?.send({
+                type: 'chat',
+                proyecto: id,
+                texto: `Estudia este reel de referencia y copia su edición: ${source}\nGuárdalo como estilo «${name}»${apply ? ' y aplícalo al reel que tengo abierto' : ''}.`,
+              })
+            }
+          />
+        }
       />
 
       <main className="stage">

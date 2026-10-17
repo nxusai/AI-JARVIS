@@ -91,6 +91,7 @@ export type Status = {
   estilos: SavedStyle[]
   gustos: { respuestas: Record<string, string>; leGusta: string[]; noLeGusta: string[]; estiloPorDefecto: string | null; pendientes: { clave: string; pregunta: string }[] }
   entrada: FileItem[]
+  referencias: FileItem[]
   musica: FileItem[]
   listos: FileItem[]
   renders: Record<string, number>

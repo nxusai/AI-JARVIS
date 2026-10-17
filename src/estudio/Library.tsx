@@ -15,6 +15,7 @@ export function Library({
   onDelete,
   onDeleteStyle,
   onRefresh,
+  references,
 }: {
   status: Status | null
   current: string | null
@@ -24,6 +25,7 @@ export function Library({
   onDelete: (id: string) => void
   onDeleteStyle: (name: string) => void
   onRefresh: () => void
+  references: React.ReactNode
 }) {
   const [picked, setPicked] = useState<string[]>([])
   const [name, setName] = useState('')
@@ -74,6 +76,8 @@ export function Library({
         )}
         {err && <div className="error small">{err}</div>}
       </div>
+
+      {references}
 
       <div className="panel-head">
         <span className="label">Videos sin editar</span>

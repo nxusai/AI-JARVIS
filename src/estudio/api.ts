@@ -29,11 +29,11 @@ export const api = {
 /** A file from the Nexy folders, as the player can stream it. */
 export const mediaUrl = (path: string) => `${base}/estudio/media?path=${encodeURIComponent(path)}`
 
-/** Upload a video into ~/Movies/Nexy/entrada, with progress (0 to 1). */
-export function upload(file: File, onProgress: (p: number) => void): Promise<string> {
+/** Upload a video into ~/Movies/Nexy/entrada (or the references folder), with progress (0 to 1). */
+export function upload(file: File, onProgress: (p: number) => void, destino: 'entrada' | 'referencias' = 'entrada'): Promise<string> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${base}/estudio/api/subir?nombre=${encodeURIComponent(file.name)}`)
+    xhr.open('POST', `${base}/estudio/api/subir?nombre=${encodeURIComponent(file.name)}&destino=${destino}`)
     xhr.setRequestHeader('content-type', 'application/octet-stream')
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total)
     xhr.onload = () => {

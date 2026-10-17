@@ -294,7 +294,7 @@ input[type='color'] {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .stage {
@@ -1125,4 +1125,75 @@ input[type='color'] {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* References: reels whose editing to copy */
+.refs {
+  margin: 0 10px 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #221a3d, var(--panel-2));
+  border: 1px solid #3d3170;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.refs-title {
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.refs p {
+  margin: 0;
+}
+
+.refs-drop {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  padding: 7px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.refs-drop label {
+  cursor: pointer;
+  display: block;
+}
+
+.refs-drop.over {
+  border-color: var(--accent);
+  background: #1c1730;
+}
+
+.refs-apply {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.refs-sent {
+  color: var(--ok);
+}
+
+.refs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.refs-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.refs-item .item-name {
+  padding-right: 0;
 }

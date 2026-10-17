@@ -31,6 +31,12 @@ Es un editor como CapCut o Premiere, pero lo dirige Nexy:
 | Derecha abajo | El chat con Nexy: pídele lo que quieras y ves el cambio al momento |
 | Abajo | La línea de tiempo: el original con lo que se queda, los cortes con su onda de audio, subtítulos, título, textos y música |
 
+**Copiar la edición de un reel:** arriba a la izquierda, en «🎯 Copiar la edición
+de un reel», pega el link de un reel que te guste (Instagram, TikTok, YouTube…) o
+arrastra el video, ponle nombre al estilo y presiona «Estudiar con Nexy». Nexy
+lo estudia, lo guarda como estilo y edita tu reel abierto igual. Si Instagram no
+deja bajar el link, guarda el reel en tu teléfono y arrástralo ahí.
+
 **Editar por texto:** en la transcripción, selecciona palabras y presiona Supr para
 cortarlas; selecciona palabras tachadas para recuperarlas. Doble clic en una
 palabra para corregir cómo sale en los subtítulos.
