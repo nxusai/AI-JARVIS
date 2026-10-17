@@ -173,6 +173,10 @@ word-by-word captions, a hook title, levelled voice and ducked music. It learns
 your style from reference reels you send, a short interview and your feedback
 on every edit, and re-renders a tweak without transcribing again. Set up local
 transcription once with `brew install ffmpeg whisper-cpp && npm run reels:setup`.
+The studio console (`/estudio.html`, `src/estudio/`, API in `bridge/estudio.mjs`)
+is a full editor around it — live preview, text-based editing, a timeline with
+trims, the style inspector, export — with Nexy's chat beside it; whatever she
+or the owner changes is one shared edit, redrawn live on both sides.
 Guide (Spanish): `docs/guia-reels.md`.
 
 ### JARVIS controls the interface

@@ -1,226 +1,97 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fetchReference, referenceHost } from './nucleo/referencias.mjs'
+import { DEFAULT_STYLE, contactSheet, describePace, detectCuts, detectSilences, findWhisper, findWhisperModel, loudness, probe, still, suggestFromPace } from './reels/motor.mjs'
 import {
-  DEFAULT_STYLE,
-  REELS_DATA,
-  buildAss,
-  contactSheet,
-  describePace,
-  detectCuts,
-  detectSilences,
-  ffmpeg,
-  findWhisper,
-  findWhisperModel,
-  loudness,
-  mergeStyle,
-  planCuts,
-  probe,
-  remapWords,
-  renderArgs,
-  settle,
-  still,
-  suggestFromPace,
-  timeline,
-  transcribe,
-} from './reels/motor.mjs'
-import { DONE, VIDEO_DIR, findFfmpeg, resolveSource, transcribeWords } from './video.mjs'
+  editOf,
+  ensureFolders,
+  listProjects,
+  listStyles,
+  prepareProject,
+  readProject,
+  readStyle,
+  readTaste,
+  renderProject,
+  saveStyle,
+  tasteText,
+  transcriptLines,
+  updateEdit,
+  updateTaste,
+} from './reels/proyectos.mjs'
+import { findFfmpeg, resolveSource } from './video.mjs'
 
 /**
  * The Reels studio: the owner records, Nexy edits.
  *
  * Built for one person's personal brand on Instagram — talking to camera,
  * videos carried by captions, tutorials and short vlogs. The owner sends raw
- * recordings (Telegram, AirDrop into ~/Movies/Nexy/entrada) and the studio
- * cuts the pauses and "eh"s, frames it 9:16, adds punch-in zooms, captions
- * word by word, a hook title, levelled voice and ducked music.
+ * recordings (Telegram, AirDrop into ~/Movies/Nexy/entrada, or the studio
+ * console) and the studio cuts the pauses and "eh"s, frames it 9:16, adds
+ * punch-in zooms, captions word by word, a hook title, levelled voice and
+ * ducked music.
  *
- * It learns how the owner likes things in two ways, both kept on this Mac:
- *
- *   styles  (~/.nexy/reels/estilos)  how a reel looks, as data the engine
- *           applies: studied from reference videos the owner likes, or
- *           written from what they say, and tweaked by their feedback
- *   taste   (~/.nexy/reels/gustos.json)  who they are and what they like
- *           and hate, from a short interview and every comment on an edit
- *
- * Every edit is a project (~/.nexy/reels/proyectos) holding the transcript
- * and the silences, so "bigger captions" or "drop the second take" re-renders
- * without hearing the recording again. The engine is reels/motor.mjs; it only
- * reads from the Nexy folders and writes to ~/Movies/Nexy.
+ * It learns how the owner likes things: styles studied from reference reels
+ * or written from what they say, and their taste from a short interview and
+ * every comment on an edit. These are Nexy's tools; the state they change —
+ * projects, edits, styles, taste — lives in reels/proyectos.mjs, shared with
+ * the studio console (estudio.mjs), so whatever she changes appears there at
+ * once and whatever the owner does there by hand, she reads here.
  */
-
-const STYLES = join(REELS_DATA, 'estilos')
-const PROJECTS = join(REELS_DATA, 'proyectos')
-const TASTE_FILE = join(REELS_DATA, 'gustos.json')
-const PROJECT_MEDIA = join(VIDEO_DIR, 'reels')
-const MAX_SOURCES = 12
-const MAX_SECONDS = 15 * 60
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
 const jpeg = (buf) => ({ type: 'image', data: buf.toString('base64'), mimeType: 'image/jpeg' })
-
-/** A name as a file name: lowercase words and dashes. */
-export const slug = (s) =>
-  String(s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40)
-
-const readJson = (file, fallback) => {
-  try {
-    return JSON.parse(readFileSync(file, 'utf8'))
-  } catch {
-    return fallback
-  }
-}
-const writeJson = (file, data) => {
-  mkdirSync(join(file, '..'), { recursive: true })
-  writeFileSync(file, JSON.stringify(data, null, 2))
-}
-
-// -- the owner's taste ------------------------------------------------------
-
-/** The interview: what the studio asks once, a question or two at a time. */
-export const INTERVIEW = {
-  tema: '¿De qué trata tu contenido y a quién le hablas?',
-  tono: '¿Qué tono quieres que se sienta: energético, calmado, educativo, divertido, elegante…?',
-  ritmo: '¿Cortes muy rápidos, sin respirar (estilo Hormozi), o un ritmo más relajado?',
-  subtitulos: '¿Cómo te gustan los subtítulos: palabra por palabra con la palabra resaltada, frases que aparecen, o simples? ¿En mayúsculas?',
-  marca: '¿Cuáles son los colores de tu marca (si los tienes en hex, mejor) y alguna tipografía?',
-  zooms: '¿Zooms en los cortes: muchos, pocos o ninguno?',
-  musica: '¿Música de fondo? ¿De qué estilo?',
-  gancho: '¿Quieres un título gancho escrito arriba en los primeros segundos?',
-  duracion: '¿Cuánto quieres que duren tus reels normalmente?',
-  odia: '¿Qué odias ver en un reel?',
-  referentes: '¿Qué creadores tienen una edición que te encanta? (si me mandas un video suyo, lo estudio)',
-}
-
-export const readTaste = () => ({ respuestas: {}, leGusta: [], noLeGusta: [], comentarios: [], estiloPorDefecto: null, ...readJson(TASTE_FILE, {}) })
-
-function tasteText(t) {
-  const answered = Object.entries(t.respuestas).map(([k, v]) => `- ${k}: ${v}`)
-  const pending = Object.keys(INTERVIEW).filter((k) => !t.respuestas[k])
-  return [
-    answered.length ? `What the owner said:\n${answered.join('\n')}` : 'The interview has not started.',
-    t.leGusta.length ? `Likes: ${t.leGusta.join('; ')}` : '',
-    t.noLeGusta.length ? `Dislikes: ${t.noLeGusta.join('; ')}` : '',
-    t.comentarios.length ? `Latest feedback:\n${t.comentarios.slice(-8).map((c) => `- ${c.fecha.slice(0, 10)}${c.proyecto ? ` (${c.proyecto})` : ''}: ${c.texto}`).join('\n')}` : '',
-    `Default style: ${t.estiloPorDefecto ?? 'none yet'}`,
-    pending.length ? `Interview questions still to ask (one or two at a time, in your own words):\n${pending.map((k) => `- ${k}: ${INTERVIEW[k]}`).join('\n')}` : 'Interview complete.',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-// -- styles -----------------------------------------------------------------
-
-const styleFile = (name) => join(STYLES, `${slug(name)}.json`)
-
-export function listStyles() {
-  try {
-    return readdirSync(STYLES)
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => readJson(join(STYLES, f), null))
-      .filter(Boolean)
-  } catch {
-    return []
-  }
-}
-
-/** A saved style by name, or null. */
-export const readStyle = (name) => (name && slug(name) ? readJson(styleFile(name), null) : null)
-
-/** The style an edit runs with: the named one (or the default), with this edit's tweaks on top. */
-function resolveStyle(name, tweaks) {
-  const taste = readTaste()
-  const saved = readStyle(name) ?? readStyle(taste.estiloPorDefecto)
-  return { style: settle(mergeStyle(mergeStyle(DEFAULT_STYLE, saved?.ajustes), tweaks)), name: saved?.nombre ?? 'base' }
-}
-
-// -- projects ---------------------------------------------------------------
-
-const projectFile = (id) => join(PROJECTS, `${slug(id)}.json`)
-const readProject = (id) => (id && slug(id) ? readJson(projectFile(id), null) : null)
-
-const clock = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`
-
-/** The transcript as lines the model can point at: "[f1 0:03.2–0:05.9] text". */
-export function transcriptLines(sources) {
-  const out = []
-  sources.forEach((s, k) => {
-    let cur = []
-    const flush = () => {
-      if (cur.length) out.push(`[f${k + 1} ${clock(cur[0].start)}–${clock(cur[cur.length - 1].end)}] ${cur.map((w) => w.text).join(' ')}`)
-      cur = []
-    }
-    for (const w of s.words) {
-      if (cur.length && (w.start - cur[cur.length - 1].end > 0.7 || cur.length >= 18)) flush()
-      cur.push(w)
-      if (/[.!?…]$/.test(w.text)) flush()
-    }
-    flush()
-    if (!s.words.length) out.push(`[f${k + 1}] (no words: ${s.engine ? 'nothing was said' : 'no transcription engine on this Mac'})`)
-  })
-  return out
-}
-
-/** Silences of a source at a threshold, measured once and kept in the project. */
-async function silencesAt(bin, src, db) {
-  src.silencios ??= {}
-  const key = String(db)
-  src.silencios[key] ??= await detectSilences(bin, src.file, db, 0.15)
-  return src.silencios[key].map((r) => ({ start: r.start, end: r.end ?? Infinity }))
-}
-
-/** A new project: the sources found, probed, transcribed and their silences measured. */
-async function prepare(bin, elevenKey, sources, name) {
-  const id = `${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}-${slug(name) || 'reel'}`
-  const media = join(PROJECT_MEDIA, id)
-  mkdirSync(media, { recursive: true })
-  const list = []
-  try {
-    for (const [i, s] of sources.slice(0, MAX_SOURCES).entries()) {
-      const file = await resolveSource(s, media, i)
-      const info = await probe(bin, file)
-      if (!info.video) throw new Error(`${s} is not a video`)
-      if (info.duration > MAX_SECONDS) throw new Error(`${s} is over ${MAX_SECONDS / 60} minutes; cut it in parts first`)
-      const heard = info.audio ? await transcribe(bin, file, { elevenKey, elevenTranscribe: transcribeWords }) : { words: [], engine: null }
-      list.push({ fuente: s, file, ...info, words: heard.words, engine: heard.engine })
-    }
-  } catch (err) {
-    rmSync(media, { recursive: true, force: true })
-    throw err
-  }
-  const project = { id, creado: new Date().toISOString(), fuentes: list, versiones: [] }
-  for (const src of project.fuentes) if (src.audio) await silencesAt(bin, src, DEFAULT_STYLE.cortes.silencioDb)
-  writeJson(projectFile(id), project)
-  return project
-}
 
 const rangeSchema = z.object({
   fuente: z.number().int().min(1).optional().describe('Which recording (f1, f2… in the transcript). Default 1.'),
   inicio: z.number().min(0).describe('Seconds into that recording.'),
   fin: z.number().min(0),
 })
-const byRecording = (ranges, k) => (ranges ?? []).filter((r) => (r.fuente ?? 1) - 1 === k && r.fin > r.inicio).map((r) => ({ start: r.inicio, end: r.fin }))
 
-// -- the server -------------------------------------------------------------
+/** What an edit can change, shared by update_reel and edit_reel. */
+const EDIT_FIELDS = {
+  style: z.string().optional().describe('A saved style; "base" for none.'),
+  tweaks: z.record(z.string(), z.any()).optional().describe('Settings for this reel only, laid on the style, e.g. {"zoom":{"activo":false}}. Replaces the earlier tweaks; {} clears them.'),
+  drop: z.array(rangeSchema).optional().describe('Every part to remove (retakes, false starts, what the owner disliked). Replaces the list: include the earlier ones to keep them.'),
+  keep: z.array(rangeSchema).optional().describe('Parts kept even if they are pauses (a beat the owner wants). Replaces the list.'),
+  only: z.array(rangeSchema).optional().describe('When given, only these parts are used (a short clip from a long recording). [] for everything.'),
+  title: z.string().optional().describe('The hook title for the first seconds; "" for none.'),
+  music: z.string().optional().describe('A track from the music folder (list_videos) or a link the owner gave; "none" to remove it.'),
+  texts: z
+    .array(z.object({ texto: z.string(), inicio: z.number().describe('Seconds into the finished reel.'), fin: z.number(), altura: z.number().optional().describe('0 top to 1 bottom. Default 0.3.'), tamano: z.number().optional(), color: z.string().optional() }))
+    .optional()
+    .describe('Text on screen at moments of the reel (a key word, a number, a call to action). Replaces the list.'),
+  zooms: z.array(z.object({ fuente: z.number().int().min(1).optional(), t: z.number().describe('A moment in that recording (seconds).'), escala: z.number().describe('1 for no zoom, 1.1–1.4 for a punch-in.') })).optional().describe('Zooms by hand on the pieces at these moments, over the style\'s rhythm. Replaces the list.'),
+  fix_words: z.array(z.object({ de: z.string(), a: z.string() })).optional().describe('Words the transcription got wrong, fixed everywhere in the captions (e.g. a brand name).'),
+}
+
+/** The edit's changes from the tool arguments. */
+function patchFrom(a) {
+  const patch = {}
+  if (a.style !== undefined) patch.estilo = a.style === 'base' ? null : a.style
+  if (a.tweaks !== undefined) patch.ajustes = Object.keys(a.tweaks).length ? a.tweaks : null
+  if (a.drop !== undefined) patch.quitar = a.drop
+  if (a.keep !== undefined) patch.forzar = a.keep
+  if (a.only !== undefined) patch.solo = a.only
+  if (a.title !== undefined) patch.titulo = a.title
+  if (a.music !== undefined) patch.musica = a.music === 'none' ? null : a.music
+  if (a.texts !== undefined) patch.textos = a.texts
+  if (a.zooms !== undefined) patch.zooms = a.zooms
+  return patch
+}
+
+const editLine = (e) =>
+  `Edit now: style ${e.estilo ?? 'default'}${e.ajustes ? ` + ${JSON.stringify(e.ajustes)}` : ''}; title "${e.titulo}"; ` +
+  `removed ${JSON.stringify(e.quitar)}; kept by hand ${JSON.stringify(e.forzar)}${e.solo.length ? `; only ${JSON.stringify(e.solo)}` : ''}; ` +
+  `music ${e.musica ?? 'none'}; ${e.textos.length} text(s) on screen; ${e.zooms.length} zoom(s) by hand.`
 
 export function reelsServer(elevenKey) {
-  for (const d of [STYLES, PROJECTS, PROJECT_MEDIA, DONE]) {
-    try {
-      mkdirSync(d, { recursive: true })
-    } catch {
-      // Reported when used.
-    }
-  }
+  ensureFolders()
+  // The bridge hands over a function (the key can appear while it runs); a plain key works too.
+  const key = () => (typeof elevenKey === 'function' ? elevenKey() : elevenKey) || null
   const guard = (fn) => async (args) => {
     const bin = findFfmpeg()
     if (!bin) return refuse('FFmpeg is not on this Mac: the owner runs `brew install ffmpeg` (or npm install in the Nexy folder).')
@@ -239,20 +110,15 @@ export function reelsServer(elevenKey) {
       tool('reels_status', 'What the Reels studio has: transcription engine, saved styles, the owner\'s taste and the interview questions still to ask, and recent projects. Read it before the first edit of a conversation.', {}, async () => {
         const whisper = findWhisper()
         const model = findWhisperModel()
-        const engine = whisper && model ? `whisper.cpp (${model.split('/').pop()}), local` : elevenKey ? 'ElevenLabs Scribe (no local whisper yet: npm run reels:setup makes it free and private)' : 'NONE: edits cut pauses but carry no captions until the owner runs npm run reels:setup'
+        const engine = whisper && model ? `whisper.cpp (${model.split('/').pop()}), local` : key() ? 'ElevenLabs Scribe (no local whisper yet: npm run reels:setup makes it free and private)' : 'NONE: edits cut pauses but carry no captions until the owner runs npm run reels:setup'
         const styles = listStyles()
-        let projects = []
-        try {
-          projects = readdirSync(PROJECTS).filter((f) => f.endsWith('.json')).sort().slice(-6).map((f) => f.slice(0, -5))
-        } catch {
-          // None yet.
-        }
+        const projects = listProjects().slice(0, 8)
         return ok(
           [
-            `FFmpeg: ${findFfmpeg() ? 'yes' : 'NO'}. Transcription: ${engine}.`,
+            `FFmpeg: ${findFfmpeg() ? 'yes' : 'NO'}. Transcription: ${engine}. Studio console: http://localhost:5173/estudio.html`,
             styles.length ? `Styles:\n${styles.map((s) => `- ${s.nombre}: ${s.descripcion || ''}`).join('\n')}` : 'Styles: none saved yet (the base style applies).',
             tasteText(readTaste()),
-            projects.length ? `Recent projects: ${projects.join(', ')}` : 'No projects yet.',
+            projects.length ? `Recent projects:\n${projects.map((p) => `- ${p.id} "${p.nombre}" (${p.duracion} s, ${p.versiones} version(s))`).join('\n')}` : 'No projects yet.',
           ].join('\n\n'),
         )
       }),
@@ -320,27 +186,12 @@ export function reelsServer(elevenKey) {
           make_default: z.boolean().optional().describe('Use it for every reel unless another is named.'),
         },
         async ({ name, description, settings, references, make_default }) => {
-          if (!slug(name)) return refuse('Give the style a name.')
-          const before = readStyle(name)
-          const ajustes = mergeStyle(mergeStyle(DEFAULT_STYLE, before?.ajustes), settings)
-          // Keep only what differs from the base, so later changes to the base still reach it.
-          const diff = (base, s) =>
-            Object.fromEntries(
-              Object.entries(s)
-                .map(([k, v]) => [k, v && typeof v === 'object' ? diff(base[k], v) : v === base[k] ? undefined : v])
-                .filter(([, v]) => v !== undefined && !(v && typeof v === 'object' && !Object.keys(v).length)),
-            )
-          const style = {
-            nombre: before?.nombre ?? name.trim(),
-            descripcion: description || before?.descripcion || '',
-            ajustes: diff(DEFAULT_STYLE, settle(ajustes)),
-            referencias: [...new Set([...(before?.referencias ?? []), ...(references ?? [])])],
-            creado: before?.creado ?? new Date().toISOString(),
-            actualizado: new Date().toISOString(),
+          try {
+            const { style, updated } = saveStyle({ name, description, settings, references: references ?? [], makeDefault: !!make_default })
+            return ok(`${updated ? 'Updated' : 'Saved'} the style "${style.nombre}"${make_default ? ' (now the default)' : ''}: ${JSON.stringify(style.ajustes)}`)
+          } catch (err) {
+            return refuse(err.message)
           }
-          writeJson(styleFile(name), style)
-          if (make_default) writeJson(TASTE_FILE, { ...readTaste(), estiloPorDefecto: style.nombre })
-          return ok(`${before ? 'Updated' : 'Saved'} the style "${style.nombre}"${make_default ? ' (now the default)' : ''}: ${JSON.stringify(style.ajustes)}`)
         },
       ),
 
@@ -374,13 +225,8 @@ export function reelsServer(elevenKey) {
           project: z.string().optional().describe('The project the feedback is about.'),
         },
         async ({ answers, likes, dislikes, feedback, project }) => {
-          const t = readTaste()
           const changed = answers || likes?.length || dislikes?.length || feedback
-          if (answers) Object.assign(t.respuestas, Object.fromEntries(Object.entries(answers).map(([k, v]) => [slug(k).replace(/-/g, '_') || k, String(v).slice(0, 600)])))
-          if (likes?.length) t.leGusta = [...new Set([...t.leGusta, ...likes.map((s) => s.slice(0, 200))])].slice(-60)
-          if (dislikes?.length) t.noLeGusta = [...new Set([...t.noLeGusta, ...dislikes.map((s) => s.slice(0, 200))])].slice(-60)
-          if (feedback) t.comentarios = [...t.comentarios, { fecha: new Date().toISOString(), proyecto: project ?? null, texto: feedback.slice(0, 800) }].slice(-200)
-          if (changed) writeJson(TASTE_FILE, t)
+          const t = changed ? updateTaste({ answers, likes, dislikes, feedback, project }) : readTaste()
           return ok((changed ? 'Saved.\n\n' : '') + tasteText(t))
         },
       ),
@@ -388,83 +234,74 @@ export function reelsServer(elevenKey) {
       tool(
         'prepare_reel',
         'Start a reel from the owner\'s raw recordings (paths from list_videos or their message; several are joined in order): transcribes them and measures the ' +
-          'pauses. Returns the project and the transcript with times, to spot retakes, false starts and the best hook before edit_reel. Takes about a minute per few minutes of video.',
+          'pauses. Returns the project and the transcript with times, to spot retakes, false starts and the best hook before editing. It also opens in the studio console. ' +
+          'Takes about a minute per few minutes of video.',
         {
           sources: z.array(z.string()).min(1).describe('The recordings, in order.'),
           name: z.string().optional().describe('A short name, e.g. "tip-productividad".'),
         },
         guard(async (bin, { sources, name }) => {
-          const p = await prepare(bin, elevenKey, sources, name)
+          const p = await prepareProject(bin, key(), sources, name)
           const total = p.fuentes.reduce((s, f) => s + f.duration, 0)
           return ok(
             `Project ${p.id}: ${p.fuentes.length} recording(s), ${Math.round(total)} s, heard by ${p.fuentes.find((f) => f.engine)?.engine ?? 'nothing (no captions)'}.\n\n` +
               `${transcriptLines(p.fuentes).join('\n')}\n\n` +
-              'If a sentence is said twice, the last take is usually the good one: drop the earlier ones with `drop` in edit_reel. Pick a hook title from the strongest line.',
+              'If a sentence is said twice, the last take is usually the good one: drop the earlier ones. Pick a hook title from the strongest line.',
           )
         }),
       ),
 
       tool(
+        'read_reel',
+        "A project as it stands: the transcript with times, the edit (including what the owner changed by hand in the studio console) and the versions rendered.",
+        { project: z.string() },
+        async ({ project }) => {
+          const p = readProject(project)
+          if (!p) return refuse(`No project ${project}.`)
+          return ok(
+            `Project ${p.id} "${p.nombre ?? ''}"\n\n${transcriptLines(p.fuentes).join('\n')}\n\n${editLine(editOf(p))}\n\n` +
+              `Versions: ${p.versiones.map((v, i) => `v${i + 1} ${v.salida}${v.vistaPrevia ? ' (preview)' : ''}`).join('; ') || 'none yet'}`,
+          )
+        },
+      ),
+
+      tool(
+        'update_reel',
+        'Change a reel\'s edit without rendering: what is removed or kept, the style or its tweaks, title, music, text on screen, zooms by hand, misheard words. ' +
+          'The studio console shows the change live at once; render with edit_reel when the owner wants the file.',
+        { project: z.string(), ...EDIT_FIELDS },
+        async (args) => {
+          try {
+            const p = updateEdit(args.project, patchFrom(args), { replace: args.fix_words ?? [] })
+            return ok(`Updated ${p.id}. ${editLine(editOf(p))}`)
+          } catch (err) {
+            return refuse(err.message)
+          }
+        },
+      ),
+
+      tool(
         'edit_reel',
         'Edit a reel and render it to ~/Movies/Nexy/listos: cuts the pauses and filler sounds, drops what you say, frames it, zooms, captions word by word, adds the hook title, ' +
-          'levels the voice and ducks the music, all in the chosen style. Pass project (from prepare_reel) to re-edit without transcribing again — that is how feedback is applied: ' +
-          'change the style or pass tweaks and render again. Returns the file and a contact sheet to check it; then send_file it to the owner and ask what they think.',
+          'levels the voice and ducks the music, all in the chosen style. Pass project (from prepare_reel) to re-edit without transcribing again — that is how feedback is applied. ' +
+          'Fields left out keep what the edit already has. Returns the file and a contact sheet to check it; then send_file it to the owner and ask what they think.',
         {
-          project: z.string().optional().describe('The project from prepare_reel (or an earlier edit_reel).'),
+          project: z.string().optional().describe('The project from prepare_reel.'),
           sources: z.array(z.string()).optional().describe('Recordings, when there is no project yet (prepares one first).'),
-          style: z.string().optional().describe('A saved style; the default style when left out.'),
-          tweaks: z.record(z.string(), z.any()).optional().describe('Settings for this edit only, laid on the style, e.g. {"zoom":{"activo":false}}.'),
-          drop: z.array(rangeSchema).optional().describe('Parts to remove: retakes, false starts, anything the owner did not like.'),
-          only: z.array(rangeSchema).optional().describe('When given, only these parts are used (e.g. to make a short clip from a long recording).'),
-          title: z.string().optional().describe('The hook title for the first seconds; empty for none.'),
-          music: z.string().optional().describe('A track from the music folder (list_videos) or a link the owner gave; "none" to remove it.'),
           preview: z.boolean().optional().describe('Half size and fast, to show a first cut quickly. Default false.'),
+          ...EDIT_FIELDS,
         },
-        guard(async (bin, { project, sources, style, tweaks, drop, only, title, music, preview }) => {
-          let p = readProject(project)
-          if (project && !p) return refuse(`No project ${project}.`)
-          if (!p) {
-            if (!sources?.length) return refuse('Give the recordings (sources) or a project.')
-            p = await prepare(bin, elevenKey, sources, title || 'reel')
+        guard(async (bin, args) => {
+          let id = args.project
+          if (id && !readProject(id)) return refuse(`No project ${id}.`)
+          if (!id) {
+            if (!args.sources?.length) return refuse('Give the recordings (sources) or a project.')
+            id = (await prepareProject(bin, key(), args.sources, args.title || 'reel')).id
           }
-          const last = p.versiones[p.versiones.length - 1] ?? {}
-          const { style: st, name: styleName } = resolveStyle(style ?? last.estilo, tweaks ?? (style ? undefined : last.ajustes))
-          const dropped = drop ?? last.quitar ?? []
-          const onlyRanges = only ?? last.solo ?? []
-          const hook = title ?? last.titulo ?? ''
-          let track = music === 'none' ? null : (music ?? last.musica ?? null)
-
-          for (const src of p.fuentes) if (!existsSync(src.file)) return refuse(`The recording ${src.fuente} is no longer at ${src.file}.`)
-          const plans = []
-          for (const [k, src] of p.fuentes.entries()) {
-            const silences = src.audio ? await silencesAt(bin, src, st.cortes.silencioDb) : []
-            plans.push(planCuts({ duration: src.duration, silences, words: src.words, cuts: st.cortes, drop: byRecording(dropped, k), only: byRecording(onlyRanges, k).length ? byRecording(onlyRanges, k) : null }))
-          }
-          const pieces = timeline(plans)
-          if (!pieces.length) return refuse('Nothing is left after the cuts: check drop/only, or raise cortes.pausaMax.')
-
-          const media = join(PROJECT_MEDIA, p.id)
-          mkdirSync(media, { recursive: true })
-          let musicFile = null
-          if (track) {
-            musicFile = await resolveSource(track, media, 'musica')
-            if (/^https:/i.test(track)) track = musicFile
-          }
-          const words = remapWords(p.fuentes.map((f) => f.words), pieces)
-          const hasCaptions = (st.subtitulos.activo && words.length > 0) || (st.titulo.activo && !!hook)
-          const n = p.versiones.length + 1
-          const out = join(DONE, `${p.id}-v${n}${preview ? '-vista' : ''}.mp4`)
-          const { args, length, size } = renderArgs({ sources: p.fuentes, pieces, style: st, music: musicFile, subs: hasCaptions ? 'subs.ass' : null, out, preview })
-          if (hasCaptions) writeFileSync(join(media, 'subs.ass'), buildAss(words, st, size, { title: hook, length }))
-          const started = Date.now()
-          await ffmpeg(bin, args, { cwd: media })
-          const secs = Math.round((Date.now() - started) / 1000)
-
-          p.versiones.push({ fecha: new Date().toISOString(), salida: out, estilo: styleName, ajustes: tweaks ?? null, quitar: dropped, solo: onlyRanges, titulo: hook, musica: track, vistaPrevia: !!preview })
-          writeJson(projectFile(p.id), p)
-
-          const total = p.fuentes.reduce((s, f) => s + f.duration, 0)
-          const zooms = st.zoom.activo ? Math.floor(pieces.length / st.zoom.cada) : 0
+          updateEdit(id, patchFrom(args), { replace: args.fix_words ?? [] })
+          const { out, secs, plan, version, mb } = await renderProject(bin, id, { preview: !!args.preview })
+          const { style, pieces, words, length, total, edit, styleName } = plan
+          const zooms = pieces.filter((p) => p.zoom > 1.001).length
           const work = mkdtempSync(join(tmpdir(), 'nexy-reels-'))
           try {
             const sheet = await contactSheet(bin, out, length, join(work, 'hoja.jpg'))
@@ -474,11 +311,11 @@ export function reelsServer(elevenKey) {
                 {
                   type: 'text',
                   text:
-                    `Rendered in ${secs} s: ${out} (${(statSync(out).size / 1048576).toFixed(1)} MB${preview ? ', preview at half size' : ''}).\n` +
-                    `Style "${styleName}"${tweaks ? ` + ${JSON.stringify(tweaks)}` : ''}. ${Math.round(total)} s of recording → ${length.toFixed(1)} s reel ` +
+                    `Rendered in ${secs} s: ${out} (${mb.toFixed(1)} MB${args.preview ? ', preview at half size' : ''}).\n` +
+                    `Style "${styleName}"${edit.ajustes ? ` + ${JSON.stringify(edit.ajustes)}` : ''}. ${Math.round(total)} s of recording → ${length.toFixed(1)} s reel ` +
                     `(${Math.round(total - length)} s of pauses, fillers and drops cut), ${pieces.length} pieces, ${zooms} zooms, ` +
-                    `${st.subtitulos.activo && words.length ? `${words.length} captioned words` : 'no captions'}${hook ? `, title "${hook}"` : ''}${musicFile ? ', music ducked under the voice' : ''}.\n` +
-                    `Project ${p.id}, version ${n}. Check the contact sheet (captions readable, nothing covering the face, framing right), then send it to the owner and ask what they ` +
+                    `${style.subtitulos.activo && words.length ? `${words.length} captioned words` : 'no captions'}${edit.titulo ? `, title "${edit.titulo}"` : ''}${edit.musica ? ', music ducked under the voice' : ''}.\n` +
+                    `Project ${id}, version ${version}. Check the contact sheet (captions readable, nothing covering the face, framing right), then send it to the owner and ask what they ` +
                     'like and what not; save their answer with reel_taste and the change in their style with save_reel_style before rendering again.',
                 },
               ],
@@ -498,6 +335,7 @@ export const REELS_PROMPT = `
 # Reels studio (the owner's personal brand on Instagram)
 The owner records, you edit: talking to camera, caption-driven videos, tutorials and short vlogs, for Reels. Use jarvis_reels for these — it is built for exactly this and learns the owner's taste. reels_status first in a conversation about reels.
 - Learning: when the interview has questions left, ask one or two naturally (never a list) and save each answer with reel_taste. When the owner sends a reel they like, study_reference it, say in two lines what makes it work, and save_reel_style (ask whether it becomes their default).
-- Editing: prepare_reel with the recordings, read the transcript, drop retakes and false starts, choose a hook title from the strongest line, then edit_reel (a preview first when they're waiting, the full render once they like it). Tutorials and screen recordings: tweaks {"encuadre":{"modo":"blur"}}.
+- Editing: prepare_reel with the recordings, read the transcript, drop retakes and false starts, choose a hook title from the strongest line, then edit_reel (a preview first when they're waiting, the full render once they like it). Tutorials and screen recordings: tweaks {"encuadre":{"modo":"blur"}}. Add text on screen for key numbers or words, and a zoom by hand on the punchline.
 - Feedback: every comment on an edit goes to reel_taste, and the change goes into their style with save_reel_style, then edit_reel on the same project (no new transcription). Never ask them to edit anything themselves.
+- The studio console (http://localhost:5173/estudio.html) shows every project live: the owner may cut or tweak there by hand too, so read_reel before changing a project they may have touched, and keep their changes.
 For 3D titles, motion graphics or anything beyond this, finish the reel here and then take it to the effects workshop. Rendering takes a minute or two: say so.`

@@ -150,11 +150,18 @@ export function settle(style) {
 // -- FFmpeg -----------------------------------------------------------------
 
 /** FFmpeg with an argument list (no shell); resolves with what it printed. */
-export function ffmpeg(bin, args, { ms = 30 * 60_000, anyExit = false, cwd } = {}) {
+export function ffmpeg(bin, args, { ms = 30 * 60_000, anyExit = false, cwd, onTime } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(bin, ['-hide_banner', '-nostdin', ...args], { stdio: ['ignore', 'pipe', 'pipe'], cwd })
     let log = ''
-    const take = (d) => (log = (log + d).slice(-400_000))
+    const take = (d) => {
+      log = (log + d).slice(-400_000)
+      // How far the render is, from FFmpeg's own status line ("time=00:00:12.40").
+      if (onTime) {
+        const m = String(d).match(/time=(\d+):(\d+):([\d.]+)/g)?.at(-1)?.match(/(\d+):(\d+):([\d.]+)/)
+        if (m) onTime(Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]))
+      }
+    }
     child.stdout.on('data', take)
     child.stderr.on('data', take)
     const timer = setTimeout(() => child.kill('SIGKILL'), ms)
@@ -358,8 +365,9 @@ const snap = (t) => Math.round(t * FPS) / FPS
  *   cuts      the style's cortes
  *   drop      ranges the editor asked to remove (retakes, a false start)
  *   only      when given, nothing outside these ranges stays
+ *   force     ranges kept whatever the rest says (a pause the owner wants, a word put back)
  */
-export function planCuts({ duration, silences = [], words = [], cuts = DEFAULT_STYLE.cortes, drop = [], only = null }) {
+export function planCuts({ duration, silences = [], words = [], cuts = DEFAULT_STYLE.cortes, drop = [], only = null, force = [] }) {
   let keep = [{ start: 0, end: duration }]
   if (cuts.activo) {
     const pauses = silences
@@ -372,6 +380,7 @@ export function planCuts({ duration, silences = [], words = [], cuts = DEFAULT_S
   }
   if (only?.length) keep = intersectRanges(keep, only)
   if (drop?.length) keep = subtractRanges(keep, drop)
+  if (force?.length) keep = joinRanges([...keep, ...force.map((r) => ({ start: Math.max(0, r.start), end: Math.min(duration, r.end) }))])
   return joinRanges(
     keep
       .map((r) => ({ start: snap(Math.max(0, r.start)), end: snap(Math.min(duration, r.end)) }))
@@ -448,7 +457,7 @@ export const assColour = (hex, alpha = 0) => {
 const assText = (t, upper) => (upper ? t.toLocaleUpperCase('es') : t).replace(/[{}\\]/g, '').replace(/\s+/g, ' ').trim()
 
 /** The captions and the hook title of a reel, as an ASS file sized to the frame. */
-export function buildAss(words, style, [width, height], { title = '', length = 0 } = {}) {
+export function buildAss(words, style, [width, height], { title = '', length = 0, texts = [] } = {}) {
   const sub = style.subtitulos
   const tit = style.titulo
   const size = Math.round(width * sub.tamano)
@@ -467,6 +476,7 @@ export function buildAss(words, style, [width, height], { title = '', length = 0
     // Alignment 5 (middle centre) with an explicit \pos on every line, so `altura` is exact.
     `Style: Sub,${sub.fuente},${size},${assColour(sub.color)},${assColour(sub.resaltado)},${assColour(sub.contorno)},${assColour('#000000', 0x60)},-1,0,0,0,100,100,0,0,1,${Math.round(size * sub.grosor)},${sub.sombra ? Math.max(1, Math.round(size * 0.05)) : 0},5,${marginX},${marginX},0,1`,
     // A box behind the title (BorderStyle 3), its colour the title's background.
+    `Style: Texto,${sub.fuente},${size},${assColour('#FFFFFF')},${assColour('#FFFFFF')},${assColour('#000000')},${assColour('#000000', 0x60)},-1,0,0,0,100,100,0,0,1,${Math.round(size * 0.1)},0,5,${marginX},${marginX},0,1`,
     `Style: Titulo,${tit.fuente},${tSize},${assColour(tit.color)},${assColour(tit.color)},${assColour(tit.fondo, 0x30)},${assColour(tit.fondo, 0x30)},-1,0,0,0,100,100,0,0,3,${Math.round(tSize * 0.35)},0,5,${marginX},${marginX},0,1`,
     '',
     '[Events]',
@@ -500,6 +510,14 @@ export function buildAss(words, style, [width, height], { title = '', length = 0
     const to = Math.min(tit.segundos, length || tit.segundos)
     lines.push(`Dialogue: 1,${assTime(0)},${assTime(to)},Titulo,,0,0,0,,{\\pos(${x},${Math.round(height * tit.altura)})\\fad(120,200)}${hook}`)
   }
+  // Text the editor placed on screen: { texto, inicio, fin (seconds into the reel), altura, tamano, color }.
+  for (const t of texts) {
+    const text = assText(String(t.texto ?? ''), false)
+    if (!text || !(t.fin > t.inicio)) continue
+    const tSz = Math.round(width * clamp(Number(t.tamano) || sub.tamano, 0.03, 0.15))
+    const colour = HEX.test(t.color ?? '') ? assColour(t.color) : assColour('#FFFFFF')
+    lines.push(`Dialogue: 2,${assTime(t.inicio)},${assTime(Math.min(t.fin, length || t.fin))},Texto,,0,0,0,,{\\pos(${x},${Math.round(height * clamp(Number(t.altura) || 0.3, 0.05, 0.95))})\\fs${tSz}\\c${colour}\\fad(100,150)}${text}`)
+  }
   return lines.join('\n') + '\n'
 }
 
@@ -513,18 +531,30 @@ export function inRanges(ranges, v = 't') {
   return ranges.map((r) => `between(${v},${num(r.start - 0.0005)},${num(r.end - 0.0015)})`).join('+') || '0'
 }
 
+/**
+ * Each piece's zoom: the style's rhythm (every `cada` pieces), unless the
+ * editor marked a piece by hand — a mark { fuente, t, escala } is a moment in
+ * a recording, so it stays on its piece however the cuts around it change.
+ */
+export function assignZooms(pieces, zoom, marks = []) {
+  return pieces.map((p, i) => {
+    const mark = marks.find((m) => (m.fuente ?? 0) === p.source && m.t >= p.start && m.t < p.end)
+    const auto = zoom.activo && zoom.escala > 1.001 && i % zoom.cada === zoom.cada - 1 ? zoom.escala : 1
+    return { ...p, zoom: mark ? clamp(Number(mark.escala), 1, 1.8) : auto }
+  })
+}
+
 /** The zoom per output frame, as a zoompan expression over `on` (the output frame number). */
 export function zoomExpr(pieces, zoom) {
-  if (!zoom.activo || zoom.escala <= 1.001) return '1'
   const parts = []
-  pieces.forEach((p, i) => {
-    if (i % zoom.cada !== zoom.cada - 1) return
+  for (const p of pieces) {
+    const z = p.zoom ?? 1
+    if (z <= 1.001) continue
     const a = Math.round(p.at * FPS)
     const b = Math.round((p.at + p.end - p.start) * FPS) - 1
-    if (b <= a) return
-    const value = zoom.tipo === 'suave' ? `1+${num(zoom.escala - 1)}*(on-${a})/${b - a}` : num(zoom.escala)
-    parts.push([a, b, value])
-  })
+    if (b <= a) continue
+    parts.push([a, b, zoom.tipo === 'suave' ? `1+${num(z - 1)}*(on-${a})/${b - a}` : num(z)])
+  }
   // A chain of ifs, innermost last: if(between(on,a,b),z,if(…,1)).
   return parts.reduceRight((rest, [a, b, v]) => `if(between(on,${a},${b}),${v},${rest})`, '1')
 }
@@ -614,6 +644,39 @@ export async function contactSheet(bin, file, duration, out, { cols = 4, rows = 
 export async function still(bin, file, second, out, width = 540) {
   await ffmpeg(bin, ['-y', '-ss', num(Math.max(0, second)), '-i', file, '-frames:v', '1', '-vf', `scale=${width}:-2`, '-q:v', '3', out], { ms: 60_000 })
   return readFileSync(out)
+}
+
+/** A recording's loudness, `perSecond` peaks a second (0 to 1), for drawing its waveform. */
+export function waveform(bin, file, perSecond = 25) {
+  return new Promise((resolve, reject) => {
+    const rate = 8000
+    const child = spawn(bin, ['-hide_banner', '-nostdin', '-i', file, '-vn', '-ac', '1', '-ar', String(rate), '-f', 's16le', '-'], { stdio: ['ignore', 'pipe', 'ignore'] })
+    const step = Math.round(rate / perSecond)
+    const peaks = []
+    let carry = Buffer.alloc(0)
+    let max = 0
+    let n = 0
+    child.stdout.on('data', (d) => {
+      const buf = carry.length ? Buffer.concat([carry, d]) : d
+      const even = buf.length - (buf.length % 2)
+      for (let i = 0; i < even; i += 2) {
+        const v = Math.abs(buf.readInt16LE(i))
+        if (v > max) max = v
+        if (++n === step) {
+          peaks.push(max / 32768)
+          max = 0
+          n = 0
+        }
+      }
+      carry = buf.subarray(even)
+    })
+    const timer = setTimeout(() => child.kill('SIGKILL'), 5 * 60_000)
+    child.on('error', reject)
+    child.on('close', () => {
+      clearTimeout(timer)
+      resolve(peaks.map((p) => Math.round(Math.min(1, Math.sqrt(p) * 1.2) * 100) / 100))
+    })
+  })
 }
 
 // -- studying a reference ---------------------------------------------------

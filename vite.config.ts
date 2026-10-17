@@ -5,9 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    // Two pages: Nexy herself, and the console that watches her work.
+    // Three pages: Nexy herself, the console that watches her work, and the Reels studio.
     rollupOptions: {
-      input: { main: 'index.html', consola: 'consola.html' },
+      input: { main: 'index.html', consola: 'consola.html', estudio: 'estudio.html' },
     },
   },
   server: {

@@ -33,6 +33,7 @@ import { CONTENT_PLAN_PROMPT, contentPlanServer } from './parrilla.mjs'
 import { ownerLabelsServer } from './etiquetas.mjs'
 import { EFFECTS_PROMPT, effectsServer } from './efectos.mjs'
 import { REELS_PROMPT, reelsServer } from './reels.mjs'
+import { handleStudioRequest, startStudio, studioSocket } from './estudio.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
@@ -1311,6 +1312,9 @@ const handleRequest = async (req, res) => {
     return res.end()
   }
 
+  // The Reels studio console: its API and the videos its player streams (see estudio.mjs).
+  if (await handleStudioRequest(req, res, cors, elevenKey)) return
+
   if (req.method === 'GET' && req.url === '/health') {
     // The browser reads this once at boot to decide which voice engine to use.
     // Both premium paths ride the same ElevenLabs key, so both flags track it:
@@ -1639,7 +1643,7 @@ const wss = new WebSocketServer({
       return done(false, 403, 'Forbidden')
     }
     const path = (req.url ?? '/').split('?')[0]
-    if (path !== '/' && path !== '/ws' && path !== '/console') {
+    if (path !== '/' && path !== '/ws' && path !== '/console' && path !== '/estudio') {
       console.warn(`[jarvis] rejected websocket on path ${path}`)
       return done(false, 403, 'Forbidden')
     }
@@ -1998,6 +2002,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
 } else {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+  startStudio({ agentOptions, runQuery: query })
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
   void startAtencion({
     model: MODEL,
@@ -2027,6 +2032,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
 }
 
 wss.on('connection', (socket, req) => {
+  // The Reels studio console: its chat with Nexy and the news it redraws on (see estudio.mjs).
+  if ((req.url ?? '/').split('?')[0] === '/estudio') return studioSocket(socket)
   // The console page only watches and approves; it gets no agent session.
   if ((req.url ?? '/').split('?')[0] === '/console') {
     // ?watch=1 is the face's command panels: read only, and not a place to approve.

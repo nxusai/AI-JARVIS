@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0c0d12" />
+    <!--
+      The studio only ever talks to the local bridge: its API, the socket to
+      Nexy, and the owner's own videos streamed from the Nexy folders.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        base-uri 'self';
+        object-src 'none';
+        img-src 'self' data: blob: http://localhost:8787 http://127.0.0.1:8787;
+        media-src 'self' blob: http://localhost:8787 http://127.0.0.1:8787;
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        connect-src 'self' ws://localhost:* ws://127.0.0.1:* http://localhost:8787 http://127.0.0.1:8787;
+      "
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <title>Estudio de Reels · Nexy</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/estudio/main.tsx"></script>
+  </body>
+</html>

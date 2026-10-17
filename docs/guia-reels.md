@@ -18,7 +18,37 @@ La transcripción corre **en tu Mac** con whisper.cpp: gratis, privada y rápida
 en Apple silicon. Si no la instalas pero tienes una llave de ElevenLabs, usa
 ElevenLabs Scribe. Sin ninguna de las dos, igual corta pausas, pero sin subtítulos.
 
-## Cómo se usa (por voz o por Telegram)
+## La consola: tu editor de video
+
+Con Nexy corriendo (`npm start`), abre en Chrome **http://localhost:5173/estudio.html**.
+Es un editor como CapCut o Premiere, pero lo dirige Nexy:
+
+| Zona | Qué hay |
+|---|---|
+| Izquierda | Tus videos sin editar (arrástralos ahí o mándalos por Telegram), tus reels y tus estilos |
+| Centro | El reproductor en vivo (ves el reel editado al instante, sin renderizar) y la transcripción |
+| Derecha arriba | El inspector: Estilo, Texto, Corte, Música y Exportar |
+| Derecha abajo | El chat con Nexy: pídele lo que quieras y ves el cambio al momento |
+| Abajo | La línea de tiempo: el original con lo que se queda, los cortes con su onda de audio, subtítulos, título, textos y música |
+
+**Editar por texto:** en la transcripción, selecciona palabras y presiona Supr para
+cortarlas; selecciona palabras tachadas para recuperarlas. Doble clic en una
+palabra para corregir cómo sale en los subtítulos.
+
+**En la línea de tiempo:** arrastra las orillas de un corte para recortarlo o
+extenderlo, haz clic en lo apagado del original para recuperarlo, y arrastra los
+textos para moverlos.
+
+**Atajos:** Espacio reproduce · ← → cuadro a cuadro (con Shift, de segundo en
+segundo) · Supr quita el corte seleccionado · Q recorta el inicio hasta el
+cabezal · W recorta el final desde el cabezal · Z pone o quita el zoom del corte ·
+⌘Z deshace · ⇧⌘Z rehace.
+
+Todo lo que haces a mano lo ve Nexy, y todo lo que hace Nexy (desde el chat, por
+Telegram o por voz) aparece en la consola al instante. Cuando te guste,
+**Exportar** lo renderiza en 1080×1920.
+
+## Cómo se usa por voz o por Telegram
 
 1. **Mándale tu video** por Telegram (o por AirDrop a `Películas → Nexy → entrada`).
 2. Dile algo como *"edítame este reel"*. Nexy:
