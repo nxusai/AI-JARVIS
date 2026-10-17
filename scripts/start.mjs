@@ -129,9 +129,11 @@ run('bridge', process.execPath, ['bridge/server.mjs'], '36', bridgeEnv)
 // npm is a shell script on most systems; call the vite binary directly so we do
 // not need shell:true (which would break the argument handling above).
 run('face', process.execPath, ['node_modules/vite/bin/vite.js'], '35', {})
+// The Reels studio on its own address (http://localhost:5180), apart from the main screen.
+run('estudio', process.execPath, ['node_modules/vite/bin/vite.js', '--config', 'vite.estudio.config.ts'], '33', {})
 
 console.log(
   '\nWhen it says the dev server is ready, open the URL it prints in Chrome,\n' +
     'click INITIALISE, and say "Hey Jarvis". Ctrl-C stops everything.\n' +
-    'The Reels studio is at /estudio.html on the same server (e.g. http://localhost:5173/estudio.html).\n',
+    'The Reels studio (the video editor) opens at http://localhost:5180\n',
 )

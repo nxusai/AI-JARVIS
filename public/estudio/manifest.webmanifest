@@ -1,0 +1,11 @@
+{
+  "name": "Estudio de Reels · Nexy",
+  "short_name": "Estudio",
+  "description": "Tú grabas, Nexy edita.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c0d12",
+  "theme_color": "#0c0d12",
+  "icons": [{ "src": "/estudio/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
