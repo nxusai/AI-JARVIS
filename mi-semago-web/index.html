@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Semago · Quesos latinos con tu marca · Private label en todo EE. UU.</title>
+  <meta name="description" content="Mi Semago fabrica quesos latinos con tu marca: Oaxaca, queso fresco, panela, canastón y más. 500,000 libras por semana en Paterson, NJ, con envío refrigerado a todo EE. UU. en 4 semanas o menos." />
+  <meta name="theme-color" content="#0b2b57" />
+  <link rel="icon" type="image/png" href="./img/ui/knot.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Mi Semago · Tu marca. Nuestro queso." />
+  <meta property="og:description" content="Private label de quesos latinos. Diseña tu etiqueta en vivo, calcula tarimas y mira cuándo llega a tu almacén." />
+  <meta property="og:image" content="./img/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Mi Semago",
+    "slogan": "The Better Latin Dairy Company",
+    "url": "https://misemago.com/",
+    "logo": "https://misemago.com/img/ui/logo.png",
+    "email": "contacto@misemagolp.com",
+    "telephone": "+1-973-626-4057",
+    "address": { "@type": "PostalAddress", "streetAddress": "98 2nd Ave", "addressLocality": "Paterson", "addressRegion": "NJ", "postalCode": "07514", "addressCountry": "US" },
+    "sameAs": ["https://www.instagram.com/misemago.cheese/", "https://www.facebook.com/profile.php?id=61573389944690"],
+    "makesOffer": { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Private label de quesos latinos" } }
+  }
+  </script>
+</head>
+<body class="is-loading">
+  <a class="skip" href="#main">Saltar al contenido</a>
+
+  <!-- Pantalla de carga: el hilo de oro se enrolla en el nudo del logo -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <svg class="loader__knot" viewBox="0 0 120 120">
+      <circle class="k" cx="60" cy="60" r="50" />
+      <path class="k" d="M18 44c22-14 58-14 84 6M14 66c30-6 62 4 90 26M30 98c4-30 26-54 62-70M60 10c-10 22-8 52 16 100" />
+    </svg>
+    <div class="loader__pct"><span id="loaderPct">0</span>%</div>
+    <p class="loader__msg" id="loaderMsg" data-i18n="load.1">Pasteurizando la leche…</p>
+  </div>
+
+  <!-- El hilo de oro que acompaña el scroll -->
+  <svg class="thread" id="thread" viewBox="0 0 40 1000" preserveAspectRatio="none" aria-hidden="true">
+    <path id="threadPath" d="M20 0 C 36 60, 4 120, 20 180 S 36 300, 20 360 S 4 480, 20 540 S 36 660, 20 720 S 4 840, 20 900 S 30 970, 20 1000" />
+  </svg>
+  <div class="cursor" id="cursor" aria-hidden="true"><span></span></div>
+
+  <header class="nav" id="nav">
+    <a href="#top" class="nav__logo" aria-label="Mi Semago, inicio">
+      <img src="./img/ui/logo-white.png" alt="Mi Semago" width="220" height="39" class="logo-light" />
+      <img src="./img/ui/logo.webp" alt="" width="220" height="39" class="logo-dark" />
+    </a>
+    <nav class="nav__links" aria-label="Principal">
+      <a href="#marca" data-i18n="nav.private">Marca privada</a>
+      <a href="#estudio" data-i18n="nav.studio">Estudio</a>
+      <a href="#quesos" data-i18n="nav.catalog">Quesos</a>
+      <a href="#planta" data-i18n="nav.plant">La planta</a>
+      <a href="#distribucion" data-i18n="nav.ship">Distribución</a>
+      <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+    </nav>
+    <div class="nav__right">
+      <button class="lang" id="langBtn" type="button" aria-label="Cambiar idioma / Change language"><span class="on">ES</span><span>EN</span></button>
+      <a href="#contacto" class="btn btn--gold btn--sm magnetic" data-i18n="nav.quote">Cotizar</a>
+      <button class="burger" id="burger" type="button" aria-label="Menú" aria-expanded="false"><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mnav" id="mnav" hidden>
+    <a href="#marca" data-i18n="nav.private">Marca privada</a>
+    <a href="#estudio" data-i18n="nav.studio">Estudio</a>
+    <a href="#quesos" data-i18n="nav.catalog">Quesos</a>
+    <a href="#planta" data-i18n="nav.plant">La planta</a>
+    <a href="#distribucion" data-i18n="nav.ship">Distribución</a>
+    <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+  </div>
+
+  <main id="main">
+    <!-- ───────── HERO ───────── -->
+    <section class="hero" id="top">
+      <canvas class="hero__strands" id="strands" aria-hidden="true"></canvas>
+      <div class="hero__grain" aria-hidden="true"></div>
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <p class="kicker kicker--gold" data-i18n="hero.kicker">Private label de quesos latinos · Paterson, NJ</p>
+          <h1 class="hero__title">
+            <span class="line"><span class="w" data-i18n="hero.t1">Tu marca.</span></span>
+            <span class="line"><span class="w" data-i18n="hero.t2">Nuestro</span> <span class="rot" id="heroRot"><em>queso.</em></span></span>
+          </h1>
+          <p class="hero__sub" data-i18n="hero.sub">Hacemos Oaxaca, queso fresco, panela, canastón y más con el nombre de tu marca, y lo llevamos refrigerado a cualquier estado de EE. UU. en 4 semanas o menos.</p>
+          <div class="hero__ctas">
+            <a href="#estudio" class="btn btn--gold magnetic"><span data-i18n="hero.cta1">Diseña tu etiqueta en vivo</span> <i class="arrow">→</i></a>
+            <a href="#quesos" class="btn btn--ghost magnetic" data-i18n="hero.cta2">Ver los quesos</a>
+          </div>
+        </div>
+        <div class="hero__stage" id="heroStage" aria-hidden="true">
+          <div class="orbit" id="orbit"></div>
+          <div class="hero__knot"><img src="./img/ui/knot.png" alt="" /></div>
+          <div class="hero__ticket" id="heroTicket">
+            <span class="hero__ticket-k">PRIVATE LABEL</span>
+            <b id="heroTicketName">Tu Marca</b>
+            <span id="heroTicketCheese">Queso Oaxaca</span>
+          </div>
+        </div>
+      </div>
+      <div class="stats" id="stats">
+        <div class="stat"><b data-count="500000">0</b><span data-i18n="stat.lb">libras por semana</span></div>
+        <div class="stat"><b data-count="30000">0</b><span data-i18n="stat.sqft">pies² de planta</span></div>
+        <div class="stat"><b data-count="16">0</b><span data-i18n="stat.skus">presentaciones listas</span></div>
+        <div class="stat"><b><span data-count="40">0</span>°F</b><span data-i18n="stat.temp">cadena de frío</span></div>
+        <div class="stat"><b>≤<span data-count="4">0</span></b><span data-i18n="stat.weeks">semanas a tu anaquel</span></div>
+      </div>
+      <a href="#marca" class="hero__scroll"><span data-i18n="hero.scroll">Desliza</span><i></i></a>
+    </section>
+
+    <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+
+    <!-- ───────── MARCA PRIVADA ───────── -->
+    <section class="sec private" id="marca">
+      <div class="wrap">
+        <p class="kicker" data-i18n="pl.kicker">01 · Marca privada</p>
+        <p class="manifesto" id="manifesto" data-i18n="pl.manifesto">Tú pones el nombre. Nosotros ponemos la leche, las manos, la planta y el camión frío. Sin invertir en una fábrica.</p>
+        <div class="benefits">
+          <article class="benefit reveal"><span class="benefit__n">A</span><h3 data-i18n="pl.b1t">Márgenes de marca propia</h3><p data-i18n="pl.b1"></p></article>
+          <article class="benefit reveal"><span class="benefit__n">B</span><h3 data-i18n="pl.b2t">Control total</h3><p data-i18n="pl.b2"></p></article>
+          <article class="benefit reveal"><span class="benefit__n">C</span><h3 data-i18n="pl.b3t">Cero planta, cero riesgo</h3><p data-i18n="pl.b3"></p></article>
+          <article class="benefit reveal"><span class="benefit__n">D</span><h3 data-i18n="pl.b4t">Rápido para cambiar</h3><p data-i18n="pl.b4"></p></article>
+        </div>
+        <div class="timeline reveal" id="timeline">
+          <div class="timeline__head"><h3 data-i18n="pl.timeline">De la primera llamada a tu anaquel</h3><span class="pill" data-i18n="pl.total">≤ 4 semanas en total</span></div>
+          <div class="timeline__bars" id="timelineBars"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── ESTUDIO DE MARCA ───────── -->
+    <section class="sec studio" id="estudio">
+      <div class="wrap">
+        <header class="sec__head">
+          <p class="kicker kicker--gold" data-i18n="st.kicker">02 · Estudio de Marca</p>
+          <h2 class="h2 split" data-i18n="st.title">Diseña tu queso antes de llamarnos.</h2>
+          <p class="lead" data-i18n="st.sub"></p>
+        </header>
+        <div class="studio__grid">
+          <form class="studio__panel" id="studioForm" autocomplete="off" onsubmit="return false">
+            <fieldset class="step"><legend><i>1</i><span data-i18n="st.s1">El queso</span></legend>
+              <div class="cheese-picks" id="stCheese" role="radiogroup"></div>
+            </fieldset>
+            <fieldset class="step"><legend><i>2</i><span data-i18n="st.s2">La presentación</span></legend>
+              <div class="chips" id="stSize" role="radiogroup"></div>
+            </fieldset>
+            <fieldset class="step"><legend><i>3</i><span data-i18n="st.s3">Tu marca</span></legend>
+              <label class="field"><span data-i18n="st.brand">Nombre de tu marca</span><input id="stBrand" maxlength="26" data-i18n-ph="st.brandPh" /></label>
+              <div class="names" id="stNames"></div>
+              <button type="button" class="link-btn" id="stSuggest">✦ <span data-i18n="st.suggest">Sugiéreme nombres con IA</span></button>
+              <label class="field"><span data-i18n="st.claim">Frase (opcional)</span><input id="stClaim" maxlength="32" data-i18n-ph="st.claimPh" /></label>
+              <label class="upload"><input type="file" id="stLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml" /><b data-i18n="st.logo">Sube tu logo</b><small data-i18n="st.logoHint">PNG o JPG · se queda en tu navegador</small></label>
+              <button type="button" class="link-btn" id="stLogoRemove" hidden data-i18n="st.logoRemove">Quitar logo</button>
+            </fieldset>
+            <fieldset class="step"><legend><i>4</i><span data-i18n="st.s4">El estilo</span></legend>
+              <div class="chips" id="stTpl" role="radiogroup">
+                <button type="button" data-tpl="tradicion" class="on" data-i18n="st.tpl.tradicion">Tradición</button>
+                <button type="button" data-tpl="moderno" data-i18n="st.tpl.moderno">Moderno</button>
+                <button type="button" data-tpl="fiesta" data-i18n="st.tpl.fiesta">Fiesta</button>
+              </div>
+              <div class="swatches" id="stColors" aria-label="Color"></div>
+            </fieldset>
+            <fieldset class="step"><legend><i>5</i><span data-i18n="st.s5">Volumen y destino</span></legend>
+              <div class="row2">
+                <label class="field"><span data-i18n="st.pack">Unidades por caja</span><select id="stPack"></select></label>
+                <label class="field"><span data-i18n="st.dest">Estado de destino</span><select id="stDest"></select></label>
+              </div>
+              <label class="field range"><span><span data-i18n="st.cases">Cajas por semana</span> <b id="stCasesOut">120</b></span><input type="range" id="stCases" min="10" max="3000" step="10" value="120" /></label>
+            </fieldset>
+          </form>
+
+          <div class="studio__stage">
+            <div class="mock" id="mock">
+              <div class="mock__glow" aria-hidden="true"></div>
+              <div class="mock__tilt" id="mockTilt">
+                <img id="mockImg" alt="" />
+                <div class="mock__label" id="mockLabel"></div>
+                <div class="mock__shine" aria-hidden="true"></div>
+              </div>
+              <p class="mock__hint" data-i18n="st.tilt">Mueve el cursor sobre el queso</p>
+            </div>
+            <div class="calc">
+              <div class="calc__cell"><b id="oUnits">0</b><span data-i18n="st.o.units">piezas / semana</span></div>
+              <div class="calc__cell"><b id="oLbs">0</b><span data-i18n="st.o.lbs">libras / semana</span></div>
+              <div class="calc__cell"><b id="oPallets">0</b><span data-i18n="st.o.pallets">tarimas / semana</span></div>
+              <div class="calc__cell calc__cell--meter"><b id="oShare">0%</b><span data-i18n="st.o.share">de nuestra capacidad semanal</span><i class="meter"><i id="oMeter"></i></i></div>
+            </div>
+            <div class="launch">
+              <p><span data-i18n="st.launch">Si hoy empezamos, tu queso podría estar en tu almacén alrededor del</span> <b id="oDate">—</b></p>
+              <div class="launch__bar" id="launchBar"></div>
+              <small data-i18n="st.launchNote"></small>
+            </div>
+            <div class="studio__actions">
+              <button type="button" class="btn btn--gold magnetic" id="stSend"><span data-i18n="st.send">Enviar mi propuesta</span> <i class="arrow">→</i></button>
+              <button type="button" class="btn btn--line" id="stDownload" data-i18n="st.download">Descargar etiqueta</button>
+              <button type="button" class="btn btn--line" id="stAsk">✦ <span data-i18n="st.ask">Preguntarle a la IA</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── CATÁLOGO ───────── -->
+    <section class="sec catalog" id="quesos">
+      <div class="wrap">
+        <header class="sec__head sec__head--row">
+          <div>
+            <p class="kicker" data-i18n="cat.kicker">03 · Los quesos</p>
+            <h2 class="h2 split" data-i18n="cat.title">16 presentaciones listas para tu marca.</h2>
+          </div>
+          <p class="lead" data-i18n="cat.sub"></p>
+        </header>
+        <div class="tabs" id="catTabs" role="tablist"></div>
+        <div class="grid" id="catGrid"></div>
+      </div>
+    </section>
+
+    <!-- ───────── LA PLANTA (video cuadro por cuadro con el scroll) ───────── -->
+    <section class="plant" id="planta">
+      <div class="plant__pin" id="plantPin">
+        <canvas id="plantCanvas" aria-label="Video de la planta de Mi Semago"></canvas>
+        <div class="plant__shade" aria-hidden="true"></div>
+        <div class="plant__head">
+          <p class="kicker kicker--gold" data-i18n="pt.kicker">04 · La planta</p>
+          <h2 class="h2" data-i18n="pt.title">Así se hace, cuadro por cuadro.</h2>
+        </div>
+        <div class="plant__chapter" id="plantChapter" aria-live="polite">
+          <span class="plant__num" id="plantNum">01</span>
+          <h3 id="plantName"></h3>
+          <p id="plantText"></p>
+        </div>
+        <ol class="plant__dots" id="plantDots" aria-hidden="true"></ol>
+        <div class="plant__progress" aria-hidden="true"><i id="plantProgress"></i></div>
+        <p class="plant__hint" data-i18n="pt.hint">Sigue deslizando: el video avanza contigo.</p>
+      </div>
+    </section>
+
+    <section class="sec people">
+      <div class="wrap people__grid">
+        <figure class="people__img people__img--a reveal-img"><img src="./img/ui/team-tall.webp" alt="Equipo de Mi Semago con quesos frescos en la planta" loading="lazy" /></figure>
+        <div class="people__copy">
+          <p class="kicker" data-i18n="pt.people">Las manos detrás de tu marca</p>
+          <blockquote class="quote split" data-i18n="pt.q1">Creamos más que queso: creamos historias de éxito.</blockquote>
+          <p class="lead" data-i18n="pt.peopleText"></p>
+        </div>
+        <figure class="people__img people__img--b reveal-img"><img src="./img/ui/stretch.webp" alt="Hilado del queso Oaxaca a mano" loading="lazy" /></figure>
+        <figure class="people__img people__img--c reveal-img"><img src="./img/ui/machine.webp" alt="Maquinaria de moldeado de queso" loading="lazy" /></figure>
+      </div>
+    </section>
+
+    <!-- ───────── DISTRIBUCIÓN ───────── -->
+    <section class="sec ship" id="distribucion">
+      <div class="wrap">
+        <header class="sec__head">
+          <p class="kicker kicker--gold" data-i18n="sh.kicker">05 · Distribución</p>
+          <h2 class="h2 split" data-i18n="sh.title">A 40 °F, de Paterson a cualquier estado.</h2>
+          <p class="lead" data-i18n="sh.sub"></p>
+        </header>
+        <div class="ship__grid">
+          <div class="map" id="map">
+            <svg id="mapSvg" viewBox="0 0 975 610" role="img" aria-label="Mapa de Estados Unidos"></svg>
+            <div class="map__legend"><span data-i18n="sh.legend">Días de tránsito</span><i class="d1">1</i><i class="d2">2</i><i class="d3">3</i><i class="d4">4</i><i class="d5">5</i></div>
+          </div>
+          <aside class="ship__panel">
+            <div class="truckcard" id="truckCard">
+              <div class="thermo" aria-hidden="true"><i></i><b>40°F</b></div>
+              <p class="truckcard__state" id="shState" data-i18n="sh.pick">Escoge un estado</p>
+              <p class="truckcard__days"><b id="shDays">—</b> <span id="shDaysLbl" data-i18n="sh.days">días en camino</span></p>
+              <p class="truckcard__miles"><span id="shMiles">—</span> <span data-i18n="sh.miles">millas desde Paterson, NJ</span></p>
+              <small data-i18n="sh.est">Estimado según la distancia. Rango real de envío: 1 a 5 días.</small>
+            </div>
+            <ul class="feats">
+              <li><b data-i18n="sh.f1t">Transporte refrigerado</b><span data-i18n="sh.f1"></span></li>
+              <li><b data-i18n="sh.f2t">Seguimiento en tiempo real</b><span data-i18n="sh.f2"></span></li>
+              <li><b data-i18n="sh.f3t">Cobertura nacional</b><span data-i18n="sh.f3"></span></li>
+              <li><b data-i18n="sh.f4t">Volúmenes flexibles</b><span data-i18n="sh.f4"></span></li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── POR QUÉ ───────── -->
+    <section class="sec why">
+      <div class="wrap">
+        <header class="sec__head">
+          <p class="kicker" data-i18n="why.kicker">06 · Por qué Mi Semago</p>
+          <h2 class="h2 split" data-i18n="why.title">Lo que ningún otro fabricante te enseña en su página.</h2>
+        </header>
+        <div class="why__grid">
+          <article class="why__card reveal"><span>01</span><h3 data-i18n="why.1t"></h3><p data-i18n="why.1"></p></article>
+          <article class="why__card reveal"><span>02</span><h3 data-i18n="why.2t"></h3><p data-i18n="why.2"></p></article>
+          <article class="why__card reveal"><span>03</span><h3 data-i18n="why.3t"></h3><p data-i18n="why.3"></p></article>
+          <article class="why__card reveal"><span>04</span><h3 data-i18n="why.4t"></h3><p data-i18n="why.4"></p></article>
+          <article class="why__card reveal"><span>05</span><h3 data-i18n="why.5t"></h3><p data-i18n="why.5"></p></article>
+          <article class="why__card reveal"><span>06</span><h3 data-i18n="why.6t"></h3><p data-i18n="why.6"></p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── FAQ ───────── -->
+    <section class="sec faq">
+      <div class="wrap faq__grid">
+        <header>
+          <p class="kicker" data-i18n="faq.kicker">Preguntas frecuentes</p>
+          <h2 class="h2 split" data-i18n="faq.title">Lo que todos preguntan antes de empezar.</h2>
+        </header>
+        <div class="faq__list" id="faqList"></div>
+      </div>
+    </section>
+
+    <!-- ───────── CONTACTO ───────── -->
+    <section class="sec contact" id="contacto">
+      <div class="wrap">
+        <header class="sec__head">
+          <p class="kicker kicker--gold" data-i18n="ct.kicker">07 · Hablemos</p>
+          <h2 class="h2 h2--xl split" data-i18n="ct.title">Hagamos realidad tu marca.</h2>
+        </header>
+        <div class="contact__grid">
+          <div class="contact__cards">
+            <a class="ccard ccard--main" href="tel:+18624395388">
+              <span class="ccard__k" data-i18n="ct.eduardo">Producción a gran escala</span>
+              <b>Eduardo Ramos</b>
+              <span class="ccard__big">+1 862 439 5388</span>
+              <small data-i18n="ct.eduardoText"></small>
+            </a>
+            <a class="ccard" href="tel:+19736264057"><span class="ccard__k" data-i18n="ct.office">Oficina principal</span><b>(973) 626-4057</b><small>98 2nd Ave, Paterson, NJ 07514</small></a>
+            <a class="ccard" href="mailto:contacto@misemagolp.com"><span class="ccard__k">Email</span><b>contacto@misemagolp.com</b></a>
+            <a class="ccard" href="https://www.google.com/maps/dir/?api=1&destination=51%20E%2023rd%20St%2C%20Paterson%2C%20NJ%2007514" target="_blank" rel="noopener"><span class="ccard__k" data-i18n="ct.ship">Envío y recepción</span><b>51 E 23rd St</b><small>Paterson, NJ 07514 · <u data-i18n="ct.map">Cómo llegar</u></small></a>
+          </div>
+          <form class="cform" id="contactForm" novalidate>
+            <div class="row2">
+              <label class="field"><span data-i18n="ct.name">Tu nombre</span><input name="name" required autocomplete="name" /></label>
+              <label class="field"><span data-i18n="ct.company">Empresa</span><input name="company" autocomplete="organization" /></label>
+            </div>
+            <div class="row2">
+              <label class="field"><span data-i18n="ct.email">Correo</span><input name="email" type="email" required autocomplete="email" /></label>
+              <label class="field"><span data-i18n="ct.phone">Teléfono</span><input name="phone" type="tel" autocomplete="tel" /></label>
+            </div>
+            <fieldset class="field"><legend data-i18n="ct.type">Tipo de negocio</legend>
+              <div class="chips chips--sm" id="ctType">
+                <button type="button" data-i18n="ct.t1"></button><button type="button" data-i18n="ct.t2"></button><button type="button" data-i18n="ct.t3"></button><button type="button" data-i18n="ct.t4"></button><button type="button" data-i18n="ct.t5"></button>
+              </div>
+            </fieldset>
+            <fieldset class="field"><legend data-i18n="ct.interest">¿Qué quesos te interesan?</legend>
+              <div class="chips chips--sm" id="ctInterest"></div>
+            </fieldset>
+            <label class="field"><span data-i18n="ct.msg">Cuéntanos tu proyecto</span><textarea name="msg" rows="4"></textarea></label>
+            <p class="cform__studio" id="ctStudio" hidden>✦ <span data-i18n="ct.studioNote"></span> <b id="ctStudioTxt"></b></p>
+            <button class="btn btn--gold btn--block magnetic" type="submit"><span data-i18n="ct.send">Enviar solicitud</span> <i class="arrow">→</i></button>
+            <p class="cform__ok" id="ctOk" hidden><span data-i18n="ct.sent"></span> <a href="mailto:contacto@misemagolp.com">contacto@misemagolp.com</a></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__grid">
+      <div>
+        <img src="./img/ui/logo-white.png" alt="Mi Semago" width="260" height="47" loading="lazy" />
+        <p class="footer__made" data-i18n="ft.made">Hecho en Paterson, Nueva Jersey</p>
+      </div>
+      <div class="footer__col">
+        <a href="tel:+19736264057">(973) 626-4057</a>
+        <a href="tel:+18624395388">+1 862 439 5388 · Eduardo Ramos</a>
+        <a href="mailto:contacto@misemagolp.com">contacto@misemagolp.com</a>
+      </div>
+      <div class="footer__col">
+        <span>98 2nd Ave, Paterson, NJ 07514</span>
+        <span>51 E 23rd St, Paterson, NJ 07514</span>
+      </div>
+      <div class="footer__col">
+        <span class="footer__k" data-i18n="ft.follow">Síguenos</span>
+        <a href="https://www.instagram.com/misemago.cheese/" target="_blank" rel="noopener">Instagram · @misemago.cheese</a>
+        <a href="https://www.facebook.com/profile.php?id=61573389944690" target="_blank" rel="noopener">Facebook</a>
+      </div>
+    </div>
+    <div class="wrap footer__bottom"><span>© <span id="year"></span> Mi Semago. <span data-i18n="ft.rights">Todos los derechos reservados.</span></span><span class="footer__big" aria-hidden="true">THE BETTER LATIN DAIRY COMPANY</span></div>
+  </footer>
+
+  <!-- Ficha técnica -->
+  <div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <div class="drawer__bg" data-close></div>
+    <article class="drawer__panel" id="drawerPanel"></article>
+  </div>
+
+  <!-- Semago IA -->
+  <button class="fab" id="chatFab" type="button"><span class="fab__dot"></span><img src="./img/ui/knot.png" alt="" /><span data-i18n="ai.fab">Pregúntale a Semago IA</span></button>
+  <section class="chat" id="chat" hidden aria-label="Semago IA">
+    <header class="chat__head">
+      <img src="./img/ui/knot.png" alt="" />
+      <div><b data-i18n="ai.name">Semago IA</b><small data-i18n="ai.role">Asesor de marca privada · en línea</small></div>
+      <button type="button" id="chatClose" aria-label="Cerrar">×</button>
+    </header>
+    <div class="chat__log" id="chatLog" aria-live="polite"></div>
+    <div class="chat__suggest" id="chatSuggest"></div>
+    <form class="chat__form" id="chatForm">
+      <input id="chatInput" data-i18n-ph="ai.ph" autocomplete="off" maxlength="600" />
+      <button type="submit" aria-label="Enviar">↑</button>
+    </form>
+  </section>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
