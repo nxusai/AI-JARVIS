@@ -16,18 +16,19 @@ el comprador **vea su marca sobre el producto**, calcule tarimas ni sepa cuándo
 | Sección | Qué hace |
 |---|---|
 | **Carga** | El hilo de oro dibuja el nudo de quesillo del logo mientras carga |
-| **Hero** | «Tu marca. Nuestro queso.», con la última palabra cambiando. Hilos de quesillo animados que siguen al cursor, los quesos reales girando en 3D alrededor del nudo y una etiqueta que muestra marcas de ejemplo (o la que el usuario escribió en el Estudio). Cifras animadas |
+| **Hero** | Fondo en WebGL de leche que se arremolina sobre azul marino con vetas de oro que siguen al cursor. «Tu marca. Nuestro queso.», con la última palabra cambiando. Hilos de quesillo animados que siguen al cursor, los quesos reales girando en 3D alrededor del nudo y una etiqueta que muestra marcas de ejemplo (o la que el usuario escribió en el Estudio). Cifras animadas |
 | **Hilo de oro** | Una línea dorada a la izquierda se va dibujando conforme bajas por la página |
 | **Marca privada** | Manifiesto que se ilumina palabra por palabra con el scroll, 4 ventajas y la línea de tiempo real del proceso (≤ 4 semanas) |
-| **Estudio de Marca** (lo nunca visto) | Escoges uno de los 16 quesos, la presentación, escribes tu marca y frase, subes tu logo, eliges estilo (Tradición, Moderno, Fiesta) y color. La etiqueta aparece **sobre la foto real del queso** y se inclina en 3D con el cursor. Calcula piezas, libras y tarimas por semana, qué % de la capacidad de la planta usarías, y la **fecha estimada de llegada** a tu estado. Botones: descargar la etiqueta en PNG, mandar la propuesta al formulario o preguntarle a la IA. La IA también **sugiere nombres de marca** |
-| **Los quesos** | Catálogo con filtros y ficha técnica completa (ingredientes, empaque, vida de anaquel, unidades por caja, cajas por tarima, 40 °F). Desde la ficha: diseñar con tu marca, preguntar a la IA o imprimir |
+| **Estudio de Marca** (lo nunca visto) | Escoges uno de los 16 quesos, la presentación, escribes tu marca y frase, subes tu logo, eliges estilo (Tradición, Moderno, Fiesta) y color. La etiqueta aparece **sobre la foto real del queso** y se inclina en 3D con el cursor. Calcula piezas, libras y tarimas por semana, qué % de la capacidad de la planta usarías, y la **fecha estimada de llegada** a tu estado. Con **«En el anaquel»** ves tu queso repetido en 3 repisas de supermercado, con la tira de precio de tu marca y la etiqueta «NUEVO». Botones: descargar la etiqueta en PNG, mandar la propuesta al formulario o preguntarle a la IA. La IA también **sugiere nombres de marca** |
+| **Los quesos** | Tarjetas que se inclinan con una luz dorada que sigue al cursor. Catálogo con filtros y ficha técnica completa (ingredientes, empaque, vida de anaquel, unidades por caja, cajas por tarima, 40 °F). Desde la ficha: diseñar con tu marca, preguntar a la IA o imprimir |
+| **Hecho a mano** | El video del hilado del Oaxaca aparece **dentro de las letras gigantes «HECHO A MANO»**; con el scroll las letras crecen hasta abrirse y el video llena la pantalla |
 | **La planta** | El video 4K de la planta convertido en 96 cuadros que avanzan con el scroll (estilo Apple), en 6 capítulos: cuajada, hilado, bola, empaque, moldeado y reposo |
 | **Equipo** | Fotos reales del equipo y la planta con revelado animado |
 | **Distribución** | Mapa de EE. UU. coloreado por días de tránsito. Tocas un estado y un camión refrigerado viaja desde Paterson; muestra días y millas |
-| **Por qué Mi Semago, FAQ, Contacto** | Tarjeta directa de Eduardo Ramos, oficina, correo y bodega. El formulario arma el correo listo (y si vienes del Estudio, incluye tu propuesta) |
+| **Por qué Mi Semago, FAQ, Contacto** | Línea directa de marca privada, oficina, correo y bodega. El formulario arma el correo listo (y si vienes del Estudio, incluye tu propuesta) |
 | **Semago IA** | Chat flotante: asesor de marca privada. Conoce todo el catálogo, fichas, tarimas, tiempos y días de envío por estado. Muestra tarjetas de producto y un botón para abrir el queso en el Estudio |
 
-También: SEO (datos estructurados, imagen para compartir), accesibilidad (teclado, «reducir movimiento»),
+También: las secciones oscuras se abren de tarjeta redondeada a pantalla completa al entrar; fotos de producto con corrección de color (se veían azules/verdosas) y tomas sacadas del video 4K. SEO (datos estructurados, imagen para compartir), accesibilidad (teclado, «reducir movimiento»),
 imágenes en WebP (las fotos originales pesaban ~15 MB, ahora ~1 MB) y el video de 117 MB convertido a
 2.6 MB de cuadros.
 

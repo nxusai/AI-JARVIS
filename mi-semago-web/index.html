@@ -81,6 +81,7 @@
   <main id="main">
     <!-- ───────── HERO ───────── -->
     <section class="hero" id="top">
+      <canvas class="hero__milk" id="milk" aria-hidden="true"></canvas>
       <canvas class="hero__strands" id="strands" aria-hidden="true"></canvas>
       <div class="hero__grain" aria-hidden="true"></div>
       <div class="hero__inner">
@@ -178,7 +179,13 @@
           </form>
 
           <div class="studio__stage">
+            <div class="viewtoggle" id="stView" role="tablist">
+              <button type="button" data-view="product" class="on" role="tab" aria-selected="true" data-i18n="st.v.product">Producto</button>
+              <button type="button" data-view="shelf" role="tab" aria-selected="false" data-i18n="st.v.shelf">En el anaquel</button>
+              <i class="viewtoggle__pill" aria-hidden="true"></i>
+            </div>
             <div class="mock" id="mock">
+              <div class="shelf" id="shelf" hidden></div>
               <div class="mock__glow" aria-hidden="true"></div>
               <div class="mock__tilt" id="mockTilt">
                 <img id="mockImg" alt="" />
@@ -223,6 +230,19 @@
       </div>
     </section>
 
+    <!-- ───────── HECHO A MANO: el video del hilado dentro de las letras ───────── -->
+    <section class="handmade" id="handmade">
+      <div class="handmade__pin">
+        <video class="handmade__video" id="hmVideo" muted loop playsinline preload="none" poster="./img/stills/hilado.webp" aria-hidden="true"><source src="./video/hilado.mp4" type="video/mp4" /></video>
+        <div class="handmade__mask" id="hmMask" aria-hidden="true"><span data-i18n="hm.w1">HECHO</span><span data-i18n="hm.w2">A MANO</span></div>
+        <div class="handmade__cap" id="hmCap">
+          <p class="kicker kicker--gold" data-i18n="hm.k">Oaxaca hilado a mano</p>
+          <h2 class="handmade__title" data-i18n="hm.t">Cada tira, estirada por manos que saben.</h2>
+          <p class="handmade__text" data-i18n="hm.p">La máquina pone la escala. El oficio pone el sabor. Así sale de Paterson tu queso, con tu nombre.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ───────── LA PLANTA (video cuadro por cuadro con el scroll) ───────── -->
     <section class="plant" id="planta">
       <div class="plant__pin" id="plantPin">
@@ -251,8 +271,8 @@
           <blockquote class="quote split" data-i18n="pt.q1">Creamos más que queso: creamos historias de éxito.</blockquote>
           <p class="lead" data-i18n="pt.peopleText"></p>
         </div>
-        <figure class="people__img people__img--b reveal-img"><img src="./img/ui/stretch.webp" alt="Hilado del queso Oaxaca a mano" loading="lazy" /></figure>
-        <figure class="people__img people__img--c reveal-img"><img src="./img/ui/machine.webp" alt="Maquinaria de moldeado de queso" loading="lazy" /></figure>
+        <figure class="people__img people__img--b reveal-img"><img src="./img/stills/hilado-2.webp" alt="Hilado del queso Oaxaca a mano en la planta" loading="lazy" /></figure>
+        <figure class="people__img people__img--c reveal-img"><img src="./img/stills/moldes.webp" alt="Queso fresco en moldes" loading="lazy" /></figure>
       </div>
     </section>
 
@@ -326,13 +346,12 @@
         </header>
         <div class="contact__grid">
           <div class="contact__cards">
-            <a class="ccard ccard--main" href="tel:+18624395388">
-              <span class="ccard__k" data-i18n="ct.eduardo">Producción a gran escala</span>
-              <b>Eduardo Ramos</b>
-              <span class="ccard__big">+1 862 439 5388</span>
-              <small data-i18n="ct.eduardoText"></small>
+            <a class="ccard ccard--main" href="tel:+19736264057">
+              <span class="ccard__k" data-i18n="ct.direct">Línea de marca privada</span>
+              <span class="ccard__big">(973) 626-4057</span>
+              <small data-i18n="ct.directText"></small>
             </a>
-            <a class="ccard" href="tel:+19736264057"><span class="ccard__k" data-i18n="ct.office">Oficina principal</span><b>(973) 626-4057</b><small>98 2nd Ave, Paterson, NJ 07514</small></a>
+            <a class="ccard" href="https://www.google.com/maps/dir/?api=1&destination=98%202nd%20Ave%2C%20Paterson%2C%20NJ%2007514" target="_blank" rel="noopener"><span class="ccard__k" data-i18n="ct.office">Oficina principal</span><b>98 2nd Ave</b><small>Paterson, NJ 07514 · <u data-i18n="ct.map">Cómo llegar</u></small></a>
             <a class="ccard" href="mailto:contacto@misemagolp.com"><span class="ccard__k">Email</span><b>contacto@misemagolp.com</b></a>
             <a class="ccard" href="https://www.google.com/maps/dir/?api=1&destination=51%20E%2023rd%20St%2C%20Paterson%2C%20NJ%2007514" target="_blank" rel="noopener"><span class="ccard__k" data-i18n="ct.ship">Envío y recepción</span><b>51 E 23rd St</b><small>Paterson, NJ 07514 · <u data-i18n="ct.map">Cómo llegar</u></small></a>
           </div>
@@ -371,7 +390,6 @@
       </div>
       <div class="footer__col">
         <a href="tel:+19736264057">(973) 626-4057</a>
-        <a href="tel:+18624395388">+1 862 439 5388 · Eduardo Ramos</a>
         <a href="mailto:contacto@misemagolp.com">contacto@misemagolp.com</a>
       </div>
       <div class="footer__col">

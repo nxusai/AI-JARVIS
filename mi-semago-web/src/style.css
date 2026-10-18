@@ -483,3 +483,64 @@ input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border-radius
 @media print {
   body > *:not(.print-sheet) { display: none !important; }
 }
+
+/* ═════════ v2: leche en WebGL, hecho a mano, anaquel, tarjetas con luz ═════════ */
+.hero__milk { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.6s ease; }
+.hero__milk.on { opacity: 1; }
+.hero__strands { mix-blend-mode: screen; opacity: 0.75; }
+.hero::after { content: ''; position: absolute; inset: auto 0 0; height: 30%; background: linear-gradient(transparent, rgba(6, 26, 56, 0.85)); pointer-events: none; z-index: 1; }
+.hero__title .w, .hero__title .rot em { text-shadow: 0 10px 60px rgba(6, 26, 56, 0.5); }
+
+/* Secciones oscuras que se abren al entrar */
+.studio, .ship, .contact { clip-path: inset(0 var(--inset, 0px) round var(--round, 0px)); }
+
+/* Selector Producto / Anaquel */
+.viewtoggle { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; justify-self: start; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line-d); border-radius: 999px; padding: 4px; }
+.viewtoggle button { position: relative; z-index: 1; border: 0; background: none; color: #fff; font-weight: 700; font-size: 14px; padding: 9px 20px; border-radius: 999px; transition: color 0.35s; }
+.viewtoggle button.on { color: var(--navy-d); }
+.viewtoggle__pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: var(--gold); border-radius: 999px; transition: transform 0.5s var(--ease); }
+.viewtoggle[data-view='shelf'] .viewtoggle__pill { transform: translateX(100%); }
+
+/* Anaquel de supermercado */
+.mock--shelf { background: linear-gradient(180deg, #f6f1e6 0%, #e9dfcb 100%); place-items: stretch; padding: 16px 18px 26px; }
+.mock--shelf .mock__glow, .mock--shelf .mock__hint { display: none; }
+.shelf { display: grid; grid-template-rows: auto 1fr auto 1fr auto 1fr auto; gap: 0; height: 100%; }
+.shelf__sign { justify-self: center; background: var(--c); color: #fff; font: 400 clamp(13px, 1.3vw, 17px)/1 var(--cond); letter-spacing: 0.18em; padding: 8px 16px; border-radius: 0 0 10px 10px; margin: -16px 0 6px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18); }
+.shelf__row { display: flex; align-items: flex-end; justify-content: center; gap: 1.5%; padding: 0 2%; min-height: 0; background: radial-gradient(80% 60% at 50% 100%, rgba(255, 255, 255, 0.7), transparent 70%); }
+.shelf__item { position: relative; flex: 1 1 0; max-width: 21%; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.22)); }
+.shelf__item--tall { max-width: 9.5%; }
+.shelf__item img { width: 100%; height: auto; display: block; }
+.shelf__label { position: absolute; pointer-events: none; }
+.shelf__label svg { display: block; width: 100%; height: auto; }
+.shelf__edge { position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; height: clamp(26px, 3.2vw, 36px); padding: 0 14px; margin: 0 -18px 6px; background: linear-gradient(180deg, #fff 0%, #e8e1d2 100%); border-top: 4px solid var(--c); box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16); color: var(--ink); font-size: clamp(10px, 1vw, 13px); transform-origin: left; overflow: hidden; white-space: nowrap; }
+.shelf__edge b { font: italic 700 clamp(13px, 1.3vw, 17px) var(--serif); color: var(--c); }
+.shelf__new { background: #d42a1f; color: #fff; font: 400 12px/1 var(--cond); letter-spacing: 0.1em; padding: 4px 7px; border-radius: 4px; }
+
+/* Hecho a mano: video dentro de las letras */
+.handmade { position: relative; height: 260vh; background: var(--milk); }
+.handmade__pin { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; display: grid; place-items: center; }
+.handmade__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.handmade__mask { position: absolute; inset: -2px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--milk); color: #000; mix-blend-mode: screen; font: 400 clamp(90px, 23vw, 380px)/0.8 var(--cond); letter-spacing: -0.01em; text-align: center; will-change: transform; transform-origin: 50% 50%; }
+.handmade__mask span { display: block; }
+.handmade__cap { position: relative; z-index: 2; color: #fff; text-align: center; max-width: 760px; padding: 0 var(--pad); opacity: 0; }
+.handmade__cap::before { content: ''; position: absolute; inset: -80px -60px; z-index: -1; background: radial-gradient(closest-side, rgba(6, 26, 56, 0.7), transparent); }
+.handmade__title { font: italic 400 clamp(36px, 5vw, 72px)/1.02 var(--serif); margin: 0 0 16px; letter-spacing: -0.02em; }
+.handmade__text { margin: 0 auto; max-width: 48ch; font-size: clamp(16px, 1.4vw, 19px); color: rgba(255, 255, 255, 0.86); }
+
+/* Tarjetas del catálogo con luz que sigue al cursor */
+.card { transform-style: preserve-3d; --mx: 50%; --my: 30%; }
+.card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(260px circle at var(--mx) var(--my), rgba(193, 154, 50, 0.16), transparent 60%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+.card:hover::before { opacity: 1; }
+.card:hover { box-shadow: 0 30px 60px rgba(11, 43, 87, 0.16), 0 0 0 1px rgba(193, 154, 50, 0.35); }
+.card__img { transform: translateZ(30px); }
+
+/* Galería del equipo con marco dorado al pasar */
+.people__img { position: relative; }
+.people__img::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 0 var(--gold); transition: box-shadow 0.5s var(--ease); }
+.people__img:hover::after { box-shadow: inset 0 0 0 6px var(--gold); }
+
+@media (max-width: 820px) {
+  .handmade { height: 200vh; }
+  .handmade__mask { font-size: clamp(80px, 30vw, 200px); }
+  .shelf__edge span:last-child { display: none; }
+}

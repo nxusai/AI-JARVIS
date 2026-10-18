@@ -8,7 +8,6 @@ export const BRAND = {
   tagline: { es: 'The Better Latin Dairy Company', en: 'The Better Latin Dairy Company' },
   phone: '(973) 626-4057',
   phoneHref: '+19736264057',
-  sales: { name: 'Eduardo Ramos', phone: '+1 862 439 5388', phoneHref: '+18624395388' },
   email: 'contacto@misemagolp.com',
   office: '98 2nd Ave, Paterson, NJ 07514',
   shipping: '51 E 23rd St, Paterson, NJ 07514',
@@ -217,7 +216,7 @@ export const FAQ = [
   { q: { es: '¿Puedo poner mis propias especificaciones?', en: 'Can I set my own specifications?' }, a: { es: 'Tú defines empaques, diseño, especificaciones y precio. Nosotros nos encargamos de la producción y de que cada lote salga igual.', en: 'You define packaging, design, specifications and price. We handle production and make sure every batch comes out the same.' } },
   { q: { es: '¿A qué estados envían?', en: 'Which states do you ship to?' }, a: { es: 'A todo Estados Unidos, con transporte refrigerado y seguimiento. El envío tarda de 1 a 5 días según el estado.', en: 'All of the United States, with refrigerated, tracked transport. Shipping takes 1 to 5 days depending on the state.' } },
   { q: { es: '¿Cuánto pueden producir?', en: 'How much can you produce?' }, a: { es: 'Más de 500,000 libras por semana en 30,000 pies cuadrados de planta en Paterson, Nueva Jersey.', en: 'Over 500,000 pounds a week in a 30,000 sq ft plant in Paterson, New Jersey.' } },
-  { q: { es: '¿Cuál es el pedido mínimo y el precio?', en: 'What are the minimum order and price?' }, a: { es: 'Depende del queso, la presentación y el volumen. Escríbenos o llama a Eduardo Ramos al +1 862 439 5388 y te cotiza.', en: 'It depends on the cheese, size and volume. Write to us or call Eduardo Ramos at +1 862 439 5388 for a quote.' } },
+  { q: { es: '¿Cuál es el pedido mínimo y el precio?', en: 'What are the minimum order and price?' }, a: { es: 'Depende del queso, la presentación y el volumen. Escríbenos o llama al (973) 626-4057 y te cotizamos.', en: 'It depends on the cheese, size and volume. Write to us or call (973) 626-4057 for a quote.' } },
 ];
 
 // Para el mapa: días de tránsito estimados desde Paterson, NJ según la distancia (rango real: 1 a 5 días).

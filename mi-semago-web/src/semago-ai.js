@@ -136,7 +136,7 @@ function localBrain(q) {
 
   if (st && has('tarda', 'llega', 'envio', 'enviar', 'dias', 'ship', 'days', 'long', 'deliver', 'transit', 'cuanto')) {
     const d = st.id === 'AK' || st.id === 'HI' ? null : transitDays(st.miles);
-    if (!d) return en ? `${st.name} needs a special route. Call ${BRAND.sales.name} at ${BRAND.sales.phone} and we'll plan it with you.` : `${st.name} necesita una ruta especial. Llama a ${BRAND.sales.name} al ${BRAND.sales.phone} y la planeamos contigo.`;
+    if (!d) return en ? `${st.name} needs a special route. Call us at ${BRAND.phone} and we'll plan it with you.` : `${st.name} necesita una ruta especial. Llámanos al ${BRAND.phone} y la planeamos contigo.`;
     return en
       ? `To **${st.name}** it's about **${d} ${d === 1 ? 'day' : 'days'}** in refrigerated transport at 40 °F (around ${st.miles.toLocaleString('en-US')} miles from Paterson, NJ). Add ~3 weeks for talks, label and production: under 4 weeks total.`
       : `A **${st.name}** son unos **${d} ${d === 1 ? 'día' : 'días'}** en transporte refrigerado a 40 °F (unas ${st.miles.toLocaleString('es-MX')} millas desde Paterson, NJ). Súmale ~3 semanas de plática, etiqueta y producción: menos de 4 semanas en total.`;
@@ -155,10 +155,10 @@ function localBrain(q) {
   }
   if (has('tiempo', 'semana', 'cuando', 'cuanto tarda', 'how long', 'lead', 'weeks', 'empez', 'start', 'como empiezo', 'proceso', 'process', 'paso')) {
     const steps = PROCESS.map((s, i) => `${i + 1}. ${s.name[en ? 'en' : 'es']} (${s.dur[en ? 'en' : 'es']})`).join('\n');
-    return en ? `It takes **4 weeks or less**:\n${steps}\nStart by sketching your label in the Brand Studio, then call ${BRAND.sales.name} at ${BRAND.sales.phone}. [[studio:oaxaca-retail]]` : `Son **4 semanas o menos**:\n${steps}\nEmpieza armando tu etiqueta en el Estudio de Marca y luego llama a ${BRAND.sales.name} al ${BRAND.sales.phone}. [[studio:oaxaca-retail]]`;
+    return en ? `It takes **4 weeks or less**:\n${steps}\nStart by sketching your label in the Brand Studio, then call us at ${BRAND.phone}. [[studio:oaxaca-retail]]` : `Son **4 semanas o menos**:\n${steps}\nEmpieza armando tu etiqueta en el Estudio de Marca y luego llámanos al ${BRAND.phone}. [[studio:oaxaca-retail]]`;
   }
   if (has('precio', 'price', 'cost', 'cuesta', 'cotiz', 'quote', 'minim', 'moq')) {
-    return en ? `Price and minimums depend on the cheese, size and volume. Call ${BRAND.sales.name} at ${BRAND.sales.phone} or use the form at the bottom of the page and you'll get a quote.` : `El precio y el mínimo dependen del queso, la presentación y el volumen. Llama a ${BRAND.sales.name} al ${BRAND.sales.phone} o usa el formulario al final de la página y te cotizamos.`;
+    return en ? `Price and minimums depend on the cheese, size and volume. Call us at ${BRAND.phone} or use the form at the bottom of the page and you'll get a quote.` : `El precio y el mínimo dependen del queso, la presentación y el volumen. Llámanos al ${BRAND.phone} o usa el formulario al final de la página y te cotizamos.`;
   }
   if (has('capacidad', 'capacity', 'produc', 'libras', 'pounds', 'planta', 'plant', 'grande')) {
     return en ? `We process and distribute **over 500,000 pounds a week** in a 30,000 sq ft plant in Paterson, NJ, and ship refrigerated to the whole U.S.` : `Procesamos y distribuimos **más de 500,000 libras por semana** en una planta de 30,000 pies² en Paterson, NJ, y enviamos refrigerado a todo EE. UU.`;
@@ -167,7 +167,7 @@ function localBrain(q) {
     return en ? `Yes: we produce under your name. You set packaging, design, specs and price; we create the label with you in 3 to 5 days. ${ps.length ? '' : 'All 16 SKUs are available.'} [[studio:${(ps[0] || PRODUCTS[0]).id}]]${tag(ps.length ? ps : PRODUCTS.filter((p) => p.hero))}` : `Sí: producimos con tu nombre. Tú defines empaque, diseño, especificaciones y precio; creamos la etiqueta contigo en 3 a 5 días. ${ps.length ? '' : 'Las 16 presentaciones están disponibles.'} [[studio:${(ps[0] || PRODUCTS[0]).id}]]${tag(ps.length ? ps : PRODUCTS.filter((p) => p.hero))}`;
   }
   if (has('contact', 'telefono', 'phone', 'llamar', 'call', 'correo', 'email', 'direcc', 'address', 'donde', 'where')) {
-    return en ? `Call ${BRAND.sales.name} (large-scale production) at ${BRAND.sales.phone}, the office at ${BRAND.phone}, or write to ${BRAND.email}. Office: ${BRAND.office}. Shipping & receiving: ${BRAND.shipping}.` : `Llama a ${BRAND.sales.name} (producción a gran escala) al ${BRAND.sales.phone}, a la oficina al ${BRAND.phone}, o escribe a ${BRAND.email}. Oficina: ${BRAND.office}. Envío y recepción: ${BRAND.shipping}.`;
+    return en ? `Call us at ${BRAND.phone} or write to ${BRAND.email}. Office: ${BRAND.office}. Shipping & receiving: ${BRAND.shipping}.` : `Llámanos al ${BRAND.phone} o escribe a ${BRAND.email}. Oficina: ${BRAND.office}. Envío y recepción: ${BRAND.shipping}.`;
   }
   if (ps.length) {
     const p = ps[0];
@@ -178,5 +178,5 @@ function localBrain(q) {
   }
   const f = FAQ.find((x) => norm(x.q.es).split(' ').filter((w) => w.length > 4).some((w) => n.includes(w)));
   if (f) return f.a[en ? 'en' : 'es'];
-  return en ? `I can help with cheeses, spec sheets, pallets, lead times and shipping. For anything else, ${BRAND.sales.name} answers at ${BRAND.sales.phone}.` : `Te ayudo con quesos, fichas técnicas, tarimas, tiempos y envíos. Para lo demás, ${BRAND.sales.name} te atiende al ${BRAND.sales.phone}.`;
+  return en ? `I can help with cheeses, spec sheets, pallets, lead times and shipping. For anything else, call us at ${BRAND.phone}.` : `Te ayudo con quesos, fichas técnicas, tarimas, tiempos y envíos. Para lo demás, llámanos al ${BRAND.phone}.`;
 }

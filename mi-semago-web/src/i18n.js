@@ -38,6 +38,8 @@ export const STRINGS = {
     'st.tilt': 'Mueve el cursor sobre el queso',
     'st.defaultBrand': 'Tu Marca', 'st.keep': 'Mantener refrigerado a 40 °F', 'st.madeFor': 'Hecho para', 'st.net': 'Peso neto',
 
+    'st.v.product': 'Producto', 'st.v.shelf': 'En el anaquel', 'st.new': 'NUEVO', 'st.shelfTag': 'Tu marca en el pasillo latino',
+    'hm.w1': 'HECHO', 'hm.w2': 'A MANO', 'hm.k': 'Oaxaca hilado a mano', 'hm.t': 'Cada tira, estirada por manos que saben.', 'hm.p': 'La máquina pone la escala. El oficio pone el sabor. Así sale de Paterson tu queso, con tu nombre.',
     'cat.kicker': '03 · Los quesos', 'cat.title': '16 presentaciones listas para tu marca.',
     'cat.sub': 'Fichas técnicas completas: ingredientes, empaque, vida de anaquel y cuántas cajas caben por tarima.',
     'cat.all': 'Todos', 'cat.sizes': 'Presentaciones', 'cat.shelf': 'días de anaquel',
@@ -72,7 +74,7 @@ export const STRINGS = {
     'faq.kicker': 'Preguntas frecuentes', 'faq.title': 'Lo que todos preguntan antes de empezar.',
 
     'ct.kicker': '07 · Hablemos', 'ct.title': 'Hagamos realidad tu marca.',
-    'ct.eduardo': 'Producción a gran escala', 'ct.eduardoText': 'Eduardo Ramos es el encargado de ayudarte a iniciar tu proceso.',
+    'ct.direct': 'Línea de marca privada', 'ct.directText': 'Nuestro equipo te atiende en español o en inglés para iniciar tu proceso.',
     'ct.office': 'Oficina principal', 'ct.ship': 'Envío y recepción',
     'ct.name': 'Tu nombre', 'ct.company': 'Empresa', 'ct.email': 'Correo', 'ct.phone': 'Teléfono', 'ct.type': 'Tipo de negocio',
     'ct.t1': 'Cadena de supermercados', 'ct.t2': 'Distribuidor', 'ct.t3': 'Marca propia nueva', 'ct.t4': 'Restaurante / food service', 'ct.t5': 'Otro',
@@ -85,7 +87,7 @@ export const STRINGS = {
     'ai.name': 'Semago IA', 'ai.role': 'Asesor de marca privada · en línea', 'ai.fab': 'Pregúntale a Semago IA',
     'ai.hello': '¡Hola! Soy **Semago IA**. Te ayudo a escoger quesos para tu marca, calcular tarimas, tiempos de entrega y envíos. ¿Qué tienes en mente?',
     'ai.ph': 'Escribe tu pregunta…', 'ai.s1': '¿Qué quesos puedo sacar con mi marca?', 'ai.s2': '¿Cuántas cajas caben en una tarima?', 'ai.s3': '¿Cuánto tarda en llegar a Texas?', 'ai.s4': '¿Cómo empiezo?',
-    'ai.open': 'Abrir en el Estudio', 'ai.err': 'Se me cortó la señal. Intenta otra vez o llama a Eduardo al +1 862 439 5388.',
+    'ai.open': 'Abrir en el Estudio', 'ai.err': 'Se me cortó la señal. Intenta otra vez o llámanos al (973) 626-4057.',
   },
   en: {
     'meta.title': 'Mi Semago · Latin cheeses under your brand · Private label across the U.S.',
@@ -125,6 +127,8 @@ export const STRINGS = {
     'st.tilt': 'Move your cursor over the cheese',
     'st.defaultBrand': 'Your Brand', 'st.keep': 'Keep refrigerated at 40 °F', 'st.madeFor': 'Made for', 'st.net': 'Net wt',
 
+    'st.v.product': 'Product', 'st.v.shelf': 'On the shelf', 'st.new': 'NEW', 'st.shelfTag': 'Your brand in the Latin aisle',
+    'hm.w1': 'HAND', 'hm.w2': 'MADE', 'hm.k': 'Hand-stretched Oaxaca', 'hm.t': 'Every ribbon, stretched by hands that know.', 'hm.p': 'The machines bring the scale. The craft brings the flavor. That is how your cheese leaves Paterson, with your name on it.',
     'cat.kicker': '03 · The cheeses', 'cat.title': '16 SKUs ready for your brand.',
     'cat.sub': 'Full spec sheets: ingredients, packaging, shelf life and how many cases fit on a pallet.',
     'cat.all': 'All', 'cat.sizes': 'Sizes', 'cat.shelf': 'days shelf life',
@@ -159,7 +163,7 @@ export const STRINGS = {
     'faq.kicker': 'FAQ', 'faq.title': 'What everyone asks before getting started.',
 
     'ct.kicker': '07 · Let’s talk', 'ct.title': 'Let’s make your brand real.',
-    'ct.eduardo': 'Large-scale production', 'ct.eduardoText': 'Eduardo Ramos is the person in charge of getting your process started.',
+    'ct.direct': 'Private label line', 'ct.directText': 'Our team helps you get started, in Spanish or English.',
     'ct.office': 'Main office', 'ct.ship': 'Shipping & receiving',
     'ct.name': 'Your name', 'ct.company': 'Company', 'ct.email': 'Email', 'ct.phone': 'Phone', 'ct.type': 'Type of business',
     'ct.t1': 'Supermarket chain', 'ct.t2': 'Distributor', 'ct.t3': 'New private brand', 'ct.t4': 'Restaurant / food service', 'ct.t5': 'Other',
@@ -172,6 +176,6 @@ export const STRINGS = {
     'ai.name': 'Semago AI', 'ai.role': 'Private label advisor · online', 'ai.fab': 'Ask Semago AI',
     'ai.hello': 'Hi! I’m **Semago AI**. I can help you pick cheeses for your brand and work out pallets, lead times and shipping. What do you have in mind?',
     'ai.ph': 'Type your question…', 'ai.s1': 'Which cheeses can I put my brand on?', 'ai.s2': 'How many cases fit on a pallet?', 'ai.s3': 'How long to ship to Texas?', 'ai.s4': 'How do I get started?',
-    'ai.open': 'Open in the Studio', 'ai.err': 'I lost the signal. Try again or call Eduardo at +1 862 439 5388.',
+    'ai.open': 'Open in the Studio', 'ai.err': 'I lost the signal. Try again or call us at (973) 626-4057.',
   },
 };
