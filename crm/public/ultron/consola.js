@@ -7,6 +7,8 @@
 // Los datos vienen de una "fuente": la real (la sesión del Centro de trabajo,
 // el buzón y el tablero de Ultron en Supabase) o la muestra (datos de ejemplo).
 
+import { abrirOido } from './voz.js'
+
 const $ = (s, r = document) => r.querySelector(s)
 const h = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
@@ -73,7 +75,7 @@ class Nucleo {
     const H = canvas.height
     if (!w || !H) return
     const hablando = this.hastaHablar > t
-    this.meta = hablando ? 0.55 + 0.45 * Math.abs(Math.sin(t * 0.011) * Math.sin(t * 0.0047)) : this.escuchando ? 0.25 : 0.06
+    this.meta = hablando ? 0.55 + 0.45 * Math.abs(Math.sin(t * 0.011) * Math.sin(t * 0.0047)) : this.escuchando ? 0.2 + (this.nivel ?? 0.05) * 0.8 : 0.06
     this.amp += (this.meta - this.amp) * 0.12
     const amp = this.apagado ? 0.02 : this.amp
     const luz = this.apagado ? 0.45 : 1
@@ -318,6 +320,11 @@ function fuenteMuestra() {
       await new Promise((r) => setTimeout(r, 700 + Math.random() * 600))
       return responder(texto)
     },
+    // En la muestra no hay transcriptor: cada frase se toma como esta.
+    async transcribir() {
+      await new Promise((r) => setTimeout(r, 400))
+      return 'Ultron, resumen de hoy'
+    },
     async accion() {
       return 'En la muestra no se hace de verdad.'
     },
@@ -356,20 +363,41 @@ async function fuenteReal(cfg) {
       const { data: t } = await sb.from('tareas').select('folio, titulo, urgente, compromiso, estatus').neq('estatus', 'aprobada')
       return (t ?? []).flatMap((x) => [x.urgente ? `Urgente: #${x.folio} ${x.titulo}` : null, x.compromiso && x.compromiso < hoyISO && !['entregada'].includes(x.estatus) ? `Atrasada: #${x.folio} ${x.titulo}` : null, x.estatus === 'entregada' ? `Para revisar: #${x.folio} ${x.titulo}` : null]).filter(Boolean).slice(0, 8)
     },
-    async preguntar(texto) {
+    // El texto llega primero; su voz, un momento después (onVoz).
+    async preguntar(texto, { onVoz } = {}) {
       const { data: m, error } = await sb.from('ultron_mensajes').insert({ canal: 'consola', pregunta: texto, persona: yo.id }).select('id').single()
       if (error) throw new Error(error.message)
+      const firmar = async (ruta) => (await sb.storage.from('ultron').createSignedUrl(ruta, 3600)).data?.signedUrl ?? null
       const hasta = Date.now() + 120_000
       while (Date.now() < hasta) {
-        await new Promise((r) => setTimeout(r, 1200))
+        await new Promise((r) => setTimeout(r, 700))
         const { data: r } = await sb.from('ultron_mensajes').select('estado, respuesta, acciones, voz').eq('id', m.id).single()
         if (r && (r.estado === 'listo' || r.estado === 'error')) {
-          let voz = null
-          if (r.voz) voz = (await sb.storage.from('ultron').createSignedUrl(r.voz, 3600)).data?.signedUrl ?? null
-          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz }
+          if (r.voz) return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz: await firmar(r.voz) }
+          if (onVoz && r.estado === 'listo') {
+            // Sigue esperando su voz un rato, sin detener la respuesta.
+            ;(async () => {
+              const fin = Date.now() + 20_000
+              while (Date.now() < fin) {
+                await new Promise((x) => setTimeout(x, 600))
+                const { data: v } = await sb.from('ultron_mensajes').select('voz').eq('id', m.id).single()
+                if (v?.voz) return onVoz(await firmar(v.voz))
+              }
+              onVoz(null)
+            })()
+          }
+          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz: null, vozLuego: Boolean(onVoz && r.estado === 'listo') }
         }
       }
       return { texto: 'No me llega respuesta: mi computadora no está respondiendo. Intenta en un rato.' }
+    },
+    // Una frase de audio → texto (ElevenLabs Scribe, en Netlify).
+    async transcribir(blob) {
+      const { data: s } = await sb.auth.getSession()
+      const res = await fetch('/.netlify/functions/oido', { method: 'POST', headers: { 'content-type': blob.type || 'audio/webm', authorization: `Bearer ${s.session.access_token}` }, body: blob })
+      const r = await res.json().catch(() => ({}))
+      if (!res.ok || r.ok === false) throw new Error(r.error || 'No te pude oír')
+      return r.texto ?? ''
     },
     // Lo que Ultron propuso pasa solo con el toque de la persona, con su sesión.
     async accion(a) {
@@ -409,6 +437,17 @@ let ultimaAccion = 'Sin acciones todavía.'
 let tableroCache = null
 let sonando = null
 
+// Modo voz, como Nexy: micrófono abierto. Si llevan rato sin hablarle, hay que
+// decir "Ultron" primero; en plena conversación, todo lo que digan es para él.
+let oido = null
+let modoVoz = false
+let ultimaCharla = 0
+let estadoVoz = ''
+const VENTANA_MS = 90_000
+const NOMBRE = /\b(?:oye\s+|hola\s+|hey\s+)?ul+tr[oó]n+\b[\s,.:;!?¡¿]*/i
+const ALTO = /^(?:ultr[oó]n[,\s]*)?(?:para|párale|alto|silencio|cállate|callate|basta|espera|ya|stop)[.!]*$/i
+const sinSignos = (t) => sinTilde(t).replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim()
+
 function marco() {
   $('#consola').innerHTML = `
     <header class="u-top">
@@ -438,7 +477,7 @@ function pintarLado() {
   if (!lado) return
   const ias = tableroCache?.ecosistema?.ias ?? []
   lado.innerHTML = `
-    <section class="u-tarjeta"><h3>${pensando ? 'Procesando' : nucleo?.escuchando ? 'Escuchando' : 'En espera'}</h3><canvas class="u-onda" id="onda"></canvas></section>
+    <section class="u-tarjeta"><h3>${estadoVoz || (pensando ? 'Procesando' : nucleo?.escuchando ? 'Escuchando' : modoVoz ? 'Te escucho' : 'En espera')}</h3><canvas class="u-onda" id="onda"></canvas>${modoVoz ? `<p class="u-largo" style="margin:8px 0 0">${Date.now() - ultimaCharla < VENTANA_MS ? 'Háblame.' : 'Di “Ultron” y lo que necesites.'}</p>` : ''}</section>
     <section class="u-tarjeta"><h3>IAs conectadas</h3><div class="u-num">${ias.filter((i) => i.activa).length}<small> / ${ias.length || '—'}</small></div></section>
     <section class="u-tarjeta"><h3>Última acción</h3><div class="u-ultima">${h(ultimaAccion)}</div></section>
     <section class="u-tarjeta"><h3>Para atender</h3><div class="u-ultima" id="alertas">…</div></section>`
@@ -469,7 +508,7 @@ async function pintarVista() {
       <form class="u-barra" id="barra">
         <canvas class="u-mini-onda" id="mini-onda"></canvas>
         <div class="u-campo">
-          <button type="button" class="u-mic" id="mic" aria-label="Hablar">${MIC}</button>
+          <button type="button" class="u-mic ${modoVoz ? 'oye' : ''}" id="mic" aria-label="${modoVoz ? 'Apagar el micrófono' : 'Hablar con Ultron'}" aria-pressed="${modoVoz}">${MIC}</button>
           <input id="orden" autocomplete="off" maxlength="1000" placeholder="¿Qué ejecutamos, ${h(F.yo.nombre.split(' ')[0])}?" aria-label="Orden para Ultron">
           <button class="u-enviar">Ejecutar</button>
         </div>
@@ -486,7 +525,7 @@ async function pintarVista() {
       $('#orden').value = ''
       ejecutar(v)
     })
-    $('#mic').addEventListener('click', escuchar)
+    $('#mic').addEventListener('click', alternarVoz)
     setTimeout(() => $('#orden')?.focus({ preventScroll: true }), 50)
     if (!tableroCache) tablero().then(pintarLado)
   } else if (vista === 'ecosistema') {
@@ -632,35 +671,145 @@ async function ejecutar(texto) {
     await pintarVista()
   }
   pensando = true
+  ultimaCharla = Date.now()
   ultimo = { q: texto, r: '…', acciones: [] }
   pintarSubs()
   pintarLado()
-  if (nucleo) nucleo.escuchando = true
+  if (nucleo) nucleo.escuchando = !modoVoz
+  const turno = ++turnos
   let res
   try {
-    res = await F.preguntar(texto)
+    res = await F.preguntar(texto, { onVoz: (url) => turno === turnos && (url ? sonar(url) : nucleo?.hablar(Math.min(9000, 900 + ultimo.r.length * 38))) })
   } catch (err) {
     res = { texto: `No pude enviar tu mensaje: ${err.message}` }
   }
   if (nucleo) nucleo.escuchando = false
   pensando = false
+  ultimaCharla = Date.now()
   ultimo = { q: texto, r: res.texto, acciones: res.acciones ?? [] }
   if (res.ultima) ultimaAccion = res.ultima
   else if (/^(Hecho|Listo|Registrad|Agregad)/.test(res.texto)) ultimaAccion = res.texto.replace(/\*\*/g, '').slice(0, 140)
-  // Su voz: la esfera late mientras suena.
-  if (res.voz) {
-    try {
-      sonando?.pause()
-      sonando = new Audio(res.voz)
-      sonando.onplaying = () => nucleo?.hablar((sonando.duration || 4) * 1000)
-      sonando.onended = () => nucleo && (nucleo.hastaHablar = 0)
-      await sonando.play()
-    } catch {
-      nucleo?.hablar(Math.min(9000, 900 + res.texto.length * 38))
-    }
-  } else nucleo?.hablar(Math.min(9000, 900 + res.texto.length * 38))
+  if (res.voz) sonar(res.voz)
+  else if (!res.vozLuego) nucleo?.hablar(Math.min(9000, 900 + res.texto.length * 38))
   pintarSubs(true)
   pintarLado()
+}
+
+let turnos = 0
+/** Su voz: la esfera late mientras suena, y el oído se pone en guardia para no oírse. */
+function sonar(url) {
+  try {
+    callar()
+    sonando = new Audio(url)
+    sonando.onplaying = () => {
+      nucleo?.hablar((sonando.duration || 4) * 1000)
+      oido?.guardia(true)
+    }
+    sonando.onended = () => {
+      if (nucleo) nucleo.hastaHablar = 0
+      oido?.guardia(false)
+      ultimaCharla = Date.now()
+    }
+    sonando.play().catch(() => nucleo?.hablar(Math.min(9000, 900 + ultimo.r.length * 38)))
+  } catch {
+    nucleo?.hablar(Math.min(9000, 900 + ultimo.r.length * 38))
+  }
+}
+/** Que deje de hablar (lo interrumpieron). */
+function callar() {
+  try {
+    sonando?.pause()
+  } catch {
+    // ya no sonaba
+  }
+  sonando = null
+  if (nucleo) nucleo.hastaHablar = 0
+  oido?.guardia(false)
+}
+
+/** Prende o apaga el modo voz. */
+async function alternarVoz() {
+  if (modoVoz) {
+    modoVoz = false
+    oido?.parar()
+    oido = null
+    estadoVoz = ''
+    if (nucleo) nucleo.escuchando = false
+    pintarVista()
+    return
+  }
+  if (!navigator.mediaDevices?.getUserMedia) return escuchar()
+  modoVoz = true
+  ultimaCharla = Date.now() // recién prendido: no hace falta decir su nombre
+  $('#mic')?.classList.add('oye')
+  $('#mic')?.setAttribute('aria-pressed', 'true')
+  $('#mic')?.setAttribute('aria-label', 'Apagar el micrófono')
+  pintarLado()
+  oido = await abrirOido({
+    empieza() {
+      // Interrumpir: si estaba hablando, se calla para escuchar.
+      if (sonando && !sonando.paused) callar()
+      if (nucleo) nucleo.escuchando = true
+      estadoVoz = 'Escuchando'
+      pintarLado()
+    },
+    nivel(v) {
+      if (nucleo) nucleo.nivel = v
+    },
+    async termina(blob, ms) {
+      if (nucleo) nucleo.escuchando = false
+      estadoVoz = ''
+      if (ms < 350) return pintarLado()
+      estadoVoz = 'Entendiendo'
+      pintarLado()
+      let dicho = ''
+      try {
+        dicho = (await F.transcribir(blob)).trim()
+      } catch (err) {
+        estadoVoz = ''
+        pintarLado()
+        return aviso(err.message)
+      }
+      estadoVoz = ''
+      oirFrase(dicho)
+    },
+    error(msg) {
+      modoVoz = false
+      oido = null
+      estadoVoz = ''
+      $('#mic')?.classList.remove('oye')
+      pintarLado()
+      aviso(`${msg} Puedes escribirle.`)
+    },
+  })
+  if (!oido.vivo()) modoVoz = false
+}
+
+/** Lo que se dijo: ¿es para Ultron? */
+function oirFrase(dicho) {
+  pintarLado()
+  if (!dicho) return
+  // Su propia voz que se coló por las bocinas.
+  const eco = sinSignos(ultimo.r)
+  const frase = sinSignos(dicho)
+  if (frase.length > 8 && eco.includes(frase)) return
+  if (ALTO.test(dicho.trim())) {
+    callar()
+    return
+  }
+  const conNombre = NOMBRE.test(dicho)
+  const enCharla = Date.now() - ultimaCharla < VENTANA_MS
+  if (!conNombre && !enCharla) return
+  const orden = dicho.replace(NOMBRE, ' ').replace(/^[\s,.:;!?¡¿]+/, '').trim()
+  if (!orden) {
+    ultimaCharla = Date.now()
+    ultimo = { q: dicho, r: 'Te escucho.', acciones: [] }
+    pintarSubs(true)
+    pintarLado()
+    return
+  }
+  if (pensando) return aviso('Déjame terminar lo anterior.')
+  ejecutar(orden)
 }
 
 /** Dictado con el micrófono (donde el navegador lo permite). */

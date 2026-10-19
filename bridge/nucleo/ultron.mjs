@@ -20,6 +20,9 @@ import { forSpeech, languageOf, speakAs, VOICE_ID } from './voz.mjs'
  * su respuesta y su voz (ElevenLabs) en el mismo buzón.
  *
  * Dos canales, con límites distintos:
+ * La respuesta llega en dos pasos: primero el texto (estado listo) y, un
+ * momento después, su voz (voz), para que la página no espere al audio.
+ *
  *   crm      solo el Centro de trabajo: resume, busca, y propone lo que la
  *            persona misma podría hacer (pedir una tarea, agregar
  *            instrucciones, mandarse un archivo). Nunca borra ni cambia: lo que
@@ -41,7 +44,7 @@ export const VOZ_ULTRON = 'eosea9zzgDtCNZMXrA1R'
 const BITACORA = join(DATA, 'ultron', 'bitacora.jsonl')
 const ANASOFI_LOG = join(LABELS_DIR, 'bitacora.jsonl')
 const ZONA = 'America/New_York'
-const CADA_MS = 1500
+const CADA_MS = 800
 const TABLERO_MS = 5 * 60_000
 
 /**
@@ -454,19 +457,19 @@ export async function atender({ db, m, model, effort, env, elevenKey, runQuery =
     return
   }
   if (!respuesta) respuesta = 'Listo.'
-  // Su voz, si hay llave de ElevenLabs; si falla, contesta en texto igual.
-  let rutaVoz = null
+  // Primero el texto (la página lo enseña ya); luego su voz, que tarda un poco más.
+  await cerrar({ respuesta, acciones })
   const llave = elevenKey?.()
   if (llave && VOICE_ID.test(voz)) {
     try {
       const lang = languageOf(respuesta)
       const audio = await speakAs(llave, voz, forSpeech(respuesta.replace(/\*\*/g, '')), lang)
-      rutaVoz = await db.subir(`${persona.id}/${m.id}.mp3`, audio)
+      const rutaVoz = await db.subir(`${persona.id}/${m.id}.mp3`, audio)
+      await db.rest(`ultron_mensajes?id=eq.${m.id}`, { method: 'PATCH', body: { voz: rutaVoz } })
     } catch (err) {
-      console.log(`${TAG} Ultron: voice failed (${err.message}); answering in text`)
+      console.log(`${TAG} Ultron: voice failed (${err.message}); answered in text`)
     }
   }
-  await cerrar({ respuesta, acciones, voz: rutaVoz })
   hub.endTask?.(tarea, 'done', respuesta.slice(0, 200))
   anota({ persona: persona.nombre, canal: m.canal, pregunta: m.pregunta, respuesta, acciones: acciones.length })
 }

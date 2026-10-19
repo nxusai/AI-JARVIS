@@ -43,6 +43,26 @@ Cada quien ve solo **su** conversación y **sus** tareas. La consola muestra de 
    - toca el orbe y pregunta "Resumen de hoy";
    - luego abre la consola con **Consola ↗**.
 
+## Hablarle con la voz (como a Nexy)
+
+En su consola, toca el **micrófono** una vez y queda **escuchando todo el tiempo**:
+- Háblale normal; al terminar la frase, la entiende y contesta **con su voz**.
+- Si llevan más de minuto y medio sin hablarle, primero di **"Ultron, …"**.
+- Puedes **interrumpirlo** hablando encima, o decirle **"para"** / **"silencio"**.
+- Tócalo otra vez para apagar el micrófono.
+
+Para que entienda lo que dices, Netlify necesita la llave de ElevenLabs (una vez):
+1. https://elevenlabs.io → tu perfil (abajo a la izquierda) → **API Keys** → **Create API Key**:
+   - Name: `Ultron oído`
+   - Permisos: **Speech to Text → Access**; lo demás, sin acceso.
+   - Copia la llave y guárdala en Passwords como `ELEVENLABS_API_KEY`.
+2. Netlify → tu proyecto → **Project configuration** → **Environment variables** → **Add a variable** → **Add a single variable**:
+   - Key `ELEVENLABS_API_KEY`, Value: la llave.
+   - Marca **Contains secret values**.
+3. **Deploys** → **Trigger deploy** → **Deploy project**.
+
+La voz con la que Ultron **contesta** sale de tu Mac (la misma llave de ElevenLabs que usa Nexy); esta nueva es solo para **oír**.
+
 ## Comandos útiles (en la Terminal)
 
 ```
