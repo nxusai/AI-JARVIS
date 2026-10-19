@@ -36,12 +36,12 @@ export async function abrirOido(al) {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
   } catch (err) {
     al.error(err?.name === 'NotAllowedError' ? 'No me diste permiso de usar el micrófono.' : 'No encuentro un micrófono.')
-    return { parar() {}, guardia() {}, vivo: () => false }
+    return { parar() {}, guardia() {}, vivo: () => false, dormido: () => false, despertar: async () => {} }
   }
   if (typeof MediaRecorder === 'undefined') {
     al.error('Este navegador no puede grabar audio.')
     stream.getTracks().forEach((t) => t.stop())
-    return { parar() {}, guardia() {}, vivo: () => false }
+    return { parar() {}, guardia() {}, vivo: () => false, dormido: () => false, despertar: async () => {} }
   }
   const mime = formato()
   const ctx = new AudioContext()
@@ -161,5 +161,8 @@ export async function abrirOido(al) {
       enGuardia = Boolean(si)
     },
     vivo: () => !parado,
+    // El navegador no deja oír hasta que tocan la página una vez.
+    dormido: () => ctx.state !== 'running',
+    despertar: () => ctx.resume(),
   }
 }

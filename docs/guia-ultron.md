@@ -45,11 +45,12 @@ Cada quien ve solo **su** conversación y **sus** tareas. La consola muestra de 
 
 ## Hablarle con la voz (como a Nexy)
 
-En su consola, toca el **micrófono** una vez y queda **escuchando todo el tiempo**:
-- Háblale normal; al terminar la frase, la entiende y contesta **con su voz**.
-- Si llevan más de minuto y medio sin hablarle, primero di **"Ultron, …"**.
+Al abrir su consola queda **escuchando sola** (manos libres):
+- Di **"Ultron, …"** y lo que necesites. Contesta **con su voz**.
+- En plena conversación ya no hace falta repetir su nombre; tras minuto y medio callados, vuelve a pedirlo.
 - Puedes **interrumpirlo** hablando encima, o decirle **"para"** / **"silencio"**.
-- Tócalo otra vez para apagar el micrófono.
+- La primera vez Chrome pide permiso del micrófono (**Allow**). Si aparece el aviso **"Toca aquí una vez…"**, tócalo: el navegador exige un toque para dejar oír y hablar.
+- El botón del micrófono lo apaga (y queda apagado la próxima vez) o lo vuelve a prender.
 
 Para que entienda lo que dices, Netlify necesita la llave de ElevenLabs (una vez):
 1. https://elevenlabs.io → tu perfil (abajo a la izquierda) → **API Keys** → **Create API Key**:

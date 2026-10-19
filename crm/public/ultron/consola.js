@@ -340,6 +340,7 @@ async function fuenteReal(cfg) {
   if (!data?.user) return { error: 'entrar' }
   const { data: yo } = await sb.from('perfiles').select('*').eq('id', data.user.id).maybeSingle()
   if (!yo?.activo || !(yo.ultron || yo.rol === 'admin')) return { error: 'permiso' }
+  if (!yo.nombre) yo.nombre = String(yo.correo || data.user.email || 'Director').split('@')[0]
   const hoyISO = new Date().toISOString().slice(0, 10)
   return {
     muestra: false,
@@ -444,7 +445,7 @@ let modoVoz = false
 let ultimaCharla = 0
 let estadoVoz = ''
 const VENTANA_MS = 90_000
-const NOMBRE = /\b(?:oye\s+|hola\s+|hey\s+)?ul+tr[oó]n+\b[\s,.:;!?¡¿]*/i
+const NOMBRE = /\b(?:oye\s+|hola\s+|hey\s+|ok\s+)?(?:ul+tr[oó]n+|al+tr[oó]n|hul+tr[oó]n|ultra\s?n)\b[\s,.:;!?¡¿]*/i
 const ALTO = /^(?:ultr[oó]n[,\s]*)?(?:para|párale|alto|silencio|cállate|callate|basta|espera|ya|stop)[.!]*$/i
 const sinSignos = (t) => sinTilde(t).replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -728,8 +729,9 @@ function callar() {
 }
 
 /** Prende o apaga el modo voz. */
-async function alternarVoz() {
-  if (modoVoz) {
+async function alternarVoz(solo = false) {
+  if (modoVoz && !solo) {
+    guardarPref('no')
     modoVoz = false
     oido?.parar()
     oido = null
@@ -738,9 +740,13 @@ async function alternarVoz() {
     pintarVista()
     return
   }
-  if (!navigator.mediaDevices?.getUserMedia) return escuchar()
+  if (modoVoz) return
+  if (!navigator.mediaDevices?.getUserMedia) return solo ? undefined : escuchar()
   modoVoz = true
-  ultimaCharla = Date.now() // recién prendido: no hace falta decir su nombre
+  if (!solo) guardarPref('si')
+  // Si lo prendieron con el botón, se puede hablar sin decir su nombre un rato;
+  // si se prendió solo al abrir, hay que llamarlo: "Ultron, …".
+  ultimaCharla = solo ? 0 : Date.now()
   $('#mic')?.classList.add('oye')
   $('#mic')?.setAttribute('aria-pressed', 'true')
   $('#mic')?.setAttribute('aria-label', 'Apagar el micrófono')
@@ -783,6 +789,70 @@ async function alternarVoz() {
     },
   })
   if (!oido.vivo()) modoVoz = false
+  avisoToque()
+}
+
+const leerPref = () => {
+  try {
+    return localStorage.getItem('ultron-voz')
+  } catch {
+    return null
+  }
+}
+const guardarPref = (v) => {
+  try {
+    localStorage.setItem('ultron-voz', v)
+  } catch {
+    // sin almacenamiento: no pasa nada
+  }
+}
+
+/**
+ * Manos libres: al abrir la consola queda escuchando sola; solo hay que decir
+ * "Ultron". El navegador exige que toquen la página una vez para dejar usar el
+ * micrófono y el sonido; mientras tanto, un aviso lo pide.
+ */
+async function manosLibres() {
+  if (leerPref() === 'no' || !navigator.mediaDevices?.getUserMedia) return
+  let permiso = 'prompt'
+  try {
+    permiso = (await navigator.permissions.query({ name: 'microphone' })).state
+  } catch {
+    permiso = 'prompt'
+  }
+  if (permiso === 'denied') return aviso('El micrófono está bloqueado para esta página. Actívalo en el candado de la barra de direcciones.')
+  if (permiso === 'granted') await alternarVoz(true)
+  avisoToque()
+}
+
+/** Pide un toque si el navegador todavía no deja oír o hablar; con el toque, despierta todo. */
+function avisoToque() {
+  const falta = !modoVoz || oido?.dormido?.()
+  let caja = $('#toque')
+  if (!falta) return caja?.remove()
+  if (caja) return
+  caja = document.createElement('button')
+  caja.id = 'toque'
+  caja.className = 'u-toque'
+  caja.textContent = 'Toca aquí una vez para que Ultron pueda oírte y hablarte'
+  document.body.append(caja)
+  const despertar = async () => {
+    document.removeEventListener('pointerdown', despertar, true)
+    document.removeEventListener('keydown', despertar, true)
+    caja.remove()
+    // Desbloquea el sonido (su voz) con este toque.
+    try {
+      const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=')
+      await a.play()
+    } catch {
+      // nada que desbloquear
+    }
+    if (!modoVoz) await alternarVoz(true)
+    await oido?.despertar?.()
+    pintarLado()
+  }
+  document.addEventListener('pointerdown', despertar, true)
+  document.addEventListener('keydown', despertar, true)
 }
 
 /** Lo que se dijo: ¿es para Ultron? */
@@ -887,5 +957,6 @@ async function arrancar() {
   } else F = fuenteMuestra()
   marco()
   tablero().then(() => pintarLado())
+  manosLibres()
 }
 arrancar()

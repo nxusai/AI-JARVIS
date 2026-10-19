@@ -408,7 +408,9 @@ export async function armarTablero(db) {
 
 /** Contesta un mensaje del buzón: piensa, responde, y deja su voz. */
 export async function atender({ db, m, model, effort, env, elevenKey, runQuery = query, hub = quietHub, voz = VOZ_ULTRON }) {
-  const [persona] = await db.rest(`perfiles?id=eq.${m.persona}&select=*`)
+  const [fila] = await db.rest(`perfiles?id=eq.${m.persona}&select=*`)
+  // Sin nombre (p. ej. el admin creado en Supabase): el de su correo.
+  const persona = fila && { ...fila, nombre: fila.nombre || String(fila.correo || 'Director').split('@')[0] }
   const cerrar = (body) => db.rest(`ultron_mensajes?id=eq.${m.id}`, { method: 'PATCH', body: { estado: 'listo', respondido: new Date().toISOString(), ...body } })
   if (!persona?.activo || !(persona.ultron || persona.rol === 'admin')) {
     await cerrar({ respuesta: 'Solo atiendo a la dirección.' })
@@ -427,33 +429,61 @@ export async function atender({ db, m, model, effort, env, elevenKey, runQuery =
   const ahora = new Date().toLocaleString('es-MX', { timeZone: ZONA, dateStyle: 'full', timeStyle: 'short' })
   const prompt = `${antes ? `Lo último que hablaron:\n${antes}\n\n` : ''}[${ahora}] ${persona.nombre} dice: ${m.pregunta}`
   const tarea = hub.startTask?.(`🟠 Ultron · ${persona.nombre}: ${m.pregunta.slice(0, 80)}`, null, 'ultron')
+  // Piensa en su propia carpeta (como las demás IAs), y si falla lo intenta una vez más.
+  const carpeta = join(DATA, 'ultron')
+  mkdirSync(carpeta, { recursive: true })
+  const pensar = async () => {
+    const errores = []
+    let texto = ''
+    try {
+      for await (const msg of runQuery({
+        prompt,
+        options: {
+          mcpServers: { u: servidor },
+          strictMcpConfig: true,
+          tools: [],
+          settingSources: [],
+          systemPrompt: indicaciones({ canal: m.canal, persona, memoria }),
+          model,
+          effort,
+          env: env?.(),
+          cwd: carpeta,
+          maxTurns: 12,
+          permissionMode: 'default',
+          stderr: (linea) => errores.push(String(linea)),
+          canUseTool: async (name, input) => (name.startsWith('mcp__u__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'No disponible.' }),
+        },
+      })) {
+        if (msg.type === 'result') {
+          if (msg.subtype !== 'success') throw new Error(`${msg.subtype}${msg.errors?.length ? `: ${msg.errors.join('; ')}` : ''}`)
+          texto = String(msg.result ?? '').trim()
+        }
+      }
+    } catch (err) {
+      const detalle = errores.join(' ').replace(/\s+/g, ' ').slice(-400)
+      throw new Error(`${err?.message ?? err}${detalle ? ` · ${detalle}` : ''}`)
+    }
+    return texto
+  }
   let respuesta = ''
   try {
-    for await (const msg of runQuery({
-      prompt,
-      options: {
-        mcpServers: { u: servidor },
-        strictMcpConfig: true,
-        tools: [],
-        settingSources: [],
-        systemPrompt: indicaciones({ canal: m.canal, persona, memoria }),
-        model,
-        effort,
-        env: env?.(),
-        maxTurns: 10,
-        permissionMode: 'default',
-        canUseTool: async (name, input) => (name.startsWith('mcp__u__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'No disponible.' }),
-      },
-    })) {
-      if (msg.type === 'result') {
-        if (msg.subtype !== 'success') throw new Error(msg.subtype)
-        respuesta = String(msg.result ?? '').trim()
-      }
+    try {
+      respuesta = await pensar()
+    } catch (err) {
+      console.log(`${TAG} Ultron: first try failed (${err.message}); trying again`)
+      respuesta = await pensar()
     }
   } catch (err) {
-    hub.endTask?.(tarea, 'failed', String(err?.message ?? err))
-    await db.rest(`ultron_mensajes?id=eq.${m.id}`, { method: 'PATCH', body: { estado: 'error', respuesta: 'Tuve un problema para responder. Intenta de nuevo en un momento.', respondido: new Date().toISOString() } })
-    anota({ persona: persona.nombre, canal: m.canal, pregunta: m.pregunta, error: String(err?.message ?? err) })
+    const motivo = String(err?.message ?? err)
+    console.log(`${TAG} Ultron could not answer ${persona.nombre}: ${motivo}`)
+    hub.endTask?.(tarea, 'failed', motivo)
+    // Al admin se le enseña la causa, para arreglarla; a la dirección no.
+    const aviso = 'Tuve un problema para responder. Intenta de nuevo en un momento.'
+    await db.rest(`ultron_mensajes?id=eq.${m.id}`, {
+      method: 'PATCH',
+      body: { estado: 'error', respuesta: persona.rol === 'admin' ? `${aviso}\n\n(Solo tú ves esto) Causa: ${motivo.slice(0, 600)}` : aviso, respondido: new Date().toISOString() },
+    })
+    anota({ persona: persona.nombre, canal: m.canal, pregunta: m.pregunta, error: motivo })
     return
   }
   if (!respuesta) respuesta = 'Listo.'
