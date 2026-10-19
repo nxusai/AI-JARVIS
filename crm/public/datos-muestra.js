@@ -431,68 +431,78 @@ export function crearMuestra() {
       db.empresas.find((e) => e.id === id).activa = activa
       anota('cambió', 'empresas', id, { activa: [!activa, activa] })
     },
-    // Ultron (en la muestra contesta aquí; en el sistema real, el cerebro).
+    // Ultron dentro del Centro de trabajo (en la muestra contesta aquí; en el
+    // sistema real, el cerebro). Solo cosas del Centro de trabajo, con los
+    // permisos de quien pregunta; nunca borra ni cambia nada.
     async ultron(texto) {
-      await espera(900 + Math.random() * 700)
+      await espera(800 + Math.random() * 600)
       const p = perfil()
       if (!p || !(p.ultron || admin())) no('Ultron solo atiende a la dirección')
-      const q = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      const q = sinTilde(texto).toLowerCase()
       const mias = db.tareas.filter(veoTarea)
       const hoy = new Date().toISOString().slice(0, 10)
       const emp = (id) => db.empresas.find((e) => e.id === id)?.nombre ?? id
+      const empresaDe = (t) =>
+        /semago/.test(t) ? 'mi-semago' : /cheese|queso|quesillo|cuajada|crema/.test(t) ? 'abuelito-cheese' : /meat|carne|chorizo|longaniza/.test(t) ? 'abuelito-meat' : /corn|pupusa|tortilla|tamal|maiz/.test(t) ? 'abuelito-corn' : null
+      if (/borra|elimina|quita|cambia|modifica|edita|mueve el estatus/.test(q)) {
+        return { texto: 'Desde el Centro de trabajo no borro ni cambio nada. Si algo cambió en una tarea, puedo **agregarle instrucciones nuevas** (quedan con fecha). Lo demás lo ve tu equipo.' }
+      }
+      if (/ana sofi|vivian|empleado|whatsapp|llama|ia de |otras ia/.test(q)) {
+        return { texto: 'Eso no lo manejo desde aquí: en el Centro de trabajo solo veo tareas, biblioteca y catálogos. Pídemelo por **Telegram** o en mi **consola** y lo hago.' }
+      }
+      const crear = q.match(/crea(?:r)?(?: una)? tarea[:,]?\s*(.*)$/)
+      if (crear) {
+        const titulo = texto.slice(texto.length - crear[1].length).trim()
+        if (!titulo) return { texto: 'Claro. Dime qué necesitas y para qué empresa, por ejemplo: “Crea una tarea: label de tamales de elote para Abuelito Corn”.' }
+        const limpio = titulo.replace(/\s+para\s+(abuelito\s+\w+|mi semago)\s*$/i, '').trim()
+        const e = empresaDe(q)
+        const opciones = e ? [e] : db.empresas.filter((x) => x.activa && veo('tareas', x.id)).map((x) => x.id)
+        return {
+          texto: e ? `Te preparo la tarea **“${limpio}”** para **${emp(e)}**. ¿La registro?` : `¿Para qué empresa es **“${limpio}”**?`,
+          acciones: opciones.map((id) => ({ etiqueta: e ? '✓ Sí, regístrala' : emp(id), crear: { empresa_id: id, titulo: limpio } })),
+        }
+      }
+      const agregar = q.match(/agrega(?:r|le)?.*(?:tarea|folio)\s*#?(\d+)[:,]?\s*(.*)$/)
+      if (agregar) {
+        const t = mias.find((x) => String(x.folio) === agregar[1])
+        if (!t) return { texto: `No encuentro la tarea #${agregar[1]} entre las tuyas.` }
+        if (t.estatus === 'aprobada') return { texto: `La #${t.folio} ya está aprobada; ya no se le agrega nada.` }
+        const nota = texto.slice(texto.length - agregar[2].length).trim()
+        if (!nota) return { texto: `¿Qué instrucciones le agrego a la #${t.folio} ${t.titulo}?` }
+        return { texto: `Le agrego a la **#${t.folio} ${t.titulo}**: “${nota}”. ¿Confirmas?`, acciones: [{ etiqueta: '✓ Sí, agrégalo', nota: { tarea_id: t.id, texto: nota } }] }
+      }
       if (/atras|retras|tarde|venc/.test(q)) {
         const tarde = mias.filter((t) => t.compromiso && t.compromiso < hoy && !['entregada', 'aprobada'].includes(t.estatus))
         if (!tarde.length) return { texto: 'Nada atrasado. Todo lo que tiene fecha compromiso va a tiempo.' }
-        return { texto: `Hay **${tarde.length}** atrasada${tarde.length === 1 ? '' : 's'}:\n${tarde.map((t) => `• #${t.folio} ${t.titulo} (${emp(t.empresa_id)}), compromiso ${t.compromiso}`).join('\n')}\n\nYa le pedí al equipo que me dé fecha nueva.` }
-      }
-      if (/complet|explica|detalle/.test(q)) {
-        return {
-          texto: 'Ana Sofi, detalle de hoy:\n• 9:10 — Carlos (bodega) pidió 40 etiquetas de quesillo 5 lb vacío. Impresas.\n• 11:32 — Lupita preguntó la caducidad del queso duro blando: 54 días. Respondido.\n• 13:05 — Un empleado preguntó por el precio a mayoreo; Ana Sofi no da precios, lo pasó a ventas.\n• 15:40 — Dos tandas más de etiquetas (cuajada y crema).\n• Resto: saludos y dudas de horarios.',
-        }
-      }
-      if (/ana sofi|empleado|hizo|hicieron/.test(q)) {
-        return {
-          texto: 'Ana Sofi, hoy: **14 conversaciones**, 3 tandas de etiquetas impresas, 1 duda de precios que pasó a ventas. Sin problemas.',
-          acciones: [{ etiqueta: 'Explicación completa', pregunta: 'Explícame completo lo de Ana Sofi' }],
-        }
-      }
-      if (/catalogo/.test(q)) {
-        const cats = db.archivos.filter((a) => a.tipo === 'catalogo' && a.vigente && veoArchivo(a))
-        const cual = cats.find((a) => q.includes(sinTilde(emp(a.empresa_id)).toLowerCase())) ?? cats.find((a) => q.includes('semago') && a.empresa_id === 'mi-semago') ?? cats[0]
-        if (!cual) return { texto: 'No encontré un catálogo que puedas ver.' }
-        return { texto: `Aquí está: **${cual.nombre}**. ¿Te lo mando a tu correo?`, acciones: [{ etiqueta: '✉️ A mi correo', archivo: cual.id }, { etiqueta: 'Ver', archivo: cual.id, ver: true }] }
-      }
-      if (/dile|avisa|ordena|que no|instruc/.test(q)) {
-        return { texto: `Hecho. Le pasé la instrucción a Ana Sofi: “${texto}”. La aplica desde ahora y te aviso si alguien pregunta por eso.` }
-      }
-      if (/resumen|hoy|como va|semana|que hay/.test(q)) {
-        const pend = mias.filter((t) => t.estatus !== 'aprobada')
-        const rev = mias.filter((t) => t.estatus === 'entregada')
-        return {
-          texto: `Resumen: **${pend.length}** tareas abiertas, **${rev.length}** esperando tu revisión, ${mias.filter((t) => t.estatus === 'en-correccion').length} en corrección.\nAna Sofi: 14 conversaciones, todo en orden.`,
-          acciones: rev.length ? [{ etiqueta: '¿Cuáles reviso?', pregunta: '¿Qué tengo para revisar?' }] : [],
-        }
+        return { texto: `Hay **${tarde.length}** atrasada${tarde.length === 1 ? '' : 's'}:\n${tarde.map((t) => `• #${t.folio} ${t.titulo} (${emp(t.empresa_id)}), compromiso ${t.compromiso}`).join('\n')}` }
       }
       if (/revis/.test(q)) {
         const rev = mias.filter((t) => t.estatus === 'entregada')
         return { texto: rev.length ? `Para revisar:\n${rev.map((t) => `• #${t.folio} ${t.titulo}`).join('\n')}` : 'No tienes nada pendiente de revisar.' }
       }
-      return { texto: 'Entendido. En el sistema real consulto a Ana Sofi y el Centro de trabajo para responderte esto. En la muestra prueba: “Resumen de hoy”, “¿Qué está atrasado?” o “Mándame el catálogo de Mi Semago”.' }
-    },
-    async ultronEquipo() {
-      return {
-        cabezas: db.perfiles.filter((p) => p.ultron).map((p) => p.nombre),
-        ias: [
-          { nombre: 'Ana Sofi', empresa: 'Mi Semago', activa: true, color: '#4f9bff' },
-          { nombre: 'IA de Abuelito', empresa: 'Abuelito INC · Cheese, Meat, Corn', activa: false, color: '#ffc23d' },
-          { nombre: 'Vivian', empresa: 'VAYRO', activa: false, color: '#c08cff' },
-        ],
-        resumen: [
-          { quien: 'Ana Sofi', corto: '14 conversaciones · 3 tandas de etiquetas · 1 duda de precios pasada a ventas.', largo: '9:10 Carlos pidió 40 etiquetas de quesillo 5 lb vacío (impresas). 11:32 Lupita preguntó la caducidad del queso duro blando (54 días). 13:05 Precio a mayoreo: no lo da, lo pasó a ventas. 15:40 Dos tandas de etiquetas (cuajada y crema).' },
-          { quien: 'Centro de trabajo', corto: `${db.tareas.filter((t) => t.estatus !== 'aprobada').length} tareas abiertas · ${db.tareas.filter((t) => t.estatus === 'entregada').length} esperando revisión.`, largo: db.tareas.filter((t) => t.estatus !== 'aprobada').map((t) => `#${t.folio} ${t.titulo}: ${t.estatus}`).join(' · ') },
-        ],
-        alertas: db.tareas.filter((t) => t.urgente && t.estatus !== 'aprobada').map((t) => `Urgente: #${t.folio} ${t.titulo}`),
+      if (/catalogo/.test(q)) {
+        const cats = db.archivos.filter((a) => a.tipo === 'catalogo' && a.vigente && veoArchivo(a))
+        const e = empresaDe(q)
+        const cual = cats.find((a) => a.empresa_id === e) ?? cats[0]
+        if (!cual) return { texto: 'No encontré un catálogo que puedas ver.' }
+        return { texto: `Aquí está: **${cual.nombre}**. ¿Te lo mando a tu correo?`, acciones: [{ etiqueta: '✉️ A mi correo', archivo: cual.id }, { etiqueta: 'Ver', archivo: cual.id, ver: true }] }
       }
+      if (/label|etiqueta|logo|pdf|archivo|manda/.test(q)) {
+        const palabras = q.split(/\s+/).filter((w) => w.length > 3 && !/manda|mandame|label|labels|etiqueta|archivo|pdf/.test(w))
+        const hallados = db.archivos.filter((a) => a.tipo === 'biblioteca' && a.vigente && veoArchivo(a) && palabras.every((w) => sinTilde(`${a.nombre} ${a.notas}`).toLowerCase().includes(w)))
+        if (!hallados.length) return { texto: 'No lo encontré en la biblioteca. Dime el producto o la empresa y lo vuelvo a buscar.' }
+        const a = hallados[0]
+        return { texto: `Encontré **${a.nombre}** (${emp(a.empresa_id)}).${hallados.length > 1 ? ` Hay ${hallados.length - 1} más parecido${hallados.length > 2 ? 's' : ''}.` : ''}`, acciones: [{ etiqueta: '✉️ A mi correo', archivo: a.id }, { etiqueta: 'Ver', archivo: a.id, ver: true }] }
+      }
+      if (/resumen|hoy|como va|semana|que hay/.test(q)) {
+        const pend = mias.filter((t) => t.estatus !== 'aprobada')
+        const rev = mias.filter((t) => t.estatus === 'entregada')
+        return {
+          texto: `Resumen: **${pend.length}** tareas abiertas, **${rev.length}** esperando tu revisión, ${mias.filter((t) => t.estatus === 'en-correccion').length} en corrección, ${mias.filter((t) => t.urgente && t.estatus !== 'aprobada').length} urgente(s).`,
+          acciones: rev.length ? [{ etiqueta: '¿Cuáles reviso?', pregunta: '¿Qué tengo para revisar?' }] : [],
+        }
+      }
+      return { texto: 'Aquí te ayudo con el Centro de trabajo: “Resumen de hoy”, “¿Qué está atrasado?”, “Mándame el label de pupusas de frijol”, “Crea una tarea: …” o “Agrégale a la tarea #4: …”.' }
     },
     async bitacora() {
       if (!admin()) return []

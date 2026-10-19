@@ -411,43 +411,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .u-escribir input { flex: 1; min-width: 0; border-radius: 999px; }
 .u-escribir .btn { border-radius: 999px; width: 44px; padding: 0; }
 
-.consola-u { position: fixed; inset: 0; z-index: 66; background: var(--fondo); background-image: radial-gradient(800px 500px at 20% -10%, rgba(0,229,255,.14), transparent 60%), radial-gradient(800px 600px at 100% 100%, rgba(162,28,255,.16), transparent 60%); overflow-y: auto; animation: sube .3s ease both; padding-top: env(safe-area-inset-top, 0px); }
-.cu-barra { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: rgba(6, 10, 24, .85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 2; flex-wrap: wrap; }
-.cu-barra > div { display: flex; flex-direction: column; line-height: 1.1; margin-right: auto; }
-.cu-barra b { font: 800 17px var(--display); letter-spacing: .24em; }
-.cu-barra span { font-size: 12px; color: var(--suave); }
-.cu-quien { font-size: 13px; color: var(--suave); }
-.cu-cuerpo { max-width: 1200px; margin: 0 auto; padding: 18px 16px 40px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.cu-izq { display: grid; gap: 16px; min-width: 0; }
-.consola-u h2 { font-size: 16px; margin: 0 0 10px; }
-.cu-arbol, .cu-hoy, .cu-alertas, .cu-chat { background: var(--vidrio); border: 1px solid var(--linea); border-radius: 20px; padding: 16px; min-width: 0; }
-.cu-arbol { text-align: center; }
-.cu-nodo { display: inline-flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--linea-2); border-radius: 16px; padding: 10px 14px; text-align: left; position: relative; }
-.cu-raiz { border-color: rgba(0, 229, 255, .55); box-shadow: 0 0 30px rgba(0, 229, 255, .18); }
-.cu-raiz .orbe-mini { width: 44px; height: 44px; }
-.cu-nodo b { display: block; font-family: var(--display); }
-.cu-nodo span { font-size: 12px; color: var(--suave); }
-.cu-ramas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 28px; position: relative; }
-.cu-ramas::before { content: ""; position: absolute; top: -16px; left: 16.6%; right: 16.6%; height: 2px; background: var(--degradado); opacity: .6; }
-.cu-ramas .cu-nodo { display: flex; flex-direction: column; align-items: center; text-align: center; border-top: 3px solid var(--color-emp); min-width: 0; }
-.cu-ramas .cu-nodo::before { content: ""; position: absolute; top: -18px; left: 50%; width: 2px; height: 16px; background: var(--degradado); opacity: .6; }
-.cu-ramas .cu-nodo.pronto { opacity: .55; border-style: dashed; border-top-style: solid; }
-.cu-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 800 18px var(--display); background: color-mix(in srgb, var(--color-emp) 22%, transparent); color: var(--color-emp); border: 1px solid color-mix(in srgb, var(--color-emp) 50%, transparent); }
-.cu-info { min-width: 0; }
-.cu-info em { display: inline-block; margin-top: 4px; font-style: normal; font-size: 11.5px; color: var(--suave); }
-.cu-info em.on { color: var(--ok); }
-.cu-linea { padding: 10px 0; border-top: 1px solid var(--linea); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
-.cu-linea:first-of-type { border-top: 0; }
-.cu-linea > div { flex: 1 1 260px; min-width: 0; }
-.cu-linea b { color: var(--cian); font-family: var(--display); }
-.cu-largo { flex-basis: 100%; margin: 4px 0 0; color: var(--suave); font-size: 13.5px; background: var(--fondo-2); border-radius: 12px; padding: 10px 12px; }
-.cu-alerta { background: var(--mal-fondo); color: #ffd0da; border: 1px solid rgba(255, 92, 122, .35); border-radius: 12px; padding: 9px 12px; margin-top: 8px; font-size: 14px; }
-.cu-chat { display: flex; flex-direction: column; height: min(640px, calc(100vh - 120px)); position: sticky; top: 76px; padding: 16px 0 0; }
-.cu-chat h2 { padding: 0 16px; }
 @media (max-width: 860px) {
-  .cu-cuerpo { grid-template-columns: 1fr; }
-  .cu-chat { position: static; height: 560px; }
-  .cu-ramas { grid-template-columns: 1fr; }
-  .cu-ramas::before { display: none; }
   .ultron-panel { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 80px); }
 }

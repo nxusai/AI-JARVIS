@@ -250,14 +250,33 @@ async function empezar() {
     montarUltron({
       yo: S.yo,
       preguntar: (t) => D.ultron(t),
-      equipo: () => D.ultronEquipo(),
       avisar,
+      consola: () => (MUESTRA ? avisar('En el sistema real, la consola de Ultron se abre en otra pestaña.') : window.open('/ultron', '_blank')),
+      // Lo que Ultron propone solo pasa si la persona toca el botón, y con sus
+      // mismos permisos (nada que ella no pudiera hacer sola).
       accion: async (a) => {
-        const arch = todosLosArchivos().find((x) => x.id === a.archivo)
-        if (!arch) return
-        if (a.ver) return verArchivo(arch.id, false)
-        const r = await D.correo(arch)
-        avisar(`Te lo envié a ${r.para}.`)
+        if (a.archivo) {
+          const arch = todosLosArchivos().find((x) => x.id === a.archivo)
+          if (!arch) return 'Ese archivo ya no está.'
+          if (a.ver) {
+            verArchivo(arch.id, false)
+            return ''
+          }
+          const r = await D.correo(arch)
+          return `Listo, te lo envié a ${r.para}.`
+        }
+        if (a.crear) {
+          const t = await D.pedir({ cliente_id: S.yo.id, empresa_id: a.crear.empresa_id, titulo: a.crear.titulo, descripcion: `${a.crear.titulo}\n\n(Pedida con Ultron)`, urgente: false, archivos: [] })
+          await recargar()
+          return `Registrada: tarea **#${t.folio}**. Ya la ve tu equipo; si quieres agrégale detalles o archivos desde la tarea.`
+        }
+        if (a.nota) {
+          const t = S.tareas.find((x) => x.id === a.nota.tarea_id)
+          await D.agregarNota(t, a.nota.texto, [])
+          await recargar()
+          return `Agregado a la #${t.folio}, con fecha.`
+        }
+        return ''
       },
     })
   } else desmontarUltron()
