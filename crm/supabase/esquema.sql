@@ -15,7 +15,11 @@
 --   admin    lo mismo que el equipo, más usuarios, bitácora y borrar.
 --
 -- Nada se reemplaza: cada PDF nuevo (entrega, corrección, versión) se guarda
--- junto a los anteriores. Borrar solo lo puede el admin.
+-- junto a los anteriores. Lo que pidió el cliente no se cambia: si cambia de
+-- idea, agrega una actualización (texto y/o archivos) dentro de la misma tarea.
+-- Borrar solo lo puede el admin.
+--
+-- Se puede volver a correr completo sin perder nada (así se aplican mejoras).
 
 -- ---------------------------------------------------------------------------
 -- Empresas
@@ -301,6 +305,34 @@ begin
   perform set_config('crm.sistema', '', true);
 end $$;
 
+-- Actualizaciones: el cliente no cambia lo que pidió; si cambió de idea, agrega
+-- instrucciones nuevas (y archivos) a la misma tarea. Quedan todas, con fecha.
+create table if not exists public.notas (
+  id uuid primary key default gen_random_uuid(),
+  tarea_id uuid not null references public.tareas (id) on delete cascade,
+  texto text not null default '' check (char_length(texto) <= 5000),
+  creada timestamptz not null default now(),
+  autor uuid references public.perfiles (id)
+);
+
+create index if not exists notas_tarea on public.notas (tarea_id, creada);
+
+create or replace function public.antes_nota() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creada := now();
+    new.autor := auth.uid();
+    return new;
+  end if;
+  if es_sistema() then return new; end if;
+  raise exception 'Las actualizaciones no se cambian; se agrega una nueva';
+end $$;
+
+drop trigger if exists crm_antes_nota on public.notas;
+create trigger crm_antes_nota before insert or update on public.notas
+  for each row execute function public.antes_nota();
+
 -- ---------------------------------------------------------------------------
 -- Biblioteca y archivos
 -- ---------------------------------------------------------------------------
@@ -335,6 +367,9 @@ create table if not exists public.archivos (
 create index if not exists archivos_tarea on public.archivos (tarea_id);
 create index if not exists archivos_carpeta on public.archivos (carpeta_id);
 
+-- Los archivos de una actualización van pegados a ella.
+alter table public.archivos add column if not exists nota_id uuid references public.notas (id) on delete cascade;
+
 create or replace function public.antes_archivo() returns trigger
 language plpgsql as $$
 declare t tareas; prev archivos;
@@ -352,10 +387,19 @@ begin
         and not exists (select 1 from correcciones where id = new.correccion_id and tarea_id = new.tarea_id) then
         raise exception 'Esa corrección no es de esta tarea';
       end if;
-      if new.tipo = 'referencia' then new.correccion_id := null; end if;
+      if new.tipo = 'referencia' then
+        new.correccion_id := null;
+        if new.nota_id is not null
+          and not exists (select 1 from notas where id = new.nota_id and tarea_id = new.tarea_id) then
+          raise exception 'Esa actualización no es de esta tarea';
+        end if;
+      else
+        new.nota_id := null;
+      end if;
     else
       new.tarea_id := null;
       new.correccion_id := null;
+      new.nota_id := null;
       if new.tipo = 'biblioteca' and new.carpeta_id is not null then
         select empresa_id into new.empresa_id from carpetas where id = new.carpeta_id;
       end if;
@@ -382,7 +426,8 @@ begin
     or new.subido is distinct from old.subido
     or new.subido_por is distinct from old.subido_por
     or new.anterior_id is distinct from old.anterior_id
-    or new.vigente is distinct from old.vigente then
+    or new.vigente is distinct from old.vigente
+    or new.nota_id is distinct from old.nota_id then
     raise exception 'De un archivo solo se cambia el nombre, la carpeta y las notas';
   end if;
   if old.tipo in ('referencia', 'entrega') and (new.nombre is distinct from old.nombre or new.carpeta_id is distinct from old.carpeta_id) then
@@ -477,7 +522,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['tareas', 'correcciones', 'archivos', 'carpetas', 'perfiles', 'empresas'] loop
+  foreach t in array array['tareas', 'correcciones', 'notas', 'archivos', 'carpetas', 'perfiles', 'empresas'] loop
     execute format('drop trigger if exists crm_bitacora on public.%I', t);
     execute format('create trigger crm_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
   end loop;
@@ -501,6 +546,7 @@ alter table public.empresas enable row level security;
 alter table public.perfiles enable row level security;
 alter table public.tareas enable row level security;
 alter table public.correcciones enable row level security;
+alter table public.notas enable row level security;
 alter table public.carpetas enable row level security;
 alter table public.archivos enable row level security;
 alter table public.bitacora enable row level security;
@@ -551,7 +597,26 @@ create policy correcciones_equipo on public.correcciones for update to authentic
 drop policy if exists correcciones_borrar on public.correcciones;
 create policy correcciones_borrar on public.correcciones for delete to authenticated using (es_admin());
 
--- Carpetas: el cliente ve las de sus empresas; el equipo las arma.
+-- Actualizaciones: se ven si se ve la tarea; las agrega el cliente dueño (o el
+-- equipo, a nombre de lo que el cliente pidió por otro lado) mientras la tarea
+-- no esté aprobada. Nadie las cambia; solo el admin borra.
+drop policy if exists notas_ver on public.notas;
+create policy notas_ver on public.notas for select to authenticated
+  using (exists (select 1 from tareas t where t.id = tarea_id));
+drop policy if exists notas_agregar on public.notas;
+create policy notas_agregar on public.notas for insert to authenticated
+  with check (
+    exists (
+      select 1 from tareas t
+      where t.id = tarea_id and t.estatus <> 'aprobada'
+        and ((t.cliente_id = auth.uid() and yo_rol() = 'cliente') or es_equipo())
+    )
+  );
+drop policy if exists notas_borrar on public.notas;
+create policy notas_borrar on public.notas for delete to authenticated using (es_admin());
+
+-- Carpetas: el cliente ve las de sus empresas; el equipo las arma; solo el
+-- admin borra.
 drop policy if exists carpetas_ver on public.carpetas;
 create policy carpetas_ver on public.carpetas for select to authenticated using (veo('biblioteca', empresa_id));
 drop policy if exists carpetas_crear on public.carpetas;
@@ -559,7 +624,7 @@ create policy carpetas_crear on public.carpetas for insert to authenticated with
 drop policy if exists carpetas_cambiar on public.carpetas;
 create policy carpetas_cambiar on public.carpetas for update to authenticated using (es_equipo()) with check (es_equipo());
 drop policy if exists carpetas_borrar on public.carpetas;
-create policy carpetas_borrar on public.carpetas for delete to authenticated using (es_equipo());
+create policy carpetas_borrar on public.carpetas for delete to authenticated using (es_admin());
 
 -- Archivos: los de una tarea se ven si se ve la tarea; los de la biblioteca y
 -- los catálogos según los permisos de cada quien.

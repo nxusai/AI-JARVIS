@@ -16,11 +16,29 @@ const ESTATUS = {
 }
 const ESTATUS_CORR = { pedida: 'Pedida', 'en-proceso': 'En proceso', entregada: 'Entregada' }
 const COLORES = {
-  'abuelito-cheese': '#d99a1e',
-  'abuelito-meat': '#b3261e',
-  'abuelito-corn': '#6f8f1f',
-  'mi-semago': '#2b5ea7',
-  vayro: '#6b46a8',
+  'abuelito-cheese': '#ffc23d',
+  'abuelito-meat': '#ff5c5c',
+  'abuelito-corn': '#9be15d',
+  'mi-semago': '#4f9bff',
+  vayro: '#c08cff',
+}
+// Para el cliente, "entregada" quiere decir que le toca revisar.
+const ESTATUS_CLIENTE = { ...ESTATUS, entregada: 'Lista para revisar', 'en-correccion': 'Corrigiendo' }
+const AVANCE = ['Pedida', 'En proceso', 'Para revisar', 'Aprobada']
+const pasoDe = (estatus) => ({ recibida: 0, 'en-proceso': 1, 'en-correccion': 1, entregada: 2, aprobada: 3 })[estatus] ?? 0
+
+let nLogo = 0
+/** El logo NXUS (N y X con el degradado cian → azul → violeta). */
+function logo(clase = 'logo') {
+  const id = `nx${++nLogo}`
+  return `<svg class="${clase}" viewBox="160 310 950 620" role="img" aria-label="NXUS AI"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+}
+const ICONOS = {
+  tareas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
+  biblioteca: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  catalogos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>',
+  usuarios: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>',
+  bitacora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 }
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
@@ -188,6 +206,7 @@ function pintarEntrada(error = '') {
             )
             .join('')}
         </div>
+        ${firma()}
       </div></div>`
     return
   }
@@ -199,6 +218,7 @@ function pintarEntrada(error = '') {
       <div class="campo"><label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" required></div>
       <button class="btn principal grande" style="width:100%" data-ocupado="Entrando…">Entrar</button>
       <p class="ayuda" style="text-align:center;margin-bottom:0">¿Olvidaste tu contraseña? Pídele una nueva a tu administrador.</p>
+      ${firma()}
     </form></div>`
   $('#form-entrar').addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -214,7 +234,8 @@ function pintarEntrada(error = '') {
   })
 }
 const marcaEntrada = () => `
-  <div class="entrada-marca"><div class="sello">MA</div><b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo</span></div>`
+  <div class="entrada-marca">${logo()}<b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo</span></div>`
+const firma = () => `<div class="firma">${logo()}<span>Hecho por NXUS AI</span></div>`
 
 async function empezar() {
   $('#app').innerHTML = '<div class="cargando">Cargando…</div>'
@@ -244,13 +265,13 @@ function pintar() {
     <header class="cabeza">
       ${MUESTRA ? `<div class="franja-muestra">Muestra con datos de ejemplo · nada se guarda de verdad <button class="btn chico" data-accion="cambiar-muestra">Cambiar de persona</button></div>` : ''}
       <div class="cabeza-fila">
-        <div class="marca"><b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo</span></div>
+        <div class="marca">${logo()}<div><b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo · NXUS AI</span></div></div>
         <div class="quien"><b>${h(S.yo.nombre)}</b><span>${ROLES[S.yo.rol]}</span></div>
         <button class="btn chico" data-accion="salir">Salir</button>
       </div>
       <nav class="pestanas">
         ${vistasPermitidas()
-          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${NOMBRES_VISTA[v]}</button>`)
+          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${ICONOS[v]}${NOMBRES_VISTA[v]}</button>`)
           .join('')}
       </nav>
     </header>
@@ -284,6 +305,7 @@ function textoTarea(t) {
     nombreCliente(t.cliente_id),
     ...t.correcciones.map((c) => c.instrucciones),
     ...t.archivos.map((a) => a.nombre),
+    ...(t.notas ?? []).map((n) => n.texto),
   ].join(' ')
 }
 
@@ -319,6 +341,7 @@ function vistaTareas() {
   const porMes = MESES.map((_, m) => base.filter((t) => { const d = aFecha(t.pedida); return d.getFullYear() === S.anio && d.getMonth() === m }).length)
   const empresasTareas = misEmpresas('tareas')
   return `
+    ${saludo(base)}
     <div class="barra">
       ${esCliente() ? `<button class="btn principal" data-accion="nueva-tarea">+ Nueva tarea</button>` : `<button class="btn principal" data-accion="nueva-tarea">+ Registrar tarea de un cliente</button>`}
       <input class="crece" type="search" placeholder="Buscar tarea, producto, folio…" value="${h(S.busca)}" data-filtro="busca" aria-label="Buscar">
@@ -332,22 +355,73 @@ function vistaTareas() {
     </div>
     <p class="ayuda" style="margin:0 0 10px">${titulo}</p>
     <div class="lista">
-      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? 'No encontré nada con esa búsqueda.' : S.mes === 'pendientes' ? '¡Todo al día! No hay tareas pendientes.' : 'No hay tareas en este mes.'}</div>`}
+      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : S.mes === 'pendientes' ? '<b>¡Todo al día! 🎉</b>No hay tareas pendientes.' : '<b>Mes tranquilo</b>No hay tareas pedidas en este mes.'}</div>`}
     </div>`
+}
+
+const textoEstatus = (s) => (esCliente() ? ESTATUS_CLIENTE : ESTATUS)[s]
+
+function saludo(base) {
+  const hoy = new Date()
+  const revisar = base.filter((t) => t.estatus === 'entregada').length
+  const proceso = base.filter((t) => ['recibida', 'en-proceso', 'en-correccion'].includes(t.estatus)).length
+  const pend = base.filter((t) => t.estatus !== 'aprobada').length
+  const aprobadasMes = base.filter((t) => t.aprobada && aFecha(t.aprobada).getMonth() === hoy.getMonth() && aFecha(t.aprobada).getFullYear() === hoy.getFullYear()).length
+  const hora = hoy.getHours()
+  const hola = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
+  const frase = esCliente()
+    ? revisar
+      ? `Tienes ${revisar} ${revisar === 1 ? 'trabajo listo' : 'trabajos listos'} para revisar ✨`
+      : pend
+        ? 'Tu equipo está trabajando en lo tuyo.'
+        : 'Todo al día. Pide lo que necesites con “+ Nueva tarea”.'
+    : proceso
+      ? `Hay ${proceso} ${proceso === 1 ? 'tarea' : 'tareas'} por trabajar.`
+      : 'No hay nada pendiente. ¡Bien hecho!'
+  let mostrarPasos = esCliente()
+  try {
+    if (localStorage.getItem('ct-pasos') === 'no') mostrarPasos = false
+  } catch {}
+  return `
+    <div class="hola"><div><h1>${hola}, <span class="grad">${h(primerNombre(S.yo.nombre))}</span></h1><p>${frase}</p></div></div>
+    <div class="resumen">
+      <button class="dato d-pend" data-mes="pendientes"><b>${pend}</b><span>Pendientes</span></button>
+      <button class="dato d-proceso" data-mes="pendientes"><b>${proceso}</b><span>${esCliente() ? 'En manos del equipo' : 'Por trabajar'}</span></button>
+      <button class="dato d-revisar ${revisar && esCliente() ? 'llama' : ''}" data-mes="pendientes"><b>${revisar}</b><span>${esCliente() ? 'Listas para revisar' : 'Esperando al cliente'}</span></button>
+      <button class="dato d-ok" data-mes="${hoy.getMonth()}"><b>${aprobadasMes}</b><span>Aprobadas este mes</span></button>
+    </div>
+    ${
+      mostrarPasos
+        ? `<div class="pasos">
+            <button class="btn chico fantasma pasos-cerrar" data-accion="cerrar-pasos" aria-label="Ocultar">×</button>
+            <div class="paso"><i>1</i><b>Pides</b><span>Con “+ Nueva tarea”</span></div>
+            <div class="paso"><i>2</i><b>Trabajamos</b><span>Ves el avance aquí</span></div>
+            <div class="paso"><i>3</i><b>Revisas</b><span>Descargas o pides corrección</span></div>
+            <div class="paso"><i>4</i><b>Apruebas</b><span>Y queda guardado</span></div>
+          </div>`
+        : ''
+    }`
+}
+
+function avance(estatus) {
+  const p = pasoDe(estatus)
+  return `<div class="avance ${estatus === 'aprobada' ? 'fin' : ''}" aria-label="Avance: ${AVANCE[p]}">${AVANCE.map((n, i) => `<div class="${i < p ? 'hecho' : i === p ? 'aqui' : ''}"><i></i>${n}</div>`).join('')}</div>`
 }
 
 function tarjetaTarea(t) {
   const e = empresa(t.empresa_id)
   const nCorr = t.correcciones.length
   return `
-    <button class="tarjeta" style="--color-emp:${color(t.empresa_id)}" data-tarea="${t.id}">
+    <button class="tarjeta ${esCliente() && t.estatus === 'entregada' ? 'revisar' : ''}" style="--color-emp:${color(t.empresa_id)}" data-tarea="${t.id}">
+      <div class="tarjeta-fila"><div>
       <div class="tarjeta-titulo"><span class="folio">#${t.folio}</span>${h(t.titulo)}</div>
       <div class="chips">
         <span class="chip emp">${h(e.nombre)}</span>
-        <span class="chip est-${t.estatus}">${ESTATUS[t.estatus]}</span>
+        <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
         ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
+        ${(t.notas ?? []).length ? `<span class="chip nuevo">${t.notas.length} ${t.notas.length === 1 ? 'actualización' : 'actualizaciones'}</span>` : ''}
         ${esEquipo() ? `<span class="chip">${h(nombreCliente(t.cliente_id))}</span>` : ''}
-      </div>
+      </div></div>${avance(t.estatus)}</div>
       <div class="tarjeta-meta">
         <span>Pedida ${fecha(t.pedida)}</span>
         ${t.compromiso && !t.entregada ? `<span>Compromiso ${fecha(t.compromiso)}</span>` : ''}
@@ -436,7 +510,10 @@ function abrirTarea(id) {
   const e = empresa(t.empresa_id)
   const mia = t.cliente_id === S.yo.id
   const quien = esEquipo() ? nombreCliente(t.cliente_id) : 'ti'
-  const refs = t.archivos.filter((a) => a.tipo === 'referencia')
+  const refs = t.archivos.filter((a) => a.tipo === 'referencia' && !a.nota_id)
+  const notas = [...(t.notas ?? [])].sort((a, b) => aFecha(a.creada) - aFecha(b.creada))
+  const puedeAgregar = t.estatus !== 'aprobada' && ((esCliente() && mia) || esEquipo())
+  const autor = (id) => (id === t.cliente_id ? (esCliente() ? 'Tú' : primerNombre(nombreCliente(id))) : id === S.yo.id ? 'Tú' : 'Equipo')
   const entregas = t.archivos.filter((a) => a.tipo === 'entrega' && !a.correccion_id)
   const correcciones = [...t.correcciones].sort((a, b) => a.n - b.n)
   const abierta = t.estatus !== 'aprobada'
@@ -446,10 +523,11 @@ function abrirTarea(id) {
   const cuerpo = `
     <div class="chips" style="margin:0 0 12px">
       <span class="chip emp" style="--color-emp:${color(t.empresa_id)}">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}</span>
-      <span class="chip est-${t.estatus}">${ESTATUS[t.estatus]}</span>
+      <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
       ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
       ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
     </div>
+    <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
     <div class="fechas" style="margin-bottom:12px">
       <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
       <div class="fecha-caja"><span>Compromiso</span><b>${fecha(t.compromiso)}</b></div>
@@ -459,9 +537,28 @@ function abrirTarea(id) {
     <p class="ayuda" style="margin:-4px 0 12px">⚙︎ = la fecha se pone sola.</p>
 
     <div class="seccion">
-      <h3>${esEquipo() ? `Lo que pidió ${h(primerNombre(quien))}` : 'Tu pedido'} <span class="candado">🔒 Escrito por ${esEquipo() ? h(primerNombre(quien)) : 'ti'}. Nadie lo puede cambiar.</span></h3>
+      <h3>${esEquipo() ? `Lo que pidió ${h(primerNombre(quien))}` : 'Tu pedido'} <span class="candado">🔒 Escrito por ${esEquipo() ? h(primerNombre(quien)) : 'ti'}. Nadie lo puede cambiar; los cambios se agregan abajo.</span></h3>
       <div class="texto-cliente">${h(t.descripcion || t.titulo)}</div>
-      ${refs.length ? `<div class="etiqueta" style="margin:10px 0 6px">Archivos de referencia</div><div class="archivos">${refs.map((a) => filaArchivo(a)).join('')}</div>` : ''}
+      ${refs.length ? `<div class="etiqueta" style="margin:10px 0 6px">Archivos de referencia</div><div class="archivos">${refs.map((a) => filaArchivo(a, { borrar: true })).join('')}</div>` : ''}
+      ${notas
+        .map(
+          (n, i) => `<div class="nota">
+            <div class="nota-cabeza"><span><b>Actualización ${i + 1}</b> · ${fecha(n.creada, true)} · ${h(autor(n.autor))}</span>${esAdmin() ? `<button class="btn chico peligro" data-borrar-nota="${n.id}" title="Borrar actualización">🗑</button>` : ''}</div>
+            ${n.texto ? `<div style="white-space:pre-wrap">${h(n.texto)}</div>` : ''}
+            ${t.archivos.some((a) => a.nota_id === n.id) ? `<div class="archivos" style="margin-top:8px">${t.archivos.filter((a) => a.nota_id === n.id).map((a) => filaArchivo(a, { borrar: true })).join('')}</div>` : ''}
+          </div>`,
+        )
+        .join('')}
+      ${
+        puedeAgregar
+          ? `<button class="btn" style="margin-top:12px" data-accion="abrir-nota">+ ${esCliente() ? 'Agregar instrucciones o archivos' : 'Registrar instrucción del cliente'}</button>
+            <form id="form-nota" hidden style="margin-top:12px">
+              <div class="campo"><label for="n-texto">${esCliente() ? '¿Qué cambió? Lo de arriba no se borra: esto se agrega con fecha.' : 'Lo que pidió el cliente por otro lado (WhatsApp, llamada…)'}</label><textarea id="n-texto" maxlength="5000" placeholder="Ej. Mejor en color rojo y con el logo más grande"></textarea></div>
+              <div class="barra"><button type="button" class="btn" data-accion="elegir-nota-archivos">📎 Adjuntar PDF o fotos</button><span id="nota-archivos" class="ayuda"></span></div>
+              <button class="btn principal" data-ocupado="Guardando…">Agregar</button>
+            </form>`
+          : ''
+      }
     </div>
 
     <div class="seccion">
@@ -485,7 +582,7 @@ function abrirTarea(id) {
         const archivos = t.archivos.filter((a) => a.correccion_id === c.id)
         return `
         <div class="seccion correccion ${c.estatus === 'entregada' ? 'lista-c' : ''}">
-          <h3>Corrección ${c.n} <span class="chip est-${c.estatus === 'entregada' ? 'entregada' : c.estatus === 'en-proceso' ? 'en-proceso' : 'pedida'}">${ESTATUS_CORR[c.estatus]}</span></h3>
+          <h3>Corrección ${c.n} ${esAdmin() ? `<button class="btn chico peligro" style="margin-left:auto" data-borrar-correccion="${c.id}" title="Borrar corrección">🗑</button>` : ''}<span class="chip est-${c.estatus === 'entregada' ? 'entregada' : c.estatus === 'en-proceso' ? 'en-proceso' : 'pedida'}">${ESTATUS_CORR[c.estatus]}</span></h3>
           <div class="fechas" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
             <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(c.pedida, true)}</b></div>
             <div class="fecha-caja auto"><span>PDF subido</span><b>${fecha(c.entregada, true)}</b></div>
@@ -516,10 +613,28 @@ function abrirTarea(id) {
         : ''
     }
     ${esCliente() && abierta && !entregado ? `<p class="ayuda" style="text-align:center">Cuando el equipo suba el trabajo, aquí podrás descargarlo, pedir correcciones o aprobarlo.</p>` : ''}
+    ${esAdmin() ? `<div class="seccion solo-admin"><h3>Solo tú (admin)</h3><p class="ayuda" style="margin-top:0">Borrar quita la tarea con todas sus entregas, correcciones y actualizaciones. No se puede deshacer.</p><button class="btn peligro" data-accion="borrar-tarea">🗑 Borrar esta tarea</button></div>` : ''}
     ${t.estatus === 'aprobada' ? `<div class="seccion aprobada-caja">✅ Aprobada el ${fecha(t.aprobada, true)}. Tarea concluida.${ultimo && esEquipo() ? `<div style="margin-top:10px"><button class="btn chico" data-a-biblioteca="${ultimo.id}">📚 Guardar el PDF final en la Biblioteca</button></div>` : ''}</div>` : ''}
   `
   abrirVentana(`<span class="folio">#${t.folio}</span> ${h(t.titulo)}`, cuerpo, { html: true, alCerrar: () => (S.abierta = null) })
 
+  let notaArchivos = []
+  $('[data-accion="elegir-nota-archivos"]')?.addEventListener('click', async () => {
+    notaArchivos = [...notaArchivos, ...(await elegirArchivos({ multiple: true, accept: 'application/pdf,image/*' }))]
+    $('#nota-archivos').textContent = notaArchivos.map((f) => f.name).join(', ')
+  })
+  $('#form-nota')?.addEventListener('submit', async (ev) => {
+    ev.preventDefault()
+    await ocupado(ev.submitter, async () => {
+      try {
+        await D.agregarNota(t, $('#n-texto').value.trim(), notaArchivos)
+        avisar('Agregado. Queda guardado con fecha.')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
   $('#form-correccion')?.addEventListener('submit', async (ev) => {
     ev.preventDefault()
     await ocupado(ev.submitter, async () => {
@@ -618,7 +733,7 @@ function vistaBiblioteca() {
       ${esEquipo() ? `<div class="barra">
           <button class="btn principal" data-accion="subir-biblioteca" data-ocupado="Subiendo…">⬆️ Subir archivos</button>
           <button class="btn" data-accion="nueva-carpeta">+ Carpeta</button>
-          ${S.bibCarpeta ? `<button class="btn" data-accion="renombrar-carpeta">✏️ Renombrar carpeta</button><button class="btn peligro" data-accion="borrar-carpeta">Borrar carpeta</button>` : ''}
+          ${S.bibCarpeta ? `<button class="btn" data-accion="renombrar-carpeta">✏️ Renombrar carpeta</button>${esAdmin() ? '<button class="btn peligro" data-accion="borrar-carpeta">Borrar carpeta</button>' : ''}` : ''}
         </div>
         <div class="soltar" id="soltar">Arrastra aquí los archivos para subirlos a <b>${h(ruta.at(-1)?.nombre ?? emp.nombre)}</b></div>` : ''}
       ${hijos.length ? `<div class="carpetas">${hijos.map((c) => tarjetaCarpeta(c)).join('')}</div>` : ''}
@@ -878,7 +993,7 @@ function vistaBitacora() {
   return `<p class="ayuda" style="margin-top:0">Quién hizo qué y cuándo (lo último primero). Nadie la puede borrar ni cambiar.</p><div id="bitacora"><div class="cargando">Cargando…</div></div>`
 }
 
-const NOMBRE_TABLA = { tareas: 'tarea', correcciones: 'corrección', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
+const NOMBRE_TABLA = { tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
 async function cargarBitacora() {
   try {
     const filas = await D.bitacora()
@@ -1009,6 +1124,18 @@ async function verArchivo(id, descargar) {
   }
 }
 
+function confeti() {
+  try {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  } catch {}
+  const capa = document.createElement('div')
+  capa.className = 'confeti'
+  const colores = ['#00e5ff', '#1f74ff', '#a21cff', '#2ee59d', '#ffc23d']
+  capa.innerHTML = Array.from({ length: 90 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colores[i % colores.length]};--dx:${(Math.random() - 0.5) * 240}px;--rot:${Math.random() * 900}deg;animation-delay:${Math.random() * 0.35}s"></i>`).join('')
+  document.body.append(capa)
+  setTimeout(() => capa.remove(), 2400)
+}
+
 // -- clics ---------------------------------------------------------------------
 
 async function alClic(e) {
@@ -1050,6 +1177,24 @@ async function alClic(e) {
       return
     }
     if (d.aBiblioteca) return formABiblioteca(d.aBiblioteca)
+    if (d.borrarNota) {
+      const t = S.tareas.find((x) => x.id === S.abierta)
+      const n = t.notas.find((x) => x.id === d.borrarNota)
+      if (!(await preguntar('Borrar actualización', '¿Borrar esta actualización y sus archivos? No se puede deshacer.', { boton: 'Borrar', peligro: true }))) return
+      await D.borrarNota(n, t.archivos.filter((a) => a.nota_id === n.id))
+      avisar('Actualización borrada')
+      await recargar()
+      return
+    }
+    if (d.borrarCorreccion) {
+      const t = S.tareas.find((x) => x.id === S.abierta)
+      const c = t.correcciones.find((x) => x.id === d.borrarCorreccion)
+      if (!(await preguntar('Borrar corrección', `¿Borrar la corrección ${c.n} y sus PDFs? No se puede deshacer.`, { boton: 'Borrar', peligro: true }))) return
+      await D.borrarCorreccion(c, t.archivos.filter((a) => a.correccion_id === c.id))
+      avisar('Corrección borrada')
+      await recargar()
+      return
+    }
     if (d.borrarArchivo) {
       const a = todosLosArchivos().find((x) => x.id === d.borrarArchivo)
       if (!(await preguntar('Borrar archivo', `¿Borrar “${a.nombre}” para siempre? Esto no se puede deshacer.`, { boton: 'Borrar', peligro: true }))) return
@@ -1132,6 +1277,26 @@ async function alClic(e) {
         return pintarEntrada()
       case 'nueva-tarea':
         return formNuevaTarea()
+      case 'abrir-nota':
+        $('#form-nota').hidden = false
+        b.hidden = true
+        $('#n-texto').focus()
+        return
+      case 'cerrar-pasos':
+        try {
+          localStorage.setItem('ct-pasos', 'no')
+        } catch {}
+        pintarVista()
+        return
+      case 'borrar-tarea': {
+        const t = S.tareas.find((x) => x.id === S.abierta)
+        if (!(await preguntar('Borrar tarea', `¿Borrar la tarea #${t.folio} “${t.titulo}” con todo lo que tiene? No se puede deshacer.`, { boton: 'Borrar para siempre', peligro: true }))) return
+        await D.borrarTarea(t)
+        cerrarVentana()
+        avisar('Tarea borrada')
+        await recargar()
+        return
+      }
       case 'abrir-correccion':
         $('#form-correccion').hidden = false
         b.hidden = true
@@ -1140,7 +1305,8 @@ async function alClic(e) {
       case 'aprobar': {
         if (!(await preguntar('Aprobar tarea', '¿Te gustó y la damos por terminada? La tarea se cierra y queda guardada.', { boton: '✅ Sí, aprobar' }))) return
         await ocupado(b, () => D.aprobar(S.abierta))
-        avisar('¡Aprobada! Gracias.')
+        confeti()
+        avisar('¡Aprobada! Quedó guardada. Gracias 🎉')
         await recargar()
         return
       }
@@ -1171,7 +1337,7 @@ async function alClic(e) {
         const c = S.carpetas.find((x) => x.id === S.bibCarpeta)
         const llena = S.biblioteca.some((a) => a.carpeta_id === c.id) || S.carpetas.some((x) => x.padre_id === c.id)
         if (llena) {
-          avisar('Primero mueve o pide al admin borrar lo que tiene adentro. Solo se borran carpetas vacías.', true)
+          avisar('Primero mueve o borra lo que tiene adentro. Solo se borran carpetas vacías.', true)
           return
         }
         if (!(await preguntar('Borrar carpeta', `¿Borrar la carpeta “${c.nombre}”? Está vacía.`, { boton: 'Borrar', peligro: true }))) return

@@ -55,6 +55,14 @@ export function crearSupabase({ url, anon }) {
     return { ruta, tamano: file.size, tipo_mime: file.type || '' }
   }
 
+  /** Borra del almacenamiento los archivos que ya ninguna ficha usa. */
+  async function limpiar(rutas) {
+    for (const ruta of new Set(rutas)) {
+      const otros = await sb.from('archivos').select('id').eq('ruta', ruta).limit(1)
+      if (!otros.error && !otros.data.length) await sb.storage.from(BUCKET).remove([ruta])
+    }
+  }
+
   async function token() {
     const { data } = await sb.auth.getSession()
     if (!data?.session) throw new Error('Tu sesión se cerró. Vuelve a entrar.')
@@ -91,15 +99,17 @@ export function crearSupabase({ url, anon }) {
       return ok(await sb.from('perfiles').select('id, nombre').eq('rol', 'cliente').order('nombre'))
     },
     async tareas() {
-      const [tareas, correcciones, archivos] = await Promise.all([
+      const [tareas, correcciones, archivos, notas] = await Promise.all([
         sb.from('tareas').select('*').order('pedida', { ascending: false }).limit(5000).then(ok),
         sb.from('correcciones').select('*').limit(10000).then(ok),
         sb.from('archivos').select('*').in('tipo', ['referencia', 'entrega']).limit(20000).then(ok),
+        sb.from('notas').select('*').order('creada').limit(20000).then(ok),
       ])
       return tareas.map((t) => ({
         ...t,
         correcciones: correcciones.filter((c) => c.tarea_id === t.id),
         archivos: archivos.filter((a) => a.tarea_id === t.id),
+        notas: notas.filter((n) => n.tarea_id === t.id),
       }))
     },
     async pedir({ cliente_id, empresa_id, titulo, descripcion, urgente, archivos }) {
@@ -111,6 +121,27 @@ export function crearSupabase({ url, anon }) {
         ok(await sb.from('archivos').insert({ tipo: 'referencia', empresa_id, tarea_id: t.id, nombre: f.name, ...s }))
       }
       return t
+    },
+    async agregarNota(tarea, texto, archivos = []) {
+      if (!texto && !archivos.length) throw new Error('Escribe las instrucciones nuevas o adjunta un archivo')
+      const n = ok(await sb.from('notas').insert({ tarea_id: tarea.id, texto }).select().single())
+      for (const f of archivos) {
+        const s = await subir(`ref/${yo.id}/${tarea.id}`, f)
+        ok(await sb.from('archivos').insert({ tipo: 'referencia', empresa_id: tarea.empresa_id, tarea_id: tarea.id, nota_id: n.id, nombre: f.name, ...s }))
+      }
+    },
+    async borrarTarea(t) {
+      const rutas = t.archivos.map((a) => a.ruta)
+      ok(await sb.from('tareas').delete().eq('id', t.id))
+      await limpiar(rutas)
+    },
+    async borrarCorreccion(c, archivos) {
+      ok(await sb.from('correcciones').delete().eq('id', c.id))
+      await limpiar(archivos.map((a) => a.ruta))
+    },
+    async borrarNota(n, archivos) {
+      ok(await sb.from('notas').delete().eq('id', n.id))
+      await limpiar(archivos.map((a) => a.ruta))
     },
     async cambiarTarea(id, cambios) {
       ok(await sb.from('tareas').update(cambios).eq('id', id))
@@ -158,8 +189,7 @@ export function crearSupabase({ url, anon }) {
       ok(await sb.from('archivos').delete().eq('id', a.id))
       // El archivo de verdad solo se borra si ya nadie lo usa (una entrega
       // guardada en la biblioteca comparte el mismo archivo).
-      const otros = ok(await sb.from('archivos').select('id').eq('ruta', a.ruta).limit(1))
-      if (!otros.length) await sb.storage.from(BUCKET).remove([a.ruta])
+      await limpiar([a.ruta])
     },
     async catalogos() {
       return ok(await sb.from('archivos').select('*').eq('tipo', 'catalogo').limit(5000))

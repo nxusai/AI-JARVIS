@@ -105,13 +105,23 @@ Usa la cuenta de Google **de la empresa**, la del Drive "Etiquetas Mi Semago". N
 | | Cliente (Senen, Gerardo) | Equipo | Admin (tú) |
 |---|---|---|---|
 | Pedir tarea / corrección | ✅ las suyas | registra a nombre de un cliente | igual que el equipo |
+| Agregar instrucciones o PDFs a una tarea ya pedida (actualizaciones, con fecha) | ✅ las suyas | ✅ (lo que el cliente pidió por WhatsApp) | ✅ |
 | Ver tareas | solo las suyas | todas | todas |
 | Cambiar lo que escribió el cliente | ❌ | ❌ | ❌ |
 | Estatus y fecha compromiso | 👁️ | ✅ | ✅ |
 | Subir PDFs (la fecha se pone sola) | ❌ | ✅ | ✅ |
 | Aprobado | ✅ solo quien la pidió | ❌ | ❌ |
 | Biblioteca y catálogos | ver, descargar, a su correo | subir, carpetas, versiones | igual que el equipo |
-| Borrar | ❌ | carpetas vacías | ✅ |
+| Borrar (tareas, correcciones, actualizaciones, archivos, carpetas) | ❌ | ❌ | ✅ solo tú |
 | Usuarios, empresas, bitácora | ❌ | ❌ | ✅ |
 
-Nada se reemplaza. Cada PDF nuevo (entrega, corrección o versión) se guarda junto a los anteriores.
+Nada se reemplaza. Cada PDF nuevo (entrega, corrección o versión) se guarda junto a los anteriores. Lo que pidió el cliente no se edita: si cambia de idea, agrega una **actualización** con texto y/o archivos, y queda con fecha como prueba.
+
+## Cuando haya mejoras en la base de datos
+
+`supabase/esquema.sql` se puede volver a correr completo y no borra nada:
+1. En tu Mac: `pbcopy < ~/Desktop/nexy/crm/supabase/esquema.sql`
+2. Supabase → **SQL Editor** → **+ New query** → Cmd + V → **Run** (si avisa de "destructive operations", **Run this query**).
+3. Debe decir **Success. No rows returned**.
+
+La página se actualiza sola en Netlify con cada cambio en la rama.

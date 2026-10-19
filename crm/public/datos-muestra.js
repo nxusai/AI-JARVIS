@@ -52,7 +52,7 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], carpetas: [], archivos: [], bitacora: [] }
+  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [] }
   const blobs = new Map()
   let yo = null
   let folio = 0
@@ -92,6 +92,7 @@ export function crearMuestra() {
       empresa_id: campos.empresa_id,
       tarea_id: campos.tarea_id ?? null,
       correccion_id: campos.correccion_id ?? null,
+      nota_id: campos.nota_id ?? null,
       carpeta_id: campos.carpeta_id ?? null,
       nombre: campos.nombre,
       ruta: campos.ruta ?? guardarBlob(blob),
@@ -171,6 +172,10 @@ export function crearMuestra() {
     ],
   })
   ejemplo('u-senen', 'abuelito-meat', 'Label chorizo salvadoreño 1 lb', 'Label nuevo para el chorizo salvadoreño de 1 libra. Que diga "Estilo casero".', { dias: 6, urgente: true, estatus: 'en-proceso', compromiso: dia(-2) })
+  {
+    const t = db.tareas.find((x) => x.titulo.startsWith('Label chorizo'))
+    db.notas.push({ id: uid(), tarea_id: t.id, texto: 'Cambio: mejor que diga "Receta de la abuela" en lugar de "Estilo casero". Les mando la foto del empaque nuevo.', creada: hace(4, 13), autor: 'u-senen' })
+  }
   ejemplo('u-senen', 'abuelito-cheese', 'Post de Instagram queso fresco', 'Un post para Instagram del queso fresco con receta de pupusas.', { dias: 1 })
   ejemplo('u-gerardo', 'mi-semago', 'Etiqueta de rutas de reparto', 'Etiquetas para las cajas de reparto con número de ruta y día.', { dias: 40, entregas: [[37, 'Etiquetas rutas reparto.pdf']], aprobada: 36 })
   ejemplo('u-gerardo', 'mi-semago', 'Formato de inventario semanal', 'Un formato imprimible para el inventario de cada semana en la bodega.', { dias: 9, entregas: [[5, 'Formato inventario semanal.pdf']] })
@@ -235,6 +240,7 @@ export function crearMuestra() {
         ...copia(t),
         correcciones: copia(db.correcciones.filter((c) => c.tarea_id === t.id)),
         archivos: copia(db.archivos.filter((a) => a.tarea_id === t.id)),
+        notas: copia(db.notas.filter((x) => x.tarea_id === t.id)),
       }))
     },
     async pedir({ cliente_id, empresa_id, titulo, descripcion, urgente, archivos }) {
@@ -247,6 +253,35 @@ export function crearMuestra() {
       anota('creó', 'tareas', t.id, { titulo })
       for (const f of archivos ?? []) nuevoArchivo({ tipo: 'referencia', tarea_id: t.id, nombre: f.name }, f)
       return copia(t)
+    },
+    async agregarNota(tarea, texto, archivos = []) {
+      await espera(300)
+      const t = db.tareas.find((x) => x.id === tarea.id)
+      if (t.estatus === 'aprobada') no('La tarea ya está aprobada')
+      if (!(equipo() || (rol() === 'cliente' && t.cliente_id === yo))) no('No tienes permiso para agregar aquí')
+      if (!texto && !archivos.length) no('Escribe las instrucciones nuevas o adjunta un archivo')
+      const n = { id: uid(), tarea_id: t.id, texto, creada: ahora(), autor: yo }
+      db.notas.push(n)
+      anota('creó', 'notas', n.id, { texto })
+      for (const f of archivos) nuevoArchivo({ tipo: 'referencia', tarea_id: t.id, nota_id: n.id, nombre: f.name }, f)
+    },
+    async borrarTarea(t) {
+      if (!admin()) no('Solo el admin borra')
+      db.tareas = db.tareas.filter((x) => x.id !== t.id)
+      db.archivos = db.archivos.filter((a) => a.tarea_id !== t.id)
+      anota('borró', 'tareas', t.id, { titulo: t.titulo })
+    },
+    async borrarCorreccion(c) {
+      if (!admin()) no('Solo el admin borra')
+      db.correcciones = db.correcciones.filter((x) => x.id !== c.id)
+      db.archivos = db.archivos.filter((a) => a.correccion_id !== c.id)
+      anota('borró', 'correcciones', c.id, { n: c.n })
+    },
+    async borrarNota(n) {
+      if (!admin()) no('Solo el admin borra')
+      db.notas = db.notas.filter((x) => x.id !== n.id)
+      db.archivos = db.archivos.filter((a) => a.nota_id !== n.id)
+      anota('borró', 'notas', n.id)
     },
     async cambiarTarea(id, cambios) {
       await espera()
@@ -307,7 +342,7 @@ export function crearMuestra() {
       c.nombre = nombre
     },
     async borrarCarpeta(id) {
-      if (!equipo()) no('Solo el equipo arma carpetas')
+      if (!admin()) no('Solo el admin borra')
       if (db.archivos.some((a) => a.carpeta_id === id) || db.carpetas.some((c) => c.padre_id === id)) no('Solo se borran carpetas vacías')
       db.carpetas = db.carpetas.filter((c) => c.id !== id)
       anota('borró', 'carpetas', id)
