@@ -1,6 +1,6 @@
 # Pendientes · El Abuelito
 
-Sitio en línea: https://el-abuelito.vercel.app (proyecto `el-abuelito` en Vercel).
+Sitio en línea: https://www.abuelitoinc.com (proyecto `el-abuelito` en Vercel; DNS en Squarespace).
 
 ## IA del Abuelito
 - [ ] Sacar la llave en https://console.anthropic.com (**API Keys → Create Key**) y cargar saldo en **Billing**.
@@ -15,6 +15,12 @@ Sitio en línea: https://el-abuelito.vercel.app (proyecto `el-abuelito` en Verce
 - [ ] ¿El formulario de contacto debe llegarles directo, en vez de abrir el correo?
 - [ ] Revisión legal de los textos de calidad, por el caso de listeria de 2026.
 
+## Dominio y correo (abuelitoinc.com)
+- [x] Nameservers de vuelta a Squarespace; A `@` → 216.198.79.1 y CNAME `www` → Vercel. Sitio con HTTPS.
+- [x] Correo de Google intacto (MX de Google + SPF). DKIM publicado.
+- [ ] En https://admin.google.com/ac/apps/gmail/authenticateemail hacer clic en **Start authentication** (si dice "Not authenticating").
+- [ ] Agregar DMARC: TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:CORREO@abuelitoinc.com` (falta saber el correo).
+- [ ] Definir el correo para invoices y adeudos, y ponerlo en el sitio.
+
 ## Lanzamiento
 - [ ] Pasar la cuenta de Vercel al plan Pro (es un sitio comercial).
-- [ ] Conectar `abuelitocheese.com` en **Settings → Domains** (falta saber dónde está registrado el dominio).
