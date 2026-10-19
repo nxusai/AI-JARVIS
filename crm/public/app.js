@@ -42,6 +42,8 @@ const ICONOS = {
 }
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
+import { desmontarUltron, montarUltron } from './ultron.js'
+
 let D // los datos
 let MUESTRA = false
 const S = {
@@ -243,6 +245,22 @@ async function empezar() {
   const vistas = vistasPermitidas()
   if (!vistas.includes(S.vista)) S.vista = vistas[0] ?? 'tareas'
   pintar()
+  // Ultron, solo para la dirección (y el admin), cuando el sistema lo tiene.
+  if (D.ultron && (S.yo.ultron || esAdmin())) {
+    montarUltron({
+      yo: S.yo,
+      preguntar: (t) => D.ultron(t),
+      equipo: () => D.ultronEquipo(),
+      avisar,
+      accion: async (a) => {
+        const arch = todosLosArchivos().find((x) => x.id === a.archivo)
+        if (!arch) return
+        if (a.ver) return verArchivo(arch.id, false)
+        const r = await D.correo(arch)
+        avisar(`Te lo envié a ${r.para}.`)
+      },
+    })
+  } else desmontarUltron()
 }
 
 function vistasPermitidas() {
@@ -1269,10 +1287,12 @@ async function alClic(e) {
       case 'cerrar':
         return cerrarVentana()
       case 'salir':
+        desmontarUltron()
         await D.salir()
         S.yo = null
         return pintarEntrada()
       case 'cambiar-muestra':
+        desmontarUltron()
         S.yo = null
         return pintarEntrada()
       case 'nueva-tarea':
