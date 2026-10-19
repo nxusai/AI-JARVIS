@@ -14,11 +14,11 @@ import { join } from 'node:path'
  * anasofi), e.g. to bill a client apart. Set with `node scripts/api.mjs`;
  * without a key a space runs on the subscription, as before.
  *
- *   ~/.nexy/api.json   { grupos: "sk-ant-…", personal?: …, atencion?: …, mexico?: …, anasofi?: … }  (this Mac's user only)
+ *   ~/.nexy/api.json   { grupos: "sk-ant-…", personal?: …, atencion?: …, mexico?: …, anasofi?: …, ultron?: … }  (this Mac's user only)
  */
 
 export const API_FILE = join(homedir(), '.nexy', 'api.json')
-export const SPACES = ['grupos', 'personal', 'atencion', 'mexico', 'anasofi']
+export const SPACES = ['grupos', 'personal', 'atencion', 'mexico', 'anasofi', 'ultron']
 export const KEY_SHAPE = /^sk-ant-[\w-]{20,}$/
 
 export function readApiKeys() {

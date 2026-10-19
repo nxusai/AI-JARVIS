@@ -59,6 +59,9 @@ create table if not exists public.perfiles (
   creado timestamptz not null default now()
 );
 
+-- Quién habla con Ultron (la dirección). Lo prende el admin en Usuarios.
+alter table public.perfiles add column if not exists ultron boolean not null default false;
+
 -- Quién soy, según la sesión. "security definer" para que las reglas de
 -- perfiles no se muerdan la cola.
 create or replace function public.yo_rol() returns text
@@ -662,6 +665,100 @@ create policy bitacora_lecturas on public.bitacora for insert to authenticated w
   and exists (select 1 from archivos a where a.id::text = fila)
 );
 
+-- ---------------------------------------------------------------------------
+-- Ultron: el buzón con la dirección
+-- ---------------------------------------------------------------------------
+--
+-- La página deja aquí la pregunta; Ultron (que corre en el cerebro, con la
+-- llave de servicio) la toma, contesta y deja su respuesta y su voz. Cada
+-- quien ve solo su conversación; nadie la cambia a mano.
+
+create or replace function public.hablo_con_ultron() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfiles where id = auth.uid() and activo and (ultron or rol = 'admin'))
+$$;
+
+create table if not exists public.ultron_mensajes (
+  id bigserial primary key,
+  persona uuid not null references public.perfiles (id) on delete cascade,
+  canal text not null check (canal in ('crm', 'consola')),
+  pregunta text not null check (char_length(pregunta) between 1 and 2000),
+  respuesta text,
+  acciones jsonb not null default '[]'::jsonb,
+  voz text,
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'pensando', 'listo', 'error')),
+  creado timestamptz not null default now(),
+  respondido timestamptz
+);
+
+create index if not exists ultron_mensajes_pendientes on public.ultron_mensajes (estado, creado);
+create index if not exists ultron_mensajes_persona on public.ultron_mensajes (persona, creado desc);
+
+create or replace function public.antes_ultron() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' and not es_sistema() then
+    new.persona := auth.uid();
+    new.estado := 'pendiente';
+    new.respuesta := null;
+    new.acciones := '[]'::jsonb;
+    new.voz := null;
+    new.creado := now();
+    new.respondido := null;
+    if (select count(*) from ultron_mensajes where persona = auth.uid() and creado > now() - interval '1 minute') >= 15 then
+      raise exception 'Demasiados mensajes seguidos; espera un minuto';
+    end if;
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and not es_sistema() then
+    raise exception 'Solo Ultron contesta';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_ultron on public.ultron_mensajes;
+create trigger crm_antes_ultron before insert or update on public.ultron_mensajes
+  for each row execute function public.antes_ultron();
+
+-- Lo que Ultron recuerda: instrucciones vigentes para él y sus IAs. Las de
+-- mayor rango (oculta) no las ve la dirección.
+create table if not exists public.ultron_memoria (
+  id bigserial primary key,
+  texto text not null check (char_length(texto) between 1 and 2000),
+  para text not null default 'ultron',
+  oculta boolean not null default false,
+  activa boolean not null default true,
+  autor uuid references public.perfiles (id) on delete set null,
+  creada timestamptz not null default now()
+);
+
+-- El tablero de la consola (IAs, empresas, departamentos, hoy en corto),
+-- que Ultron mantiene al día.
+create table if not exists public.ultron_tablero (
+  id text primary key,
+  datos jsonb not null default '{}'::jsonb,
+  actualizado timestamptz not null default now()
+);
+
+alter table public.ultron_mensajes enable row level security;
+alter table public.ultron_memoria enable row level security;
+alter table public.ultron_tablero enable row level security;
+
+drop policy if exists ultron_ver on public.ultron_mensajes;
+create policy ultron_ver on public.ultron_mensajes for select to authenticated using (persona = auth.uid() or es_admin());
+drop policy if exists ultron_preguntar on public.ultron_mensajes;
+create policy ultron_preguntar on public.ultron_mensajes for insert to authenticated with check (hablo_con_ultron());
+drop policy if exists ultron_borrar on public.ultron_mensajes;
+create policy ultron_borrar on public.ultron_mensajes for delete to authenticated using (es_admin());
+
+drop policy if exists memoria_ver on public.ultron_memoria;
+create policy memoria_ver on public.ultron_memoria for select to authenticated using ((hablo_con_ultron() and not oculta) or es_admin());
+drop policy if exists memoria_admin on public.ultron_memoria;
+create policy memoria_admin on public.ultron_memoria for update to authenticated using (es_admin()) with check (es_admin());
+
+drop policy if exists tablero_ver on public.ultron_tablero;
+create policy tablero_ver on public.ultron_tablero for select to authenticated using (hablo_con_ultron());
+
 -- Sin sesión no se ve nada.
 revoke all on all tables in schema public from anon;
 
@@ -689,3 +786,12 @@ create policy crm_subir on storage.objects for insert to authenticated with chec
 );
 drop policy if exists crm_borrar on storage.objects;
 create policy crm_borrar on storage.objects for delete to authenticated using (bucket_id = 'archivos' and public.es_admin());
+
+-- La voz de Ultron: cada quien oye solo sus respuestas (carpeta = su id).
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('ultron', 'ultron', false, 10485760)
+on conflict (id) do nothing;
+drop policy if exists ultron_oir on storage.objects;
+create policy ultron_oir on storage.objects for select to authenticated using (
+  bucket_id = 'ultron' and (storage.foldername(name))[1] = auth.uid()::text
+);

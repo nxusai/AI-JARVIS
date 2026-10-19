@@ -226,6 +226,24 @@ export function crearSupabase({ url, anon }) {
     async cambiarEmpresa(id, cambios) {
       ok(await sb.from('empresas').update(cambios).eq('id', id))
     },
+    // Ultron: la pregunta va a su buzón; él (en su computadora) contesta ahí.
+    async ultron(texto, canal = 'crm') {
+      const m = ok(await sb.from('ultron_mensajes').insert({ canal, pregunta: texto, persona: yo.id }).select('id').single())
+      const hasta = Date.now() + 120_000
+      while (Date.now() < hasta) {
+        await new Promise((r) => setTimeout(r, 1200))
+        const r = ok(await sb.from('ultron_mensajes').select('estado, respuesta, acciones, voz').eq('id', m.id).single())
+        if (r.estado === 'listo' || r.estado === 'error') {
+          let voz = null
+          if (r.voz) {
+            const v = await sb.storage.from('ultron').createSignedUrl(r.voz, 3600)
+            voz = v.data?.signedUrl ?? null
+          }
+          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz }
+        }
+      }
+      return { texto: 'Ultron está dormido en este momento (su computadora no responde). Intenta en un rato.', acciones: [] }
+    },
     async bitacora() {
       return ok(await sb.from('bitacora').select('*').order('cuando', { ascending: false }).limit(300))
     },

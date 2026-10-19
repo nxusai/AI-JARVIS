@@ -108,7 +108,7 @@ button, input { font: inherit; color: inherit; }
 .u-hub-texto b { display: block; font: 600 12px var(--hud); letter-spacing: .28em; color: var(--ambar-2); margin-bottom: 6px; }
 .u-chips { display: flex; flex-direction: column; gap: 6px; }
 .u-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--linea-2); border-radius: 6px; padding: 5px 12px; font-size: 13px; color: var(--texto); background: rgba(10, 5, 2, .6); white-space: nowrap; }
-.u-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.u-chip i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 .u-chip.pronto { color: var(--suave); border-style: dashed; }
 .u-chip.pronto i { background: transparent; border: 1px solid var(--suave); box-shadow: none; }
 .u-eco-centro { position: relative; aspect-ratio: 1; width: 100%; max-width: 300px; justify-self: center; }
@@ -172,3 +172,13 @@ button, input { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Cada IA: sus empresas y, debajo, sus departamentos */
+.u-empresas { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 8px; }
+.u-empresas span { font: 600 12.5px var(--cuerpo); color: var(--texto); letter-spacing: .04em; }
+.u-empresas span + span::before { content: "·"; margin-right: 10px; color: var(--suave); }
+.u-deptos { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.u-deptos .u-chip { font-size: 12px; padding: 3px 10px; border-color: color-mix(in srgb, var(--c) 55%, transparent); }
+.u-deptos .u-chip i { background: var(--c); box-shadow: 0 0 8px var(--c); }
+.u-deptos .u-chip.pronto i { background: transparent; border: 1px solid var(--suave); box-shadow: none; }
+a.u-boton { text-decoration: none; display: inline-block; }

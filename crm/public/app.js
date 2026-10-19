@@ -249,8 +249,9 @@ async function empezar() {
   if (D.ultron && (S.yo.ultron || esAdmin())) {
     montarUltron({
       yo: S.yo,
-      preguntar: (t) => D.ultron(t),
+      preguntar: (t) => D.ultron(t, 'crm'),
       avisar,
+      muestra: MUESTRA,
       consola: () => (MUESTRA ? avisar('En el sistema real, la consola de Ultron se abre en otra pestaña.') : window.open('/ultron', '_blank')),
       // Lo que Ultron propone solo pasa si la persona toca el botón, y con sus
       // mismos permisos (nada que ella no pudiera hacer sola).
@@ -266,7 +267,7 @@ async function empezar() {
           return `Listo, te lo envié a ${r.para}.`
         }
         if (a.crear) {
-          const t = await D.pedir({ cliente_id: S.yo.id, empresa_id: a.crear.empresa_id, titulo: a.crear.titulo, descripcion: `${a.crear.titulo}\n\n(Pedida con Ultron)`, urgente: false, archivos: [] })
+          const t = await D.pedir({ cliente_id: S.yo.id, empresa_id: a.crear.empresa_id, titulo: a.crear.titulo, descripcion: `${a.crear.detalles || a.crear.titulo}\n\n(Pedida con Ultron)`, urgente: Boolean(a.crear.urgente), archivos: [] })
           await recargar()
           return `Registrada: tarea **#${t.folio}**. Ya la ve tu equipo; si quieres agrégale detalles o archivos desde la tarea.`
         }
@@ -907,7 +908,7 @@ function vistaUsuarios() {
   const orden = { admin: 0, equipo: 1, cliente: 2 }
   const lista = [...S.usuarios].sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
   const nombresEmp = (u) => (u.rol !== 'cliente' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
-  const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos'].filter(Boolean).join(', ') || 'Nada')
+  const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos', u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada')
   return `
     <div class="barra"><button class="btn principal" data-accion="nuevo-usuario">+ Nuevo usuario</button></div>
     <div class="tabla-envoltura"><table class="tabla">
@@ -958,6 +959,8 @@ function formUsuario(id) {
         <label class="casilla"><input type="checkbox" id="u-tareas" ${u?.ve_tareas !== false ? 'checked' : ''}> Sus tareas (pedir, corregir, aprobar)</label>
         <label class="casilla"><input type="checkbox" id="u-bib" ${u?.ve_biblioteca !== false ? 'checked' : ''}> Biblioteca</label>
         <label class="casilla"><input type="checkbox" id="u-cat" ${u?.ve_catalogos !== false ? 'checked' : ''}> Catálogos</label>
+        <div class="etiqueta" style="margin-top:8px">Dirección</div>
+        <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
       </div>
       ${u ? `<label class="casilla" style="margin-top:8px"><input type="checkbox" id="u-activo" ${u.activo ? 'checked' : ''}> Puede entrar (desmárcalo para quitarle el acceso)</label>` : ''}
       <button class="btn principal" style="margin-top:12px" data-ocupado="Guardando…">${u ? 'Guardar' : 'Crear usuario'}</button>
@@ -978,6 +981,7 @@ function formUsuario(id) {
       ve_tareas: $('#u-tareas').checked,
       ve_biblioteca: $('#u-bib').checked,
       ve_catalogos: $('#u-cat').checked,
+      ultron: $('#u-rol').value === 'cliente' && $('#u-ultron').checked,
     }
     await ocupado(e.submitter, async () => {
       try {

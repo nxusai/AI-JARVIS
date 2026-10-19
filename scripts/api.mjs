@@ -15,7 +15,7 @@ import { API_FILE, checkKey, KEY_SHAPE, readApiKeys, SPACES, writeApiKeys } from
 
 const [cmd, arg] = process.argv.slice(2)
 const say = (s) => console.log(s)
-const NAMES = { grupos: 'todo Nexy (tu Nexy personal y los grupos)', personal: 'tu Nexy personal (voz, consola, tu Telegram, rutinas)', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)' }
+const NAMES = { grupos: 'todo Nexy (tu Nexy personal y los grupos)', personal: 'tu Nexy personal (voz, consola, tu Telegram, rutinas)', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)', ultron: 'Ultron (la dirección de Mi Semago y Abuelito)' }
 
 /** Read a line without showing it; from a pipe when there is no terminal. */
 function hidden(question) {

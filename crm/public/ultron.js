@@ -17,12 +17,13 @@ const h = (s) =>
 const SUGERENCIAS = ['Resumen de hoy', '¿Qué tengo para revisar?', '¿Qué está atrasado?', 'Mándame el catálogo de Mi Semago', 'Crea una tarea']
 
 let estado = null
+let sonando = null
 
 /** Pone (o quita) el orbe según quién entró. */
-export function montarUltron({ yo, preguntar, accion, avisar, consola }) {
+export function montarUltron({ yo, preguntar, accion, avisar, consola, muestra = false }) {
   desmontarUltron()
   if (!yo) return
-  estado = { yo, preguntar, accion, avisar, consola, mensajes: [], despierto: false }
+  estado = { yo, preguntar, accion, avisar, consola, muestra, mensajes: [], despierto: false }
   const orbe = document.createElement('button')
   orbe.className = 'orbe'
   orbe.setAttribute('aria-label', 'Despertar a Ultron')
@@ -79,7 +80,15 @@ function conectarChat(raiz) {
     const b = e.target.closest('button')
     if (!b) return
     if (b.dataset.uSug) enviar(b.dataset.uSug)
-    if (b.dataset.uVoz) estado.avisar('Aquí Ultron lo dice con su voz de ElevenLabs (en la muestra no suena).')
+    if (b.dataset.uVoz) {
+      const m = estado.mensajes.find((x) => String(x.id) === b.dataset.uVoz)
+      if (!m?.voz) return estado.avisar(m?.de === 'ultron' && estado.muestra ? 'Aquí Ultron lo dice con su voz (en la muestra no suena).' : 'Esta respuesta no trae voz.')
+      try {
+        sonando?.pause()
+      } catch {}
+      sonando = new Audio(m.voz)
+      sonando.play().catch(() => estado.avisar('Tu navegador no dejó reproducir el audio.'))
+    }
     if (b.dataset.uAccion !== undefined) {
       const m = estado.mensajes.find((x) => String(x.id) === b.dataset.uMsg)
       const a = m?.acciones?.[Number(b.dataset.uAccion)]
@@ -118,7 +127,7 @@ async function enviar(texto) {
   repintarChats()
   try {
     const r = await estado.preguntar(texto)
-    estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: r.texto, acciones: r.acciones })
+    estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: r.texto, acciones: r.acciones, voz: r.voz })
   } catch (err) {
     estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: `No pude responder ahora: ${err.message}` })
   } finally {

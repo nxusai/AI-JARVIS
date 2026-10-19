@@ -6,6 +6,7 @@ import { labelTools, listClients, RECEIVED, LABELS_DIR } from './etiquetas.mjs'
 import { DATA, TAG } from './lugar.mjs'
 import { audioOf, previewOf, readLink } from './medios.mjs'
 import { api, download, fileOf, safeName, say, upload } from './telegram.mjs'
+import { instruccionesEnTexto } from './instrucciones.mjs'
 import { forSpeech, languageOf, speakAs, VOICE_ID } from './voz.mjs'
 
 export { languageOf, speakAs, VOICE_ID }
@@ -284,7 +285,9 @@ export async function startAnaSofi({ model, effort, transcribe, elevenKey = () =
       `[${new Date(m.date * 1000).toLocaleString('es-MX', { timeZone: 'America/New_York' })}] ${who} escribió: ${said || '(sin texto)'}` +
       (reply ? `\n  respondiendo a: «${reply}»` : '') +
       (kept ? `\n  mandó ${what}: ${kept.id} (${kept.nombre})${extra.some((b) => b.type === 'image') ? ', lo ves abajo' : ''}` : '') +
-      (heard ? `\n  en el video se escucha: «${heard.slice(0, 4000)}»` : '')
+      (heard ? `\n  en el video se escucha: «${heard.slice(0, 4000)}»` : '') +
+      // Lo que la dirección (Ultron) le indicó, vigente desde que lo dijo.
+      instruccionesEnTexto('ana-sofi')
     speaker = who
     spoken = Boolean(m.voice || m.video_note)
     const taskId = hub.startTask(`🏷️ Ana Sofi · ${who}: ${(said || kept?.nombre || '').slice(0, 80)}`, null, 'atencion')

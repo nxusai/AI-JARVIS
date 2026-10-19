@@ -4,7 +4,8 @@
 //
 // Tres vistas: Consola (el núcleo y la voz), Ecosistema (todo lo que controla,
 // con sus IAs debajo) y Memoria (lo que sabe y las instrucciones vigentes).
-// Por ahora es la muestra: contesta con datos de ejemplo y no hay voz real.
+// Los datos vienen de una "fuente": la real (la sesión del Centro de trabajo,
+// el buzón y el tablero de Ultron en Supabase) o la muestra (datos de ejemplo).
 
 const $ = (s, r = document) => r.querySelector(s)
 const h = (s) =>
@@ -243,27 +244,8 @@ addEventListener('resize', () => {
   dibujarLineas()
 })
 
-// -- los datos de la muestra ---------------------------------------------------
+// -- íconos ------------------------------------------------------------------------
 
-const YO = 'Senen'
-const CABEZAS = ['Senen', 'Gerardo', 'Marisol', 'Miguel']
-const IAS = [
-  { nombre: 'Ana Sofi', empresa: 'Mi Semago', color: [79, 155, 255], css: '#6fb0ff', activa: true, corto: '14 conversaciones · 3 tandas de etiquetas · 1 duda de precios pasada a ventas.' },
-  { nombre: 'Abuelito', empresa: 'Abuelito INC · Cheese · Meat · Corn', color: [255, 200, 70], css: '#ffd166', activa: false, corto: 'Todavía no nace. La construimos después.' },
-  { nombre: 'Vivian', empresa: 'VAYRO', color: [192, 140, 255], css: '#c9a2ff', activa: false, corto: 'Todavía no nace. La construimos después.' },
-]
-const MODULOS = {
-  izq: [
-    { nombre: 'Comunicación', icono: 'chat', chips: [['Telegram', true], ['Llamadas', false], ['WhatsApp', false]] },
-    { nombre: 'Clientes', icono: 'gente', chips: [['Centro de trabajo', true], ['Seguimiento', true]] },
-    { nombre: 'Marketing', icono: 'barras', chips: [['Contenido', false], ['Anuncios', false]] },
-  ],
-  der: [
-    { nombre: 'Operaciones', icono: 'engrane', chips: [['Tareas', true], ['Etiquetas', true], ['Rutas', false]] },
-    { nombre: 'Memoria', icono: 'datos', chips: [['Documentos', true], ['Conocimiento', true]] },
-    { nombre: 'Agenda', icono: 'calendario', chips: [['Citas', false], ['Recordatorios', false]] },
-  ],
-}
 const ICONOS = {
   chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><circle cx="8.5" cy="12" r=".6" fill="currentColor"/><circle cx="12" cy="12" r=".6" fill="currentColor"/><circle cx="15.5" cy="12" r=".6" fill="currentColor"/></svg>',
   gente: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/></svg>',
@@ -274,53 +256,166 @@ const ICONOS = {
 }
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>'
 
-const M = {
-  instrucciones: [{ texto: 'Ana Sofi no da precios: los pasa a ventas.', cuando: 'Regla de siempre' }],
-  hoy: [
-    { quien: 'Ana Sofi', corto: '14 conversaciones · 3 tandas de etiquetas · 1 duda de precios pasada a ventas.', largo: '9:10 Carlos (bodega) pidió 40 etiquetas de quesillo 5 lb vacío: impresas. 11:32 Lupita preguntó la caducidad del queso duro blando: 54 días. 13:05 Un empleado preguntó el precio a mayoreo: no lo da, lo pasó a ventas. 15:40 Dos tandas más (cuajada y crema).' },
-    { quien: 'Centro de trabajo', corto: '5 tareas abiertas · 1 esperando revisión · 1 urgente.', largo: '#4 Label chorizo salvadoreño 1 lb (urgente, en proceso). #3 Catálogo de quesos para distribuidores (corrección 2 en proceso). #5 Post de Instagram queso fresco (recibida). #7 Formato de inventario semanal (lista para revisar). #8 Letrero de bodega (en proceso).' },
+// -- la fuente de la muestra ----------------------------------------------------------
+
+/** El mismo ecosistema que arma Ultron (bridge/nucleo/ultron.mjs), con ejemplos. */
+const ECO_MUESTRA = {
+  areas: [
+    { nombre: 'Dirección', icono: 'chat', lado: 'izq', cosas: [['Ultron', true], ['Memoria', true]] },
+    { nombre: 'Operaciones', icono: 'engrane', lado: 'izq', cosas: [['Tareas', true], ['Etiquetas Zebra', true], ['Biblioteca', true]] },
+    { nombre: 'Ventas', icono: 'gente', lado: 'izq', cosas: [['Catálogos', true], ['Leads Mi Semago', true]] },
+    { nombre: 'Marketing', icono: 'barras', lado: 'der', cosas: [['Diseños y labels', true], ['Contenido', false]] },
+    { nombre: 'Comunicación', icono: 'datos', lado: 'der', cosas: [['Archivos al correo', true], ['Telegram', false]] },
+    { nombre: 'Publicidad', icono: 'calendario', lado: 'der', cosas: [['Anuncios', false]] },
   ],
-  ultima: 'Sin acciones todavía hoy.',
+  ias: [
+    { id: 'ana-sofi', nombre: 'Ana Sofi', color: [79, 155, 255], css: '#6fb0ff', empresas: ['Mi Semago'], departamentos: ['Ventas', 'Operaciones · Etiquetas'], activa: true, corto: '14 mensajes de 4 personas hoy.' },
+    { id: 'abuelito', nombre: 'Abuelito', color: [255, 200, 70], css: '#ffd166', empresas: ['Abuelito Cheese', 'Abuelito Meat', 'Abuelito Corn'], departamentos: ['Operaciones · Etiquetas', 'Marketing'], activa: false, corto: 'Todavía no nace.' },
+    { id: 'vivian', nombre: 'Vivian', color: [192, 140, 255], css: '#c9a2ff', empresas: ['VAYRO'], departamentos: ['Por definir'], activa: false, corto: 'Todavía no nace.' },
+  ],
 }
 
-function responder(texto) {
-  const q = sinTilde(texto)
-  if (/complet|explica|detalle/.test(q)) {
-    const de = /centro|tarea/.test(q) ? M.hoy[1] : M.hoy[0]
-    return { texto: `${de.quien}, completo:\n${de.largo}` }
+function fuenteMuestra() {
+  const M = {
+    instrucciones: [{ texto: 'Ana Sofi no da precios: los pasa a ventas.', cuando: 'Regla de siempre' }],
+    hoy: [
+      { quien: 'Ana Sofi', corto: '14 mensajes · Carlos, Lupita, Juan, Rosa', largo: '9:10 Carlos (bodega) pidió 40 etiquetas de quesillo 5 lb vacío: impresas. 11:32 Lupita preguntó la caducidad del queso duro blando: 54 días. 13:05 Un empleado preguntó el precio a mayoreo: no lo da, lo pasó a ventas. 15:40 Dos tandas más (cuajada y crema).' },
+      { quien: 'Centro de trabajo', corto: '5 abiertas · 1 por revisar · 1 atrasada', largo: 'En todas las empresas: 5 tareas abiertas, 1 esperando revisión, 1 con fecha compromiso vencida y 1 urgente. Las tuyas, una por una, pregúntamelas.' },
+    ],
   }
-  const orden = q.match(/(?:dile|avisa|ordena|indica)(?:le)? a (ana sofi|vivian|abuelito)[,:]?\s*(?:que\s*)?(.*)$/)
-  if (orden) {
-    const ia = IAS.find((x) => sinTilde(x.nombre) === orden[1])
-    if (!ia.activa) return { texto: `${ia.nombre} todavía no está activa. Cuando nazca, le paso la instrucción.` }
-    const inst = texto.slice(texto.length - orden[2].length).trim() || texto
-    M.instrucciones.unshift({ texto: `${ia.nombre}: ${inst}`, cuando: `Hoy, ${new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })} · ${YO}` })
-    M.ultima = `Instrucción a ${ia.nombre}: “${inst}”`
-    pintarLado()
-    return { texto: `Hecho. **${ia.nombre}** ya tiene la instrucción: “${inst}”. Queda en mi memoria y la aplica desde ahora.` }
+  const responder = (texto) => {
+    const q = sinTilde(texto)
+    if (/complet|explica|detalle/.test(q)) {
+      const de = /centro|tarea/.test(q) ? M.hoy[1] : M.hoy[0]
+      return { texto: `${de.quien}, completo:\n${de.largo}` }
+    }
+    const orden = q.match(/(?:dile|avisa|ordena|indica)(?:le)? a (ana sofi|vivian|abuelito)[,:]?\s*(?:que\s*)?(.*)$/)
+    if (orden) {
+      const ia = ECO_MUESTRA.ias.find((x) => sinTilde(x.nombre) === orden[1])
+      if (!ia.activa) return { texto: `${ia.nombre} todavía no está activa. Cuando nazca, le paso la instrucción.` }
+      const inst = texto.slice(texto.length - orden[2].length).trim() || texto
+      M.instrucciones.unshift({ texto: `${ia.nombre}: ${inst}`, cuando: 'Hoy · Senen' })
+      return { texto: `Hecho. **${ia.nombre}** ya tiene la instrucción: “${inst}”. Queda en mi memoria y la aplica desde ahora.`, ultima: `Instrucción a ${ia.nombre}: “${inst}”` }
+    }
+    if (/ana sofi|empleado|que hizo|hicieron/.test(q)) return { texto: `Ana Sofi, hoy: **${M.hoy[0].corto}**. Sin problemas.`, acciones: [{ etiqueta: 'Explicación completa', pregunta: 'Explícame completo lo de Ana Sofi' }] }
+    if (/atras|retras|tarde|venc/.test(q)) return { texto: 'Una sola tuya: **#4 Label chorizo salvadoreño 1 lb**, urgente, compromiso vencido.' }
+    if (/resumen|hoy|como va|que hay|estado/.test(q)) return { texto: `Todo en orden.\n• **Ana Sofi:** ${M.hoy[0].corto}\n• **Centro de trabajo:** ${M.hoy[1].corto}`, acciones: [{ etiqueta: 'Explicación completa', pregunta: 'Explícame completo el centro de trabajo' }] }
+    return { texto: 'Entendido. En el sistema real consulto a mis IAs y al Centro de trabajo para resolverlo. En la muestra prueba: “Resumen de hoy”, “¿Qué hizo Ana Sofi?” o “Dile a Ana Sofi que hoy no prometa entregas”.' }
   }
-  if (/ana sofi|empleado|que hizo|hicieron/.test(q)) return { texto: `Ana Sofi, hoy: **${M.hoy[0].corto}** Sin problemas.`, acciones: [{ etiqueta: 'Explicación completa', pregunta: 'Explícame completo lo de Ana Sofi' }] }
-  if (/agente|ias|quien|equipo/.test(q)) return { texto: `Tengo **1 IA activa**: Ana Sofi (Mi Semago). Abuelito y Vivian (VAYRO) están por nacer. Arriba de mí no hay nada que debas atender.` }
-  if (/atras|retras|tarde|venc/.test(q)) return { texto: 'Una sola: **#4 Label chorizo salvadoreño 1 lb**, urgente, compromiso vencido. Ya le pedí al equipo fecha nueva.' }
-  if (/resumen|hoy|como va|que hay|estado/.test(q)) return { texto: `Todo en orden.\n• **Ana Sofi:** ${M.hoy[0].corto}\n• **Centro de trabajo:** ${M.hoy[1].corto}`, acciones: [{ etiqueta: 'Detalle de tareas', pregunta: 'Explícame completo el centro de trabajo' }] }
-  if (/memoria|recuerda|instruccion/.test(q)) return { texto: `Instrucciones vigentes:\n${M.instrucciones.map((i) => `• ${i.texto}`).join('\n')}` }
-  return { texto: 'Entendido. En el sistema real consulto a mis IAs y al Centro de trabajo para resolverlo. En la muestra prueba: “Resumen de hoy”, “¿Qué hizo Ana Sofi?” o “Dile a Ana Sofi que hoy no prometa entregas”.' }
+  return {
+    muestra: true,
+    yo: { nombre: 'Senen' },
+    async tablero() {
+      return { ecosistema: ECO_MUESTRA, hoy: M.hoy }
+    },
+    async memoria() {
+      return { instrucciones: M.instrucciones, cabezas: ['Senen', 'Gerardo', 'Marisol', 'Miguel'] }
+    },
+    async alertas() {
+      return ['Urgente: #4 Label chorizo salvadoreño 1 lb', 'Atrasada: #4 Label chorizo salvadoreño 1 lb']
+    },
+    async preguntar(texto) {
+      await new Promise((r) => setTimeout(r, 700 + Math.random() * 600))
+      return responder(texto)
+    },
+    async accion() {
+      return 'En la muestra no se hace de verdad.'
+    },
+  }
+}
+
+// -- la fuente real (Supabase, con la sesión del Centro de trabajo) ----------------------
+
+async function fuenteReal(cfg) {
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm')
+  const sb = createClient(cfg.url, cfg.anon, { auth: { persistSession: true, autoRefreshToken: true } })
+  const { data } = await sb.auth.getUser()
+  if (!data?.user) return { error: 'entrar' }
+  const { data: yo } = await sb.from('perfiles').select('*').eq('id', data.user.id).maybeSingle()
+  if (!yo?.activo || !(yo.ultron || yo.rol === 'admin')) return { error: 'permiso' }
+  const hoyISO = new Date().toISOString().slice(0, 10)
+  return {
+    muestra: false,
+    yo,
+    async tablero() {
+      const { data: t } = await sb.from('ultron_tablero').select('datos').eq('id', 'principal').maybeSingle()
+      return t?.datos ?? { ecosistema: { areas: [], ias: [] }, hoy: [] }
+    },
+    async memoria() {
+      const [{ data: mem }, { data: gente }] = await Promise.all([
+        sb.from('ultron_memoria').select('id, texto, para, creada').eq('activa', true).order('creada', { ascending: false }),
+        yo.rol === 'admin' ? sb.from('perfiles').select('nombre').eq('ultron', true).eq('activo', true) : Promise.resolve({ data: null }),
+      ])
+      return {
+        instrucciones: (mem ?? []).map((m) => ({ texto: `${m.para === 'ana-sofi' ? 'Ana Sofi: ' : m.para === 'todas' ? 'Todas: ' : ''}${m.texto}`, cuando: new Date(m.creada).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) })),
+        cabezas: gente ? gente.map((g) => g.nombre) : null,
+      }
+    },
+    // Lo que le toca atender a esta persona: sus propias tareas (la base de datos solo le da las suyas).
+    async alertas() {
+      const { data: t } = await sb.from('tareas').select('folio, titulo, urgente, compromiso, estatus').neq('estatus', 'aprobada')
+      return (t ?? []).flatMap((x) => [x.urgente ? `Urgente: #${x.folio} ${x.titulo}` : null, x.compromiso && x.compromiso < hoyISO && !['entregada'].includes(x.estatus) ? `Atrasada: #${x.folio} ${x.titulo}` : null, x.estatus === 'entregada' ? `Para revisar: #${x.folio} ${x.titulo}` : null]).filter(Boolean).slice(0, 8)
+    },
+    async preguntar(texto) {
+      const { data: m, error } = await sb.from('ultron_mensajes').insert({ canal: 'consola', pregunta: texto, persona: yo.id }).select('id').single()
+      if (error) throw new Error(error.message)
+      const hasta = Date.now() + 120_000
+      while (Date.now() < hasta) {
+        await new Promise((r) => setTimeout(r, 1200))
+        const { data: r } = await sb.from('ultron_mensajes').select('estado, respuesta, acciones, voz').eq('id', m.id).single()
+        if (r && (r.estado === 'listo' || r.estado === 'error')) {
+          let voz = null
+          if (r.voz) voz = (await sb.storage.from('ultron').createSignedUrl(r.voz, 3600)).data?.signedUrl ?? null
+          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz }
+        }
+      }
+      return { texto: 'No me llega respuesta: mi computadora no está respondiendo. Intenta en un rato.' }
+    },
+    // Lo que Ultron propuso pasa solo con el toque de la persona, con su sesión.
+    async accion(a) {
+      if (a.archivo) {
+        const { data: arch } = await sb.from('archivos').select('*').eq('id', a.archivo).single()
+        if (a.ver) {
+          const u = await sb.storage.from('archivos').createSignedUrl(arch.ruta, 3600)
+          if (u.data?.signedUrl) window.open(u.data.signedUrl, '_blank')
+          return ''
+        }
+        const { data: s } = await sb.auth.getSession()
+        const res = await fetch('/.netlify/functions/correo', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${s.session.access_token}` }, body: JSON.stringify({ archivo: arch.id }) })
+        const r = await res.json().catch(() => ({}))
+        return r.ok ? `Listo, te lo envié a ${r.para}.` : r.error || 'El correo no salió.'
+      }
+      if (a.crear) {
+        const { data: t, error } = await sb.from('tareas').insert({ cliente_id: yo.id, empresa_id: a.crear.empresa_id, titulo: a.crear.titulo, descripcion: `${a.crear.detalles || a.crear.titulo}\n\n(Pedida con Ultron)`, urgente: Boolean(a.crear.urgente) }).select('folio').single()
+        return error ? `No se pudo: ${error.message}` : `Registrada: tarea #${t.folio}.`
+      }
+      if (a.nota) {
+        const { error } = await sb.from('notas').insert({ tarea_id: a.nota.tarea_id, texto: a.nota.texto })
+        return error ? `No se pudo: ${error.message}` : 'Agregado a la tarea, con fecha.'
+      }
+      return ''
+    },
+  }
 }
 
 // -- la página --------------------------------------------------------------------
 
+let F = null // la fuente
 let vista = 'consola'
 let nucleo = null
 let ultimo = { q: '', r: 'Sistema en línea. Todas las IAs a la escucha.', acciones: [] }
 let pensando = false
+let ultimaAccion = 'Sin acciones todavía.'
+let tableroCache = null
+let sonando = null
 
 function marco() {
   $('#consola').innerHTML = `
     <header class="u-top">
       <h1 class="u-marca">ULTRON</h1>
       <span class="u-linea"></span>
-      <span class="u-muestra">Muestra</span>
-      <span class="u-quien">${h(YO)} · Dirección</span>
+      ${F.muestra ? '<span class="u-muestra">Muestra</span>' : ''}
+      <span class="u-quien">${h(F.yo.nombre)} · Dirección</span>
       <span class="u-estado">Sistema activo <i></i></span>
     </header>
     <div class="u-cuerpo">
@@ -331,27 +426,37 @@ function marco() {
       <aside class="u-lado" id="lado"></aside>
     </div>`
   pintarVista()
-  pintarLado()
+}
+
+async function tablero() {
+  tableroCache = await F.tablero().catch(() => tableroCache ?? { ecosistema: { areas: [], ias: [] }, hoy: [] })
+  return tableroCache
 }
 
 function pintarLado() {
   const lado = $('#lado')
   if (!lado) return
-  const activas = IAS.filter((i) => i.activa).length
+  const ias = tableroCache?.ecosistema?.ias ?? []
   lado.innerHTML = `
     <section class="u-tarjeta"><h3>${pensando ? 'Procesando' : nucleo?.escuchando ? 'Escuchando' : 'En espera'}</h3><canvas class="u-onda" id="onda"></canvas></section>
-    <section class="u-tarjeta"><h3>IAs conectadas</h3><div class="u-num">${activas}<small> / ${IAS.length}</small></div></section>
-    <section class="u-tarjeta"><h3>Última acción</h3><div class="u-ultima">${h(M.ultima)}</div></section>`
-  const c = $('#onda')
+    <section class="u-tarjeta"><h3>IAs conectadas</h3><div class="u-num">${ias.filter((i) => i.activa).length}<small> / ${ias.length || '—'}</small></div></section>
+    <section class="u-tarjeta"><h3>Última acción</h3><div class="u-ultima">${h(ultimaAccion)}</div></section>
+    <section class="u-tarjeta"><h3>Para atender</h3><div class="u-ultima" id="alertas">…</div></section>`
   for (const v of [...vivos]) if (v instanceof Onda && !v.canvas.isConnected) vivos.delete(v)
   if (nucleo) {
-    const o = new Onda(c, nucleo)
+    const o = new Onda($('#onda'), nucleo)
     o.medir()
     vivos.add(o)
   }
+  F.alertas()
+    .then((l) => {
+      const el = $('#alertas')
+      if (el) el.innerHTML = l.length ? l.map((a) => `<div class="u-item" style="margin-top:6px">${h(a)}</div>`).join('') : 'Nada urgente.'
+    })
+    .catch(() => {})
 }
 
-function pintarVista() {
+async function pintarVista() {
   for (const v of [...vivos]) vivos.delete(v)
   document.querySelectorAll('.u-nav button').forEach((b) => b.classList.toggle('on', b.dataset.vista === vista))
   const el = $('#vista')
@@ -365,7 +470,7 @@ function pintarVista() {
         <canvas class="u-mini-onda" id="mini-onda"></canvas>
         <div class="u-campo">
           <button type="button" class="u-mic" id="mic" aria-label="Hablar">${MIC}</button>
-          <input id="orden" autocomplete="off" maxlength="1000" placeholder="¿Qué ejecutamos, ${h(YO)}?" aria-label="Orden para Ultron">
+          <input id="orden" autocomplete="off" maxlength="1000" placeholder="¿Qué ejecutamos, ${h(F.yo.nombre.split(' ')[0])}?" aria-label="Orden para Ultron">
           <button class="u-enviar">Ejecutar</button>
         </div>
       </form>`
@@ -383,43 +488,63 @@ function pintarVista() {
     })
     $('#mic').addEventListener('click', escuchar)
     setTimeout(() => $('#orden')?.focus({ preventScroll: true }), 50)
+    if (!tableroCache) tablero().then(pintarLado)
   } else if (vista === 'ecosistema') {
+    el.innerHTML = '<div class="u-eco"><div class="u-eco-titulo"><h2>Ecosistema</h2><span>Cargando…</span></div></div>'
+    const t = await tablero()
+    if (vista !== 'ecosistema') return
+    const eco = t.ecosistema ?? { areas: [], ias: [] }
     const hub = (m) => {
-      const on = m.chips.some(([, a]) => a)
-      return `<div class="u-hub ${on ? '' : 'off'}" data-hub><div class="u-hub-circulo">${ICONOS[m.icono]}</div><div class="u-hub-texto"><b>${h(m.nombre)}</b><div class="u-chips">${m.chips.map(([n, a]) => `<span class="u-chip ${a ? '' : 'pronto'}"><i></i>${h(n)}</span>`).join('')}</div></div></div>`
+      const on = m.cosas.some(([, a]) => a)
+      return `<div class="u-hub ${on ? '' : 'off'}" data-hub><div class="u-hub-circulo">${ICONOS[m.icono] ?? ICONOS.datos}</div><div class="u-hub-texto"><b>${h(m.nombre)}</b><div class="u-chips">${m.cosas.map(([n, a]) => `<span class="u-chip ${a ? '' : 'pronto'}"><i></i>${h(n)}</span>`).join('')}</div></div></div>`
     }
     el.innerHTML = `
       <div class="u-eco">
         <div class="u-eco-titulo"><h2>Ecosistema</h2><span>Todo conectado a Ultron</span></div>
         <div class="u-eco-mapa" id="mapa">
           <svg class="u-eco-lineas" id="lineas"></svg>
-          <div class="u-eco-lado izq">${MODULOS.izq.map(hub).join('')}</div>
+          <div class="u-eco-lado izq">${eco.areas.filter((a) => a.lado !== 'der').map(hub).join('')}</div>
           <div class="u-eco-centro" id="centro"><canvas id="nucleo-eco"></canvas><div class="u-nombre">Ultron</div></div>
-          <div class="u-eco-lado der">${MODULOS.der.map(hub).join('')}</div>
+          <div class="u-eco-lado der">${eco.areas.filter((a) => a.lado === 'der').map(hub).join('')}</div>
         </div>
         <div class="u-hijos">
-          ${IAS.map((ia, i) => `<div class="u-hijo ${ia.activa ? '' : 'pronto'}" style="--c:${ia.css}"><canvas data-hijo="${i}"></canvas><b>${h(ia.nombre)}</b><span>${h(ia.empresa)}</span><em>${ia.activa ? '● Activa' : 'Próximamente'}</em><p>${h(ia.corto)}</p></div>`).join('')}
+          ${eco.ias
+            .map(
+              (ia, i) => `<div class="u-hijo ${ia.activa ? '' : 'pronto'}" style="--c:${ia.css}">
+                <canvas data-hijo="${i}"></canvas>
+                <b>${h(ia.nombre)}</b>
+                <em>${ia.activa ? '● Activa' : 'Próximamente'}</em>
+                <div class="u-empresas">${(ia.empresas ?? []).map((e) => `<span>${h(e)}</span>`).join('')}</div>
+                <div class="u-deptos">${(ia.departamentos ?? []).map((d) => `<span class="u-chip ${ia.activa ? '' : 'pronto'}"><i></i>${h(d)}</span>`).join('')}</div>
+                <p>${h(ia.corto ?? '')}</p>
+              </div>`,
+            )
+            .join('')}
         </div>
       </div>`
     const centro = new Nucleo($('#nucleo-eco'), { puntos: 1600, piso: false, escala: 0.3 })
     vivos.add(centro)
     nucleo = centro
     document.querySelectorAll('[data-hijo]').forEach((cv) => {
-      const ia = IAS[Number(cv.dataset.hijo)]
-      vivos.add(new Nucleo(cv, { color: ia.color, puntos: 800, piso: false, escala: 0.28, apagado: !ia.activa }))
+      const ia = eco.ias[Number(cv.dataset.hijo)]
+      vivos.add(new Nucleo(cv, { color: ia.color ?? [255, 154, 46], puntos: 800, piso: false, escala: 0.28, apagado: !ia.activa }))
     })
+    for (const v of vivos) v.medir()
     requestAnimationFrame(dibujarLineas)
   } else {
+    el.innerHTML = '<div class="u-mem"><h2>Memoria</h2><p class="u-largo" style="text-align:center">Cargando…</p></div>'
+    const [t, mem] = await Promise.all([tablero(), F.memoria()])
+    if (vista !== 'memoria') return
     el.innerHTML = `
       <div class="u-mem">
         <div class="u-mem-rejilla">
-          <section class="u-tarjeta"><h3>Instrucciones vigentes</h3><div class="u-lista">${M.instrucciones.map((i) => `<div class="u-item">${h(i.texto)}<small>${h(i.cuando)}</small></div>`).join('')}</div></section>
-          <section class="u-tarjeta"><h3>Hoy, en corto</h3><div class="u-lista">${M.hoy.map((x, i) => `<div class="u-item"><b>${h(x.quien)}</b> · ${h(x.corto)}<div><button class="u-boton" data-mas="${i}" style="margin-top:8px">Explicación completa</button></div><p class="u-largo" hidden>${h(x.largo)}</p></div>`).join('')}</div></section>
-          <section class="u-tarjeta"><h3>Dirección con acceso</h3>${CABEZAS.map((n) => `<span class="u-persona"><i>${h(n[0])}</i>${h(n)}</span>`).join('')}<p class="u-largo">Ultron solo atiende a estas personas. Las demás IAs atienden a los empleados de su empresa.</p></section>
+          <section class="u-tarjeta"><h3>Instrucciones vigentes</h3><div class="u-lista">${mem.instrucciones.length ? mem.instrucciones.map((i) => `<div class="u-item">${h(i.texto)}<small>${h(i.cuando)}</small></div>`).join('') : '<p class="u-largo">Ninguna. Dile a Ultron, por ejemplo: “Dile a Ana Sofi que hoy no prometa entregas”.</p>'}</div></section>
+          <section class="u-tarjeta"><h3>Hoy, en corto</h3><div class="u-lista">${(t.hoy ?? []).map((x, i) => `<div class="u-item"><b>${h(x.quien)}</b> · ${h(x.corto)}<div><button class="u-boton" data-mas="${i}" style="margin-top:8px">Explicación completa</button></div><p class="u-largo" hidden>${h(x.largo)}</p></div>`).join('')}</div></section>
+          ${mem.cabezas ? `<section class="u-tarjeta"><h3>Dirección con acceso</h3>${mem.cabezas.map((n) => `<span class="u-persona"><i>${h(n[0])}</i>${h(n)}</span>`).join('')}<p class="u-largo">Ultron solo atiende a estas personas. Las demás IAs atienden a los empleados de su empresa.</p></section>` : ''}
           <section class="u-tarjeta"><h3>Lo que Ultron puede hacer</h3><div class="u-lista">
-            <div class="u-item">Aquí y en Telegram: todo — hablar con sus IAs, darles instrucciones, resúmenes, el Centro de trabajo.</div>
+            <div class="u-item">Aquí: todo — hablar con sus IAs, darles instrucciones, resúmenes, el Centro de trabajo.</div>
             <div class="u-item">Dentro del Centro de trabajo: solo lo del Centro de trabajo, sin borrar ni cambiar nada.</div>
-            <div class="u-item">Enviar, publicar o gastar: siempre con la aprobación de una persona.</div>
+            <div class="u-item">Crear, enviar o gastar: siempre con tu confirmación.</div>
           </div></section>
         </div>
       </div>`
@@ -436,7 +561,7 @@ function pintarVista() {
   pintarLado()
 }
 
-/** Las líneas de luz del núcleo a cada módulo. */
+/** Las líneas de luz del núcleo a cada área. */
 function dibujarLineas() {
   const svg = $('#lineas')
   const mapa = $('#mapa')
@@ -467,7 +592,19 @@ function pintarSubs(escribiendo = false) {
   const s = $('#subs')
   if (!s) return
   s.innerHTML = `${ultimo.q ? `<div class="q">› ${h(ultimo.q)}</div>` : ''}<div class="r" id="r"></div>${ultimo.acciones?.length ? `<div class="u-acciones">${ultimo.acciones.map((a, i) => `<button class="u-boton" data-accion="${i}">${h(a.etiqueta)}</button>`).join('')}</div>` : ''}`
-  s.querySelectorAll('[data-accion]').forEach((b) => b.addEventListener('click', () => ejecutar(ultimo.acciones[Number(b.dataset.accion)].pregunta)))
+  s.querySelectorAll('[data-accion]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const a = ultimo.acciones[Number(b.dataset.accion)]
+      if (a.pregunta) return ejecutar(a.pregunta)
+      b.disabled = true
+      const r = await F.accion(a).catch((err) => `No se pudo: ${err.message}`)
+      if (r) {
+        ultimaAccion = r
+        aviso(r)
+        pintarLado()
+      }
+    }),
+  )
   const r = $('#r')
   const html = h(ultimo.r).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
   if (!escribiendo || !MOVIMIENTO) {
@@ -492,21 +629,36 @@ async function ejecutar(texto) {
   if (!texto || pensando) return
   if (vista !== 'consola') {
     vista = 'consola'
-    pintarVista()
+    await pintarVista()
   }
   pensando = true
   ultimo = { q: texto, r: '…', acciones: [] }
   pintarSubs()
   pintarLado()
   if (nucleo) nucleo.escuchando = true
-  await new Promise((r) => setTimeout(r, 700 + Math.random() * 600))
-  const res = responder(texto)
-  if (nucleo) {
-    nucleo.escuchando = false
-    nucleo.hablar(Math.min(9000, 900 + res.texto.length * 38))
+  let res
+  try {
+    res = await F.preguntar(texto)
+  } catch (err) {
+    res = { texto: `No pude enviar tu mensaje: ${err.message}` }
   }
+  if (nucleo) nucleo.escuchando = false
   pensando = false
   ultimo = { q: texto, r: res.texto, acciones: res.acciones ?? [] }
+  if (res.ultima) ultimaAccion = res.ultima
+  else if (/^(Hecho|Listo|Registrad|Agregad)/.test(res.texto)) ultimaAccion = res.texto.replace(/\*\*/g, '').slice(0, 140)
+  // Su voz: la esfera late mientras suena.
+  if (res.voz) {
+    try {
+      sonando?.pause()
+      sonando = new Audio(res.voz)
+      sonando.onplaying = () => nucleo?.hablar((sonando.duration || 4) * 1000)
+      sonando.onended = () => nucleo && (nucleo.hastaHablar = 0)
+      await sonando.play()
+    } catch {
+      nucleo?.hablar(Math.min(9000, 900 + res.texto.length * 38))
+    }
+  } else nucleo?.hablar(Math.min(9000, 900 + res.texto.length * 38))
   pintarSubs(true)
   pintarLado()
 }
@@ -558,24 +710,33 @@ document.addEventListener('click', (e) => {
   pintarVista()
 })
 
-// En el sitio real, mientras Ultron no esté conectado, no se enseña la muestra
-// (tiene nombres de la dirección); solo un aviso. La muestra sale aparte.
+/** Una pantalla con solo el núcleo y un mensaje (sin sesión, sin permiso). */
+function pantallaSola(estado, mensaje, enlace = '') {
+  $('#consola').innerHTML = `<header class="u-top"><h1 class="u-marca">ULTRON</h1><span class="u-linea"></span><span class="u-estado">${h(estado)} <i></i></span></header><div class="u-vista" style="height:72vh"><canvas class="u-nucleo" id="nucleo"></canvas><div class="u-subtitulos" style="bottom:90px"><div class="r">${h(mensaje)}</div>${enlace ? `<div class="u-acciones"><a class="u-boton" href="${enlace}">Entrar al Centro de trabajo</a></div>` : ''}</div></div>`
+  const n = new Nucleo($('#nucleo'))
+  vivos.add(n)
+}
+
 async function arrancar() {
-  let real = false
-  if (location.pathname.startsWith('/ultron')) try {
-    const r = await fetch('/.netlify/functions/config')
-    real = r.ok && Boolean((await r.json()).url)
-  } catch {
-    real = false
-  }
-  if (real) {
-    $('#consola').innerHTML = `<header class="u-top"><h1 class="u-marca">ULTRON</h1><span class="u-linea"></span><span class="u-estado">Conectando <i></i></span></header><div class="u-vista" style="height:70vh"><canvas class="u-nucleo" id="nucleo"></canvas><div class="u-etiqueta-nucleo">Muy pronto</div></div>`
-    const n = new Nucleo($('#nucleo'))
-    vivos.add(n)
-    requestAnimationFrame(animar)
-    return
-  }
-  marco()
   requestAnimationFrame(animar)
+  // En el sitio real: la sesión del Centro de trabajo. Fuera de él (la muestra): datos de ejemplo.
+  let cfg = null
+  if (location.pathname.startsWith('/ultron')) {
+    try {
+      const r = await fetch('/.netlify/functions/config')
+      cfg = r.ok ? await r.json() : null
+    } catch {
+      cfg = null
+    }
+  }
+  if (cfg?.url && cfg?.anon) {
+    const f = await fuenteReal(cfg).catch((err) => ({ error: err.message }))
+    if (f.error === 'entrar') return pantallaSola('En espera', 'Entra primero al Centro de trabajo con tu correo y contraseña; luego vuelve aquí.', '/')
+    if (f.error === 'permiso') return pantallaSola('Acceso restringido', 'Ultron solo atiende a la dirección.')
+    if (f.error) return pantallaSola('Sin conexión', `No pude conectarme: ${f.error}`)
+    F = f
+  } else F = fuenteMuestra()
+  marco()
+  tablero().then(() => pintarLado())
 }
 arrancar()

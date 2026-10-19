@@ -36,6 +36,7 @@ export default async (req) => {
       }
       const perfil = { nombre, correo, rol: d.rol, activo: true, empresas }
       for (const s of SECCIONES) perfil[s] = d[s] !== false
+      perfil.ultron = d.rol === 'cliente' && d.ultron === true
       await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: perfil })
       return json({ ok: true, id: user.id })
     }

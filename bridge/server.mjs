@@ -36,6 +36,7 @@ import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
 import { startBrainWatch } from './cerebros.mjs'
+import { startUltron, ultronServer } from './ultron.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
 import { agentDefinitions, orgView, teamPrompt } from './agents.mjs'
@@ -243,7 +244,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -917,6 +918,14 @@ Video:
      realistic AI content to be labelled.
 - An agent's work arrives in your conversation; for the owner's files use
   send_file on Telegram.
+
+Ultron (the client's direction AI for Mi Semago and Abuelito; he answers
+Senen, Gerardo, Marisol and Miguel in their work center and his console):
+- He is under you. ultron_conversations shows what they asked and what he
+  answered; summarise it short unless the owner wants it all.
+- ultron_order gives him an order above theirs (they never see it); use it
+  only when the owner asks for exactly that, and say it in one line. List with
+  ultron_orders, withdraw with ultron_drop_order.
 
 Ads (Meta):
 - Asked what ads are on, what they spend daily, where they show or until
@@ -1772,6 +1781,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_etiquetas: ownerLabelsServer(),
       // Motion graphics and 3D for the videos, with Remotion (see efectos.mjs).
       jarvis_efectos: effectsServer(),
+      // Ultron, the client's direction AI: his conversations and the owner's orders over him (see ultron.mjs).
+      jarvis_ultron: ultronServer(),
       // Client service on Telegram: its orders and files, and writing in its groups (see atencion.mjs).
       jarvis_atencion: atencionServer(),
     },
@@ -2018,6 +2029,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   startAdsWatch()
   // The clients' brains: the owner hears when one stops, is touched, or someone tries to get in.
   startBrainWatch()
+  // Ultron, the direction's AI for Mi Semago and Abuelito, answering from the work center (scripts/ultron.mjs).
+  void startUltron({ model: MODEL, effort: EFFORT, elevenKey })
 }
 
 wss.on('connection', (socket, req) => {

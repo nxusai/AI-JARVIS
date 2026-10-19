@@ -14,7 +14,8 @@ export async function sb(path, { token, servicio = false, method = 'GET', body }
     method,
     headers: {
       apikey: llave,
-      authorization: `Bearer ${servicio ? llave : token}`,
+      // Las llaves nuevas (sb_secret_) van solo en apikey; las de antes (JWT) también como Bearer.
+      ...(servicio ? (/^eyJ/.test(llave) ? { authorization: `Bearer ${llave}` } : {}) : { authorization: `Bearer ${token}` }),
       'content-type': 'application/json',
       ...(method === 'POST' && path.startsWith('/rest/') ? { prefer: 'return=representation' } : {}),
     },
