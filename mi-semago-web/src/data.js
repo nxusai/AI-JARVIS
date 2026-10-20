@@ -3,6 +3,10 @@
 // Las fichas técnicas vienen del sitio actual (misemago.com). Lo marcado con CONFIRMAR es provisional.
 // La IA (server/semago.js) lee este archivo: si agregas un producto, la IA ya lo conoce.
 
+// Interruptores del sitio. PENDIENTE: la IA (Semago IA) está apagada por ahora; para encenderla,
+// cambia `ai` a true y agrega ANTHROPIC_API_KEY en Netlify (ver README, sección «La IA»).
+export const FEATURES = { ai: false };
+
 export const BRAND = {
   name: 'Mi Semago',
   tagline: { es: 'The Better Latin Dairy Company', en: 'The Better Latin Dairy Company' },

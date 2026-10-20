@@ -3,7 +3,7 @@ import './style.css';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { BRAND, PRODUCTS, CATEGORIES, PROCESS, PLANT_CHAPTERS, PLANT_FRAMES, FAQ, transitDays } from './data.js';
+import { FEATURES, BRAND, PRODUCTS, CATEGORIES, PROCESS, PLANT_CHAPTERS, PLANT_FRAMES, FAQ, transitDays } from './data.js';
 import { STRINGS } from './i18n.js';
 import { STATES, ORIGIN } from './states.js';
 import { initStudio, refreshStudio, setProduct } from './studio.js';
@@ -15,6 +15,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduced) document.documentElement.classList.add('reduce');
+document.documentElement.classList.toggle('no-ai', !FEATURES.ai);
 
 // ───────── Idioma ─────────
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } } };
@@ -40,7 +41,7 @@ const ctx = {
   t, lang, reduced,
   openProduct: (id) => openDrawer(id),
   toStudio: (id) => { setProduct(id); scrollToEl('#estudio'); },
-  openChat: (q) => openChat(q),
+  openChat: (q) => { if (FEATURES.ai) openChat(q); },
   sendStudio: (s) => sendStudio(s),
   onStudioChange: (s) => { studioBrand = s; },
 };
@@ -270,7 +271,7 @@ function openDrawer(id) {
     </tbody></table>
     <div class="drawer__actions">
       <button type="button" class="btn btn--gold" data-design="${p.id}">${t('cat.design')} <i class="arrow">→</i></button>
-      <button type="button" class="btn btn--line" data-ask="${p.id}">✦ ${t('cat.askAi')}</button>
+      ${FEATURES.ai ? `<button type="button" class="btn btn--line" data-ask="${p.id}">✦ ${t('cat.askAi')}</button>` : ''}
       <button type="button" class="btn btn--line" data-print="${p.id}">${t('cat.print')}</button>
     </div>`;
   const d = $('#drawer'); d.hidden = false; lenis?.stop();
@@ -487,7 +488,7 @@ function init() {
 
   applyLang();
   timeline(); catalog(); faq(); contactChips();
-  initStudio(ctx); initChat(ctx);
+  initStudio(ctx); if (FEATURES.ai) initChat(ctx);
   strands(); marquee(); plant(); map(); nav(); thread(); cursor(); reveals();
 
   // Enlaces internos con scroll suave
@@ -498,7 +499,7 @@ function init() {
   });
   $('#langBtn').addEventListener('click', () => {
     LANG = LANG === 'es' ? 'en' : 'es'; store.set('ms-lang', LANG);
-    const swap = () => { applyLang(); timeline(); if (timelineShown || reduced) gsap.set('.tstep__bar i', { scaleX: 1 }); catalog(); catalogShown && gsap.set('#catGrid .card', { opacity: 1, y: 0 }); faq(); contactChips(); refreshStudio(); refreshChat(); plant.setChapter?.(); if (shipState) pickState(shipState); };
+    const swap = () => { applyLang(); timeline(); if (timelineShown || reduced) gsap.set('.tstep__bar i', { scaleX: 1 }); catalog(); catalogShown && gsap.set('#catGrid .card', { opacity: 1, y: 0 }); faq(); contactChips(); refreshStudio(); if (FEATURES.ai) refreshChat(); plant.setChapter?.(); if (shipState) pickState(shipState); };
     if (reduced) return swap();
     gsap.to('main, .nav__links', { opacity: 0, duration: 0.2, onComplete: () => { swap(); gsap.to('main, .nav__links', { opacity: 1, duration: 0.35 }); } });
   });

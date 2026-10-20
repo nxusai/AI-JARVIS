@@ -154,8 +154,8 @@
             </fieldset>
             <fieldset class="step"><legend><i>3</i><span data-i18n="st.s3">Tu marca</span></legend>
               <label class="field"><span data-i18n="st.brand">Nombre de tu marca</span><input id="stBrand" maxlength="26" data-i18n-ph="st.brandPh" /></label>
-              <div class="names" id="stNames"></div>
-              <button type="button" class="link-btn" id="stSuggest">✦ <span data-i18n="st.suggest">Sugiéreme nombres con IA</span></button>
+              <div class="names" id="stNames" data-ai></div>
+              <button type="button" class="link-btn" id="stSuggest" data-ai>✦ <span data-i18n="st.suggest">Sugiéreme nombres con IA</span></button>
               <label class="field"><span data-i18n="st.claim">Frase (opcional)</span><input id="stClaim" maxlength="32" data-i18n-ph="st.claimPh" /></label>
               <label class="upload"><input type="file" id="stLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml" /><b data-i18n="st.logo">Sube tu logo</b><small data-i18n="st.logoHint">PNG o JPG · se queda en tu navegador</small></label>
               <button type="button" class="link-btn" id="stLogoRemove" hidden data-i18n="st.logoRemove">Quitar logo</button>
@@ -201,7 +201,7 @@
             <div class="studio__actions">
               <button type="button" class="btn btn--gold magnetic" id="stSend"><span data-i18n="st.send">Enviar mi propuesta</span> <i class="arrow">→</i></button>
               <button type="button" class="btn btn--line" id="stDownload" data-i18n="st.download">Descargar etiqueta</button>
-              <button type="button" class="btn btn--line" id="stAsk">✦ <span data-i18n="st.ask">Preguntarle a la IA</span></button>
+              <button type="button" class="btn btn--line" id="stAsk" data-ai>✦ <span data-i18n="st.ask">Preguntarle a la IA</span></button>
             </div>
           </div>
         </div>
@@ -301,7 +301,8 @@
           <article class="why__card reveal"><span>03</span><h3 data-i18n="why.3t"></h3><p data-i18n="why.3"></p></article>
           <article class="why__card reveal"><span>04</span><h3 data-i18n="why.4t"></h3><p data-i18n="why.4"></p></article>
           <article class="why__card reveal"><span>05</span><h3 data-i18n="why.5t"></h3><p data-i18n="why.5"></p></article>
-          <article class="why__card reveal"><span>06</span><h3 data-i18n="why.6t"></h3><p data-i18n="why.6"></p></article>
+          <article class="why__card reveal" data-ai><span>06</span><h3 data-i18n="why.6t"></h3><p data-i18n="why.6"></p></article>
+          <article class="why__card reveal" data-no-ai><span>06</span><h3 data-i18n="why.6bt"></h3><p data-i18n="why.6b"></p></article>
         </div>
       </div>
     </section>
@@ -392,8 +393,8 @@
   </div>
 
   <!-- Semago IA -->
-  <button class="fab" id="chatFab" type="button"><span class="fab__dot"></span><img src="./img/ui/knot.png" alt="" /><span data-i18n="ai.fab">Pregúntale a Semago IA</span></button>
-  <section class="chat" id="chat" hidden aria-label="Semago IA">
+  <button class="fab" id="chatFab" type="button" data-ai><span class="fab__dot"></span><img src="./img/ui/knot.png" alt="" /><span data-i18n="ai.fab">Pregúntale a Semago IA</span></button>
+  <section class="chat" id="chat" hidden aria-label="Semago IA" data-ai>
     <header class="chat__head">
       <img src="./img/ui/knot.png" alt="" />
       <div><b data-i18n="ai.name">Semago IA</b><small data-i18n="ai.role">Asesor de marca privada · en línea</small></div>

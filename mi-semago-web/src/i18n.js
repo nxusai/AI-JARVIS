@@ -67,6 +67,7 @@ export const STRINGS = {
     'why.3t': 'Escala de verdad', 'why.3': '500,000 libras por semana: crecemos al ritmo de tu cadena.',
     'why.4t': 'Hecho por latinos', 'why.4': 'Recetas y oficio de México y Centroamérica, hechos en Nueva Jersey.',
     'why.5t': 'Atención directa', 'why.5': 'Hablas con quien decide, en español o en inglés. Sin call centers.',
+    'why.6bt': 'Cadena de frío completa', 'why.6b': 'A 40 °F desde la planta hasta tu almacén, con transporte refrigerado y seguimiento GPS.',
     'why.6t': 'Una IA que sabe de queso', 'why.6': 'Pregunta a cualquier hora por fichas, tarimas, tiempos y envíos.',
 
     'faq.kicker': 'Preguntas frecuentes', 'faq.title': 'Lo que todos preguntan antes de empezar.',
@@ -154,6 +155,7 @@ export const STRINGS = {
     'why.3t': 'Real scale', 'why.3': '500,000 pounds a week: we grow at your chain’s pace.',
     'why.4t': 'Made by Latinos', 'why.4': 'Recipes and craft from Mexico and Central America, made in New Jersey.',
     'why.5t': 'Direct line', 'why.5': 'Talk to the people who decide, in Spanish or English. No call centers.',
+    'why.6bt': 'End-to-end cold chain', 'why.6b': 'At 40 °F from our plant to your warehouse, with refrigerated, GPS-tracked transport.',
     'why.6t': 'An AI that knows cheese', 'why.6': 'Ask any time about specs, pallets, lead times and shipping.',
 
     'faq.kicker': 'FAQ', 'faq.title': 'What everyone asks before getting started.',

@@ -51,6 +51,12 @@ La IA lee `src/data.js`: si agregas un producto, Semago IA ya lo conoce.
 
 ## La IA (Semago IA)
 
+> **PENDIENTE — la IA está apagada por ahora.** El chat, «Preguntarle a la IA», «Sugiéreme nombres con IA»
+> y la tarjeta de la IA en «Por qué Mi Semago» están escondidos. Para encenderla:
+> 1. En `src/data.js` cambia `FEATURES = { ai: false }` a `true`.
+> 2. En Netlify, *Site configuration → Environment variables*, agrega `ANTHROPIC_API_KEY`.
+> 3. Vuelve a publicar.
+
 - Sin configurar nada, el chat responde con un **cerebro local** que conoce catálogo, tarimas, tiempos y envíos.
 - Para la **IA real (Claude)**, agrega la variable **`ANTHROPIC_API_KEY`** en Vercel o Netlify
   (*Settings → Environment Variables*) y vuelve a publicar. Se consigue en <https://console.anthropic.com>.

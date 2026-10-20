@@ -21,6 +21,8 @@
 }
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* La IA se enciende con FEATURES.ai en src/data.js */
+.no-ai [data-ai], html:not(.no-ai) [data-no-ai] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
