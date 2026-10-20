@@ -38,8 +38,6 @@ export const STRINGS = {
     'st.tilt': 'Mueve el cursor sobre el queso',
     'st.defaultBrand': 'Tu Marca', 'st.keep': 'Mantener refrigerado a 40 °F', 'st.madeFor': 'Hecho para', 'st.net': 'Peso neto',
 
-    'st.v.product': 'Producto', 'st.v.shelf': 'En el anaquel', 'st.new': 'NUEVO', 'st.shelfTag': 'Tu marca en el pasillo latino',
-    'hm.w1': 'HECHO', 'hm.w2': 'A MANO', 'hm.k': 'Oaxaca hilado a mano', 'hm.t': 'Cada tira, estirada por manos que saben.', 'hm.p': 'La máquina pone la escala. El oficio pone el sabor. Así sale de Paterson tu queso, con tu nombre.',
     'cat.kicker': '03 · Los quesos', 'cat.title': '16 presentaciones listas para tu marca.',
     'cat.sub': 'Fichas técnicas completas: ingredientes, empaque, vida de anaquel y cuántas cajas caben por tarima.',
     'cat.all': 'Todos', 'cat.sizes': 'Presentaciones', 'cat.shelf': 'días de anaquel',
@@ -127,8 +125,6 @@ export const STRINGS = {
     'st.tilt': 'Move your cursor over the cheese',
     'st.defaultBrand': 'Your Brand', 'st.keep': 'Keep refrigerated at 40 °F', 'st.madeFor': 'Made for', 'st.net': 'Net wt',
 
-    'st.v.product': 'Product', 'st.v.shelf': 'On the shelf', 'st.new': 'NEW', 'st.shelfTag': 'Your brand in the Latin aisle',
-    'hm.w1': 'HAND', 'hm.w2': 'MADE', 'hm.k': 'Hand-stretched Oaxaca', 'hm.t': 'Every ribbon, stretched by hands that know.', 'hm.p': 'The machines bring the scale. The craft brings the flavor. That is how your cheese leaves Paterson, with your name on it.',
     'cat.kicker': '03 · The cheeses', 'cat.title': '16 SKUs ready for your brand.',
     'cat.sub': 'Full spec sheets: ingredients, packaging, shelf life and how many cases fit on a pallet.',
     'cat.all': 'All', 'cat.sizes': 'Sizes', 'cat.shelf': 'days shelf life',

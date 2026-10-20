@@ -8,7 +8,6 @@ import { STRINGS } from './i18n.js';
 import { STATES, ORIGIN } from './states.js';
 import { initStudio, refreshStudio, setProduct } from './studio.js';
 import { initChat, openChat, refreshChat } from './semago-ai.js';
-import { milk } from './milk.js';
 
 gsap.registerPlugin(ScrollTrigger);
 const $ = (s, el = document) => el.querySelector(s);
@@ -206,43 +205,6 @@ function strands() {
     }
   };
   if (reduced) draw(0); else gsap.ticker.add(draw);
-  // Fondo de leche y oro en WebGL debajo de los hilos.
-  const frame = milk($('#milk'), { reduced });
-  if (frame) { if (reduced) frame(0); else gsap.ticker.add((time) => { if (visible) frame(time); }); }
-}
-
-// ───────── Hecho a mano: el video del hilado dentro de letras gigantes que se abren con el scroll ─────────
-function handmade() {
-  const video = $('#hmVideo');
-  ScrollTrigger.create({ trigger: '#handmade', start: 'top 150%', once: true, onEnter: () => { video.preload = 'auto'; video.load(); } });
-  ScrollTrigger.create({ trigger: '#handmade', start: 'top bottom', end: 'bottom top', onToggle: (st) => { if (st.isActive && !reduced) video.play().catch(() => {}); else video.pause(); } });
-  if (reduced) { gsap.set('#hmMask', { opacity: 0 }); gsap.set('#hmCap', { opacity: 1 }); return; }
-  gsap.timeline({ scrollTrigger: { trigger: '#handmade', start: 'top top', end: 'bottom bottom', scrub: 0.6 } })
-    .fromTo('#hmMask', { scale: 1 }, { scale: 16, ease: 'power2.in', duration: 1 })
-    .to('#hmMask', { opacity: 0, duration: 0.25, ease: 'none' }, 0.62)
-    .fromTo('#hmVideo', { scale: 1.25 }, { scale: 1, ease: 'none', duration: 1 }, 0)
-    .fromTo('#hmCap', { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.25, ease: 'none' }, 0.78);
-}
-
-// Secciones oscuras que se abren de una tarjeta redondeada a pantalla completa al entrar.
-function openSections() {
-  if (reduced) return;
-  $$('.studio, .ship, .contact').forEach((sec) => gsap.fromTo(sec,
-    { '--inset': () => `${Math.round(innerWidth * 0.035)}px`, '--round': '48px' },
-    { '--inset': '0px', '--round': '0px', ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'top 15%', scrub: true, invalidateOnRefresh: true } }));
-}
-
-// Tarjetas del catálogo: se inclinan y una luz dorada sigue al cursor.
-function cardLights() {
-  if (reduced || !matchMedia('(hover: hover)').matches) return;
-  const grid = $('#catGrid');
-  grid.addEventListener('pointermove', (e) => {
-    const c = e.target.closest('.card'); if (!c) return;
-    const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width; const y = (e.clientY - r.top) / r.height;
-    c.style.setProperty('--mx', `${x * 100}%`); c.style.setProperty('--my', `${y * 100}%`);
-    c.style.transform = `perspective(900px) rotateY(${(x - 0.5) * 10}deg) rotateX(${(0.5 - y) * 10}deg) translateY(-6px)`;
-  });
-  grid.addEventListener('pointerout', (e) => { const c = e.target.closest('.card'); if (c && !c.contains(e.relatedTarget)) c.style.transform = ''; });
 }
 
 // ───────── Marquesina ─────────
@@ -469,7 +431,7 @@ function nav() {
     const down = y > lastY && y > 400; navEl.classList.toggle('hide', down && $('#mnav').hidden); lastY = y;
   };
   if (lenis) lenis.on('scroll', ({ scroll }) => onScroll(scroll)); else addEventListener('scroll', () => onScroll(scrollY), { passive: true });
-  $$('.private, .catalog, .handmade, .people, .why, .faq').forEach((sec) => ScrollTrigger.create({ trigger: sec, start: 'top 60px', end: 'bottom 60px', onToggle: (s) => navEl.classList.toggle('light', s.isActive) }));
+  $$('.private, .catalog, .people, .why, .faq').forEach((sec) => ScrollTrigger.create({ trigger: sec, start: 'top 60px', end: 'bottom 60px', onToggle: (s) => navEl.classList.toggle('light', s.isActive) }));
   $$('.nav__links a').forEach((a) => { const sec = $(a.getAttribute('href')); if (sec) ScrollTrigger.create({ trigger: sec, start: 'top 50%', end: 'bottom 50%', onToggle: (s) => a.classList.toggle('on', s.isActive) }); });
   const burger = $('#burger'); const m = $('#mnav');
   const setMenu = (open) => { m.hidden = !open; burger.setAttribute('aria-expanded', open); if (open) { lenis?.stop(); if (!reduced) gsap.from('#mnav a', { y: 40, opacity: 0, stagger: 0.05, duration: 0.6, ease: 'expo.out' }); } else lenis?.start(); };
@@ -526,7 +488,7 @@ function init() {
   applyLang();
   timeline(); catalog(); faq(); contactChips();
   initStudio(ctx); initChat(ctx);
-  strands(); handmade(); openSections(); cardLights(); marquee(); plant(); map(); nav(); thread(); cursor(); reveals();
+  strands(); marquee(); plant(); map(); nav(); thread(); cursor(); reveals();
 
   // Enlaces internos con scroll suave
   document.addEventListener('click', (e) => {

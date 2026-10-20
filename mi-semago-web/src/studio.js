@@ -10,7 +10,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const COLORS = ['#0b2b57', '#b3261e', '#3a7c44', '#c19a32', '#d9661f', '#6b2c91', '#1b1b1b'];
 
 let ctx;
-const S = { view: 'product', pid: 'oaxaca-retail', size: 0, brand: '', claim: '', logo: null, tpl: 'tradicion', color: COLORS[0], pack: 0, cases: 120, dest: 'TX', touched: false };
+const S = { pid: 'oaxaca-retail', size: 0, brand: '', claim: '', logo: null, tpl: 'tradicion', color: COLORS[0], pack: 0, cases: 120, dest: 'TX', touched: false };
 
 const product = () => PRODUCTS.find((p) => p.id === S.pid);
 const sizeOf = () => product().sizes[S.size] || product().sizes[0];
@@ -50,8 +50,6 @@ export function initStudio(c) {
   $('#stAsk').addEventListener('click', () => ctx.openChat(ctx.lang() === 'en'
     ? `I'm designing "${brandName()}" with ${product().name.en} ${sizeOf().l}, ${S.cases} cases a week to ${stateName()}. What do you recommend and what should I ask in my quote?`
     : `Estoy armando "${brandName()}" con ${product().name.es} de ${sizeOf().l}, ${S.cases} cajas por semana a ${stateName()}. ¿Qué me recomiendas y qué debo preguntar al cotizar?`));
-
-  $('#stView').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
 
   initTilt();
   setProduct(S.pid, true);
@@ -127,35 +125,7 @@ function update(animateLabel) {
     el.innerHTML = svg; lastLabel = svg;
     if (animateLabel && !ctx.reduced) gsap.fromTo(el, { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(2)', clearProps: 'scale,opacity' });
   }
-  if (S.view === 'shelf') renderShelf(svg);
   ctx.onStudioChange?.({ brand: brandName(), cheese: p.name[ctx.lang()] });
-}
-
-// ───────── Vista de anaquel: el queso con tu marca repetido en un estante de supermercado ─────────
-function setView(v) {
-  S.view = v;
-  $('#stView').dataset.view = v;
-  $('#stView').querySelectorAll('[data-view]').forEach((b) => { b.classList.toggle('on', b.dataset.view === v); b.setAttribute('aria-selected', b.dataset.view === v); });
-  const shelf = $('#shelf'); const mock = $('#mock');
-  mock.classList.toggle('mock--shelf', v === 'shelf');
-  shelf.hidden = v !== 'shelf';
-  $('#mockTilt').hidden = v === 'shelf';
-  if (v === 'shelf') {
-    renderShelf(labelSVG());
-    if (!ctx.reduced) {
-      gsap.fromTo('#shelf .shelf__item', { y: -80, opacity: 0, rotate: () => gsap.utils.random(-8, 8) }, { y: 0, opacity: 1, rotate: 0, duration: 0.9, stagger: { each: 0.06, from: 'random' }, ease: 'bounce.out' });
-      gsap.fromTo('#shelf .shelf__edge', { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: 'expo.out', stagger: 0.15 });
-    }
-  }
-}
-function renderShelf(svg) {
-  const p = product(); const L = p.label; const c = S.color;
-  const tall = p.img.startsWith('barra') || p.img === 'fresco-cubeta';
-  const per = tall ? 7 : 5;
-  const item = `<div class="shelf__item${tall ? ' shelf__item--tall' : ''}"><img src="./img/p/${p.img}.webp" alt="" /><div class="shelf__label" style="left:${L.x}%;top:${L.y}%;width:${L.w}%;transform:translate(-50%,-50%) rotate(${L.r}deg)">${svg}</div></div>`;
-  const edge = `<div class="shelf__edge" style="--c:${c}"><b>${esc(brandName())}</b><span class="shelf__new">${esc(ctx.t('st.new'))}</span><span>${esc(shortName(p, ctx.lang()))} · ${sizeOf().l}</span></div>`;
-  $('#shelf').innerHTML = `<div class="shelf__sign" style="--c:${c}">${esc(ctx.t('st.shelfTag'))}</div>` +
-    [0, 1, 2].map(() => `<div class="shelf__row">${item.repeat(per)}</div>${edge}`).join('');
 }
 
 // ───────── Plantillas de etiqueta (SVG 300 × 190) ─────────

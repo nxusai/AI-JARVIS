@@ -81,7 +81,6 @@
   <main id="main">
     <!-- ───────── HERO ───────── -->
     <section class="hero" id="top">
-      <canvas class="hero__milk" id="milk" aria-hidden="true"></canvas>
       <canvas class="hero__strands" id="strands" aria-hidden="true"></canvas>
       <div class="hero__grain" aria-hidden="true"></div>
       <div class="hero__inner">
@@ -179,13 +178,7 @@
           </form>
 
           <div class="studio__stage">
-            <div class="viewtoggle" id="stView" role="tablist">
-              <button type="button" data-view="product" class="on" role="tab" aria-selected="true" data-i18n="st.v.product">Producto</button>
-              <button type="button" data-view="shelf" role="tab" aria-selected="false" data-i18n="st.v.shelf">En el anaquel</button>
-              <i class="viewtoggle__pill" aria-hidden="true"></i>
-            </div>
             <div class="mock" id="mock">
-              <div class="shelf" id="shelf" hidden></div>
               <div class="mock__glow" aria-hidden="true"></div>
               <div class="mock__tilt" id="mockTilt">
                 <img id="mockImg" alt="" />
@@ -230,19 +223,6 @@
       </div>
     </section>
 
-    <!-- ───────── HECHO A MANO: el video del hilado dentro de las letras ───────── -->
-    <section class="handmade" id="handmade">
-      <div class="handmade__pin">
-        <video class="handmade__video" id="hmVideo" muted loop playsinline preload="none" poster="./img/stills/hilado.webp" aria-hidden="true"><source src="./video/hilado.mp4" type="video/mp4" /></video>
-        <div class="handmade__mask" id="hmMask" aria-hidden="true"><span data-i18n="hm.w1">HECHO</span><span data-i18n="hm.w2">A MANO</span></div>
-        <div class="handmade__cap" id="hmCap">
-          <p class="kicker kicker--gold" data-i18n="hm.k">Oaxaca hilado a mano</p>
-          <h2 class="handmade__title" data-i18n="hm.t">Cada tira, estirada por manos que saben.</h2>
-          <p class="handmade__text" data-i18n="hm.p">La máquina pone la escala. El oficio pone el sabor. Así sale de Paterson tu queso, con tu nombre.</p>
-        </div>
-      </div>
-    </section>
-
     <!-- ───────── LA PLANTA (video cuadro por cuadro con el scroll) ───────── -->
     <section class="plant" id="planta">
       <div class="plant__pin" id="plantPin">
@@ -271,8 +251,8 @@
           <blockquote class="quote split" data-i18n="pt.q1">Creamos más que queso: creamos historias de éxito.</blockquote>
           <p class="lead" data-i18n="pt.peopleText"></p>
         </div>
-        <figure class="people__img people__img--b reveal-img"><img src="./img/stills/hilado-2.webp" alt="Hilado del queso Oaxaca a mano en la planta" loading="lazy" /></figure>
-        <figure class="people__img people__img--c reveal-img"><img src="./img/stills/moldes.webp" alt="Queso fresco en moldes" loading="lazy" /></figure>
+        <figure class="people__img people__img--b reveal-img"><img src="./img/ui/stretch.webp" alt="Hilado del queso Oaxaca a mano" loading="lazy" /></figure>
+        <figure class="people__img people__img--c reveal-img"><img src="./img/ui/machine.webp" alt="Maquinaria de moldeado de queso" loading="lazy" /></figure>
       </div>
     </section>
 
