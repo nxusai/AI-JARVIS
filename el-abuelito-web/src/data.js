@@ -17,7 +17,7 @@ export const BRAND = {
   instagram: 'https://www.instagram.com/elabuelito_inc/',
   instagramHandle: '@elabuelito_inc',
   facebook: 'https://www.facebook.com/profile.php?id=61572668835839',
-  domain: 'https://abuelitocheese.com',
+  domain: 'https://www.abuelitoinc.com',
 };
 
 export const DEPARTMENTS = [

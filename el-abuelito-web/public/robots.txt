@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://abuelitocheese.com/sitemap.xml
+Sitemap: https://www.abuelitoinc.com/sitemap.xml
