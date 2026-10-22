@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>VAYRO — Food built for the way you live</title>
+  <meta name="description" content="VAYRO makes high-protein, premium everyday foods for a generation that expects more. Real food. Modern life. Starting with a line-up of fresh, melting and searing cheeses." />
+  <meta name="theme-color" content="#16171b" />
+  <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="VAYRO — Food built for the way you live" />
+  <meta property="og:description" content="Premium, high-protein everyday food. Made for more." />
+  <meta property="og:image" content="https://vayrofoods.com/img/og.jpg" />
+  <meta property="og:url" content="https://vayrofoods.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="img/products/fresh.webp" />
+</head>
+<body>
+  <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+  <!-- ═════════ Loader ═════════ -->
+  <div class="loader" aria-hidden="true">
+    <svg class="loader__mark" viewBox="572 110 670 518">
+      <path class="loader__o" d="M578 117h153l247 397-72 108z" />
+      <path class="loader__d" d="M983 117h252l-218 336-49-76 101-159h-66l-69 105-43-66z" />
+    </svg>
+    <div class="loader__bar"><i></i></div>
+  </div>
+
+  <!-- ═════════ Nav ═════════ -->
+  <header class="nav" id="nav">
+    <a class="nav__brand" href="#top" aria-label="VAYRO home">
+      <svg class="nav__mark" viewBox="572 110 670 518" aria-hidden="true"><path fill="#EA6620" d="M578 117h153l247 397-72 108z"/><path fill="currentColor" d="M983 117h252l-218 336-49-76 101-159h-66l-69 105-43-66z"/></svg>
+      <span class="wordmark" role="img" aria-label="VAYRO"></span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#products" data-i18n="nav.products">Products</a>
+      <a href="#fuel" data-i18n="nav.nutrition">Nutrition</a>
+      <a href="#recipes" data-i18n="nav.recipes">Recipes</a>
+      <a href="#story" data-i18n="nav.story">Our Story</a>
+      <a href="#retail" data-i18n="nav.retail">Retailers</a>
+    </nav>
+    <div class="nav__right">
+      <button class="lang" type="button" aria-label="Cambiar a español" data-lang-toggle><span data-l="en">EN</span><span data-l="es">ES</span></button>
+      <a class="btn btn--sm btn--orange nav__cta" href="#where" data-i18n="nav.buy">Where to buy</a>
+      <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><i></i><i></i></button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" hidden>
+    <nav aria-label="Mobile">
+      <a href="#products" data-i18n="nav.products">Products</a>
+      <a href="#fuel" data-i18n="nav.nutrition">Nutrition</a>
+      <a href="#lifestyle" data-i18n="nav.lifestyle">Lifestyle</a>
+      <a href="#recipes" data-i18n="nav.recipes">Recipes</a>
+      <a href="#story" data-i18n="nav.story">Our Story</a>
+      <a href="#retail" data-i18n="nav.retail">Retailers</a>
+      <a href="#where" data-i18n="nav.buy">Where to buy</a>
+      <a href="#contact" data-i18n="nav.contact">Contact</a>
+    </nav>
+    <div class="menu__social social" data-social></div>
+  </div>
+
+  <main id="main">
+    <!-- ═════════ Hero ═════════ -->
+    <section class="hero" id="top">
+      <div class="hero__bg" aria-hidden="true">
+        <img src="img/life/lift.webp" alt="" />
+      </div>
+      <div class="hero__slash" aria-hidden="true"></div>
+      <div class="hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">A new generation of food</span></p>
+          <h1 class="hero__title">
+            <span class="line"><span data-i18n="hero.t1">Food built</span></span>
+            <span class="line"><span data-i18n="hero.t2">for the way</span></span>
+            <span class="line"><span class="accent" data-i18n="hero.t3">you live.</span></span>
+          </h1>
+          <p class="hero__sub" data-i18n="hero.sub">Premium, high-protein everyday food for people who train hard, cook smart and expect more from what they eat.</p>
+          <div class="hero__ctas">
+            <a class="btn btn--orange magnetic" href="#products"><span data-i18n="hero.cta1">Explore the line-up</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="#retail" data-i18n="hero.cta2">For retailers</a>
+          </div>
+        </div>
+        <div class="hero__product" aria-hidden="true">
+          <div class="hero__ring"></div>
+          <div class="lid" id="heroLid">
+            <img src="img/products/fresh.webp" alt="" width="1600" height="1600" />
+          </div>
+          <div class="chip chip--a"><b>10g</b><span data-i18n="hero.chipA">protein / serving</span></div>
+          <div class="chip chip--b"><b>Ca</b><span data-i18n="hero.chipB">excellent source of calcium</span></div>
+          <div class="chip chip--c"><b>0g</b><span data-i18n="hero.chipC">added sugar</span></div>
+        </div>
+      </div>
+      <a class="hero__scroll" href="#brand" aria-label="Scroll"><span data-i18n="hero.scroll">Scroll</span><i></i></a>
+    </section>
+
+    <!-- ═════════ Marquee ═════════ -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span data-i18n="mq">Real food <i>/</i> Modern life <i>/</i> Made for more <i>/</i> Fuel your lifestyle <i>/</i> Food that moves with you <i>/</i>&nbsp;</span>
+      </div>
+    </div>
+
+    <!-- ═════════ Brand / manifesto ═════════ -->
+    <section class="section brand" id="brand">
+      <div class="wrap">
+        <p class="eyebrow eyebrow--dark"><span class="num">01</span><span data-i18n="brand.eyebrow">This is VAYRO</span></p>
+        <p class="manifesto" data-i18n="brand.manifesto" data-words>We don't make "just food". We make food for a generation that reads the label, trains before work, cooks on Sunday and still wants dinner to taste incredible. Better ingredients. Better nutrition. Better design. Built for the way you actually live.</p>
+        <div class="pillars">
+          <article class="pillar reveal">
+            <span class="pillar__n">/01</span>
+            <h3 data-i18n="brand.p1t">Performance nutrition</h3>
+            <p data-i18n="brand.p1">Protein-forward, low in carbs, zero added sugar. Nutrition you can check, not just claims you have to trust.</p>
+          </article>
+          <article class="pillar reveal">
+            <span class="pillar__n">/02</span>
+            <h3 data-i18n="brand.p2t">Premium, every day</h3>
+            <p data-i18n="brand.p2">Quality you'd expect from a specialty shop, at the scale and price of the store you already go to.</p>
+          </article>
+          <article class="pillar reveal">
+            <span class="pillar__n">/03</span>
+            <h3 data-i18n="brand.p3t">Made for real life</h3>
+            <p data-i18n="brand.p3">Ready in minutes. Crumble, melt, sear or slice — food that fits a schedule, a meal prep and a family table.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ Products ═════════ -->
+    <section class="products" id="products">
+      <div class="products__head wrap">
+        <div>
+          <p class="eyebrow"><span class="num">02</span><span data-i18n="prod.eyebrow">The line-up · Chapter 01: Cheese</span></p>
+          <h2 class="h2" data-i18n="prod.title">Start with <em>protein</em>.<br />Build from there.</h2>
+        </div>
+        <p class="products__intro" data-i18n="prod.intro">Our first chapter is a line of fresh, melting and searing cheeses — up to 10g of protein per serving and an excellent source of calcium. It's where VAYRO begins, not where it ends.</p>
+      </div>
+      <div class="products__pin">
+        <div class="products__track" id="productTrack"></div>
+      </div>
+      <div class="products__progress wrap" aria-hidden="true"><div><i id="productProgress"></i></div></div>
+    </section>
+
+    <!-- ═════════ Nutrition / Fuel ═════════ -->
+    <section class="section fuel" id="fuel">
+      <div class="wrap">
+        <div class="fuel__head">
+          <p class="eyebrow eyebrow--dark"><span class="num">03</span><span data-i18n="fuel.eyebrow">Nutrition, out loud</span></p>
+          <h2 class="h2 h2--dark" data-i18n="fuel.title">Numbers you can<br /><em>actually</em> read.</h2>
+        </div>
+        <div class="stats">
+          <div class="stat reveal"><b><span data-count="10">0</span>g</b><span data-i18n="fuel.s1">protein per serving, up to</span></div>
+          <div class="stat reveal"><b><span data-count="30">0</span>%</b><span data-i18n="fuel.s2">daily value of calcium, up to</span></div>
+          <div class="stat reveal"><b><span data-count="0">0</span>g</b><span data-i18n="fuel.s3">added sugar across the line</span></div>
+          <div class="stat reveal"><b>≤<span data-count="4">0</span>g</b><span data-i18n="fuel.s4">carbs per serving</span></div>
+        </div>
+
+        <div class="calc reveal" id="calc">
+          <div class="calc__controls">
+            <h3 data-i18n="fuel.calcT">Build your fuel</h3>
+            <p class="calc__hint" data-i18n="fuel.calcP">Pick a product, set your servings and see what goes into your plate.</p>
+            <div class="seg" role="radiogroup" aria-label="Product" id="calcProducts"></div>
+            <label class="range">
+              <span><span data-i18n="fuel.servings">Servings</span> <output id="calcServ">2</output></span>
+              <input type="range" min="1" max="4" step="1" value="2" id="calcRange" />
+            </label>
+            <p class="calc__note" data-i18n="fuel.note">Values from the product label. Percent Daily Values are based on a 2,000 calorie diet.</p>
+          </div>
+          <div class="calc__out">
+            <div class="meter" data-k="protein"><div class="meter__top"><span data-i18n="nf.protein">Protein</span><b><span data-v>0</span>g</b></div><div class="meter__bar"><i></i></div></div>
+            <div class="meter" data-k="calcium"><div class="meter__top"><span data-i18n="nf.calcium">Calcium</span><b><span data-v>0</span>% DV</b></div><div class="meter__bar"><i></i></div></div>
+            <div class="meter" data-k="calories"><div class="meter__top"><span data-i18n="nf.calories">Calories</span><b><span data-v>0</span></b></div><div class="meter__bar"><i></i></div></div>
+            <div class="meter" data-k="carbs"><div class="meter__top"><span data-i18n="nf.carbs">Carbs</span><b><span data-v>0</span>g</b></div><div class="meter__bar"><i></i></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ Lifestyle ═════════ -->
+    <section class="life" id="lifestyle">
+      <div class="life__intro wrap">
+        <p class="eyebrow"><span class="num">04</span><span data-i18n="life.eyebrow">Lifestyle</span></p>
+        <h2 class="h2" data-i18n="life.title">Food that<br /><em>moves</em> with you.</h2>
+      </div>
+      <div class="life__panels">
+        <article class="panel">
+          <div class="panel__img"><img src="img/life/sprint.webp" alt="Sprinter in the starting blocks on a running track" loading="lazy" /></div>
+          <div class="panel__txt">
+            <span class="panel__k">01 — <span data-i18n="life.k1">Train</span></span>
+            <h3 data-i18n="life.t1">Fuel the work.</h3>
+            <p data-i18n="life.p1">Protein that fits around a session, not the other way around. Crumble it over a pre-workout toast or sear it into a post-training plate.</p>
+          </div>
+        </article>
+        <article class="panel panel--flip">
+          <div class="panel__img"><img src="img/life/bowl-green.webp" alt="Colorful bowl with greens, avocado and chickpeas" loading="lazy" /></div>
+          <div class="panel__txt">
+            <span class="panel__k">02 — <span data-i18n="life.k2">Prep</span></span>
+            <h3 data-i18n="life.t2">Sunday sorted.</h3>
+            <p data-i18n="life.p2">Firm cheeses that slice, grill and keep their shape — made for containers, lunches and a week that's already busy.</p>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel__img"><img src="img/life/core.webp" alt="Woman doing core training at home" loading="lazy" /></div>
+          <div class="panel__txt">
+            <span class="panel__k">03 — <span data-i18n="life.k3">Live</span></span>
+            <h3 data-i18n="life.t3">Every table. Every age.</h3>
+            <p data-i18n="life.p3">For athletes and for families. For quick breakfasts and long dinners. VAYRO is built for performance and made for everyone.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═════════ Recipes ═════════ -->
+    <section class="section recipes" id="recipes">
+      <div class="wrap">
+        <div class="recipes__head">
+          <div>
+            <p class="eyebrow eyebrow--dark"><span class="num">05</span><span data-i18n="rec.eyebrow">Ideas & recipes</span></p>
+            <h2 class="h2 h2--dark" data-i18n="rec.title">Real food.<br /><em>Modern</em> life.</h2>
+          </div>
+          <div class="filters" role="tablist" aria-label="Recipe filters" id="recipeFilters">
+            <button class="is-on" data-f="all" data-i18n="rec.all">All</button>
+            <button data-f="pre" data-i18n="rec.pre">Pre-workout</button>
+            <button data-f="post" data-i18n="rec.post">Post-workout</button>
+            <button data-f="prep" data-i18n="rec.prep">Meal prep</button>
+            <button data-f="family" data-i18n="rec.family">Family</button>
+          </div>
+        </div>
+        <div class="recipes__grid" id="recipeGrid"></div>
+      </div>
+    </section>
+
+    <!-- ═════════ Story ═════════ -->
+    <section class="story" id="story">
+      <div class="story__bg" aria-hidden="true"><img src="img/life/focus.webp" alt="" loading="lazy" /></div>
+      <div class="wrap story__inner">
+        <div class="story__mark reveal" aria-hidden="true">
+          <svg viewBox="572 110 670 518"><path fill="#EA6620" d="M578 117h153l247 397-72 108z"/><path fill="#f3f1ec" d="M983 117h252l-218 336-49-76 101-159h-66l-69 105-43-66z"/></svg>
+        </div>
+        <div class="story__copy">
+          <p class="eyebrow"><span class="num">06</span><span data-i18n="story.eyebrow">Our story & philosophy</span></p>
+          <h2 class="h2" data-i18n="story.title">Two lines.<br />One <em>direction</em>.</h2>
+          <p class="story__lead" data-i18n="story.lead">The VAYRO mark is two paths that meet at a single point: what tastes great, and what makes you better. Most food picks one. We refuse to.</p>
+          <p data-i18n="story.p1">VAYRO started with a simple observation: the people buying protein bars, checking macros and training before sunrise were still shopping for everyday staples from brands that hadn't changed in decades. Great food deserved a brand that looked forward.</p>
+          <p data-i18n="story.p2">So we're rebuilding the basics — starting with cheese — around better nutrition, cleaner design and real-life convenience. Then we'll keep going, one category at a time.</p>
+          <ul class="values">
+            <li data-i18n="story.v1">Premium</li>
+            <li data-i18n="story.v2">Clean</li>
+            <li data-i18n="story.v3">Modern</li>
+            <li data-i18n="story.v4">Active</li>
+            <li data-i18n="story.v5">Global</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ Community ═════════ -->
+    <section class="section community" id="community">
+      <div class="wrap">
+        <div class="community__head">
+          <div>
+            <p class="eyebrow eyebrow--dark"><span class="num">07</span><span data-i18n="com.eyebrow">Community</span></p>
+            <h2 class="h2 h2--dark"><span data-i18n="com.title">Show us how you fuel.</span> <em class="hashtag" data-hashtag></em></h2>
+          </div>
+          <div class="social social--dark" data-social></div>
+        </div>
+        <div class="community__grid" id="gallery"></div>
+      </div>
+    </section>
+
+    <!-- ═════════ Retailers / wholesale ═════════ -->
+    <section class="retail" id="retail">
+      <div class="retail__bg" aria-hidden="true"><img src="img/life/retail.webp" alt="" loading="lazy" /></div>
+      <div class="wrap retail__inner">
+        <div class="retail__copy">
+          <p class="eyebrow"><span class="num">08</span><span data-i18n="ret.eyebrow">Retailers, distributors & foodservice</span></p>
+          <h2 class="h2" data-i18n="ret.title">Built to sell<br /><em>nationally</em>.</h2>
+          <p class="retail__lead" data-i18n="ret.lead">VAYRO brings shoppers who read labels and care about protein into the dairy case — with packaging designed to stop them in the aisle.</p>
+          <div class="formats">
+            <div class="format"><b>12 oz</b><span data-i18n="ret.f1">Retail & grocery</span></div>
+            <div class="format"><b>2–3 lb</b><span data-i18n="ret.f2">Club & value</span></div>
+            <div class="format"><b>5 lb</b><span data-i18n="ret.f3">Foodservice</span></div>
+          </div>
+          <ul class="checks">
+            <li data-i18n="ret.c1">Protein-forward claims printed front-of-pack</li>
+            <li data-i18n="ret.c2">Bold, consistent shelf presence across every SKU</li>
+            <li data-i18n="ret.c3">Formats for supermarkets, club stores and kitchens</li>
+            <li data-i18n="ret.c4">Content and social support for launches</li>
+          </ul>
+        </div>
+        <form class="card form" id="wholesaleForm" novalidate>
+          <h3 data-i18n="ret.formT">Carry VAYRO</h3>
+          <p class="form__sub" data-i18n="ret.formP">Tell us about your business. Our sales team replies within two business days.</p>
+          <div class="form__row">
+            <label><span data-i18n="f.name">Name</span><input name="name" required autocomplete="name" /></label>
+            <label><span data-i18n="f.company">Company</span><input name="company" required autocomplete="organization" /></label>
+          </div>
+          <div class="form__row">
+            <label><span data-i18n="f.email">Email</span><input name="email" type="email" required autocomplete="email" /></label>
+            <label><span data-i18n="f.phone">Phone</span><input name="phone" type="tel" autocomplete="tel" /></label>
+          </div>
+          <label><span data-i18n="f.type">I am a…</span>
+            <select name="type" required>
+              <option value="Retailer" data-i18n="f.t1">Retailer / grocery</option>
+              <option value="Distributor" data-i18n="f.t2">Distributor</option>
+              <option value="Foodservice" data-i18n="f.t3">Foodservice / restaurant</option>
+              <option value="Gym / fitness" data-i18n="f.t4">Gym / fitness store</option>
+              <option value="Other" data-i18n="f.t5">Other</option>
+            </select>
+          </label>
+          <label><span data-i18n="f.msg">Message</span><textarea name="message" rows="3"></textarea></label>
+          <button class="btn btn--orange btn--block" type="submit" data-i18n="ret.send">Request wholesale info</button>
+          <p class="form__status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ═════════ Where to buy ═════════ -->
+    <section class="section where" id="where">
+      <div class="wrap where__inner">
+        <div>
+          <p class="eyebrow eyebrow--dark"><span class="num">09</span><span data-i18n="where.eyebrow">Where to buy</span></p>
+          <h2 class="h2 h2--dark" data-i18n="where.title">Find VAYRO<br /><em>near you</em>.</h2>
+          <p class="where__lead" data-i18n="where.lead">We're rolling out store by store. Search your ZIP code, or ask your favorite store to carry us — it genuinely helps.</p>
+          <form class="zip" id="zipForm" role="search">
+            <label class="sr" for="zip" data-i18n="where.zipL">ZIP code</label>
+            <input id="zip" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="ZIP code" data-i18n-ph="where.zipPh" />
+            <button class="btn btn--dark" type="submit" data-i18n="where.search">Search</button>
+          </form>
+          <div class="where__result" id="zipResult" aria-live="polite"></div>
+        </div>
+        <div class="channels">
+          <div class="channel reveal"><svg viewBox="0 0 24 24"><path d="M3 7h18l-2 11H5L3 7Zm4 0 2-4m8 4-2-4"/></svg><b data-i18n="where.c1">Supermarkets</b><span data-i18n="where.c1p">Dairy & specialty cheese aisle</span></div>
+          <div class="channel reveal"><svg viewBox="0 0 24 24"><path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/></svg><b data-i18n="where.c2">Fitness & wellness</b><span data-i18n="where.c2p">Gym stores and healthy grab-and-go</span></div>
+          <div class="channel reveal"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12M8 21v-7h8v7"/></svg><b data-i18n="where.c3">Club stores</b><span data-i18n="where.c3p">Family-size formats</span></div>
+          <div class="channel reveal"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM2 19h20"/></svg><b data-i18n="where.c4">Online</b><span data-i18n="where.c4p">Marketplaces & delivery apps — coming soon</span></div>
+          <a class="btn btn--orange btn--block" id="requestStore" data-i18n="where.request">Request VAYRO at your store</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ Contact + newsletter ═════════ -->
+    <section class="join" id="contact">
+      <div class="wrap join__inner">
+        <div class="join__news">
+          <p class="eyebrow"><span class="num">10</span><span data-i18n="join.eyebrow">Join the movement</span></p>
+          <h2 class="h2" data-i18n="join.title">Be first to<br /><em>try what's next</em>.</h2>
+          <p data-i18n="join.p">New products, drops, recipes and training-day ideas. No spam — just good food news.</p>
+          <form class="news" id="newsForm" novalidate>
+            <label class="sr" for="newsEmail">Email</label>
+            <input id="newsEmail" type="email" required placeholder="you@email.com" autocomplete="email" />
+            <button class="btn btn--orange" type="submit" data-i18n="join.cta">Join</button>
+          </form>
+          <p class="form__status" id="newsStatus" role="status" aria-live="polite"></p>
+        </div>
+        <form class="card card--dark form" id="contactForm" novalidate>
+          <h3 data-i18n="contact.t">Say hello</h3>
+          <p class="form__sub"><span data-i18n="contact.p">Questions, feedback or collabs.</span> <a data-email></a></p>
+          <div class="form__row">
+            <label><span data-i18n="f.name">Name</span><input name="name" required autocomplete="name" /></label>
+            <label><span data-i18n="f.email">Email</span><input name="email" type="email" required autocomplete="email" /></label>
+          </div>
+          <label><span data-i18n="f.msg">Message</span><textarea name="message" rows="4" required></textarea></label>
+          <button class="btn btn--light btn--block" type="submit" data-i18n="contact.send">Send message</button>
+          <p class="form__status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═════════ Footer ═════════ -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer__big" aria-hidden="true"><span class="wordmark"></span></div>
+      <div class="footer__row">
+        <div class="footer__brand">
+          <span class="tagline" role="img" aria-label="Sabor que te mueve"></span>
+          <p data-i18n="foot.claim">Food built for the way you live.</p>
+        </div>
+        <nav class="footer__nav" aria-label="Footer">
+          <a href="#products" data-i18n="nav.products">Products</a>
+          <a href="#recipes" data-i18n="nav.recipes">Recipes</a>
+          <a href="#story" data-i18n="nav.story">Our Story</a>
+          <a href="#retail" data-i18n="nav.retail">Retailers</a>
+          <a href="#where" data-i18n="nav.buy">Where to buy</a>
+          <a href="#contact" data-i18n="nav.contact">Contact</a>
+        </nav>
+        <div class="social" data-social></div>
+      </div>
+      <div class="footer__legal">
+        <span>© <span id="year"></span> VAYRO. <span data-i18n="foot.rights">All rights reserved.</span></span>
+        <span class="footer__note" data-i18n="foot.note">Keep refrigerated. Contains milk and soy. See each package for full nutrition information.</span>
+        <a data-credit></a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═════════ Product drawer ═════════ -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer__scrim" data-close></div>
+    <aside class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <button class="drawer__x" type="button" data-close aria-label="Close"><i></i><i></i></button>
+      <div class="drawer__body" id="drawerBody"></div>
+    </aside>
+  </div>
+
+  <!-- ═════════ Recipe modal ═════════ -->
+  <div class="drawer drawer--recipe" id="recipeModal" hidden>
+    <div class="drawer__scrim" data-close></div>
+    <aside class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="recipeTitle">
+      <button class="drawer__x" type="button" data-close aria-label="Close"><i></i><i></i></button>
+      <div class="drawer__body" id="recipeBody"></div>
+    </aside>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
