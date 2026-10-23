@@ -35,8 +35,8 @@ Spanish text is in **`src/i18n.js`**; English text is in `index.html`.
   filled in. Paste a Formspree/Netlify/CRM URL into `site.forms` to receive submissions directly.
 - **Stores:** add entries to `stores` and the ZIP search starts returning them (matched by the
   first three digits of the ZIP).
-- **Images:** product renders are in `public/img/products/` (made from the approved label
-  artwork), lifestyle photos in `public/img/life/` (Unsplash License). Replace a file with
+- **Images:** product shots are in `public/img/products/` (the approved labels applied to the
+  real product photos; the label's grey areas are clear windows that show the cheese), lifestyle photos in `public/img/life/` (Unsplash License). Replace a file with
   one of the same name to swap it.
 
 ## Run it

@@ -194,7 +194,7 @@ function intro() {
     .add(() => loader.classList.add('is-done'))
     .from('.hero__title .line > span', { yPercent: 110, duration: 1.1, ease: 'expo.out', stagger: 0.08 }, '-=0.35')
     .from('.hero .eyebrow, .hero__sub, .hero__ctas', { y: 24, opacity: 0, duration: 0.9, ease: 'power3.out', stagger: 0.08 }, '<0.2')
-    .from('#heroLid', { scale: 0.6, rotate: -120, opacity: 0, duration: 1.5, ease: 'expo.out' }, '<-0.2')
+    .from('#heroLid', { scale: 0.7, yPercent: 18, opacity: 0, duration: 1.5, ease: 'expo.out' }, '<-0.2')
     .from('.hero__ring', { scale: 0.8, opacity: 0, duration: 1.2, ease: 'expo.out' }, '<')
     .from('.chip', { scale: 0.6, opacity: 0, duration: 0.8, ease: 'back.out(1.8)', stagger: 0.12 }, '<0.5')
     .from('.hero__slash', { yPercent: -120, duration: 1.4, ease: 'expo.out' }, '<-0.8');
@@ -219,7 +219,7 @@ function hero() {
     });
   }
   gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } })
-    .to('.hero__product', { yPercent: 30, scale: 0.85, rotate: 40, ease: 'none' }, 0)
+    .to('.hero__product', { yPercent: 30, scale: 0.85, rotate: 6, ease: 'none' }, 0)
     .to('.hero__copy', { yPercent: -18, opacity: 0.2, ease: 'none' }, 0)
     .to('.hero__bg img', { yPercent: 12, ease: 'none' }, 0);
 }
