@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { EcoLive } from './ecosystem'
-import { gauss, hash, rand, type Cloud } from './clouds'
+import { gauss, hash, rand, universeOf, type Cloud } from './clouds'
 
 /**
  * The whole ecosystem and everything Nexy knows, as a living field. Each
@@ -13,6 +13,10 @@ import { gauss, hash, rand, type Cloud } from './clouds'
  * What is working lights up: its star pulses and pulses run out along the wire
  * to its cloud. Drag to turn it, scroll to come closer, touch a cloud to see
  * its team and what it knows, and touch any of those to see what it did.
+ *
+ * Double-click a cloud (or "Entrar" on its card) to go inside: its own
+ * universe, each department a cloud of its own with its agents as stars, the
+ * company glowing in the middle. The corner button takes it all full screen.
  */
 
 type Placed = Cloud & { center: [number, number, number]; radius: number }
@@ -62,10 +66,26 @@ export function Nebula({
   /** A company picked in the chips above: its cloud opens. 'all' closes it. */
   focus: string | null
 }) {
-  const cs = useMemo(() => place(clouds), [clouds])
+  const [universe, setUniverse] = useState<string | null>(null)
+  const inner = universe ? (clouds.find((c) => c.id === universe) ?? null) : null
+  const cs = useMemo(() => place(inner ? universeOf(inner) : clouds), [clouds, inner])
   const ds = useMemo(() => dots(cs), [cs])
   const canvas = useRef<HTMLCanvasElement | null>(null)
-  const view = useRef({ yaw: 0, pitch: -0.32, zoom: 1, drag: null as null | { x: number; y: number; yaw: number; pitch: number }, moved: false })
+  const wrap = useRef<HTMLDivElement | null>(null)
+  const [full, setFull] = useState(false)
+  const view = useRef({ yaw: 0, pitch: -0.32, zoom: 1, warp: 0, drag: null as null | { x: number; y: number; yaw: number; pitch: number }, moved: false })
+  const centre = useRef<{ label: string; color: [number, number, number] | null }>({ label: 'NEXY', color: null })
+  centre.current = { label: inner ? inner.label.toUpperCase() : 'NEXY', color: inner?.color ?? null }
+  /** Into a company's universe, or back out (null), with a warp. */
+  const go = (id: string | null) => {
+    const v = view.current
+    v.warp = performance.now()
+    v.zoom = 1
+    v.pitch = -0.32
+    setHover(null)
+    setUniverse(id)
+    onSelect(id)
+  }
   const proj = useRef<Array<{ x: number; y: number; r: number }>>([])
   const [hover, setHover] = useState<number | null>(null)
   const pickedIdx = selected === null ? -1 : cs.findIndex((c) => c.id === selected || c.items.some((it) => it.id === selected))
@@ -75,14 +95,34 @@ export function Nebula({
 
   useEffect(() => {
     if (!focus) return
-    if (focus === 'all') onSelect(null)
-    else {
-      const c = cs.find((x) => x.eco === focus)
-      if (c) onSelect(c.id)
+    if (focus === 'all') {
+      setUniverse(null)
+      onSelect(null)
+    } else {
+      const c = clouds.find((x) => x.eco === focus)
+      if (c) {
+        setUniverse(null)
+        onSelect(c.id)
+      }
     }
     // Only when a chip is picked, not when the clouds change under it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus])
+
+  // Full screen follows the browser's own state (Esc leaves it too); Esc outside it leaves a universe.
+  useEffect(() => {
+    const onFull = () => setFull(document.fullscreenElement === wrap.current)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.fullscreenElement && universe) go(null)
+    }
+    document.addEventListener('fullscreenchange', onFull)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFull)
+      window.removeEventListener('keydown', onKey)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [universe])
 
   useEffect(() => {
     const el = canvas.current
@@ -104,7 +144,10 @@ export function Nebula({
       const v = view.current
       if (!v.drag) v.yaw += 0.0012
       const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch)
-      const scale = (Math.min(W, H) / 1050) * v.zoom
+      // The warp: arriving in a universe, everything rushes in from far away.
+      const wt = v.warp ? Math.min(1, (performance.now() - v.warp) / 900) : 1
+      const we = 1 - Math.pow(1 - wt, 3)
+      const scale = (Math.min(W, H) / 1050) * v.zoom * (0.25 + 0.75 * we)
       const focal = 900
       const P = (x: number, y: number, z: number) => {
         const X = x * cy - z * sy
@@ -125,6 +168,20 @@ export function Nebula({
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, W, H)
       ctx.globalCompositeOperation = 'lighter'
+      if (wt < 1) {
+        const r0 = rand(Math.floor(v.warp))
+        ctx.lineWidth = 1.2
+        for (let k = 0; k < 140; k++) {
+          const a = r0() * Math.PI * 2
+          const d0 = (0.1 + r0() * 0.9) * Math.max(W, H) * (0.2 + we)
+          const len = (1 - we) * 220 * (0.4 + r0())
+          ctx.strokeStyle = `rgba(190,215,255,${0.5 * (1 - we)})`
+          ctx.beginPath()
+          ctx.moveTo(W / 2 + Math.cos(a) * d0, H / 2 + Math.sin(a) * d0)
+          ctx.lineTo(W / 2 + Math.cos(a) * (d0 + len), H / 2 + Math.sin(a) * (d0 + len))
+          ctx.stroke()
+        }
+      }
 
       // Wires from Nexy to every cloud, with pulses running out along them.
       const core = P(0, 0, 0)
@@ -203,13 +260,14 @@ export function Nebula({
         }
       }
 
-      // Nexy at the centre, pulsing while she works.
-      const nexyOn = lv.has('core')
+      // The centre: Nexy, or the company whose universe this is, pulsing while it works.
+      const { label: centreLabel, color: cc } = centre.current
+      const nexyOn = cc ? busy.some(Boolean) : lv.has('core')
       const R = (70 * scale + 30) * (nexyOn ? 1.15 + 0.1 * Math.sin(t * 5) : 1)
       const glow = ctx.createRadialGradient(core.x, core.y, 0, core.x, core.y, R)
       glow.addColorStop(0, 'rgba(255,255,255,0.95)')
-      glow.addColorStop(0.15, 'rgba(120,180,255,0.6)')
-      glow.addColorStop(1, 'rgba(60,40,200,0)')
+      glow.addColorStop(0.15, cc ? `rgba(${cc[0]},${cc[1]},${cc[2]},0.65)` : 'rgba(120,180,255,0.6)')
+      glow.addColorStop(1, cc ? `rgba(${cc[0]},${cc[1]},${cc[2]},0)` : 'rgba(60,40,200,0)')
       ctx.fillStyle = glow
       ctx.beginPath()
       ctx.arc(core.x, core.y, R, 0, 7)
@@ -244,7 +302,7 @@ export function Nebula({
       })
       ctx.fillStyle = '#ffffff'
       ctx.font = '800 14px ui-monospace, Menlo, monospace'
-      ctx.fillText('NEXY', core.x, core.y + R + 16)
+      ctx.fillText(centreLabel, core.x, core.y + R + 16)
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
@@ -255,7 +313,7 @@ export function Nebula({
 
   const total = cs.reduce((a, c) => a + c.items.length, 0)
   const working = cs.filter((c) => live.has(c.id) || c.items.some((it) => live.has(it.id))).length
-  const at = (e: React.PointerEvent) => {
+  const at = (e: { clientX: number; clientY: number }) => {
     const box = canvas.current!.getBoundingClientRect()
     const x = e.clientX - box.left
     const y = e.clientY - box.top
@@ -272,9 +330,10 @@ export function Nebula({
   }
   const shown = picked !== null ? cs[picked] : null
   const groups = shown ? [...new Set(shown.items.map((it) => it.group))] : []
+  const canEnter = (c: Cloud) => !universe && universeOf(c).length > 1
 
   return (
-    <div className="nebula-wrap">
+    <div className={`nebula-wrap${full ? ' full' : ''}`} ref={wrap}>
       <canvas
         ref={canvas}
         className="nebula"
@@ -308,10 +367,29 @@ export function Nebula({
           }
         }}
         onPointerLeave={() => setHover(null)}
+        onDoubleClick={(e) => {
+          const i = at(e)
+          if (i !== null && canEnter(cs[i])) go(cs[i].id)
+        }}
       />
+      {inner ? (
+        <nav className="nebula-crumbs">
+          <button onClick={() => go(null)}>← Ecosistema</button>
+          <span>
+            NEXY › <b>{inner.icon ? `${inner.icon} ` : ''}{inner.label.toUpperCase()}</b>
+          </span>
+        </nav>
+      ) : null}
+      <button
+        className="nebula-full"
+        title={full ? 'Salir de pantalla completa' : 'Pantalla completa'}
+        onClick={() => (document.fullscreenElement ? document.exitFullscreen() : wrap.current?.requestFullscreen())}
+      >
+        {full ? '⤡' : '⤢'}
+      </button>
       <div className="nebula-title">
-        <small>ECOSISTEMA Y SEGUNDO CEREBRO</small>
-        <h2>Nexy</h2>
+        <small>{inner ? 'UNIVERSO' : 'ECOSISTEMA Y SEGUNDO CEREBRO'}</small>
+        <h2>{inner ? inner.label : 'Nexy'}</h2>
         <p>
           <b>{total}</b> piezas · <b>{cs.length}</b> áreas · {working ? <b className="live-txt">{working} trabajando ahora</b> : 'en reposo'}
         </p>
@@ -331,7 +409,9 @@ export function Nebula({
           )
         })}
       </ul>
-      <div className="brain-help">Arrastra para girar · rueda para acercar · toca una nube para ver su equipo y lo que sabe</div>
+      <div className="brain-help">
+        {inner ? 'Cada nube es un departamento · toca una para ver sus agentes · Esc o ← para volver' : 'Arrastra para girar · rueda para acercar · toca una nube para verla · doble clic para entrar a su universo'}
+      </div>
       {shown ? (
         <aside className="brain-card nebula-card">
           <button className="close" onClick={() => onSelect(null)} aria-label="Cerrar">
@@ -344,6 +424,11 @@ export function Nebula({
               {shown.label}
             </button>
           </h3>
+          {canEnter(shown) ? (
+            <button className="nebula-enter" onClick={() => go(shown.id)}>
+              Entrar a su universo →
+            </button>
+          ) : null}
           {groups.map((g) => (
             <div key={g}>
               <h4>{g}</h4>

@@ -4,7 +4,7 @@ import type { Brain as BrainData } from './types'
 /** The nebula's clouds: one per company, Nexy's core, and each profile compartment (see Nebula.tsx). */
 
 export type RGB = [number, number, number]
-export type CloudItem = { id: string; label: string; icon?: string; detail?: string; group: string; depth: number }
+export type CloudItem = { id: string; label: string; icon?: string; detail?: string; group: string; depth: number; parent?: string | null }
 export type Cloud = { id: string; eco: string; label: string; icon?: string; color: RGB; items: CloudItem[] }
 
 export const PALETTE: RGB[] = [
@@ -50,7 +50,7 @@ export function buildClouds(nodes: EcoNode[], brain: BrainData | null): Cloud[] 
   const clouds: Cloud[] = []
   const core = nodes.filter((n) => n.eco === 'core' && n.kind !== 'core')
   if (core.length) {
-    clouds.push({ id: 'core', eco: 'core', label: 'Núcleo de Nexy', icon: '✦', color: [167, 139, 250], items: core.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: 'Núcleo', depth: n.kind === 'dot' ? 1 : 0 })) })
+    clouds.push({ id: 'core', eco: 'core', label: 'Núcleo de Nexy', icon: '✦', color: [167, 139, 250], items: core.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: 'Núcleo', depth: n.kind === 'dot' ? 1 : 0, parent: n.parent })) })
   }
   for (const b of nodes.filter((n) => n.kind === 'brand')) {
     const kids = nodes.filter((n) => n.eco === b.eco && n.kind !== 'brand')
@@ -60,7 +60,7 @@ export function buildClouds(nodes: EcoNode[], brain: BrainData | null): Cloud[] 
       label: b.label,
       icon: b.icon,
       color: rgb(b.color) ?? PALETTE[clouds.length % PALETTE.length],
-      items: kids.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: GROUP[n.kind] ?? 'Equipo', depth: depth(n) })),
+      items: kids.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: GROUP[n.kind] ?? 'Equipo', depth: depth(n), parent: n.parent })),
     })
   }
   // The owner's profile, compartment by compartment.
@@ -77,3 +77,35 @@ export function buildClouds(nodes: EcoNode[], brain: BrainData | null): Cloud[] 
   return clouds
 }
 
+/** A colour turned around the wheel, so a company's departments are its colour's family. */
+function shade([r, g, b]: RGB, k: number): RGB {
+  const mix = (v: number, t: number) => Math.round(Math.max(0, Math.min(255, v + t)))
+  const turn = (k % 5) - 2
+  return [mix(r, turn * 28), mix(g, -turn * 18 + (k % 2) * 30), mix(b, turn * 22)]
+}
+
+/**
+ * Inside one cloud: its own universe. Each department (or each part of Nexy's
+ * core) is a cloud of its own, with its agents and connections as its stars;
+ * what Nexy knows and the profile are one cloud each. Ids stay the
+ * ecosystem's, so picking works as on the outside.
+ */
+export function universeOf(c: Cloud): Cloud[] {
+  const heads = c.items.filter((it) => it.depth === 0 && (it.group === 'Equipo' || it.group === 'Núcleo'))
+  const out: Cloud[] = heads.map((h, i) => {
+    const kids: CloudItem[] = []
+    const take = (id: string) => {
+      for (const it of c.items) if (it.parent === id) {
+        kids.push({ ...it, depth: Math.max(0, it.depth - 1) })
+        take(it.id)
+      }
+    }
+    take(h.id)
+    return { id: h.id, eco: c.eco, label: h.label, icon: h.icon, color: shade(c.color, i), items: kids.length ? kids : [{ ...h }] }
+  })
+  for (const g of ['Lo que sabe', 'Perfil']) {
+    const items = c.items.filter((it) => it.group === g)
+    if (items.length) out.push({ id: `${c.id}::${g}`, eco: c.eco, label: g, icon: g === 'Perfil' ? '🧠' : '📚', color: shade(c.color, out.length + 2), items })
+  }
+  return out.length ? out : [{ ...c, id: `${c.id}::todo` }]
+}
