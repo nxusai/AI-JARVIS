@@ -4,8 +4,8 @@ import { brandOf, clock, companies, companyOf, inScope, isAgentStep, liveNodes, 
 import { Boards } from './Boards'
 import { Brain } from './Brain'
 import { Nebula } from './Nebula'
+import { buildClouds } from './clouds'
 import { Departments } from './Departments'
-import { EcosystemMap } from './EcosystemMap'
 import { buildEcosystem, ecoLive } from './ecosystem'
 import { ApprovalCard, BrandPill, TaskView } from './parts'
 import { homeOf } from './services'
@@ -119,10 +119,9 @@ function useSaved<T extends string | null>(key: string, initial: T): [T, (v: T) 
   return [value, set]
 }
 
-type Tab = 'departamentos' | 'mapa' | 'cerebro' | 'tableros' | 'aprobaciones'
+type Tab = 'departamentos' | 'cerebro' | 'tableros' | 'aprobaciones'
 const TABS: Array<[Tab, string]> = [
   ['departamentos', 'Departamentos'],
-  ['mapa', 'Mapa'],
   ['cerebro', 'Cerebro'],
   ['tableros', 'Tableros'],
   ['aprobaciones', 'Aprobaciones'],
@@ -131,7 +130,9 @@ const TABS: Array<[Tab, string]> = [
 export default function Console() {
   const { connected, servers, tasks, approvals, brands, org, brain, answer, switchBrand, saveManual } = useBridge()
   const now = useTick()
-  const [tab, setTab] = useSaved<Tab>('nexy-console-view', 'departamentos')
+  const [savedTab, setTab] = useSaved<Tab | 'mapa'>('nexy-console-view', 'cerebro')
+  // The map now lives in the nebula: an old saved "mapa" opens it there.
+  const tab: Tab = savedTab === 'mapa' ? 'cerebro' : savedTab
   const [brainMode, setBrainMode] = useSaved<'nebulosa' | 'constelacion'>('nexy-brain-view', 'nebulosa')
   const [brandFilter, setBrandFilter] = useSaved<string | null>('nexy-console-brand', null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -140,6 +141,7 @@ export default function Console() {
   const live = useMemo(() => liveNodes(tasks, agents, now), [tasks, agents, now])
   const nodes = useMemo(() => buildEcosystem(brands, org, servers, brain), [brands, org, servers, brain])
   const eco = useMemo(() => ecoLive(tasks, nodes, org, brands?.activa ?? null, now), [tasks, nodes, org, brands, now])
+  const clouds = useMemo(() => buildClouds(nodes, brain), [nodes, brain])
   // Picking a brand chip flies the map there; "Todas" pulls back to everything.
   const [focus, setFocus] = useState<string | null>(null)
   const active = brandOf(brands, brands?.activa)
@@ -252,70 +254,10 @@ export default function Console() {
         ))}
       </nav>
 
-      {tab !== 'aprobaciones' && tab !== 'mapa' && approvals.length ? (
+      {tab !== 'aprobaciones' && !(tab === 'cerebro' && brainMode === 'nebulosa') && approvals.length ? (
         <button className="banner" onClick={() => setTab('aprobaciones')}>
           ⚠️ {approvals.length === 1 ? 'Hay 1 acción' : `Hay ${approvals.length} acciones`} esperando tu aprobación — ver
         </button>
-      ) : null}
-
-      {tab === 'mapa' ? (
-        <main className="split">
-          <section className="left">
-            <EcosystemMap grupo={brands?.grupo ?? 'Ramos & Co.'} nodes={nodes} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
-            <div className="legend">
-              <span>
-                <i className="lg dept" /> Marca · departamento · agente
-              </span>
-              <span>
-                <i className="lg svc" /> Conexión
-              </span>
-              <span>
-                <i className="lg live" /> Trabajando ahora
-              </span>
-            </div>
-            {node ? (
-              <aside className="node-card">
-                <h3>
-                  {node.icon ? `${node.icon} ` : ''}
-                  {node.label}
-                </h3>
-                {node.detail ? <p>{node.detail}</p> : null}
-                {node.faded ? <p className="muted">Sin cuenta conectada para esta marca.</p> : null}
-                {nodeSteps.length ? (
-                  <ul className="recent">
-                    {nodeSteps.map(({ t, s }) => (
-                      <li key={s.id}>
-                        <span className="when">{clock(s.startedAt)}</span>
-                        <BrandPill brand={brandOf(brands, t.brand)} />
-                        {stepLook(s, agents).label}
-                      </li>
-                    ))}
-                  </ul>
-                ) : nodeKind === 'agent' || nodeKind === 'svc' ? (
-                  <p className="muted">Todavía sin actividad aquí.</p>
-                ) : null}
-              </aside>
-            ) : null}
-          </section>
-
-          <section className="right">
-            {approvalsBlock}
-            <h2>Tarea actual</h2>
-            {current ? (
-              <TaskView task={current} now={now} open brands={brands} agents={agents} />
-            ) : (
-              <p className="muted">Nada todavía. Pídele algo a Nexy y aquí verás cada paso.</p>
-            )}
-            {history.length ? (
-              <>
-                <h2>Historial</h2>
-                {history.map((t) => (
-                  <TaskView key={t.id} task={t} now={now} brands={brands} agents={agents} />
-                ))}
-              </>
-            ) : null}
-          </section>
-        </main>
       ) : null}
 
       {tab === 'departamentos' ? (
@@ -341,7 +283,55 @@ export default function Console() {
               Constelación
             </button>
           </div>
-          {brainMode === 'nebulosa' ? <Nebula data={brain} live={live} /> : <Brain data={brain} live={live} brandFilter={brandFilter} />}
+          {brainMode === 'nebulosa' ? (
+            <main className="split">
+              <section className="left">
+                <Nebula clouds={clouds} live={eco} selected={selected} onSelect={setSelected} focus={focus} />
+              </section>
+              <section className="right">
+                {node ? (
+                  <aside className="node-card">
+                    <h3>
+                      {node.icon ? `${node.icon} ` : ''}
+                      {node.label}
+                    </h3>
+                    {node.detail ? <p>{node.detail}</p> : null}
+                    {node.faded ? <p className="muted">Sin cuenta conectada para esta marca.</p> : null}
+                    {nodeSteps.length ? (
+                      <ul className="recent">
+                        {nodeSteps.map(({ t, s }) => (
+                          <li key={s.id}>
+                            <span className="when">{clock(s.startedAt)}</span>
+                            <BrandPill brand={brandOf(brands, t.brand)} />
+                            {stepLook(s, agents).label}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : nodeKind === 'agent' || nodeKind === 'svc' ? (
+                      <p className="muted">Todavía sin actividad aquí.</p>
+                    ) : null}
+                  </aside>
+                ) : null}
+                {approvalsBlock}
+                <h2>Tarea actual</h2>
+                {current ? (
+                  <TaskView task={current} now={now} open brands={brands} agents={agents} />
+                ) : (
+                  <p className="muted">Nada todavía. Pídele algo a Nexy y aquí verás cada paso.</p>
+                )}
+                {history.length ? (
+                  <>
+                    <h2>Historial</h2>
+                    {history.map((t) => (
+                      <TaskView key={t.id} task={t} now={now} brands={brands} agents={agents} />
+                    ))}
+                  </>
+                ) : null}
+              </section>
+            </main>
+          ) : (
+            <Brain data={brain} live={live} brandFilter={brandFilter} />
+          )}
         </>
       ) : null}
 

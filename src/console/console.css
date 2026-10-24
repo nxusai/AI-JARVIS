@@ -1757,3 +1757,66 @@ h2.attention {
     display: none;
   }
 }
+
+.nebula-card {
+  max-height: calc(100% - 24px);
+  overflow: auto;
+}
+
+.nebula-card h4 {
+  margin: 12px 0 2px;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.nebula-card .nebula-items {
+  list-style: none;
+  padding-left: 0;
+  max-height: none;
+}
+
+.linkish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linkish:hover,
+.linkish.on {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.pulse,
+.nebula-list .dot.live {
+  animation: nebula-pulse 1s ease-in-out infinite;
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+}
+
+.live-txt {
+  color: #4ade80;
+}
+
+@keyframes nebula-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(1.4);
+  }
+}
