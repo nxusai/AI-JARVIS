@@ -30,6 +30,7 @@ import { addCost, budgetCheck, costMeter, projectsServer } from './proyectos.mjs
 import { closingInvite, mandatePrompt, mandateServer, prospectSend } from './mandato.mjs'
 import { builderServer } from './constructor.mjs'
 import { tasksServer } from './encargos.mjs'
+import { ceoPrompt, ceoServer, scheduleBootReport } from './ceo.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
@@ -250,7 +251,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_encargos', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_encargos', 'jarvis_ceo', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -421,6 +422,8 @@ const WRITE_ALLOWLIST = new Set([
   // Tasks for the AIs under her; delivering to a client's person is held for the tap (see encargos.mjs).
   'jarvis_encargos__assign_task',
   'jarvis_encargos__deliver_task',
+  // Only reads the company's own files (see ceo.mjs).
+  'jarvis_ceo__company_overview',
   // Routines are a file on this Mac; creating, changing or removing one is
   // always held for the owner's tap (see canUseTool and routines.mjs).
   'jarvis_rutinas__create_routine',
@@ -1817,6 +1820,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Software built by Claude Code on this Mac, on the owner's subscription (see constructor.mjs).
       jarvis_constructor: builderServer({ model: process.env.NEXY_BUILDER_MODEL?.trim() || MODEL }),
       // One-off tasks for Ultron and Ana Sofi, with a report back (see encargos.mjs).
+      // The whole company in one look (see ceo.mjs).
+      jarvis_ceo: ceoServer(),
       jarvis_encargos: tasksServer({ model: MODEL, effort: EFFORT, env: () => envFor('ultron'), elevenKey }),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
@@ -1860,7 +1865,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + profilePrompt() + mandatePrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + profilePrompt() + ceoPrompt() + mandatePrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),
@@ -2079,6 +2084,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
 } else {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+  // The first time she is switched on each day: how the company is (see ceo.mjs).
+  scheduleBootReport(TIME_ZONE)
   // The owner's iPhone: the Action button or "Oye Siri, Nexy" (see movil.mjs).
   startMovil({ elevenKey, voiceId: VOICE_ID })
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
