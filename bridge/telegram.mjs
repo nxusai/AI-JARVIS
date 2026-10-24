@@ -20,7 +20,7 @@ import { setBuilderNotifier } from './constructor.mjs'
 import { setTasksNotifier } from './encargos.mjs'
 import { setAutonomyNotifier } from './autonomia.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
-import { smoothBoss } from './speech.mjs'
+import { louder, smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
 
 /**
@@ -224,11 +224,11 @@ export async function speak(key, voiceId, text) {
     body: JSON.stringify({
       text,
       model_id: 'eleven_flash_v2_5',
-      voice_settings: { stability: 0.38, similarity_boost: 0.75, speed: 1.02 },
+      voice_settings: { stability: 0.38, similarity_boost: 0.75, speed: 1.02, use_speaker_boost: true },
     }),
   })
   if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 200)}`)
-  return Buffer.from(await res.arrayBuffer())
+  return louder(Buffer.from(await res.arrayBuffer()))
 }
 
 /** A tool's name as the owner would say it. */
