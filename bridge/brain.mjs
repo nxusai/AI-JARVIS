@@ -1,4 +1,5 @@
 import { readFacts } from './memory.mjs'
+import { profileIndex } from './perfil.mjs'
 import { fold, readBrands, readEditStyles, readManual, readReferences } from './brands.mjs'
 import { readContacts } from './contact-book.mjs'
 import { orgView } from './agents.mjs'
@@ -51,6 +52,17 @@ export function buildBrain() {
   if (contacts.length) {
     add({ id: 'people', label: 'Contactos', icon: '👥', kind: 'dept' }, 'nexy')
     contacts.forEach((c, i) => add({ id: `person:${i}`, label: c.nombre, kind: 'person' }, 'people'))
+  }
+
+  // The owner's profile: each compartment and what it is about. The private
+  // ones (Personal, Ramos & Co.) show only their name and size — the console can
+  // be on a projector.
+  const profile = profileIndex()
+  if (profile.length) add({ id: 'profile', label: 'Perfil', icon: '🧠', kind: 'dept' }, 'nexy')
+  for (const c of profile) {
+    add({ id: `profile:${c.id}`, label: c.nombre, icon: c.icono, detail: `${c.lineas} datos`, kind: 'brand' }, 'profile')
+    if (c.privado) continue
+    c.temas.slice(0, 14).forEach((t, i) => add({ id: `profile:${c.id}:${i}`, label: short(t), detail: t, kind: 'note' }, `profile:${c.id}`))
   }
 
   const facts = readFacts()
