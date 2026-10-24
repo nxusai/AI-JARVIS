@@ -57,6 +57,9 @@ const NO_APPROVAL = new Set([
 
 /** Changes other people will see that the name rule above cannot tell apart. */
 const ALWAYS_APPROVAL = new Set([
+  // A project's price, and raising it: the owner's yes before Nexy spends (see proyectos.mjs).
+  'jarvis_proyectos__start_project',
+  'jarvis_proyectos__raise_project_budget',
   'notion__API-post-page',
   'notion__API-patch-page',
   'notion__API-create-a-comment',

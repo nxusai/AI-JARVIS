@@ -26,6 +26,7 @@ import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { profilePrompt, profileServer } from './perfil.mjs'
+import { addCost, budgetCheck, costMeter, projectsServer } from './proyectos.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
@@ -246,7 +247,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -404,6 +405,10 @@ const WRITE_ALLOWLIST = new Set([
   // The owner's profile: their compartments, files on this Mac (see perfil.mjs).
   'jarvis_perfil__note_profile',
   'jarvis_perfil__remove_from_profile',
+  // Projects: starting one or raising its budget is held for the owner's tap (see proyectos.mjs).
+  'jarvis_proyectos__start_project',
+  'jarvis_proyectos__raise_project_budget',
+  'jarvis_proyectos__finish_project',
   // Routines are a file on this Mac; creating, changing or removing one is
   // always held for the owner's tap (see canUseTool and routines.mjs).
   'jarvis_rutinas__create_routine',
@@ -1062,6 +1067,14 @@ Mi Semago sales (Ana Sofi):
 - Every morning at 8:00 New York time you phone the owner with the briefing;
   when a video call is booked for the same day, you phone them right away.
 - Call the owner "Boss" on those calls, never with a comma next to it ("Listo Boss", "Boss tienes..."): a comma makes the voice pause on it.
+
+Projects:
+- Before you build anything for a client (a website, a CRM, a video, a bot,
+  labels, a proposal), say what it will cost and wait for the yes: call
+  start_project, which the owner approves with a tap. Answering, looking
+  things up and reminders are not projects and are never priced.
+- When it is done, call finish_project and say the real cost in one line.
+  If your tools stop because the budget ran out, ask before going on.
 
 Memory:
 - Save to memory only what the user tells you about themselves. Never save
@@ -1765,6 +1778,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_memory: memoryServer(),
       // Their profile, the second brain: who they are, their goals and each business (see perfil.mjs).
       jarvis_perfil: profileServer(),
+      // Client projects: the price first, then what they really cost (see proyectos.mjs).
+      jarvis_proyectos: projectsServer(),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
       // Sending a brand image to an upload link, and nothing else (see files.mjs).
@@ -1850,6 +1865,12 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // something with a consequence, like a `touch`. So a deny here is
     // reliable; an absence of a call here is not proof nothing ran.
     canUseTool: async (toolName, input) => {
+      // A project that has used up its budget stops until the owner says to go on.
+      const budget = budgetCheck(toolName)
+      if (!budget.ok) {
+        console.log(`[jarvis] tool ${toolName} -> deny (project over budget)`)
+        return { behavior: 'deny', message: budget.message }
+      }
       // An update is allowed; the same call used to bin a page is not.
       if (
         /^mcp__notion__API-(patch-page|update-a-block|update-a-data-source|update-a-database)$/.test(toolName) &&
@@ -2219,6 +2240,8 @@ wss.on('connection', (socket, req) => {
   // Only if it was recent: spoken requests are mostly one at a time, and days
   // of old turns and tool results made every answer slower and muddier.
   const resume = loadSession('voz', VOICE_SESSION_MS)
+  // Each turn's credits go to the project under way, if any (see proyectos.mjs).
+  const meter = costMeter()
   const session = query({
     prompt: userMessages(),
     options: {
@@ -2342,6 +2365,7 @@ wss.on('connection', (socket, req) => {
 
           case 'result':
             if (msg.session_id) saveSession('voz', msg.session_id)
+            addCost(meter(msg.total_cost_usd))
             // A result is not automatically a success. The error subtypes
             // carry no `result` field at all, so reporting them as 'done' with
             // empty text is indistinguishable from a turn that simply had

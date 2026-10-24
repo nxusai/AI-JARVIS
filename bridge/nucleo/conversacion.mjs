@@ -47,7 +47,7 @@ const SUPERSEDED =
  * quickly become one request. Each request gets its answer from the result
  * that closes its turn.
  */
-export function conversation({ agentOptions, onAnswer, onSlow = () => {}, onBegin = () => {}, runQuery, local, channel = 'telegram', hub = quietHub, channelPrompt = '', stepName = (s) => s, stuckMs = STUCK_MS, slowNoticeMs = SLOW_NOTICE_MS }) {
+export function conversation({ agentOptions, onAnswer, onCost = () => {}, onSlow = () => {}, onBegin = () => {}, runQuery, local, channel = 'telegram', hub = quietHub, channelPrompt = '', stepName = (s) => s, stuckMs = STUCK_MS, slowNoticeMs = SLOW_NOTICE_MS }) {
   let current = null
   const held = []
   let deliver = null
@@ -158,6 +158,8 @@ export function conversation({ agentOptions, onAnswer, onSlow = () => {}, onBegi
             if (block?.type === 'tool_result') hub.endStep(block.tool_use_id, block.is_error === true, block.content)
           }
         } else if (msg.type === 'result') {
+          // What the session has spent so far, for whoever keeps the accounts.
+          onCost(msg.total_cost_usd)
           const job = current
           current = null
           const stopped = job?.stopped !== undefined

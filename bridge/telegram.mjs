@@ -18,6 +18,7 @@ import { setRoutineRunner } from './routines.mjs'
 import { setSalesNotifier } from './ventas.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { smoothBoss } from './speech.mjs'
+import { addCost, costMeter } from './proyectos.mjs'
 
 /**
  * Nexy on Telegram: the owner's way to reach her away from the office.
@@ -504,6 +505,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       convo = conversation({
         agentOptions,
         onAnswer: answer,
+        // Each turn's credits go to the project under way, if any (see proyectos.mjs).
+        onCost: ((meter) => (total) => addCost(meter(total)))(costMeter()),
         onSlow: (job, step) => {
           const what = /taller|video|editor/i.test(step ?? '')
             ? 'editando el video'
