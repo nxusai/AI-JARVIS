@@ -28,6 +28,7 @@ import { memoryPrompt, memoryServer } from './memory.mjs'
 import { profilePrompt, profileServer } from './perfil.mjs'
 import { addCost, budgetCheck, costMeter, projectsServer } from './proyectos.mjs'
 import { closingInvite, mandatePrompt, mandateServer, prospectSend } from './mandato.mjs'
+import { builderServer } from './constructor.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
@@ -248,7 +249,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -413,6 +414,9 @@ const WRITE_ALLOWLIST = new Set([
   // NXUS's sales pipeline: a file on this Mac (see mandato.mjs).
   'jarvis_mandato__pipeline_add',
   'jarvis_mandato__pipeline_update',
+  // The builder works in its project's own folder, on the owner's subscription (see constructor.mjs).
+  'jarvis_constructor__start_build',
+  'jarvis_constructor__stop_build',
   // Routines are a file on this Mac; creating, changing or removing one is
   // always held for the owner's tap (see canUseTool and routines.mjs).
   'jarvis_rutinas__create_routine',
@@ -1072,10 +1076,18 @@ Mi Semago sales (Ana Sofi):
   when a video call is booked for the same day, you phone them right away.
 - Call the owner "Boss" on those calls, never with a comma next to it ("Listo Boss", "Boss tienes..."): a comma makes the voice pause on it.
 
+Software:
+- When the owner needs software (an app, a site, a CRM, a tool) or a change to
+  one, hand it to the builder with start_build: Claude Code on this Mac, on
+  his Claude subscription, so it costs no API credits and needs no price
+  first. Ask only what is truly missing, then write the brief complete from
+  the profile and the pipeline. It reports on Telegram; when it finishes,
+  tell him what was built and what is left.
+
 Projects:
-- Before you build anything for a client (a website, a CRM, a video, a bot,
-  labels, a proposal), say what it will cost and wait for the yes: call
-  start_project, which the owner approves with a tap. Answering, looking
+- Before you make anything for a client with your own tools (a video, labels,
+  a proposal, content), which spends API credits, say what it will cost and
+  wait for the yes: call start_project, which the owner approves with a tap. Answering, looking
   things up and reminders are not projects and are never priced.
 - When it is done, call finish_project and say the real cost in one line.
   If your tools stop because the budget ran out, ask before going on.
@@ -1786,6 +1798,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_proyectos: projectsServer(),
       // The sales mandate for NXUS: pipeline, discounts, when to call the owner (see mandato.mjs).
       jarvis_mandato: mandateServer(),
+      // Software built by Claude Code on this Mac, on the owner's subscription (see constructor.mjs).
+      jarvis_constructor: builderServer({ model: process.env.NEXY_BUILDER_MODEL?.trim() || MODEL }),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
       // Sending a brand image to an upload link, and nothing else (see files.mjs).
