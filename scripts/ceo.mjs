@@ -29,7 +29,7 @@ const WEEKLY =
   'Reporte semanal de crecimiento, como CEO de Eduardo. ' +
   '1) company_overview, list_pipeline, list_projects y list_tasks: qué pasó la semana pasada. ' +
   '2) Compáralo con la meta del mes y sus prioridades de 90 días: vamos bien o no, y por qué, con números. ' +
-  '3) Propón el plan de esta semana en 5 puntos concretos (a quién prospectar, qué ofrecer, qué construir, qué mejorar), y di cuáles vas a hacer tú sola. ' +
+  '3) Propón el plan de esta semana en 5 puntos concretos (a quién prospectar, qué ofrecer, qué construir, qué mejorar), y di cuáles vas a hacer tú solo. ' +
   '4) Mándalo por Telegram, claro y corto; si hay una decisión que es suya, pregúntasela al final.'
 
 function save(list) {

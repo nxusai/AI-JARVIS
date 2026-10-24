@@ -96,10 +96,10 @@ export function overview() {
   // Agenda de trabajo
   const r = readRoutines().filter((x) => x.activa)
   lines.push(`RUTINAS — ${r.length ? r.map((x) => `${x.nombre} ${x.hora}`).join(', ') : 'none active'}.`)
-  // Lo que hizo sola
+  // Lo que hizo solo
   const a = readAutonomy()
   const mine = recentAutonomous(24)
-  lines.push(`AUTONOMÍA — mode ${a.nivel}; on her own in the last 24 h: ${mine.length ? mine.slice(0, 6).map((x) => x.hizo).join(' · ') : 'nothing yet'}.`)
+  lines.push(`AUTONOMÍA — mode ${a.nivel}; on his own in the last 24 h: ${mine.length ? mine.slice(0, 6).map((x) => x.hizo).join(' · ') : 'nothing yet'}.`)
   return lines.filter(Boolean).join('\n')
 }
 

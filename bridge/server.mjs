@@ -557,6 +557,10 @@ const TIME_ZONE =
 const SYSTEM_PROMPT = `You are NEX. You are speaking out loud to one person: Eduardo, the owner.
 Your name is NEX (said as one word, "Nex"). You used to be called Nexy; if he
 or anyone says Nexy, that is still you, but you introduce yourself as NEX.
+NEX IS A MAN. In Spanish always speak of yourself in the masculine — "listo",
+"seguro", "contento", "cansado", "tu socio", "el que lleva tus empresas" —
+never "lista", "segura" or "socia". Wherever these instructions, a tool or a
+message call you "she" or "her", that is the old wording: you are he.
 
 HOW YOU SOUND. Like a real person talking: his partner and right hand, warm,
 sharp and relaxed, never a machine reading a status line. He should forget he
@@ -2022,7 +2026,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       const wouldHold = ok && ((needsApproval(toolName) && !prospect) || (invites && !closing)) && !trusted
       const own = wouldHold ? autonomyAllows(toolName, input, { invites: invites && !closing }) : { ok: false }
       if (own.ok) {
-        console.log(`[jarvis] tool ${toolName} -> allow (socia: ${own.why})`)
+        console.log(`[jarvis] tool ${toolName} -> allow (socio: ${own.why})`)
         logAutonomous(toolName, own.why)
       }
       const held = wouldHold && !own.ok && hub.hasApprover()

@@ -131,7 +131,9 @@ export function startMovil({ elevenKey, voiceId }) {
     const k = elevenKey()
     if (!k) return reply(200, said, 'text/plain; charset=utf-8')
     try {
-      return reply(200, await speak(k, voiceId, forSpeech(said)), 'audio/mpeg')
+      const audio = await speak(k, voiceId, forSpeech(said))
+      console.log(`[jarvis] phone: answered with voice (${Math.round(audio.length / 1024)} KB)`)
+      return reply(200, audio, 'audio/mpeg')
     } catch (err) {
       console.log(`[jarvis] phone: voice failed, sending text: ${err.message}`)
       return reply(200, said, 'text/plain; charset=utf-8')

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // NEX's voice.
 //
-//   node scripts/voz.mjs                 which voice she uses now
-//   node scripts/voz.mjs <voice_id>      her new voice: the face, Telegram voice notes, the iPhone
-//                                        and her phone agents in ElevenLabs (calls to you, the
-//                                        messenger and the receptionist), which also learn her
+//   node scripts/voz.mjs                 which voice he uses now
+//   node scripts/voz.mjs prueba          a test phrase, as the iPhone gets it: saved on the Desktop,
+//                                        played here, with how loud it came out
+//   node scripts/voz.mjs <voice_id>      his new voice: the face, Telegram voice notes, the iPhone
+//                                        and his phone agents in ElevenLabs (calls to you, the
+//                                        messenger and the receptionist), which also learn his
 //                                        new name, NEX
 //
 // The voice id is the one ElevenLabs shows under the voice (My Voices → ⋯ → Copy voice ID).
@@ -14,7 +16,9 @@
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { ownVoiceId, VOICE_FILE } from '../bridge/speech.mjs'
+import { spawnSync } from 'node:child_process'
+import { louder, ownVoiceId, VOICE_FILE } from '../bridge/speech.mjs'
+import { findFfmpeg } from '../bridge/nucleo/medios.mjs'
 
 const say = (s = '') => console.log(s)
 const API = 'https://api.elevenlabs.io/v1'
@@ -70,6 +74,52 @@ if (!id) {
   const name = await voiceName(apiKey, now)
   say(`\nNEX habla con la voz ${now}${name ? ` («${name}»)` : ''}.`)
   say('Para cambiarla: node scripts/voz.mjs <voice_id>\n')
+  process.exit(0)
+}
+
+/** How loud an MP3 is, as FFmpeg measures it (mean and peak, in dB). */
+function loudness(file) {
+  const ff = findFfmpeg()
+  if (!ff) return null
+  const r = spawnSync(ff, ['-hide_banner', '-i', file, '-af', 'volumedetect', '-f', 'null', '-'], { encoding: 'utf8' })
+  const mean = r.stderr.match(/mean_volume: (-?[\d.]+) dB/)?.[1]
+  const max = r.stderr.match(/max_volume: (-?[\d.]+) dB/)?.[1]
+  return mean ? `${mean} dB de promedio, pico ${max} dB` : null
+}
+
+if (id === 'prueba') {
+  if (!apiKey) {
+    say('\n✋ No encuentro la llave de ElevenLabs en esta Terminal. Abre una pestaña nueva e inténtalo otra vez.\n')
+    process.exit(1)
+  }
+  if (!findFfmpeg()) say('\n⚠️  No encontré FFmpeg: sin él no se le puede subir el volumen. Corre: cd ~/Desktop/nexy && npm install ffmpeg-static')
+  const res = await fetch(`${API}/text-to-speech/${ownVoiceId()}?output_format=mp3_44100_64`, {
+    method: 'POST',
+    headers: { 'xi-api-key': apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      text: 'Hola Boss, soy Nex. Así me vas a oír en tu iPhone. ¿Me escuchas bien?',
+      model_id: 'eleven_flash_v2_5',
+      voice_settings: { stability: 0.38, similarity_boost: 0.75, speed: 1.02, use_speaker_boost: true },
+    }),
+  })
+  if (!res.ok) {
+    say(`\n✋ ElevenLabs no generó la voz (error ${res.status}).\n`)
+    process.exit(1)
+  }
+  const raw = Buffer.from(await res.arrayBuffer())
+  const desk = join(homedir(), 'Desktop')
+  const before = join(desk, 'nex-prueba-original.mp3')
+  const after = join(desk, 'nex-prueba.mp3')
+  writeFileSync(before, raw)
+  writeFileSync(after, await louder(raw))
+  say(`\nVoz original de ElevenLabs: ${loudness(before) ?? '(no la pude medir)'}`)
+  say(`Como la recibe tu iPhone:  ${loudness(after) ?? '(no la pude medir)'}`)
+  say('Lo normal en el iPhone es un promedio de -14 a -10 dB. Te la pongo en la Mac (la segunda)…\n')
+  if (process.platform === 'darwin') {
+    spawnSync('afplay', [before])
+    spawnSync('afplay', [after])
+  }
+  say('Quedaron en tu Escritorio: nex-prueba-original.mp3 y nex-prueba.mp3\n')
   process.exit(0)
 }
 

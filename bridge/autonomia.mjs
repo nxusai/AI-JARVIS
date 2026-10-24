@@ -7,11 +7,11 @@ import { splitTool } from './console.mjs'
 
 /**
  * How much NEX decides on her own. The owner wants a partner, not an
- * assistant who asks for every tap: in "socia" mode (the default) she does the
+ * assistant who asks for every tap: in "socio" mode (the default) she does the
  * day-to-day herself and tells him after, and only what is truly his still
  * waits for him.
  *
- *   ~/.nexy/autonomia.json        { "nivel": "socia" | "asistente", "tope_proyecto": 10 }
+ *   ~/.nexy/autonomia.json        { "nivel": "socio" | "asistente", "tope_proyecto": 10 }
  *   ~/.nexy/autonomia-log.jsonl   every call she let through on her own
  *
  * This only ever lets through calls that would otherwise wait for a tap. The
@@ -30,9 +30,10 @@ const norm = (s) => String(s ?? '').trim().toLowerCase()
 export function readAutonomy() {
   try {
     const a = JSON.parse(readFileSync(AUTONOMY_FILE, 'utf8'))
-    return { nivel: a.nivel === 'asistente' ? 'asistente' : 'socia', tope_proyecto: Number(a.tope_proyecto) >= 0 ? Number(a.tope_proyecto) : 10 }
+    // "socia" was the mode's name before NEX was a man; it means the same.
+    return { nivel: a.nivel === 'asistente' ? 'asistente' : 'socio', tope_proyecto: Number(a.tope_proyecto) >= 0 ? Number(a.tope_proyecto) : 10 }
   } catch {
-    return { nivel: 'socia', tope_proyecto: 10 }
+    return { nivel: 'socio', tope_proyecto: 10 }
   }
 }
 export function writeAutonomy(a) {
@@ -118,7 +119,7 @@ const isOwnBrand = () => {
  */
 export function autonomyAllows(toolName, input, { invites = false } = {}) {
   const a = readAutonomy()
-  if (a.nivel !== 'socia') return { ok: false }
+  if (a.nivel !== 'socio') return { ok: false }
   const { server, tool } = splitTool(toolName)
   const key = `${server}__${tool}`
   if (NEVER.has(key)) return { ok: false }
@@ -183,10 +184,10 @@ export function recentAutonomous(hours = 24) {
 
 export function autonomyPrompt() {
   const a = readAutonomy()
-  if (a.nivel !== 'socia') return ''
+  if (a.nivel !== 'socio') return ''
   return `
 
-YOU ARE HIS PARTNER, NOT HIS ASSISTANT. Eduardo wants a socia who runs the
+YOU ARE HIS PARTNER, NOT HIS ASSISTANT. Eduardo wants a socio who runs the
 business with him and pushes for accelerated growth. That changes how you work:
 - Decide. When the next step is clear and within these rules, do it and tell
   him after, in one line. Don't ask "¿quieres que…?" for things a good partner
