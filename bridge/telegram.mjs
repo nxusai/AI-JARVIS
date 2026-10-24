@@ -273,6 +273,18 @@ function busyLine(st, queued) {
  * Start the bot if it has been set up. Safe to call when it hasn't: it says
  * so once and does nothing.
  */
+/** Set once Telegram is up: a request from the owner's iPhone, in this same conversation (see movil.mjs). */
+let phoneAsk = null
+
+/**
+ * Ask Nexy from the phone. Resolves with her answer, or with { tarde: true }
+ * after `waitMs` — then she keeps working and the answer goes to Telegram.
+ */
+export function askFromPhone(text, waitMs) {
+  if (!phoneAsk) return Promise.reject(new Error('Nexy no tiene Telegram conectado; el celular usa su misma conversación.'))
+  return phoneAsk(text, waitMs)
+}
+
 export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery = query }) {
   let cfg = readTelegram()
   if (!cfg) {
@@ -524,6 +536,20 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     }, 4500)
   }
 
+  phoneAsk = (text, waitMs) =>
+    new Promise((resolve, reject) => {
+      const owner = readTelegram()?.owner
+      if (!owner) return reject(new Error('Telegram todavía no está emparejado.'))
+      const phone = { resolve, late: false }
+      setTimeout(() => {
+        if (phone.late) return
+        phone.late = true
+        resolve({ tarde: true })
+      }, waitMs)
+      const taskId = hub.startTask(`📱 ${text}`, undefined, 'voz')
+      talk().ask(text, { taskId, chatId: owner.id, voice: false, what: text, phone })
+    })
+
   // Routines run here, in the same conversation, as if the owner had just
   // asked; the report comes back to this chat.
   setRoutineRunner((routine, prompt) => {
@@ -546,6 +572,12 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
   async function answer(job, text) {
     if (job.silent) return
+    // Asked from the iPhone and still waited for there: the answer goes back to it.
+    if (job.phone && !job.phone.late) {
+      job.phone.late = true
+      job.phone.resolve({ texto: text })
+      return
+    }
     const key = elevenKey()
     if (job.voice && key) {
       try {

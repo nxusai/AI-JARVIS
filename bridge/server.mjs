@@ -75,6 +75,7 @@ const CONTACT_EDITS = new Set([
   'mcp__jarvis_video__clone_owner_voice',
 ])
 import { startTelegram, transcribe as transcribeVoice } from './telegram.mjs'
+import { startMovil } from './movil.mjs'
 import { smoothBoss } from './speech.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
 import { rawServer } from './raw.mjs'
@@ -2012,6 +2013,8 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
 } else {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
+  // The owner's iPhone: the Action button or "Oye Siri, Nexy" (see movil.mjs).
+  startMovil({ elevenKey, voiceId: VOICE_ID })
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
   void startAtencion({
     model: MODEL,
