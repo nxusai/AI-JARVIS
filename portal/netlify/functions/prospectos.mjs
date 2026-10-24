@@ -1,6 +1,6 @@
 import { env, json, store } from '../lib/comun.mjs'
 
-/** Para Nexy (y tu panel): todos los prospectos, solo con su llave. */
+/** Para NEX (y tu panel): todos los prospectos, solo con su llave. */
 export default async (req) => {
   const key = env('NEXY_CLAVE')
   if (!key || req.headers.get('authorization') !== `Bearer ${key}`) return json({ error: 'sin permiso' }, 401)

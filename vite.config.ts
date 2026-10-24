@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    // Two pages: Nexy herself, and the console that watches her work.
+    // Two pages: NEX herself, and the console that watches her work.
     rollupOptions: {
       input: { main: 'index.html', consola: 'consola.html' },
     },

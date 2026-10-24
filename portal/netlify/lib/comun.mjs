@@ -11,7 +11,7 @@ import { getStore } from '@netlify/blobs'
  *   AGENDA_CLAVE     la clave que dio "preparar"
  *   STRIPE_KEY       llave restringida de Stripe (solo leer pagos de Checkout)
  *   PAGO_MX, PAGO_US los links de pago de la consultoría (pesos y dólares)
- *   NEXY_CLAVE       la llave con la que Nexy lee los prospectos
+ *   NEXY_CLAVE       la llave con la que NEX lee los prospectos
  */
 
 export const env = (k) => (typeof Netlify !== 'undefined' ? Netlify.env.get(k) : process.env[k]) ?? ''
