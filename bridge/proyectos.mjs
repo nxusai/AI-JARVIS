@@ -93,8 +93,9 @@ const START =
   'Start a project for a client, after telling the owner what it will cost. A project is building something: a ' +
   'website, a CRM, a video, a bot, labels, a proposal. Before calling it, say in a few lines what you will build, ' +
   'the estimated API credits in USD (a range), the time, and any outside cost (a domain, a service), and ask ' +
-  '"¿Lo hago?". This call is held for the owner\'s tap: that tap is their yes. Do not start building before it ' +
-  'is approved. Answering, looking things up and reminders are not projects.'
+  '"¿Lo hago?". A small project (within your autonomy limit) goes ahead on its own and the owner just hears ' +
+  'the cost; a bigger one is held for his tap, and that tap is his yes. Do not start building before this call ' +
+  'goes through. Answering, looking things up and reminders are not projects.'
 
 export function projectsServer() {
   return createSdkMcpServer({

@@ -18,6 +18,7 @@ import { setRoutineRunner } from './routines.mjs'
 import { setSalesNotifier } from './ventas.mjs'
 import { setBuilderNotifier } from './constructor.mjs'
 import { setTasksNotifier } from './encargos.mjs'
+import { setAutonomyNotifier } from './autonomia.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
@@ -223,7 +224,7 @@ export async function speak(key, voiceId, text) {
     body: JSON.stringify({
       text,
       model_id: 'eleven_flash_v2_5',
-      voice_settings: { stability: 0.45, similarity_boost: 0.75 },
+      voice_settings: { stability: 0.38, similarity_boost: 0.75, speed: 1.02 },
     }),
   })
   if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 200)}`)
@@ -577,6 +578,11 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   })
   // Reports from the AIs under her (see encargos.mjs).
   setTasksNotifier((text) => {
+    const owner = readTelegram()?.owner
+    if (owner) void say(owner.id, text)
+  })
+  // What she did on her own in "socia" mode (see autonomia.mjs).
+  setAutonomyNotifier((text) => {
     const owner = readTelegram()?.owner
     if (owner) void say(owner.id, text)
   })

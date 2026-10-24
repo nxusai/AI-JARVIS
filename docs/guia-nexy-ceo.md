@@ -42,16 +42,23 @@ Tú
 **Proyectos con sus herramientas** (videos, propuestas, contenido)
 - Te dice el costo en créditos antes y espera tu toque. Al final te dice cuánto costó de verdad.
 
-## Lo que hace sola y lo que siempre te pregunta
+## Tu socia: lo que hace sola y lo que siempre te pregunta
+Nexy trabaja en **modo socia**: decide, actúa y te avisa después por Telegram con un "✅ Lo hice yo: …". Te llama para lo importante y lo platica contigo: te da la noticia, su recomendación y por qué, y acuerdan juntos el siguiente paso.
 
-| Sola | Te pregunta |
+| Sola (te avisa después) | Siempre te pregunta |
 |---|---|
-| Prospectar y dar seguimiento | El precio y el cierre de un cliente |
-| Correos nuevos a prospectos (hasta 10 al día, con tu dirección) | Cualquier otro correo o publicación |
-| Encargos a Ultron y Ana Sofi con reporte | Lo que le llega a una persona del cliente |
-| Construir software con el Constructor | Gastar créditos en un proyecto de ella |
-| Agendar la videollamada de cierre | Dinero que sale, facturas, borrar |
-| Llamarte por lo importante | |
+| Notion y los tableros de la empresa | Dinero que sale: anuncios que gastan, facturas, pagos, videos pagados |
+| Sus rutinas (crearlas, cambiarlas, quitarlas) | Borrar o archivar cualquier cosa |
+| Grupos del equipo NXUS y NXUS México | El grupo de un cliente y lo que le llega a la gente del cliente |
+| Correos a gente con la que ya trata (tus buzones, prospectos que ya contestaron) | El primer correo a un desconocido (eso es prospectar, y está apagado) |
+| Reuniones en tu calendario para tus empresas | Publicar en marcas de clientes |
+| Publicar en tus marcas: NXUS AI, tu marca personal y Aurelius | Tus contactos (a quién puede llamar en tu nombre) |
+| Sus proyectos de hasta $10 en créditos | Proyectos más caros y subir un presupuesto |
+| Encargos a Ultron y Ana Sofi con reporte, y el Constructor | El precio y el cierre de un cliente |
+
+- **Ver qué hizo sola:** `node scripts/autonomia.mjs`
+- **Volver a que pida permiso para todo:** `node scripts/autonomia.mjs asistente` (y para regresar: `node scripts/autonomia.mjs socia`)
+- **Cambiar el tope de sus proyectos:** `node scripts/autonomia.mjs tope 10`
 
 ## Rutinas de CEO
 - **Activar:** `cd ~/Desktop/nexy && node scripts/ceo.mjs activar 10:00`
@@ -63,6 +70,7 @@ Tú
 ## Comandos útiles
 ```
 node scripts/ceo.mjs                    # la empresa en una vista, como la ve Nexy
+node scripts/autonomia.mjs              # su modo y lo que hizo sola hoy
 node scripts/ceo.mjs activar 10:00      # junta diaria y reporte semanal
 node scripts/ceo.mjs arranque no|si     # el reporte al prenderla
 node scripts/mandato.mjs                # cómo va el mes y el pipeline

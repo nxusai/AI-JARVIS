@@ -7,6 +7,7 @@ import { monthProgress, readMandate, readPipeline } from './mandato.mjs'
 import { readBuilder } from './constructor.mjs'
 import { readProjects } from './proyectos.mjs'
 import { localNow, readRoutines, runJob } from './routines.mjs'
+import { readAutonomy, recentAutonomous } from './autonomia.mjs'
 
 /**
  * Nexy as the owner's CEO: one look at the whole company, and the way she
@@ -95,6 +96,10 @@ export function overview() {
   // Agenda de trabajo
   const r = readRoutines().filter((x) => x.activa)
   lines.push(`RUTINAS — ${r.length ? r.map((x) => `${x.nombre} ${x.hora}`).join(', ') : 'none active'}.`)
+  // Lo que hizo sola
+  const a = readAutonomy()
+  const mine = recentAutonomous(24)
+  lines.push(`AUTONOMÍA — mode ${a.nivel}; on her own in the last 24 h: ${mine.length ? mine.slice(0, 6).map((x) => x.hizo).join(' · ') : 'nothing yet'}.`)
   return lines.filter(Boolean).join('\n')
 }
 

@@ -331,6 +331,8 @@ function shape(text: string): string {
 
 type Item = {
   text: string
+  /** What was said just before it, for ElevenLabs' continuity. */
+  prev?: string
   /** Generation starts one sentence ahead, not all at once. */
   audio?: Promise<string | null> | null
 }
@@ -345,6 +347,9 @@ export function createSpeaker(): Speaker {
   let currentAudio: HTMLAudioElement | null = null
   let nativeInFlight = false
   let drained: Array<() => void> = []
+  // What this speaker has already said, so each sentence is voiced as the
+  // continuation of the last one instead of a fresh start (see fetchCloudAudio).
+  let said = ''
 
   const settleDrained = () => {
     const waiting = drained
@@ -359,7 +364,8 @@ export function createSpeaker(): Speaker {
     const text = shape(sentence)
     if (!text) return
 
-    const item: Item = { text }
+    const item: Item = { text, prev: priority ? '' : said.slice(-300) }
+    if (!priority) said = `${said} ${text}`.slice(-600)
     if (priority) {
       // Genuinely ahead of the queue this time. The old `say()` appended to the
       // same chain and only appeared to preempt because it was called when the
@@ -372,7 +378,7 @@ export function createSpeaker(): Speaker {
   }
 
   /** null means "no audio pipeline, use the system voice directly". */
-  function synthesise(text: string): Promise<string | null> | null {
+  function synthesise(text: string, prev = ''): Promise<string | null> | null {
     // Prefer the ElevenLabs voice whenever the bridge reports it is available —
     // for a demo the timbre is worth the round trip, and this is what makes the
     // premium path automatic with no flag to set. It falls back to the browser
@@ -385,7 +391,7 @@ export function createSpeaker(): Speaker {
       // ElevenLabs, which makes the one field naming the engine useless
       // exactly when you are trying to work out which engine is at fault.
       diag.engine = 'elevenlabs'
-      return fetchCloudAudio(text).catch(() => null)
+      return fetchCloudAudio(text, prev).catch(() => null)
     }
     if (TTS_ENGINE === 'kokoro' && !kokoro.isUnavailable()) {
       diag.engine = 'kokoro'
@@ -397,7 +403,7 @@ export function createSpeaker(): Speaker {
 
   /** Start generating an item's audio if it hasn't begun. */
   const prime = (item: Item | undefined) => {
-    if (item && item.audio === undefined) item.audio = synthesise(item.text)
+    if (item && item.audio === undefined) item.audio = synthesise(item.text, item.prev)
   }
 
   async function pump(): Promise<void> {
@@ -449,7 +455,7 @@ export function createSpeaker(): Speaker {
         diag.engine = 'elevenlabs'
         console.warn('[jarvis] system voice is not producing sound — using the bridge speech proxy from here on')
       }
-      const rescue = await fetchCloudAudio(item.text).catch(() => null)
+      const rescue = await fetchCloudAudio(item.text, item.prev).catch(() => null)
       if (rescue && !cancelled) {
         diag.rescued++
         await playUrl(rescue, item.text)
@@ -711,6 +717,7 @@ export function createSpeaker(): Speaker {
       if (cancelled) return
       cancelled = true
       buffer = ''
+      said = ''
       queue.length = 0
       // Keep the echo tail: the words already in the air still have to be
       // recognised and discarded, even though he has stopped adding to them.
@@ -738,14 +745,16 @@ export function createSpeaker(): Speaker {
 }
 
 /** Only used when USE_ELEVENLABS is on. Bridge proxy first (it already holds
- *  the key), then a direct key, then null to fall back to the native voice. */
-async function fetchCloudAudio(text: string): Promise<string | null> {
+ *  the key), then a direct key, then null to fall back to the native voice.
+ *  `prev` is what was just said: ElevenLabs uses it to carry the intonation
+ *  over, so sentence after sentence sounds like one person talking. */
+async function fetchCloudAudio(text: string, prev = ''): Promise<string | null> {
   if (BACKEND === 'bridge') {
     try {
       const res = await fetch(`${BRIDGE_HTTP_URL}/tts`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, prev }),
       })
       if (res.ok) return URL.createObjectURL(await res.blob())
     } catch {
@@ -757,7 +766,7 @@ async function fetchCloudAudio(text: string): Promise<string | null> {
     try {
       const res = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${env.elevenVoiceId}/stream` +
-          `?output_format=mp3_22050_32&optimize_streaming_latency=3`,
+          `?output_format=mp3_22050_32&optimize_streaming_latency=2`,
         {
           method: 'POST',
           headers: {
@@ -766,11 +775,12 @@ async function fetchCloudAudio(text: string): Promise<string | null> {
           },
           body: JSON.stringify({
             text,
+            ...(prev ? { previous_text: prev } : {}),
             model_id: 'eleven_flash_v2_5',
             voice_settings: {
-              stability: 0.4,
+              stability: 0.35,
               similarity_boost: 0.75,
-              speed: 1.05,
+              speed: 1.04,
             },
           }),
         },
