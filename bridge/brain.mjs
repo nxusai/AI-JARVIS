@@ -60,7 +60,7 @@ export function buildBrain() {
   const profile = profileIndex()
   if (profile.length) add({ id: 'profile', label: 'Perfil', icon: '🧠', kind: 'dept' }, 'nexy')
   for (const c of profile) {
-    add({ id: `profile:${c.id}`, label: c.nombre, icon: c.icono, detail: `${c.lineas} datos`, kind: 'brand' }, 'profile')
+    add({ id: `profile:${c.id}`, label: c.nombre, icon: c.icono, detail: c.privado ? `Privado: ${c.lineas} datos que solo Nexy abre.` : `${c.lineas} datos`, kind: 'brand' }, 'profile')
     if (c.privado) continue
     c.temas.slice(0, 14).forEach((t, i) => add({ id: `profile:${c.id}:${i}`, label: short(t), detail: t, kind: 'note' }, `profile:${c.id}`))
   }

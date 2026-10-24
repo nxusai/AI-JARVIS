@@ -1637,3 +1637,123 @@ h2.attention {
   text-align: left;
   cursor: pointer;
 }
+
+/* Brain: the nebula view */
+.brain-modes {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.nebula-wrap {
+  position: relative;
+}
+
+.nebula {
+  width: 100%;
+  height: min(78vh, 860px);
+  display: block;
+  background: #030308;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.nebula:active {
+  cursor: grabbing;
+}
+
+.nebula-title {
+  position: absolute;
+  left: 22px;
+  bottom: 40px;
+  pointer-events: none;
+}
+
+.nebula-title small {
+  color: var(--muted);
+  letter-spacing: 0.22em;
+  font-size: 11px;
+}
+
+.nebula-title h2 {
+  margin: 2px 0 4px;
+  font-size: clamp(26px, 3.2vw, 40px);
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #fff, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nebula-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nebula-list {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  max-height: calc(100% - 180px);
+  overflow: auto;
+  background: #08081cd0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+}
+
+.nebula-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: 600 12px ui-monospace, Menlo, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nebula-list button:hover,
+.nebula-list button.on {
+  background: var(--panel-2);
+}
+
+.nebula-list .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.nebula-list em {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.nebula-items {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 46vh;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .nebula-list {
+    display: none;
+  }
+}

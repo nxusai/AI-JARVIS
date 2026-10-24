@@ -3,6 +3,7 @@ import { BRIDGE_WS_URL } from '../config'
 import { brandOf, clock, companies, companyOf, inScope, isAgentStep, liveNodes, stepLook } from './activity'
 import { Boards } from './Boards'
 import { Brain } from './Brain'
+import { Nebula } from './Nebula'
 import { Departments } from './Departments'
 import { EcosystemMap } from './EcosystemMap'
 import { buildEcosystem, ecoLive } from './ecosystem'
@@ -131,6 +132,7 @@ export default function Console() {
   const { connected, servers, tasks, approvals, brands, org, brain, answer, switchBrand, saveManual } = useBridge()
   const now = useTick()
   const [tab, setTab] = useSaved<Tab>('nexy-console-view', 'departamentos')
+  const [brainMode, setBrainMode] = useSaved<'nebulosa' | 'constelacion'>('nexy-brain-view', 'nebulosa')
   const [brandFilter, setBrandFilter] = useSaved<string | null>('nexy-console-brand', null)
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -329,7 +331,19 @@ export default function Console() {
         />
       ) : null}
 
-      {tab === 'cerebro' ? <Brain data={brain} live={live} brandFilter={brandFilter} /> : null}
+      {tab === 'cerebro' ? (
+        <>
+          <div className="brain-modes" role="tablist">
+            <button role="tab" aria-selected={brainMode === 'nebulosa'} className={brainMode === 'nebulosa' ? 'tab on' : 'tab'} onClick={() => setBrainMode('nebulosa')}>
+              Nebulosa
+            </button>
+            <button role="tab" aria-selected={brainMode === 'constelacion'} className={brainMode === 'constelacion' ? 'tab on' : 'tab'} onClick={() => setBrainMode('constelacion')}>
+              Constelación
+            </button>
+          </div>
+          {brainMode === 'nebulosa' ? <Nebula data={brain} live={live} /> : <Brain data={brain} live={live} brandFilter={brandFilter} />}
+        </>
+      ) : null}
 
       {tab === 'tableros' ? (
         <Boards
