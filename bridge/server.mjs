@@ -27,6 +27,7 @@ import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
 import { profilePrompt, profileServer } from './perfil.mjs'
 import { addCost, budgetCheck, costMeter, projectsServer } from './proyectos.mjs'
+import { closingInvite, mandatePrompt, mandateServer, prospectSend } from './mandato.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
@@ -247,7 +248,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -409,6 +410,9 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_proyectos__start_project',
   'jarvis_proyectos__raise_project_budget',
   'jarvis_proyectos__finish_project',
+  // NXUS's sales pipeline: a file on this Mac (see mandato.mjs).
+  'jarvis_mandato__pipeline_add',
+  'jarvis_mandato__pipeline_update',
   // Routines are a file on this Mac; creating, changing or removing one is
   // always held for the owner's tap (see canUseTool and routines.mjs).
   'jarvis_rutinas__create_routine',
@@ -1780,6 +1784,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_perfil: profileServer(),
       // Client projects: the price first, then what they really cost (see proyectos.mjs).
       jarvis_proyectos: projectsServer(),
+      // The sales mandate for NXUS: pipeline, discounts, when to call the owner (see mandato.mjs).
+      jarvis_mandato: mandateServer(),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
       // Sending a brand image to an upload link, and nothing else (see files.mjs).
@@ -1822,7 +1828,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     // of input tokens on every turn. Replacing it makes the persona stick,
     // keeps answers short enough to speak, and cuts cost per turn.
     // Memory is read per connection, so a fact saved yesterday is known today.
-    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + profilePrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
+    systemPrompt: SYSTEM_PROMPT + CONTENT_PLAN_PROMPT + EFFECTS_PROMPT + memoryPrompt() + profilePrompt() + mandatePrompt() + brandsPrompt() + mailboxesPrompt() + teamPrompt() + channelPrompt,
     // Run from the home directory so project-scoped MCP servers don't shadow
     // the global ones, and so file tools have a sane root.
     cwd: homedir(),
@@ -1967,7 +1973,14 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       // Notion during an "aprobar todo por 1 hora" the owner gave (see telegram.mjs).
       const trusted = svc === 'notion' && hub.trusted('notion')
       if (trusted && needsApproval(toolName)) console.log(`[jarvis] tool ${toolName} -> allow (Notion approved for the hour)`)
-      const held = ok && (needsApproval(toolName) || invites) && hub.hasApprover() && !trusted
+      // The sales mandate (see mandato.mjs): a first email to a business in the
+      // pipeline, a few a day with the sender's address, and the video call for
+      // the owner's close go out on their own. Everything else still asks.
+      const prospect = ok && svcTool === 'send_email' && (svc === 'gmail' || svc.startsWith('gmail-')) && needsApproval(toolName) && prospectSend(toolName, input).ok
+      const closing = invites && closingInvite(input)
+      if (prospect) console.log(`[jarvis] tool ${toolName} -> allow (prospect email, within the mandate)`)
+      if (closing) console.log(`[jarvis] tool ${toolName} -> allow (video call for a client about to close)`)
+      const held = ok && ((needsApproval(toolName) && !prospect) || (invites && !closing)) && hub.hasApprover() && !trusted
       const already = held ? approvedCalls.get(callKey(toolName, input)) : null
       if (already && Date.now() - already.at < APPROVED_TTL_MS) {
         if (already.retries >= APPROVED_RETRIES) {
