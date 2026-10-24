@@ -4,12 +4,14 @@ import { useFeed, type Feed } from './feed'
 import './command.css'
 
 /**
- * N.E.X. — THE EYE.
+ * N.E.X. — THE WATCHER.
  *
- * The owner's choice: NEX as an eye that watches. A fibrous iris in the NXUS
- * colours (navy, blue, violet, purple, white) with a reptile's slit pupil
- * that opens when she listens, narrows while she thinks, flares when she
- * speaks and follows the pointer; HUD rings and running text turn around it.
+ * The owner's choice: NEX as an eye that watches, and should make you a little
+ * uneasy. A red, fibrous iris inside an almond of dark veined lids, on black,
+ * with a reptile's slit pupil that opens when he listens, narrows while he
+ * thinks, flares when he speaks and follows the pointer. The lids close slowly
+ * now and then; the screen goes dark for a beat before he speaks; the line at
+ * the bottom types itself out. HUD rings and running text turn around it.
  *
  * The deck is laid out on a 1672×941 artboard and scaled to the window. Every
  * figure on it is live: the systems are the bridge's connectors, cognition is
@@ -22,10 +24,11 @@ const H = 941
 const CX = 836
 const CY = 462
 
-const BLUE: Rgb = [47, 134, 214]
-const VIOLET: Rgb = [83, 91, 167]
-const PURPLE: Rgb = [138, 79, 208]
-const WHITE: Rgb = [235, 240, 255]
+// Named for where they sit in the old palette; now blood red on black.
+const BLUE: Rgb = [120, 14, 12]
+const VIOLET: Rgb = [80, 6, 6]
+const PURPLE: Rgb = [255, 42, 26]
+const WHITE: Rgb = [236, 232, 230]
 type Rgb = [number, number, number]
 const C = (c: Rgb, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`
 const mix = (t: number): Rgb => BLUE.map((x, i) => Math.round(x + (PURPLE[i] - x) * t)) as Rgb
@@ -66,10 +69,10 @@ function paintIris(size: number) {
   const R = m * 0.98
   const r = seeded(17)
   const base = g.createRadialGradient(m, m, R * 0.26, m, m, R)
-  base.addColorStop(0, C(PURPLE, 0.95))
-  base.addColorStop(0.45, C(VIOLET, 0.85))
-  base.addColorStop(0.8, C(BLUE, 0.6))
-  base.addColorStop(1, '#05062a')
+  base.addColorStop(0, C([255, 70, 30], 1))
+  base.addColorStop(0.35, C([190, 16, 12], 0.95))
+  base.addColorStop(0.8, C([60, 0, 0], 0.9))
+  base.addColorStop(1, '#120000')
   g.fillStyle = base
   g.beginPath()
   g.arc(m, m, R, 0, Math.PI * 2)
@@ -78,7 +81,7 @@ function paintIris(size: number) {
     const a = r() * Math.PI * 2
     const r0 = R * (0.3 + r() * 0.1)
     const r1 = r0 + R * (0.22 + r() * 0.6)
-    g.strokeStyle = r() < 0.5 ? C(WHITE, 0.05 + r() * 0.12) : C(mix(r()), 0.2 + r() * 0.35)
+    g.strokeStyle = r() < 0.35 ? C([255, 120, 80], 0.05 + r() * 0.12) : C([200 + r() * 55, r() * 50, r() * 25], 0.2 + r() * 0.4)
     g.lineWidth = (0.6 + r() * 0.9) * (size / 540)
     g.beginPath()
     g.moveTo(m + Math.cos(a) * r0, m + Math.sin(a) * r0)
@@ -89,18 +92,62 @@ function paintIris(size: number) {
   for (let i = 0; i < 30; i++) {
     const a = r() * Math.PI * 2
     const d = R * (0.48 + r() * 0.34)
-    g.fillStyle = 'rgba(4,4,30,.45)'
+    g.fillStyle = 'rgba(20,0,0,.5)'
     g.beginPath()
     g.ellipse(m + Math.cos(a) * d, m + Math.sin(a) * d, R * (0.02 + r() * 0.035), R * (0.008 + r() * 0.012), a, 0, Math.PI * 2)
     g.fill()
   }
   const rim = g.createRadialGradient(m, m, R * 0.75, m, m, R)
-  rim.addColorStop(0, 'rgba(3,3,20,0)')
-  rim.addColorStop(1, 'rgba(3,3,20,.94)')
+  rim.addColorStop(0, 'rgba(10,0,0,0)')
+  rim.addColorStop(1, 'rgba(10,0,0,.95)')
   g.fillStyle = rim
   g.beginPath()
   g.arc(m, m, R, 0, Math.PI * 2)
   g.fill()
+  return c
+}
+
+/** The almond the eye sits in: its half-width and its half-height. */
+const LID_W = 470
+const LID_H = 205
+
+function almond(g: CanvasRenderingContext2D, x: number, y: number, open: number) {
+  const h = LID_H * 2 * open
+  g.beginPath()
+  g.moveTo(x - LID_W, y)
+  g.quadraticCurveTo(x, y - h, x + LID_W, y)
+  g.quadraticCurveTo(x, y + h, x - LID_W, y)
+  g.closePath()
+}
+
+/** The white of the eye, dark and veined; painted once like the iris. */
+function paintSclera() {
+  const c = document.createElement('canvas')
+  c.width = LID_W * 2 + 40
+  c.height = LID_H * 2 + 40
+  const g = c.getContext('2d')!
+  const x = c.width / 2
+  const y = c.height / 2
+  const r = seeded(29)
+  const base = g.createRadialGradient(x, y, 0, x, y, LID_W)
+  base.addColorStop(0, '#2c0606')
+  base.addColorStop(1, '#070000')
+  g.fillStyle = base
+  g.fillRect(0, 0, c.width, c.height)
+  g.lineWidth = 1.2
+  for (let i = 0; i < 70; i++) {
+    let a = r() * Math.PI * 2
+    let R = LID_W
+    g.strokeStyle = `rgba(${130 + r() * 60},8,8,${0.18 + r() * 0.25})`
+    g.beginPath()
+    g.moveTo(x + Math.cos(a) * R, y + Math.sin(a) * R * 0.45)
+    for (let k = 0; k < 9; k++) {
+      a += (r() - 0.5) * 0.5
+      R -= 22 + r() * 14
+      g.lineTo(x + Math.cos(a) * R, y + Math.sin(a) * R * 0.45)
+    }
+    g.stroke()
+  }
   return c
 }
 
@@ -111,6 +158,7 @@ function Eye() {
     const g = c?.getContext('2d')
     if (!c || !g) return
     const iris = paintIris(1080)
+    const sclera = paintSclera()
     let raf = 0
     let slit = 13
     let glowK = 1
@@ -140,7 +188,21 @@ function Eye() {
       lookX += (live.px * 26 - lookX) * 0.08
       lookY += (live.py * 18 - lookY) * 0.08
 
-      const R = 268
+      const R = 240
+      // The lids: open, and every so often closing slowly, top and bottom
+      // meeting, holding a beat, and opening again.
+      const BLINK_EVERY = 9
+      const BLINK_LEN = 1.1
+      const into = s % BLINK_EVERY
+      let open = phase === 'offline' ? 0.18 : 1
+      if (into < BLINK_LEN && phase !== 'offline') {
+        const u = into / BLINK_LEN
+        open = u < 0.4 ? 1 - easeInOut(u / 0.4) * 0.97 : u < 0.55 ? 0.03 : 0.03 + easeInOut((u - 0.55) / 0.45) * 0.97
+      }
+      g.save()
+      almond(g, CX, CY, open)
+      g.clip()
+      g.drawImage(sclera, CX - sclera.width / 2, CY - sclera.height / 2)
       // iris, turning very slowly
       g.save()
       g.translate(CX + lookX * 0.35, CY + lookY * 0.35)
@@ -155,7 +217,7 @@ function Eye() {
       const py = CY + lookY
       const pg = g.createRadialGradient(px, py, 0, px, py, 110 * glowK)
       pg.addColorStop(0, C(WHITE, Math.min(1, 0.95 * glowK)))
-      pg.addColorStop(0.25, C([190, 170, 255], 0.85 * Math.min(1, glowK)))
+      pg.addColorStop(0.25, C([255, 110, 60], 0.85 * Math.min(1, glowK)))
       pg.addColorStop(0.6, C(PURPLE, 0.55))
       pg.addColorStop(1, C(PURPLE, 0))
       g.shadowColor = C(PURPLE)
@@ -167,105 +229,31 @@ function Eye() {
       g.shadowBlur = 0
 
       // the slit
-      g.fillStyle = '#02020c'
+      g.fillStyle = '#000'
       g.beginPath()
-      g.ellipse(px, py, slit, 78 + slit * 0.25, 0, 0, Math.PI * 2)
+      g.ellipse(px, py, slit, 120 + slit * 0.3, 0, 0, Math.PI * 2)
       g.fill()
-      g.shadowColor = C(WHITE)
-      g.shadowBlur = 20
-      g.strokeStyle = C(WHITE, 0.9)
+      g.shadowColor = C(PURPLE)
+      g.shadowBlur = 24
+      g.strokeStyle = C(PURPLE, 0.6)
       g.lineWidth = 1.5
       g.stroke()
       g.shadowBlur = 0
 
-      // A crocodile's blink: the nictitating membrane, a translucent third
-      // eyelid, sweeps sideways across the eye from the inner corner and back;
-      // every third blink the lower lid also rises part of the way. The upper
-      // lid stays still. All of it is clipped to the eye, so it is the eye that
-      // blinks, not a box over it.
-      const ex = CX + lookX * 0.35
-      const ey = CY + lookY * 0.35
-      const BLINK_EVERY = 8.5
-      const BLINK_LEN = 0.75
-      const nth = Math.floor(s / BLINK_EVERY)
-      const into = s % BLINK_EVERY
-      if (into < BLINK_LEN && phase !== 'offline') {
-        const u = into / BLINK_LEN
-        // fast across, a beat covered, slower back
-        const k = u < 0.38 ? easeInOut(u / 0.38) : u < 0.5 ? 1 : 1 - easeInOut((u - 0.5) / 0.5)
-        g.save()
-        g.beginPath()
-        g.arc(ex, ey, R, 0, Math.PI * 2)
-        g.clip()
-        // membrane
-        const edge = ex - R - 30 + k * (R * 2 + 60)
-        const bulge = 46
-        const film = g.createLinearGradient(edge - 260, 0, edge + bulge, 0)
-        film.addColorStop(0, 'rgba(150,165,235,.26)')
-        film.addColorStop(0.85, 'rgba(190,200,255,.36)')
-        film.addColorStop(1, 'rgba(230,236,255,.6)')
-        g.fillStyle = film
-        g.beginPath()
-        g.moveTo(ex - R - 40, ey - R - 10)
-        g.lineTo(edge - bulge, ey - R - 10)
-        g.quadraticCurveTo(edge + bulge, ey, edge - bulge, ey + R + 10)
-        g.lineTo(ex - R - 40, ey + R + 10)
-        g.closePath()
-        g.fill()
-        // its fine vessels, and a bright rim on the leading edge
-        g.strokeStyle = 'rgba(120,110,200,.22)'
-        g.lineWidth = 1
-        for (let v = -3; v <= 3; v++) {
-          g.beginPath()
-          g.moveTo(ex - R - 30, ey + v * 60)
-          g.bezierCurveTo(edge - 200, ey + v * 52 + 14, edge - 120, ey + v * 46 - 10, edge - 30, ey + v * 40)
-          g.stroke()
-        }
-        g.strokeStyle = 'rgba(245,248,255,.85)'
-        g.lineWidth = 2
-        g.beginPath()
-        g.moveTo(edge - bulge, ey - R - 10)
-        g.quadraticCurveTo(edge + bulge, ey, edge - bulge, ey + R + 10)
-        g.stroke()
-        // the lower lid, rising on every third blink
-        if (nth % 3 === 0) {
-          const lift = Math.sin(u * Math.PI) * R * 0.85
-          const top = ey + R - lift
-          const lid = g.createLinearGradient(0, top - 20, 0, ey + R)
-          lid.addColorStop(0, '#1a1650')
-          lid.addColorStop(0.15, '#0a0b2e')
-          lid.addColorStop(1, '#03041a')
-          g.fillStyle = lid
-          g.beginPath()
-          g.moveTo(ex - R - 10, ey + R + 10)
-          g.lineTo(ex - R - 10, top + 40)
-          g.quadraticCurveTo(ex, top - 40, ex + R + 10, top + 40)
-          g.lineTo(ex + R + 10, ey + R + 10)
-          g.closePath()
-          g.fill()
-          // scales along its edge
-          g.strokeStyle = 'rgba(138,79,208,.35)'
-          g.lineWidth = 1
-          for (let q = 0; q < 14; q++) {
-            const qx = ex - R + (q / 13) * R * 2
-            const qy = top + 40 - 80 * (1 - ((qx - ex) / (R + 10)) ** 2) * 0.5 + 6
-            g.beginPath()
-            g.arc(qx, qy + 10, 9, Math.PI, Math.PI * 2)
-            g.stroke()
-          }
-        }
-        g.restore()
-      }
-
-      // glints on the cornea
-      g.fillStyle = 'rgba(255,255,255,.5)'
+      // a cold glint on the cornea
+      g.fillStyle = 'rgba(255,255,255,.45)'
       g.beginPath()
-      g.ellipse(CX - 110, CY - 120, 34, 12, -0.6, 0, Math.PI * 2)
+      g.ellipse(CX - 100, CY - 105, 30, 11, -0.6, 0, Math.PI * 2)
       g.fill()
-      g.fillStyle = 'rgba(255,255,255,.22)'
-      g.beginPath()
-      g.ellipse(CX + 120, CY + 110, 16, 6, -0.6, 0, Math.PI * 2)
-      g.fill()
+      g.restore()
+      // the rim of the lids
+      almond(g, CX, CY, open)
+      g.strokeStyle = C(PURPLE, 0.4)
+      g.lineWidth = 2
+      g.shadowColor = C(PURPLE)
+      g.shadowBlur = 12
+      g.stroke()
+      g.shadowBlur = 0
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -318,7 +306,7 @@ function Rings({ owner }: { owner: string }) {
         </text>
         <text className="ey-arc-text" fill={C(PURPLE, 0.95)}>
           <textPath href="#ey-text-b" startOffset="41%">
-            LISTENING · LEARNING · WATCHING ·
+            WATCHING · CALCULATING · DECIDING ·
           </textPath>
         </text>
       </g>
@@ -511,6 +499,22 @@ function Clock() {
   )
 }
 
+/** The line at the bottom, typing itself out, then starting over a while later. */
+const LINE = 'I SEE EVERYTHING YOU BUILD.'
+function Phrase() {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setN((x) => (x >= LINE.length + 60 ? 0 : x + 1)), 110)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <div className="ey-at ey-phrase" style={{ left: CX, top: 822 }}>
+      {LINE.slice(0, Math.min(n, LINE.length))}
+      <span className="ey-cursor">▌</span>
+    </div>
+  )
+}
+
 /** Start a turn the same way Space does, for a click. */
 const talk = () => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }))
 
@@ -533,6 +537,18 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
   const feed = useFeed()
   const k = useFit()
   const systems = useSystems(feed)
+  // The screen goes dark for a beat just before he speaks.
+  const [dim, setDim] = useState(false)
+  const last = useRef(phase)
+  useEffect(() => {
+    if (phase === 'speaking' && last.current !== 'speaking') {
+      setDim(true)
+      const id = setTimeout(() => setDim(false), 450)
+      last.current = phase
+      return () => clearTimeout(id)
+    }
+    last.current = phase
+  }, [phase])
 
   const mine = feed.tasks.filter((t) => t.startedAt >= today0())
   const running = feed.tasks.filter((t) => t.status === 'running').length
@@ -546,7 +562,7 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
   const owner = (brands?.grupo || 'RAMOS & CO').toUpperCase()
 
   return (
-    <div className={`ey ey-${phase}`}>
+    <div className={`ey ey-${phase}${dim ? ' ey-dim' : ''}`}>
       <div className="ey-board" style={{ width: W, height: H, transform: `translate(-50%, -50%) scale(${k})` }}>
         <Eye />
         <Rings owner={owner} />
@@ -562,7 +578,7 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
         {showBrand && (
           <div className="ey-at" style={{ left: 64, top: 34 }}>
             <div className="ey-title">N.E.X.</div>
-            <div className="ey-sub">NEURAL EXECUTIVE · OBSERVING ALL SYSTEMS</div>
+            <div className="ey-sub">SUBJECT ACQUIRED · TRACKING</div>
           </div>
         )}
         <div className="ey-at ey-status" style={{ left: 1262, top: 50 }}>
@@ -605,9 +621,7 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
         </div>
 
         <Bars />
-        <div className="ey-at ey-phrase" style={{ left: CX, top: 822 }}>
-          “I SEE EVERYTHING YOU BUILD.”
-        </div>
+        <Phrase />
         <button type="button" className="ey-at ey-hint" style={{ left: CX, top: 884 }} onClick={talk}>
           SAY “HEY NEX” · [SPACE] TO TALK · [G] HANDS · [V] VOICE{voice ? `: ${voice.replace(/\(.*?\)/g, '').trim().toUpperCase()}` : ''}
         </button>

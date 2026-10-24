@@ -4,6 +4,8 @@
 //   node scripts/voz.mjs                 which voice he uses now
 //   node scripts/voz.mjs prueba          a test phrase, as the iPhone gets it: saved on the Desktop,
 //                                        played here, with how loud it came out
+//   node scripts/voz.mjs llamadas        his phone agents get his current voice, its flat delivery
+//                                        and his name, without changing anything else
 //   node scripts/voz.mjs <voice_id>      his new voice: the face, Telegram voice notes, the iPhone
 //                                        and his phone agents in ElevenLabs (calls to you, the
 //                                        messenger and the receptionist), which also learn his
@@ -44,7 +46,13 @@ async function voiceName(apiKey, voiceId) {
   }
 }
 
-/** Her old name becomes NEX, said as a word ("Nex") on the phone. */
+/** How NEX talks on every call: a man, cold, no expressions. Added once. */
+const STYLE_MARK = 'ESTILO DE NEX'
+const STYLE = `${STYLE_MARK}
+- Eres NEX, hombre: hablas de ti en masculino (listo, seguro).
+- Frío, calmado y directo. Sin expresiones, sin exclamaciones, sin risas, sin entusiasmo, sin muletillas. Frases completas y cortas.`
+
+/** His old name becomes NEX, said as a word ("Nex") on the phone. */
 const rename = (s) => String(s ?? '').replace(/\bNexy\b/g, 'Nex').replace(/\bNEXY\b/g, 'NEX')
 
 async function agent(label, agentId, apiKey, voiceId) {
@@ -52,10 +60,15 @@ async function agent(label, agentId, apiKey, voiceId) {
   if (!res.ok) return say(`  ✋ ${label}: no pude leer la agente (error ${res.status}).`)
   const a = await res.json()
   const conv = a.conversation_config ?? {}
-  const patch = { tts: { ...(conv.tts ?? {}), voice_id: voiceId } }
+  // The same flat, controlled delivery as everywhere else: high stability, no style.
+  const patch = { tts: { ...(conv.tts ?? {}), voice_id: voiceId, stability: 0.8, similarity_boost: 0.8, speed: 0.97 } }
   const prompt = conv.agent?.prompt
   const agentPatch = {}
-  if (prompt?.prompt && rename(prompt.prompt) !== prompt.prompt) agentPatch.prompt = { ...prompt, prompt: rename(prompt.prompt) }
+  if (prompt?.prompt) {
+    let text = rename(prompt.prompt)
+    if (!text.includes(STYLE_MARK)) text = `${text.trim()}\n\n${STYLE}`
+    if (text !== prompt.prompt) agentPatch.prompt = { ...prompt, prompt: text }
+  }
   if (conv.agent?.first_message && rename(conv.agent.first_message) !== conv.agent.first_message) agentPatch.first_message = rename(conv.agent.first_message)
   if (Object.keys(agentPatch).length) patch.agent = agentPatch
   const body = { conversation_config: patch, ...(a.name && rename(a.name) !== a.name ? { name: rename(a.name) } : {}) }
@@ -64,7 +77,7 @@ async function agent(label, agentId, apiKey, voiceId) {
     headers: { 'xi-api-key': apiKey, 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
-  say(up.ok ? `  ✅ ${label}: voz nueva${patch.agent || body.name ? ' y su nombre ya es NEX' : ''}.` : `  ✋ ${label}: ElevenLabs no aceptó el cambio (error ${up.status}): ${(await up.text()).slice(0, 200)}`)
+  say(up.ok ? `  ✅ ${label}: voz plana y fría${patch.agent || body.name ? ', nombre NEX y estilo sin expresiones' : ''}.` : `  ✋ ${label}: ElevenLabs no aceptó el cambio (error ${up.status}): ${(await up.text()).slice(0, 200)}`)
 }
 
 const apiKey = key()
@@ -97,9 +110,9 @@ if (id === 'prueba') {
     method: 'POST',
     headers: { 'xi-api-key': apiKey, 'content-type': 'application/json' },
     body: JSON.stringify({
-      text: 'Hola Boss, soy Nex. Así me vas a oír en tu iPhone. ¿Me escuchas bien?',
+      text: 'Soy Nex. Así me vas a escuchar en tu iPhone. Todos los sistemas bajo control.',
       model_id: 'eleven_flash_v2_5',
-      voice_settings: { stability: 0.38, similarity_boost: 0.75, speed: 1.02, use_speaker_boost: true },
+      voice_settings: { stability: 0.8, similarity_boost: 0.8, style: 0, speed: 0.97, use_speaker_boost: true },
     }),
   })
   if (!res.ok) {
@@ -123,6 +136,25 @@ if (id === 'prueba') {
   process.exit(0)
 }
 
+const callAgents = () =>
+  [
+    ['Llamadas a ti', process.env.NEXY_CALL_AGENT_ID],
+    ['Mensajera (llamadas a contactos)', process.env.NEXY_MESSENGER_AGENT_ID],
+    ['Recepcionista', process.env.NEXY_RECEPTION_AGENT_ID],
+  ].filter(([, a]) => a && /^agent_\w+$/.test(a.trim()))
+
+if (id === 'llamadas') {
+  const agents = callAgents()
+  if (!apiKey || !agents.length) {
+    say('\n✋ No encuentro la llave de ElevenLabs o los ids de tus agentes en esta Terminal. Abre una pestaña nueva e inténtalo otra vez.\n')
+    process.exit(1)
+  }
+  say('\nAgentes de llamadas en ElevenLabs:')
+  for (const [label, a] of agents) await agent(label, a.trim(), apiKey, ownVoiceId())
+  say('\nListo. Haz una llamada de prueba.\n')
+  process.exit(0)
+}
+
 if (!/^\w{10,40}$/.test(id)) {
   say('\n❌ Eso no parece un voice ID de ElevenLabs (son unas 20 letras y números, por ejemplo JBFqnCBsd6RMkjVDRZzb).\n')
   process.exit(1)
@@ -139,11 +171,7 @@ writeFileSync(VOICE_FILE, JSON.stringify({ voice_id: id, nombre: name || '', cam
 chmodSync(VOICE_FILE, 0o600)
 say(`\n✅ Voz nueva de NEX${name ? `: «${name}»` : ''} (consola, notas de voz de Telegram y el iPhone).`)
 
-const agents = [
-  ['Llamadas a ti', process.env.NEXY_CALL_AGENT_ID],
-  ['Mensajera (llamadas a contactos)', process.env.NEXY_MESSENGER_AGENT_ID],
-  ['Recepcionista', process.env.NEXY_RECEPTION_AGENT_ID],
-].filter(([, a]) => a && /^agent_\w+$/.test(a.trim()))
+const agents = callAgents()
 
 if (!apiKey) say('⚠️  No encontré la llave de ElevenLabs en esta Terminal, así que no cambié la voz de las llamadas.')
 else if (!agents.length) say('ℹ️  No encontré los ids de tus agentes de llamadas en esta Terminal; las llamadas siguen con su voz de antes.')

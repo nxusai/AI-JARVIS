@@ -1,12 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&display=swap');
 
-/* N.E.X. — THE EYE (see Command.tsx). The NXUS colours only: navy, blue,
-   violet, purple and white. */
+/* N.E.X. — THE WATCHER (see Command.tsx). Black, blood red and a cold white. */
 
 /* The ground goes on the page, under the 3D layer, so anything NEX puts in
    the scene still shows; the deck itself is transparent. */
 html body {
-  background: radial-gradient(circle at 50% 49%, #1a1360 0%, #080a33 45%, #010110 100%);
+  background: radial-gradient(circle at 50% 49%, #2a0302 0%, #0b0000 42%, #000 100%);
 }
 html body #root { background: transparent; }
 
@@ -15,7 +14,7 @@ html body #root { background: transparent; }
   inset: 0;
   overflow: hidden;
   font-family: 'Rajdhani', sans-serif;
-  color: #ebf0ff;
+  color: #ece8e6;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -25,8 +24,8 @@ html body #root { background: transparent; }
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(0deg, rgba(0, 0, 10, 0.22) 0 1px, transparent 1px 3px),
-    radial-gradient(circle at 50% 49%, transparent 40%, rgba(0, 0, 8, 0.85) 100%);
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 49%, transparent 40%, rgba(0, 0, 0, 0.92) 100%);
   pointer-events: none;
   z-index: 2;
   animation: ey-flicker 7s steps(1) infinite;
@@ -68,7 +67,7 @@ html body #root { background: transparent; }
   content: '';
   position: absolute;
   inset: 0;
-  border-top: 1.2px solid rgba(110, 112, 190, 0.55);
+  border-top: 1.2px solid rgba(140, 20, 16, 0.5);
   clip-path: polygon(0 0, 31% 0, 33% 100%, 67% 100%, 69% 0, 100% 0, 100% 2px, 69% 2px, 67% 100%, 33% 100%, 31% 2px, 0 2px);
 }
 .ey-frame-top::after,
@@ -91,31 +90,31 @@ html body #root { background: transparent; }
   font-size: 34px;
   letter-spacing: 0.06em;
   color: #fff;
-  text-shadow: 0 0 22px rgba(138, 79, 208, 0.6);
+  text-shadow: 0 0 22px rgba(255, 30, 20, 0.45);
 }
-.ey-sub { margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: rgba(130, 120, 220, 0.95); }
+.ey-sub { margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: rgba(200, 30, 22, 0.95); }
 .ey-status { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.22em; color: #fff; }
-.ey-status i { width: 10px; height: 10px; border-radius: 50%; background: #8a4fd0; box-shadow: 0 0 14px #8a4fd0; animation: pulse 1.6s ease-in-out infinite; }
-.ey-date { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: rgba(130, 120, 220, 0.95); }
+.ey-status i { width: 10px; height: 10px; border-radius: 50%; background: #ff2a1a; box-shadow: 0 0 14px #ff2a1a; animation: pulse 1.6s ease-in-out infinite; }
+.ey-date { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: rgba(150, 140, 138, 0.9); }
 
 /* the callout from the lock */
-.ey-callout { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(235, 240, 255, 0.9); white-space: nowrap; }
-.ey-callout em { display: block; margin-top: 4px; font-style: normal; color: #b9a0ff; }
+.ey-callout { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(220, 215, 212, 0.85); white-space: nowrap; }
+.ey-callout em { display: block; margin-top: 4px; font-style: normal; color: #ff3a28; }
 
 /* readouts */
 .ey-readout { width: 270px; }
-.ey-readout-title { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #7b6fe0; }
+.ey-readout-title { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #c0201a; }
 .ey-right .ey-readout-title { text-align: right; }
-.ey-readout-rule { position: relative; height: 1px; margin: 8px 0 6px; background: rgba(110, 100, 210, 0.7); }
-.ey-readout-rule i { position: absolute; top: -1px; left: 0; width: 40px; height: 3px; background: #8a4fd0; box-shadow: 0 0 8px #8a4fd0; }
+.ey-readout-rule { position: relative; height: 1px; margin: 8px 0 6px; background: rgba(120, 16, 12, 0.7); }
+.ey-readout-rule i { position: absolute; top: -1px; left: 0; width: 40px; height: 3px; background: #ff2a1a; box-shadow: 0 0 8px #ff2a1a; }
 .ey-right .ey-readout-rule i { left: auto; right: 0; }
-.ey-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 5px; border-bottom: 1px solid rgba(83, 91, 167, 0.18); }
-.ey-row span { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: rgba(110, 125, 220, 0.95); }
-.ey-row b { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; color: #ebf0ff; }
-.ey-warn { color: #ff78c8 !important; text-shadow: 0 0 8px rgba(255, 120, 200, 0.6); }
+.ey-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 5px; border-bottom: 1px solid rgba(120, 16, 12, 0.22); }
+.ey-row span { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: rgba(150, 140, 138, 0.9); }
+.ey-row b { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; color: #ece8e6; }
+.ey-warn { color: #ff3a28 !important; text-shadow: 0 0 8px rgba(255, 40, 20, 0.7); }
 
 .ey-trace { display: block; width: 270px; height: 50px; }
-.ey-tiny { margin-top: 6px; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: rgba(110, 125, 220, 0.85); }
+.ey-tiny { margin-top: 6px; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: rgba(140, 30, 24, 0.9); }
 
 /* bottom */
 .ey-bars { position: absolute; left: 0; top: 806px; width: 1672px; height: 56px; }
@@ -123,12 +122,26 @@ html body #root { background: transparent; }
   transform: translateX(-50%);
   font-family: 'Orbitron', sans-serif;
   font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.08em;
+  font-size: 17px;
+  letter-spacing: 0.32em;
   color: #fff;
   white-space: nowrap;
-  text-shadow: 0 0 16px rgba(138, 79, 208, 0.8);
+  text-shadow: 0 0 18px rgba(255, 20, 10, 0.9);
 }
+.ey-cursor { animation: ey-blink 1s steps(1) infinite; color: #ff2a1a; }
+@keyframes ey-blink { 50% { opacity: 0; } }
+/* dark for a beat before he speaks */
+.ey::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity 0.35s ease;
+}
+.ey-dim::after { opacity: 0.85; transition: opacity 0.08s ease; }
 .ey-hint {
   transform: translateX(-50%);
   pointer-events: auto;
@@ -139,7 +152,7 @@ html body #root { background: transparent; }
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.16em;
-  color: rgba(130, 120, 220, 0.95);
+  color: rgba(130, 40, 32, 0.95);
   white-space: nowrap;
 }
 .ey-hint:hover { color: #fff; }
@@ -159,7 +172,7 @@ html body #root { background: transparent; }
 }
 .hud.v2 .log-line { font-size: 13px; }
 .hud.v2 .log-who { flex-basis: 44px; }
-.hud.v2 .log-jarvis .log-text { color: #ebf0ff; text-shadow: 0 0 14px rgba(138, 79, 208, 0.8), 0 0 4px #000; }
+.hud.v2 .log-jarvis .log-text { color: #ece8e6; text-shadow: 0 0 14px rgba(255, 30, 20, 0.6), 0 0 4px #000; }
 .hud.v2 .caption {
   left: 3.8vw;
   right: auto;
@@ -168,11 +181,11 @@ html body #root { background: transparent; }
   max-width: 26vw;
   text-align: left;
   font-size: 14px;
-  color: #c9b8ff;
+  color: #ff8f80;
 }
 .hud.v2 .tool-badge { top: 13vh; }
 .hud.v2 .suggest { display: none; }
 .hud.v2 .error { bottom: 4px; }
-.hud.v2 > * { --accent: #9b7bf0; }
+.hud.v2 > * { --accent: #ff3a28; }
 /* The deck draws its own vignette and scanlines; the page-wide ones would dim it twice. */
 html body::after { display: none; }

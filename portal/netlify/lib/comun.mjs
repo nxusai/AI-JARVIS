@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 
 /**
@@ -12,6 +13,8 @@ import { getStore } from '@netlify/blobs'
  *   STRIPE_KEY       llave restringida de Stripe (solo leer pagos de Checkout)
  *   PAGO_MX, PAGO_US los links de pago de la consultoría (pesos y dólares)
  *   NEXY_CLAVE       la llave con la que NEX lee los prospectos
+ *   NEX_LLAMADA_CLAVE la llave de las llamadas de NEX contigo (scripts/llamada.mjs)
+ *   ANTHROPIC_API_KEY para que NEX investigue en internet durante la llamada
  */
 
 export const env = (k) => (typeof Netlify !== 'undefined' ? Netlify.env.get(k) : process.env[k]) ?? ''
@@ -60,3 +63,13 @@ export async function agenda(body) {
 }
 
 export const quien = (l) => `${l.contacto?.nombre || l.de || 'Alguien'}${l.contacto?.empresa ? ` · ${l.contacto.empresa}` : ''}`
+
+/** Si la petición trae la llave de las llamadas de NEX (header x-nex-clave). */
+export function nexAutorizado(req) {
+  const want = Buffer.from(env('NEX_LLAMADA_CLAVE'))
+  const got = Buffer.from(req.headers.get('x-nex-clave') ?? '')
+  return want.length >= 24 && want.length === got.length && timingSafeEqual(want, got)
+}
+
+/** Los encargos que dejas en una llamada, hasta que NEX los toma en tu Mac. */
+export const encargos = () => getStore({ name: 'nex-encargos', consistency: 'strong' })

@@ -776,9 +776,10 @@ async function fetchCloudAudio(text: string, prev = ''): Promise<string | null> 
             ...(prev ? { previous_text: prev } : {}),
             model_id: 'eleven_flash_v2_5',
             voice_settings: {
-              stability: 0.35,
-              similarity_boost: 0.75,
-              speed: 1.04,
+              stability: 0.8,
+              similarity_boost: 0.8,
+              style: 0,
+              speed: 0.97,
             },
           }),
         },

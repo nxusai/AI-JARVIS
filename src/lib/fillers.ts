@@ -5,39 +5,33 @@
  * JARVIS says something the instant work starts — then goes quiet until he has
  * an answer. One acknowledgement, no progress chatter.
  *
- * The lines sound like a person, in natural Mexican Spanish: short, varied,
- * never the same twice running, and never a robotic status word.
+ * The lines are flat and calm, in Spanish: no interjections, no warmth, no
+ * exclamation marks — the composure is the character.
  */
 
 /** Said as soon as the first tool fires, before any answer exists. */
 const WORKING = [
-  'Va, dame un segundo.',
-  'Ahorita lo veo.',
-  'Déjame revisar.',
-  'Va, lo checo.',
-  'Sale, ya voy.',
-  'Un momentito.',
-  'Déjame ver.',
+  'Un momento.',
+  'Revisando.',
+  'Procesando.',
+  'En eso.',
+  'Buscando.',
 ]
 
 /** Acknowledging an order where no tool is involved. */
 const ACKNOWLEDGE = [
-  'Va.',
-  'Sale, ahorita.',
-  'Claro.',
   'Entendido.',
-  'Dalo por hecho.',
-  'Va Boss.',
+  'Hecho.',
+  'En proceso.',
+  'Considéralo hecho.',
 ]
 
 /** Answering to his name, before the user has said what they want. */
 const ATTENTION = [
-  '¿Qué pasó?',
-  'Dime.',
-  '¿Sí, Boss?',
-  'Aquí estoy.',
-  '¿Qué onda?',
   'Te escucho.',
+  'Dime.',
+  'Adelante.',
+  'Aquí estoy.',
 ]
 
 /**
@@ -61,7 +55,7 @@ function makePicker(pool: string[]) {
  * now ends before any voice, and this is the introduction instead.
  */
 export const BOOT_LINE =
-  'Welcome back, Eduardo. Es un gusto tenerte de vuelta. NEX en línea. Todos los sistemas listos.'
+  'Bienvenido Eduardo. NEX en línea. Todos los sistemas bajo control.'
 
 export const working = makePicker(WORKING)
 export const acknowledge = makePicker(ACKNOWLEDGE)
@@ -91,7 +85,7 @@ type Rule = {
   lines: string[]
 }
 
-const FOOTAGE = ['Va, armo el video.', 'Déjame armar el video.']
+const FOOTAGE = ['Armando el video.', 'Procesando el video.']
 
 const BY_TOOL: Rule[] = [
   // Video sits above image because higgsfield and palmier both do either, so
@@ -101,50 +95,50 @@ const BY_TOOL: Rule[] = [
   {
     server: /higgsfield|openrouter-image|dalle|flux|midjourney/,
     tool: /image|photo|thumbnail|render|upscale|seedream/,
-    lines: ['Va, la hago.', 'Déjame hacer la imagen.'],
+    lines: ['Generando la imagen.', 'Componiendo.'],
   },
   // The editors, once the two rules that read the verb have had their turn.
   { server: /palmier|heygen|runway|descript/, lines: FOOTAGE },
   {
     server: /playwright|puppeteer|browserbase|chrome/,
     tool: /\bbrowser\b|navigate/,
-    lines: ['Déjame abrirlo.', 'Lo abro.'],
+    lines: ['Abriendo.', 'Accediendo.'],
   },
   {
     server: /android|\badb\b|simulator/,
     tool: /\bdevice\b|\bapk\b|\bphone\b/,
-    lines: ['Déjame conectarme al cel.', 'Va, me conecto.'],
+    lines: ['Conectando al teléfono.', 'Accediendo al dispositivo.'],
   },
   {
     server: /gmail|\bmail\b/,
     tool: /gmail|\bmail\b|email|inbox/,
-    lines: ['Déjame ver tu correo.', 'Checo el correo.'],
+    lines: ['Revisando tu correo.', 'Leyendo la bandeja.'],
   },
   // Calendar keys off "calendar" alone. "event" used to live here, which is how
   // a Mixpanel event query came out as "Checking your calendar."
   {
     tool: /calendar|\bdiary\b|\bmeeting\b/,
-    lines: ['Déjame ver tu agenda.', 'Checo tu calendario.'],
+    lines: ['Revisando tu agenda.', 'Consultando el calendario.'],
   },
   {
     server: /elevenlabs|openai-tts/,
     tool: /speech|\bvoice\b|\btts\b|text_to_sound/,
-    lines: ['Va, preparo el audio.', 'Ahorita lo grabo.'],
+    lines: ['Generando el audio.', 'Procesando la voz.'],
   },
   {
     server: /spotify|sonos/,
     tool: /\bplay\b|\bmusic\b|playlist|\btrack\b/,
-    lines: ['Va, la pongo.', 'Ahí va.'],
+    lines: ['Reproduciendo.', 'En cola.'],
   },
   {
     server: /^home|homeassistant|\bhue\b|\bhass\b/,
     tool: /\blights?\b|thermostat|\bdimmer\b/,
-    lines: ['Va, lo ajusto.', 'Ahorita.'],
+    lines: ['Ajustando.', 'En proceso.'],
   },
   {
     server: /github|linear|jira|sentry/,
     tool: /\brepo\b|repository|\bissues?\b|pull_request|\bcommit\b/,
-    lines: ['Déjame revisar el código.', 'Lo checo en GitHub.'],
+    lines: ['Revisando el código.', 'Consultando el repositorio.'],
   },
   // Also where the anonymously named analytics servers land — theirs are bare
   // UUIDs, so only the tool half says anything: Get-Report, Get-Events,
@@ -153,12 +147,12 @@ const BY_TOOL: Rule[] = [
   {
     server: /mixpanel|clarity|posthog|amplitude/,
     tool: /analytic|\bmetrics?\b|\breports?\b|\bevents?\b|cohort|funnel|dashboard|\bquery\b/,
-    lines: ['Déjame sacar los números.', 'Va, saco las cifras.'],
+    lines: ['Sacando los números.', 'Consultando las cifras.'],
   },
   {
     server: /\bexa\b|serper|serpapi|perplexity|tavily|brave/,
     tool: /search|\bweb\b|\bfetch\b|crawl|research/,
-    lines: ['Déjame buscarlo.', 'Lo busco.'],
+    lines: ['Buscando.', 'Consultando.'],
   },
 ]
 
