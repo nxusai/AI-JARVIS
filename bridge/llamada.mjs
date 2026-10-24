@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { overview } from './ceo.mjs'
 import { runJob } from './routines.mjs'
 
 /**
@@ -10,18 +11,49 @@ import { runJob } from './routines.mjs'
  * one up here, does it as an ordinary job with all his tools and the same
  * locks as anything else, and reports on Telegram.
  *
- *   ~/.nexy/llamada.json   { "url": "https://…", "clave": "…" }   (scripts/llamada.mjs)
+ *   ~/.nexy/llamada.json   { "url": "https://…", "clave": "…", "negocio": true }   (scripts/llamada.mjs)
  */
 
 export const CALL_FILE = join(homedir(), '.nexy', 'llamada.json')
 const EVERY_MS = 30_000
 
-export function readCall() {
+/** Everything in llamada.json, as saved. */
+export function readCallFile() {
   try {
     const c = JSON.parse(readFileSync(CALL_FILE, 'utf8'))
-    return c?.url && c?.clave ? { url: String(c.url).replace(/\/+$/, ''), clave: String(c.clave) } : null
+    return c && typeof c === 'object' ? c : {}
   } catch {
-    return null
+    return {}
+  }
+}
+
+export function writeCallFile(patch) {
+  mkdirSync(dirname(CALL_FILE), { recursive: true })
+  writeFileSync(CALL_FILE, JSON.stringify({ ...readCallFile(), ...patch }, null, 2) + '\n')
+  chmodSync(CALL_FILE, 0o600)
+}
+
+/** The portal the call tasks wait in, once connected. */
+export function readCall() {
+  const c = readCallFile()
+  return c.url && c.clave ? { url: String(c.url).replace(/\/+$/, ''), clave: String(c.clave) } : null
+}
+
+/**
+ * The company as it is right now, for the agent that calls the owner: it
+ * travels with each call as the variable nex_negocio, so he can answer
+ * questions about the business on the phone. Only once the agent's
+ * instructions know the variable (scripts/llamada.mjs agente) — ElevenLabs
+ * refuses a call whose variables do not match.
+ */
+export function businessForCall() {
+  if (readCallFile().negocio !== true) return null
+  try {
+    const at = new Date().toLocaleString('es-MX', { timeZone: process.env.NEXY_TIMEZONE?.trim() || undefined, dateStyle: 'medium', timeStyle: 'short' })
+    return `Al ${at}:\n${overview()}`.slice(0, 4000)
+  } catch (err) {
+    console.log(`[jarvis] call: no business summary (${err?.message ?? err})`)
+    return 'No pude preparar el resumen del negocio para esta llamada.'
   }
 }
 

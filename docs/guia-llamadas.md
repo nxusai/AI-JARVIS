@@ -1,6 +1,9 @@
-# Guía: NEX con internet en tus llamadas
+# Guía: NEX en tus llamadas
 
-Cuando NEX te llama, puedes preguntarle cualquier cosa y él la investiga en internet al momento. Si le pides algo que hay que hacer (un correo, agendar, preparar algo, darle trabajo a Ultron), lo anota y lo hace en tu Mac en cuanto está prendido. Te avisa por Telegram al terminar.
+Cuando NEX te llama:
+- **Sabe cómo va el negocio:** cada llamada lleva un resumen de la empresa en ese momento (ventas del mes, quién está por cerrar, pendientes, software, lo que hicieron él, Ultron y Ana Sofi), y te contesta con eso.
+- **Hace lo que le pides:** lo anota y lo hace en tu Mac en cuanto está prendido, con aviso por Telegram.
+- **Internet (opcional, apagado):** con `node scripts/llamada.mjs agente internet` también investiga en internet; necesita ANTHROPIC_API_KEY en Netlify.
 
 Solo la agente que **te llama a ti** tiene esto. La mensajera y la recepcionista, que hablan con otras personas, no.
 

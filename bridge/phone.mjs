@@ -1,5 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
+import { businessForCall } from './llamada.mjs'
 import { smoothBoss } from './speech.mjs'
 
 /**
@@ -44,6 +45,12 @@ const NAME_PREFIX = 'NEX: '
 const OURS = /^(?:NEX|Nexy): /
 
 const NO_MESSAGE = '¿En qué te ayudo?'
+
+/** What the call carries: the message, and the company as it is now when set up. */
+function callVariables(message) {
+  const negocio = businessForCall()
+  return { nexy_brief: smoothBoss(message), ...(negocio ? { nex_negocio: negocio } : {}) }
+}
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
@@ -175,7 +182,7 @@ export function phoneServer(elevenKey, zone) {
         agent_id: s.agent,
         agent_phone_number_id: s.from,
         to_number: s.to,
-        conversation_initiation_client_data: { dynamic_variables: { nexy_brief: smoothBoss(message) } },
+        conversation_initiation_client_data: { dynamic_variables: callVariables(message) },
       }),
     })
     return r.error ? `error ${r.error}` : null
@@ -250,7 +257,7 @@ export function phoneServer(elevenKey, zone) {
                 {
                   phone_number: s.to,
                   conversation_initiation_client_data: {
-                    dynamic_variables: { nexy_brief: smoothBoss(message) },
+                    dynamic_variables: callVariables(message),
                   },
                 },
               ],
