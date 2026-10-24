@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Nexy's client-service bot on Telegram (see bridge/atencion.mjs).
+// NEX's client-service bot on Telegram (see bridge/atencion.mjs).
 //
 //   node scripts/atencion.mjs           asks for the new bot's token (hidden) and saves it
 //   node scripts/atencion.mjs estado    shows the bot and which groups are linked
 //   node scripts/atencion.mjs apagar    deletes its settings from this Mac (orders and files stay)
 //
-// A separate bot from the owner's own Nexy, made with @BotFather. The token is
+// A separate bot from the owner's own NEX, made with @BotFather. The token is
 // typed into a hidden prompt, checked with Telegram and saved in
 // ~/.nexy/atencion.json, readable by this Mac's user only. It is never printed.
 
@@ -77,7 +77,7 @@ if (cmd === 'estado') {
   console.log(` NXUS México:       ${cfg.grupos?.mexico ? 'vinculado ✅' : 'falta (escribe /mexico dentro del grupo)'}`)
 } else if (cmd === 'apagar') {
   rmSync(ATENCION_FILE, { force: true })
-  console.log(' El bot de atención quedó desconectado de esta Mac. Los pedidos y archivos se quedan guardados. Reinicia Nexy.')
+  console.log(' El bot de atención quedó desconectado de esta Mac. Los pedidos y archivos se quedan guardados. Reinicia NEX.')
 } else if (!cmd) {
   const token = (await hidden(' Pega la llave (token) del bot de atención y presiona Enter — no se verá mientras la pegas: ')).replace(/\s+/g, '')
   if (!TOKEN_SHAPE.test(token)) {
@@ -96,7 +96,7 @@ if (cmd === 'estado') {
   console.log(`\n ✅ Bot de atención conectado: @${me.username}`)
   console.log(` Guardado en ${ATENCION_FILE} (solo tu usuario puede leerlo).`)
   if (!me.can_read_all_group_messages) console.log(' ⚠️ Falta: en @BotFather → /setprivacy → elige este bot → Disable (para que lea todo lo del grupo).')
-  console.log(' Siguiente: reinicia Nexy (npm start), agrega el bot a los dos grupos y escribe /cliente o /equipo dentro de cada uno.')
+  console.log(' Siguiente: reinicia NEX (npm start), agrega el bot a los dos grupos y escribe /cliente o /equipo dentro de cada uno.')
 } else {
   console.log(' Uso: node scripts/atencion.mjs [estado | apagar]')
   process.exit(1)

@@ -4,7 +4,7 @@
 
 - **Ultron** atiende **solo a la dirección**: Senen, Gerardo, Marisol y Miguel (a quienes marques con "Habla con Ultron").
 - Debajo tiene a sus IAs: **Ana Sofi** (Mi Semago), y después la de **Abuelito** y **Vivian** (VAYRO).
-- **Nexy manda sobre Ultron.** Ve todas sus conversaciones y le da órdenes que la dirección nunca ve.
+- **NEX manda sobre Ultron.** Ve todas sus conversaciones y le da órdenes que la dirección nunca ve.
 
 ## Dónde habla
 
@@ -17,7 +17,7 @@
 ## Cómo funciona por dentro
 
 1. La pregunta se guarda en un **buzón** en Supabase (`ultron_mensajes`).
-2. Ultron corre **en tu Mac, bajo Nexy** (después en la Mac mini del cliente). Toma la pregunta, consulta con los permisos de esa persona y contesta.
+2. Ultron corre **en tu Mac, bajo NEX** (después en la Mac mini del cliente). Toma la pregunta, consulta con los permisos de esa persona y contesta.
 3. Deja la respuesta y su **voz de ElevenLabs** (voz `eosea9zzgDtCNZMXrA1R`) en el mismo buzón. La página la muestra y la reproduce.
 4. Si tu Mac está apagada, el mensaje espera; a los 2 minutos la página avisa que Ultron está dormido.
 
@@ -25,7 +25,7 @@ Cada quien ve solo **su** conversación y **sus** tareas. La consola muestra de 
 
 ## Conectarlo (una vez, 10 min)
 
-1. **Actualiza tu carpeta de Nexy** (el zip de la rama, como siempre).
+1. **Actualiza tu carpeta de NEX** (el zip de la rama, como siempre).
 2. **Base de datos:**
    - en tu Mac: `pbcopy < ~/Desktop/nexy/crm/supabase/esquema.sql`
    - Supabase → **SQL Editor** → **+ New query** → Cmd + V → **Run**.
@@ -36,14 +36,14 @@ Cada quien ve solo **su** conversación y **sus** tareas. La consola muestra de 
    ```
    - Pide la **Project URL**: `https://viqvpjhjerihnqzjjppb.supabase.co`
    - Pide la **Secret key**: de Passwords, la entrada `SUPABASE_SERVICE_KEY`. Al pegarla no se ve; es normal.
-4. **Reinicia Nexy:** Ctrl + C y luego `cd ~/Desktop/nexy && npm start`. En la Terminal debe salir `Ultron on`.
+4. **Reinicia NEX:** Ctrl + C y luego `cd ~/Desktop/nexy && npm start`. En la Terminal debe salir `Ultron on`.
 5. **En el Centro de trabajo → Usuarios:** crea (o edita) a Senen, Gerardo, Marisol y Miguel como **Cliente** y marca **"Habla con Ultron"**.
 6. **Prueba:**
    - entra como admin (tú también tienes el orbe);
    - toca el orbe y pregunta "Resumen de hoy";
    - luego abre la consola con **Consola ↗**.
 
-## Hablarle con la voz (como a Nexy)
+## Hablarle con la voz (como a NEX)
 
 Al abrir su consola queda **escuchando sola** (manos libres):
 - Di **"Ultron, …"** y lo que necesites. Contesta **con su voz**.
@@ -62,7 +62,7 @@ Para que entienda lo que dices, Netlify necesita la llave de ElevenLabs (una vez
    - Marca **Contains secret values**.
 3. **Deploys** → **Trigger deploy** → **Deploy project**.
 
-La voz con la que Ultron **contesta** sale de tu Mac (la misma llave de ElevenLabs que usa Nexy); esta nueva es solo para **oír**.
+La voz con la que Ultron **contesta** sale de tu Mac (la misma llave de ElevenLabs que usa NEX); esta nueva es solo para **oír**.
 
 ## Comandos útiles (en la Terminal)
 
@@ -75,6 +75,6 @@ node scripts/ultron.mjs voz <id>                  # cambiar su voz
 node scripts/api.mjs ultron                       # que lo pague una llave de API aparte (la del cliente)
 ```
 
-También a Nexy, por voz o Telegram:
+También a NEX, por voz o Telegram:
 - "¿Qué le preguntaron a Ultron hoy?"
 - "Dale a Ultron la orden de no prometer fechas sin preguntar al equipo."

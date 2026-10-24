@@ -320,10 +320,8 @@ function shape(text: string): string {
       .replace(/https?:\/\/[^\s]*[^\s.,;:!?)\]]/g, '')
       .replace(/[*_`#>]+/g, '')
       .replace(/^\s*[-•]\s+/gm, '')
-      // The vocative wants its comma — that small beat before "sir" does most
-      // of the characterisation. Anchored to a following pause or end of line
-      // so the honorific is left alone: "Sir Isaac Newton" is not a vocative.
-      .replace(/([^,\s])\s+(sir)(\s*[.,!?;:]|\s*$)/gi, '$1, $2$3')
+      // Her name is written NEX but said as a word, never spelled out.
+      .replace(/\bNEX\b/g, 'Nex')
       .replace(/\s+/g, ' ')
       .trim()
   )
@@ -360,7 +358,7 @@ export function createSpeaker(): Speaker {
   const enqueue = (sentence: string, priority = false) => {
     if (cancelled) return
     // Shape once here so both engines get the same text — stripped markdown,
-    // and the comma before "sir" that buys the beat.
+    // and her name said as a word.
     const text = shape(sentence)
     if (!text) return
 

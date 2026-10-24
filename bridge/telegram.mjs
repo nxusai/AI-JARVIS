@@ -24,7 +24,7 @@ import { smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
 
 /**
- * Nexy on Telegram: the owner's way to reach her away from the office.
+ * NEX on Telegram: the owner's way to reach her away from the office.
  *
  * A private bot, polled from this Mac — nothing has to be opened to the
  * internet. The owner writes or sends a voice note; the note is transcribed
@@ -60,7 +60,7 @@ const SLOW_NOTICE_MS = Number(process.env.NEXY_SLOW_NOTICE_MS) || undefined
 /** How long "Aprobar todo en Notion" lasts. */
 const NOTION_TRUST_MS = 60 * 60_000
 
-/** A message older than this when Nexy starts is asked about, not acted on. */
+/** A message older than this when NEX starts is asked about, not acted on. */
 const STALE_MS = 10 * 60_000
 
 const CHANNEL_PROMPT = `
@@ -76,7 +76,7 @@ Outward actions are approved with buttons in this same chat, so do not tell them
 to look at the console.`
 
 const HELP =
-  'Soy Nexy. Escríbeme o mándame una nota de voz con lo que necesites.\n\n' +
+  'Soy NEX. Escríbeme o mándame una nota de voz con lo que necesites.\n\n' +
   '/voz — contestarte siempre con nota de voz\n' +
   '/texto — contestarte siempre por escrito\n' +
   '/auto — voz si me hablas, texto si me escribes\n' +
@@ -111,7 +111,7 @@ const TOOL_LABEL = {
   'notion__API-update-a-database': 'Agregar columnas a una tabla de Notion',
   metricool__post_Schedule_Post: 'Programar publicación',
   metricool__update_Schedule_Post: 'Cambiar una publicación programada',
-  jarvis_contacts__save_contact: 'Guardar contacto (Nexy podrá llamarle)',
+  jarvis_contacts__save_contact: 'Guardar contacto (NEX podrá llamarle)',
   jarvis_contacts__remove_contact: 'Borrar contacto',
   jarvis_brands__link_brand_account: 'Conectar una cuenta a la marca',
   jarvis_brands__unlink_brand_account: 'Desconectar una cuenta de la marca',
@@ -119,7 +119,7 @@ const TOOL_LABEL = {
   'google-calendar__update-event': 'Cambiar un evento (a los invitados les llega el cambio)',
   jarvis_crudo__link_raw_folder: 'Conectar carpeta de crudo (memoria) a la marca',
   jarvis_video__clone_owner_voice: 'Clonar tu voz en ElevenLabs (con tus grabaciones)',
-  jarvis_rutinas__create_routine: 'Programar una rutina (Nexy la hará sola)',
+  jarvis_rutinas__create_routine: 'Programar una rutina (NEX la hará sola)',
   jarvis_rutinas__update_routine: 'Cambiar una rutina',
   jarvis_rutinas__remove_routine: 'Borrar una rutina',
 }
@@ -281,11 +281,11 @@ function busyLine(st, queued) {
 let phoneAsk = null
 
 /**
- * Ask Nexy from the phone. Resolves with her answer, or with { tarde: true }
+ * Ask NEX from the phone. Resolves with her answer, or with { tarde: true }
  * after `waitMs` — then she keeps working and the answer goes to Telegram.
  */
 export function askFromPhone(text, waitMs) {
-  if (!phoneAsk) return Promise.reject(new Error('Nexy no tiene Telegram conectado; el celular usa su misma conversación.'))
+  if (!phoneAsk) return Promise.reject(new Error('NEX no tiene Telegram conectado; el celular usa su misma conversación.'))
   return phoneAsk(text, waitMs)
 }
 
@@ -385,7 +385,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         tool(
           'send_file',
           'Send the owner a finished video, an image, an invoice PDF or a content calendar PDF in this chat, so they can see it before it is ' +
-            'published or created. Only files from the Nexy video folders, images they sent, PDFs from invoice_pdf or export_content_plan.',
+            'published or created. Only files from the NEX video folders, images they sent, PDFs from invoice_pdf or export_content_plan.',
           {
             path: z.string().describe('The file path, as edit_video or list_videos gave it.'),
             caption: z.string().optional().describe('A short line to go with it.'),
@@ -407,7 +407,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
               }
             })
             if (!roots.some((r) => r && real.startsWith(r))) {
-              return { isError: true, content: [{ type: 'text', text: 'Only finished videos, images, invoice PDFs and content calendars from the Nexy folders can be sent.' }] }
+              return { isError: true, content: [{ type: 'text', text: 'Only finished videos, images, invoice PDFs and content calendars from the NEX folders can be sent.' }] }
             }
             const size = statSync(real).size
             if (size > BOT_UPLOAD_LIMIT) {
@@ -441,7 +441,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
    */
   async function receiveFile(m, chatId, file, dir, what) {
     if ((file.file_size ?? 0) > MAX_DOWNLOAD) {
-      return say(chatId, `Ese ${what} pesa más de 20 MB y Telegram no me deja bajarlo. Pásalo por AirDrop a la carpeta Películas → Nexy → ${dir === MUSIC ? 'musica' : 'entrada'} de tu Mac y dime cuando esté.`)
+      return say(chatId, `Ese ${what} pesa más de 20 MB y Telegram no me deja bajarlo. Pásalo por AirDrop a la carpeta Películas → NEX → ${dir === MUSIC ? 'musica' : 'entrada'} de tu Mac y dime cuando esté.`)
     }
     try {
       const info = await api(token, 'getFile', { file_id: file.file_id })
@@ -468,7 +468,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
   /**
    * A contact card from the owner's phone book. Sending it is the owner
-   * saying "save this person"; Nexy still shows the exact number on an
+   * saying "save this person"; NEX still shows the exact number on an
    * approval card before it goes on the list she may call.
    */
   function shareContact(c, chatId) {
@@ -570,7 +570,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   })
 
   // The sales line's plain news (a call that went nowhere, a lead outside the
-  // US) comes straight here, without a turn of Nexy's.
+  // US) comes straight here, without a turn of NEX's.
   // The builder's news (started, how it goes, done) comes straight here too.
   setBuilderNotifier((text) => {
     const owner = readTelegram()?.owner
@@ -766,7 +766,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       return say(chatId, 'Por ahora entiendo mensajes, notas de voz, fotos, videos, música y contactos.')
     }
 
-    // Written while this Mac was off or Nexy was closed: ask, don't act.
+    // Written while this Mac was off or NEX was closed: ask, don't act.
     if (Date.now() - m.date * 1000 > STALE_MS) {
       return say(chatId, `Me llegó esto mientras estaba apagada:\n«${request.slice(0, 500)}»\n\n¿Todavía lo quieres? Mándamelo de nuevo y lo hago.`)
     }
@@ -789,7 +789,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         await handle(u).catch((err) => console.log(`[jarvis] telegram message failed: ${err?.message ?? err}`))
       }
     } catch (err) {
-      if (err.code === 409) console.log('[jarvis] telegram: another copy of Nexy is using this bot; close the other one')
+      if (err.code === 409) console.log('[jarvis] telegram: another copy of NEX is using this bot; close the other one')
       else if (err.code === 401) {
         console.log('[jarvis] telegram token was rejected; set it up again with: node scripts/telegram.mjs')
         return

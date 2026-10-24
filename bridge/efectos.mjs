@@ -9,13 +9,13 @@ import { DONE, VIDEO_DIR, resolveSource } from './video.mjs'
 
 /**
  * The effects workshop: motion graphics and 3D for the brands' videos, with
- * Remotion (video written as React) and Three.js. Nexy writes a scene — a
+ * Remotion (video written as React) and Three.js. NEX writes a scene — a
  * React component using the kit in bridge/efectos/kit (3D titles, 3D logos,
  * kinetic text, counters, word-by-word captions, punch-in zooms, flashes) and
  * the brand's clips — looks at a few frames, and renders the MP4.
  *
  *   ~/Movies/Nexy/efectos/               the Remotion project (set up with node scripts/efectos.mjs)
- *   ~/Movies/Nexy/efectos/escenas/*.tsx  one file per scene Nexy wrote
+ *   ~/Movies/Nexy/efectos/escenas/*.tsx  one file per scene NEX wrote
  *   ~/Movies/Nexy/efectos/public/        the clips, images and logos the scenes use
  *   ~/Movies/Nexy/listos/                finished videos
  *
@@ -208,7 +208,7 @@ export function effectsServer() {
   })
 }
 
-/** For Nexy's prompt. */
+/** For NEX's prompt. */
 export const EFFECTS_PROMPT = `
 
 # Effects (motion graphics and 3D)

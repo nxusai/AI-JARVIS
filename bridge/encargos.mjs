@@ -7,12 +7,12 @@ import { encargoUltron } from './nucleo/ultron.mjs'
 import { encargoAnaSofi } from './nucleo/anasofi.mjs'
 
 /**
- * Tasks Nexy hands to the AIs under her, with a report back. Ultron (the
+ * Tasks NEX hands to the AIs under her, with a report back. Ultron (the
  * client's direction AI) and Ana Sofi (Mi Semago) do the work right then with
- * their own tools and answer; the report comes back to Nexy and to the owner
+ * their own tools and answer; the report comes back to NEX and to the owner
  * on Telegram, and stays in ~/.nexy/encargos.json.
  *
- * Doing and reporting is Nexy's own business. Reaching a client's person — a
+ * Doing and reporting is NEX's own business. Reaching a client's person — a
  * message from Ultron in a director's console, or Ana Sofi acting in the
  * employees' group — waits for the owner's tap (deliver_task), like any send.
  * The AIs never learn where a task came from.

@@ -3,11 +3,11 @@ import { z } from 'zod'
 import { findProduct, listClients, productLine, queuePrint, today } from './nucleo/etiquetas.mjs'
 
 // The labels themselves are the core's (bridge/nucleo/etiquetas.mjs): they run
-// in the clients' brains too. What is Nexy's alone is below.
+// in the clients' brains too. What is NEX's alone is below.
 export * from './nucleo/etiquetas.mjs'
 
 /**
- * The owner's own Nexy and the labels: find a product and send labels to the
+ * The owner's own NEX and the labels: find a product and send labels to the
  * Zebra ("imprímeme 20 del quesillo abuelito de 5 libras"). Changing the
  * labels stays with Ana Sofi's group.
  */

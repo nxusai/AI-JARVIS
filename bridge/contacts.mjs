@@ -13,7 +13,7 @@ import { resolveWhen } from './phone.mjs'
  * owner's name:
  *
  *   1. Only contacts on the approved list (contact-book.mjs). The owner edits
- *      it from the Terminal, or by asking Nexy — save_contact and
+ *      it from the Terminal, or by asking NEX — save_contact and
  *      remove_contact below, which the bridge holds until the owner taps
  *      Aprobar on a card showing the exact name and number.
  *   2. Two steps. The first call only books the exact contact and message and
@@ -36,8 +36,8 @@ const SAME_CONTACT_GAP_MS = 5 * 60_000
 const MIN_REAL_CALL_SECS = 8
 /** Calls further off than this are booked with ElevenLabs instead of placed now. */
 const SCHEDULE_AFTER_MS = 90_000
-/** How Nexy's booked contact calls are named, so she lists and cancels only her own. */
-const CONTACT_PREFIX = 'Nexy contacto: '
+/** How NEX's booked contact calls are named, so she lists and cancels only her own. */
+const CONTACT_PREFIX = 'NEX contacto: '
 
 /** The hour on the owner's clock, for warning about calls at night. */
 const hourIn = (ms, zone) => Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hour12: false }).format(new Date(ms))) % 24
@@ -308,7 +308,7 @@ export function contactsServer(elevenKey, zone) {
             const got = await fetch(`${API}/batch-calling/${id}`, { headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(20_000) })
             if (!got.ok) return refuse(`That call could not be found (error ${got.status}).`)
             const b = await got.json()
-            if (!String(b.name ?? '').startsWith(CONTACT_PREFIX) || b.agent_id !== agent) return refuse('That call was not booked by Nexy, so it is left alone.')
+            if (!String(b.name ?? '').startsWith(CONTACT_PREFIX) || b.agent_id !== agent) return refuse('That call was not booked by NEX, so it is left alone.')
             const res = await fetch(`${API}/batch-calling/${id}/cancel`, { method: 'POST', headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(20_000) })
             if (!res.ok) return refuse(`The call could not be cancelled (error ${res.status}).`)
             return ok('The call is cancelled.')

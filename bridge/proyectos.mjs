@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 /**
- * Projects and what they cost. Before Nexy builds anything for a client — a
+ * Projects and what they cost. Before NEX builds anything for a client — a
  * site, a CRM, a video, a bot — the owner hears the price and says yes: the
  * yes is the tap on start_project, held like a send. From then on every turn's
  * API cost is added to the project; past its budget (plus a margin) or the cap,

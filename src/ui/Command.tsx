@@ -4,9 +4,9 @@ import { useFeed, type Feed } from './feed'
 import './command.css'
 
 /**
- * N.E.X.Y. — THE EYE.
+ * N.E.X. — THE EYE.
  *
- * The owner's choice: Nexy as an eye that watches. A fibrous iris in the NXUS
+ * The owner's choice: NEX as an eye that watches. A fibrous iris in the NXUS
  * colours (navy, blue, violet, purple, white) with a reptile's slit pupil
  * that opens when she listens, narrows while she thinks, flares when she
  * speaks and follows the pointer; HUD rings and running text turn around it.
@@ -313,7 +313,7 @@ function Rings({ owner }: { owner: string }) {
         <path d={ticks(396, 360, 5, 10, 14)} stroke={C(mix(0.4), 0.5)} strokeWidth="1" />
         <text className="ey-arc-text" fill={C(mix(0.5), 0.85)}>
           <textPath href="#ey-text-a" startOffset="4%">
-            NEXY · SENTIENT OPERATING LAYER · ALL CHANNELS MONITORED · {owner}
+            NEX · SENTIENT OPERATING LAYER · ALL CHANNELS MONITORED · {owner}
           </textPath>
         </text>
         <text className="ey-arc-text" fill={C(PURPLE, 0.95)}>
@@ -561,7 +561,7 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
 
         {showBrand && (
           <div className="ey-at" style={{ left: 64, top: 34 }}>
-            <div className="ey-title">N.E.X.Y.</div>
+            <div className="ey-title">N.E.X.</div>
             <div className="ey-sub">NEURAL EXECUTIVE · OBSERVING ALL SYSTEMS</div>
           </div>
         )}
@@ -609,7 +609,7 @@ export function Command({ showBrand, showSystems }: { showBrand: boolean; showSy
           “I SEE EVERYTHING YOU BUILD.”
         </div>
         <button type="button" className="ey-at ey-hint" style={{ left: CX, top: 884 }} onClick={talk}>
-          SAY “HEY NEXY” · [SPACE] TO TALK · [G] HANDS · [V] VOICE{voice ? `: ${voice.replace(/\(.*?\)/g, '').trim().toUpperCase()}` : ''}
+          SAY “HEY NEX” · [SPACE] TO TALK · [G] HANDS · [V] VOICE{voice ? `: ${voice.replace(/\(.*?\)/g, '').trim().toUpperCase()}` : ''}
         </button>
       </div>
     </div>

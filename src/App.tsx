@@ -63,11 +63,12 @@ const newId = () =>
 
 /** The same mishearings voice.ts accepts for the wake word — otherwise a turn
  *  that woke as "nexi" gets that word sent on to the model as a question. */
-const NAME = '(?:nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy)'
-/** A bare vocative — "Nexy", "hey nexy" — with nothing asked. */
-const BARE_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\\s*${NAME}[\\s,.!?]*$`, 'i')
-/** A leading vocative on a real command: "Nexy, what's the weather". */
-const LEADING_NAME = new RegExp(`^(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\\s*${NAME}\\b[\\s,.:!?-]*`, 'i')
+const NAME = '(?:nex|nexx|neks|necks|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy)'
+const CALL = `(?:(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)\\s+next|(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\\s*${NAME})`
+/** A bare vocative — "NEX", "oye NEX" — with nothing asked. */
+const BARE_NAME = new RegExp(`^${CALL}[\\s,.!?]*$`, 'i')
+/** A leading vocative on a real command: "NEX, what's the weather". */
+const LEADING_NAME = new RegExp(`^${CALL}\\b[\\s,.:!?-]*`, 'i')
 
 export default function App() {
   const store = useStore

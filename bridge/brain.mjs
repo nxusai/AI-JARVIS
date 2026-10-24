@@ -5,11 +5,11 @@ import { readContacts } from './contact-book.mjs'
 import { orgView } from './agents.mjs'
 
 /**
- * The "brain" view on the console: what Nexy knows, as a graph.
+ * The "brain" view on the console: what NEX knows, as a graph.
  *
- * Nexy in the middle; her brands, each with the notes of its manual; her
+ * NEX in the middle; her brands, each with the notes of its manual; her
  * departments with their agents; the people she may call; and what the owner
- * told her about themselves, hung on the brand it mentions or on Nexy herself.
+ * told her about themselves, hung on the brand it mentions or on NEX herself.
  * Everything comes from the same plain files she reads — nothing is invented
  * for the picture — and contacts appear by name only, never by number.
  */
@@ -24,11 +24,11 @@ export function buildBrain() {
     if (to) links.push({ source: to, target: node.id })
   }
 
-  add({ id: 'nexy', label: 'NEXY', kind: 'core' })
+  add({ id: 'nexy', label: 'NEX', kind: 'core' })
 
   const { activa, marcas } = readBrands()
   for (const b of marcas) {
-    // A company's brands hang from the company, not from Nexy.
+    // A company's brands hang from the company, not from NEX.
     const under = b.padre && marcas.some((x) => x.id === b.padre) ? `brand:${b.padre}` : 'nexy'
     add({ id: `brand:${b.id}`, label: b.nombre, kind: 'brand', color: b.color, brand: b.id, active: b.id === activa }, under)
     readManual(b.id).forEach((note, i) =>
@@ -60,7 +60,7 @@ export function buildBrain() {
   const profile = profileIndex()
   if (profile.length) add({ id: 'profile', label: 'Perfil', icon: '🧠', kind: 'dept' }, 'nexy')
   for (const c of profile) {
-    add({ id: `profile:${c.id}`, label: c.nombre, icon: c.icono, detail: c.privado ? `Privado: ${c.lineas} datos que solo Nexy abre.` : `${c.lineas} datos`, kind: 'brand' }, 'profile')
+    add({ id: `profile:${c.id}`, label: c.nombre, icon: c.icono, detail: c.privado ? `Privado: ${c.lineas} datos que solo NEX abre.` : `${c.lineas} datos`, kind: 'brand' }, 'profile')
     if (c.privado) continue
     c.temas.slice(0, 14).forEach((t, i) => add({ id: `profile:${c.id}:${i}`, label: short(t), detail: t, kind: 'note' }, `profile:${c.id}`))
   }

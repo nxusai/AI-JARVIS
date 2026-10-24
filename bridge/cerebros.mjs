@@ -8,9 +8,9 @@ import { listClients, readLabelConfig, saveClient } from './etiquetas.mjs'
 import { readTelegram } from './telegram-config.mjs'
 
 /**
- * Nexy's side of the clients' brains (docs/cerebro-cliente.md): which brains
- * there are, and the door into each. Nexy goes to the brain, never the other
- * way: over SSH, with a key of Nexy's that the brain lets run only its door
+ * NEX's side of the clients' brains (docs/cerebro-cliente.md): which brains
+ * there are, and the door into each. NEX goes to the brain, never the other
+ * way: over SSH, with a key of NEX's that the brain lets run only its door
  * (bridge/cerebro/canal.sh) — read its state, take a copy of its labels,
  * install a signed package, apply signed data, restart, stop, or wipe its keys.
  *
@@ -50,7 +50,7 @@ export function saveBrain(name, value) {
   chmodSync(BRAINS_FILE, 0o600)
 }
 
-/** Whether Ana Sofi answers from a brain now (then Nexy's own copy of her stays off). */
+/** Whether Ana Sofi answers from a brain now (then NEX's own copy of her stays off). */
 export const anaSofiMoved = () => Object.values(readBrains()).some((b) => b.anasofi === 'cerebro')
 
 /** The door's key: made the first time with ssh-keygen. Resolves its public line. */
@@ -115,7 +115,7 @@ const asSet = (c) => ({ ...c, tipo: c.tipo === 'traza' ? 'traza' : 'gs1' })
 
 /**
  * Takes a copy of a brain's labels and state into ~/.nexy/cerebros/<nombre>/espejo.
- * Once Ana Sofi answers from that brain, the sets changed there become Nexy's
+ * Once Ana Sofi answers from that brain, the sets changed there become NEX's
  * original too (with their history here). Resolves the sets the brain has
  * that are not as they are here.
  */
@@ -151,7 +151,7 @@ export async function mirror(name) {
   return { dir, differ, adopted }
 }
 
-/** What Nexy sends a brain as data: signed with the same key as the packages. */
+/** What NEX sends a brain as data: signed with the same key as the packages. */
 export function buildData({ labels = false } = {}) {
   const ana = readAnaSofi() ?? {}
   const data = {
@@ -236,7 +236,7 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
   return messages
 }
 
-/** To the owner's own Telegram (Nexy's bot), like the ads' alerts. */
+/** To the owner's own Telegram (NEX's bot), like the ads' alerts. */
 async function tellOwner(text) {
   const tg = readTelegram()
   if (!tg?.token || !tg.owner?.id) return false
@@ -252,7 +252,7 @@ async function tellOwner(text) {
   }
 }
 
-/** Every five minutes while Nexy is on, when there are brains. */
+/** Every five minutes while NEX is on, when there are brains. */
 export function startBrainWatch() {
   if (!Object.keys(readBrains()).length) return
   let busy = false

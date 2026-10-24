@@ -398,7 +398,7 @@ export async function ask(
     const arm = () => {
       clearTimeout(timer)
       timer = window.setTimeout(() => {
-        fail(new Error('Perdí la conexión con Nexy a media respuesta. ¿Me lo repites?'))
+        fail(new Error('Perdí la conexión con NEX a media respuesta. ¿Me lo repites?'))
       }, IDLE_TIMEOUT_MS)
     }
 
@@ -454,10 +454,10 @@ export async function ask(
     }
 
     const onClose = () => {
-      fail(new Error('Se cortó la conexión con Nexy a media respuesta. ¿Me lo repites?'))
+      fail(new Error('Se cortó la conexión con NEX a media respuesta. ¿Me lo repites?'))
     }
     const onError = () => {
-      fail(new Error('No pude conectarme con Nexy. ¿Está encendida?'))
+      fail(new Error('No pude conectarme con NEX. ¿Está encendida?'))
     }
 
     pending = { finish }

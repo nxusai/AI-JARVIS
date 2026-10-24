@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Connect Nexy to Mi Semago's leads Sheet and to Ana Sofi, the sales agent.
+// Connect NEX to Mi Semago's leads Sheet and to Ana Sofi, the sales agent.
 //
 //   node scripts/ana-sofi.mjs            1) copies the Sheet script to paste in Apps Script
 //                                        2) asks for the web-app link, Agent ID and Phone number ID
@@ -12,7 +12,7 @@
 //
 // The Sheet script answers only to a long random key made here, kept in
 // ~/.nexy/ventas.json (readable by this user only) and inside the script in
-// the owner's own Sheet. It can read the rows and write only Nexy's six
+// the owner's own Sheet. It can read the rows and write only NEX's six
 // columns. Nothing here is a password to Google: the script runs as the
 // owner, inside their Sheet.
 
@@ -40,10 +40,10 @@ const say = (s = '') => console.log(s)
 const SCRIPT_FILE = join(homedir(), '.nexy', 'mi-semago-sheet.gs')
 
 function appsScript(token) {
-  return `// Nexy ↔ Leads Mi Semago. Pegado por scripts/ana-sofi.mjs. No compartas este código: la llave de abajo abre tu Sheet.
+  return `// NEX ↔ Leads Mi Semago. Pegado por scripts/ana-sofi.mjs. No compartas este código: la llave de abajo abre tu Sheet.
 const TOKEN = '${token}';
 const SHEET_NAME = 'Leads';
-// Las únicas columnas que Nexy puede escribir.
+// Las únicas columnas que NEX puede escribir.
 const WRITABLE = ['Fecha', 'Estado', 'Llamada programada', 'Resultado', 'Reunión', 'Notas'];
 const VERSION = 2;
 
@@ -123,7 +123,7 @@ async function check() {
     const leads = await readLeads()
     const pending = leads.filter((l) => wantsCall(l) && !l.estado).length
     say(`\n✅ Leí el Sheet: ${leads.length} lead(s); ${pending} esperando que Ana Sofi les llame.`)
-    if (pending) say('   Ojo: en cuanto prendas a Nexy, Ana Sofi va a programar llamadas para esos leads.')
+    if (pending) say('   Ojo: en cuanto prendas a NEX, Ana Sofi va a programar llamadas para esos leads.')
     if (leads.length && leads[0].contacto === undefined) say('   ⚠️ No encontré la columna "Contacto ID". Revisa que los títulos de la fila 1 se llamen como en ManyChat.')
     return true
   } catch (err) {
@@ -160,7 +160,7 @@ async function setup() {
   } finally {
     rl.close()
   }
-  if (await check()) say('\nListo. Reinicia a Nexy (Ctrl + C y npm start) para que Ana Sofi empiece a trabajar.\n')
+  if (await check()) say('\nListo. Reinicia a NEX (Ctrl + C y npm start) para que Ana Sofi empiece a trabajar.\n')
   else say('\nRevisa el paso de "Implementar" y vuelve a correr: node scripts/ana-sofi.mjs\n')
 }
 
@@ -183,13 +183,13 @@ async function eleven(key, path) {
 }
 
 const STAGES = {
-  nuevo: 'Nexy lo recibió y está programando la llamada',
+  nuevo: 'NEX lo recibió y está programando la llamada',
   programada: 'llamada programada',
-  callback: 'pidió otra llamada; Nexy la reprograma',
+  callback: 'pidió otra llamada; NEX la reprograma',
   reunion_pendiente: 'aceptó el precio; falta que apruebes la invitación',
   cerrado: 'terminado',
   fuera: 'número fuera de EE.UU.',
-  atorado: 'Nexy no pudo programarla',
+  atorado: 'NEX no pudo programarla',
 }
 
 async function revisar() {
@@ -223,14 +223,14 @@ async function revisar() {
     }
   }
 
-  say('\n— Nexy')
+  say('\n— NEX')
   const port = Number(process.env.JARVIS_BRIDGE_PORT ?? 8787)
   const up = spawnSync('lsof', ['-ti', `tcp:${port}`], { encoding: 'utf8' }).stdout?.trim()
-  if (up) good('Nexy está prendida')
-  else bad('Nexy está apagada. Préndela con: cd ~/Desktop/nexy && npm start')
+  if (up) good('NEX está prendida')
+  else bad('NEX está apagada. Préndela con: cd ~/Desktop/nexy && npm start')
   if (readTelegram()?.owner) good('Telegram conectado')
-  else bad('Telegram no está conectado: Nexy no tiene a quién avisar ni cómo trabajar sola')
-  if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) bad('Esta Mac está marcada como "mudada": aquí Nexy no revisa el Sheet')
+  else bad('Telegram no está conectado: NEX no tiene a quién avisar ni cómo trabajar sola')
+  if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) bad('Esta Mac está marcada como "mudada": aquí NEX no revisa el Sheet')
 
   say('\n— Leads en el Sheet')
   let leads = []
@@ -251,7 +251,7 @@ async function revisar() {
     else if (!usPhone(l.telefono)) why = `no se llama: el Teléfono "${l.telefono || 'vacío'}" no es de EE.UU.`
     else if (s) why = `${STAGES[s.stage] ?? s.stage}${s.at ? ` · ${new Date(s.at).toLocaleString('es-MX')}` : ''}`
     else if (l.estado) why = `no se llama: la columna Estado ya dice "${l.estado}" (bórrala para que Ana Sofi lo llame)`
-    else why = 'listo para llamar: Nexy lo toma en su siguiente revisión (cada 3 minutos, con Nexy prendida)'
+    else why = 'listo para llamar: NEX lo toma en su siguiente revisión (cada 3 minutos, con NEX prendida)'
     say(`  • ${name}\n      ${why}`)
   }
   say()
@@ -278,7 +278,7 @@ async function entrantes() {
   if (a.error) return say(`\n✋ No pude darle el número (error ${a.error}). Hazlo a mano: en ElevenLabs, tu número → Agent → "Ana Sofi · Llamadas entrantes".\n`)
   say('✅ Las llamadas que entran al número de Ana Sofi ahora las contesta ella, sabiendo quién llama.')
   say('   Las llamadas que Ana Sofi hace a los leads siguen saliendo igual.')
-  say('\nReinicia a Nexy (Ctrl + C y npm start) para que empiece a leer esas llamadas.\n')
+  say('\nReinicia a NEX (Ctrl + C y npm start) para que empiece a leer esas llamadas.\n')
 }
 
 async function estado() {

@@ -78,7 +78,7 @@ if (cmd === 'estado') {
     console.log(` La llave del bot no funciona (${err.message}). Vuelve a correr: node scripts/anasofi.mjs`)
   }
   console.log(` Grupo de etiquetas: ${cfg.grupo ? 'vinculado ✅' : 'falta (escribe /etiquetas dentro del grupo)'}`)
-  // The same ElevenLabs key Nexy uses (the elevenlabs MCP server's).
+  // The same ElevenLabs key NEX uses (the elevenlabs MCP server's).
   let key = process.env.ELEVENLABS_API_KEY ?? null
   try {
     key ??= JSON.parse(readFileSync(join(homedir(), '.claude.json'), 'utf8')).mcpServers?.elevenlabs?.env?.ELEVENLABS_API_KEY ?? null
@@ -93,7 +93,7 @@ if (cmd === 'estado') {
   process.exit(0)
 } else if (cmd === 'apagar') {
   rmSync(ANASOFI_FILE, { force: true })
-  console.log(' El bot de Ana Sofi quedó desconectado de esta Mac. Las etiquetas y su historial se quedan guardados. Reinicia Nexy.')
+  console.log(' El bot de Ana Sofi quedó desconectado de esta Mac. Las etiquetas y su historial se quedan guardados. Reinicia NEX.')
   process.exit(0)
 } else if (cmd === 'voz') {
   const [lang, id] = process.argv.slice(3)
@@ -151,7 +151,7 @@ if (cmd === 'estado') {
   console.log(`\n ✅ Bot de Ana Sofi conectado: @${me.username}`)
   console.log(` Guardado en ${ANASOFI_FILE} (solo tu usuario puede leerlo).`)
   if (!me.can_read_all_group_messages) console.log(' ⚠️ Falta: en @BotFather → /setprivacy → elige este bot → Disable (para que lea todo lo del grupo).')
-  console.log(' Siguiente: reinicia Nexy (npm start), agrega el bot al grupo y escribe /etiquetas dentro del grupo.')
+  console.log(' Siguiente: reinicia NEX (npm start), agrega el bot al grupo y escribe /etiquetas dentro del grupo.')
   process.exit(0)
 } else {
   console.log(' Uso: node scripts/anasofi.mjs [estado | apagar | voz es|en <id> | carpeta [correo]]')

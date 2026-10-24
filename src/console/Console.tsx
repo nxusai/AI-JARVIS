@@ -12,7 +12,7 @@ import { homeOf } from './services'
 import type { Approval, Brain as BrainData, Brands, Org, Server, Task } from './types'
 
 /**
- * The Ramos & Co. console: what Nexy and her team are doing, for which brand, and
+ * The Ramos & Co. console: what NEX and her team are doing, for which brand, and
  * where she is waiting for approval. It watches, answers approvals, switches
  * brands and edits brand manuals — everything else comes from
  * bridge/console.mjs, and it never talks to the agent.
@@ -181,10 +181,10 @@ export default function Console() {
       <header className="top">
         <div className="logo">
           <span className="mark">{brands?.grupo ?? 'Ramos & Co.'}</span>
-          <span className="sub">Consola de Nexy</span>
+          <span className="sub">Consola de NEX</span>
         </div>
         <label className="working-on">
-          <span>Nexy trabaja en</span>
+          <span>NEX trabaja en</span>
           <select value={brands?.activa ?? ''} onChange={(e) => switchBrand(e.target.value)} disabled={!brands}>
             {companies(brands).map((sec) => (
               <optgroup key={sec.title} label={sec.title}>
@@ -205,7 +205,7 @@ export default function Console() {
           <i className="swatch" />
         </label>
         <span className={connected ? 'conn on' : 'conn off'}>
-          {connected ? '● Conectada' : '● Sin conexión con Nexy — ¿está encendida?'}
+          {connected ? '● Conectada' : '● Sin conexión con NEX — ¿está encendida?'}
         </span>
       </header>
 
@@ -317,7 +317,7 @@ export default function Console() {
                 {current ? (
                   <TaskView task={current} now={now} open brands={brands} agents={agents} />
                 ) : (
-                  <p className="muted">Nada todavía. Pídele algo a Nexy y aquí verás cada paso.</p>
+                  <p className="muted">Nada todavía. Pídele algo a NEX y aquí verás cada paso.</p>
                 )}
                 {history.length ? (
                   <>
@@ -351,7 +351,7 @@ export default function Console() {
 
       {tab === 'aprobaciones' ? (
         <main className="approvals-page">
-          {approvalsBlock ?? <p className="muted">Nada esperando tu aprobación. Cuando Nexy vaya a enviar, publicar o cambiar algo, aparecerá aquí.</p>}
+          {approvalsBlock ?? <p className="muted">Nada esperando tu aprobación. Cuando NEX vaya a enviar, publicar o cambiar algo, aparecerá aquí.</p>}
         </main>
       ) : null}
     </div>

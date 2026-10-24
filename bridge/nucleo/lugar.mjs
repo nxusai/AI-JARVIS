@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
  * Where the core keeps things, and how it signs its log lines.
  *
  * The core (bridge/nucleo) is what Ana Sofi and the labels are made of, and
- * it runs in two places: inside Nexy, and alone in a client's brain (see
+ * it runs in two places: inside NEX, and alone in a client's brain (see
  * docs/cerebro-cliente.md). Everything that names the place lives here, so
  * the core itself never does: the brain's package swaps this file for
  * bridge/cerebro/lugar.mjs, and nothing of this one goes with it.
@@ -28,5 +28,5 @@ export const TMP = 'nexy'
 export const FFMPEG_OVERRIDE = process.env.NEXY_FFMPEG
 export const YTDLP_OVERRIDE = process.env.NEXY_YTDLP
 export const CHROME_OVERRIDE = process.env.NEXY_CHROME
-/** Where a brain keeps the key its program is sealed with; Nexy has none. */
+/** Where a brain keeps the key its program is sealed with; NEX has none. */
 export const SEAL_KEY = null

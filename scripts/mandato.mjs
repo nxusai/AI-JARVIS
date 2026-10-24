@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Nexy's sales mandate for NXUS (see bridge/mandato.mjs).
+// NEX's sales mandate for NXUS (see bridge/mandato.mjs).
 //
 //   node scripts/mandato.mjs                          how the month goes, the pipeline and the rules
 //   node scripts/mandato.mjs direccion "123 Main St, Paterson, NJ 07501"
@@ -35,7 +35,7 @@ if (cmd === 'direccion') {
     process.exit(1)
   }
   writeMandate({ direccion_fisica: d })
-  say(`\n✅ Dirección guardada: ${d}\n   Desde ahora Nexy puede mandar sola los primeros correos a prospectos (con esa dirección al final).\n`)
+  say(`\n✅ Dirección guardada: ${d}\n   Desde ahora NEX puede mandar sola los primeros correos a prospectos (con esa dirección al final).\n`)
   process.exit(0)
 }
 
@@ -86,8 +86,8 @@ if (cmd === 'prospectar') {
   renameSync(`${ROUTINES}.tmp`, ROUTINES)
   chmodSync(ROUTINES, 0o600)
   say(`\n✅ Prospección diaria lista: de lunes a viernes a las ${hora} (${ZONE}).`)
-  if (!readMandate().direccion_fisica) say('⚠️  Falta la dirección física: sin ella Nexy te pedirá aprobar cada correo. Ponla con: node scripts/mandato.mjs direccion "…"')
-  say('   Reinicia Nexy para que la tome: Ctrl + C y npm start\n')
+  if (!readMandate().direccion_fisica) say('⚠️  Falta la dirección física: sin ella NEX te pedirá aprobar cada correo. Ponla con: node scripts/mandato.mjs direccion "…"')
+  say('   Reinicia NEX para que la tome: Ctrl + C y npm start\n')
   process.exit(0)
 }
 

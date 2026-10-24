@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Sets up Nexy's effects workshop (Remotion + Three.js) on this Mac, once.
+// Sets up NEX's effects workshop (Remotion + Three.js) on this Mac, once.
 //
 //   node scripts/efectos.mjs          installs it in ~/Movies/Nexy/efectos (a few minutes, ~450 MB)
 //   node scripts/efectos.mjs estado   whether it is installed, and the scenes there are
@@ -20,13 +20,13 @@ prepareProject()
 console.log(`\n Instalando el taller de efectos en ${EFX_DIR}…\n (tarda unos minutos; no cierres esta ventana)\n`)
 const p = spawn('npm', ['install', '--no-audit', '--no-fund'], { cwd: EFX_DIR, stdio: 'inherit' })
 p.on('error', (err) => {
-  console.log(`\n ❌ No pude correr npm (${err.message}). ¿Está instalado Node.js? Es el mismo que usa Nexy.`)
+  console.log(`\n ❌ No pude correr npm (${err.message}). ¿Está instalado Node.js? Es el mismo que usa NEX.`)
   process.exit(1)
 })
 p.on('close', (code) => {
   if (code === 0 && installed()) {
     console.log('\n ✅ Listo: el taller de efectos quedó instalado.')
-    console.log(' Reinicia Nexy (Ctrl + C y npm start) y pídele por Telegram un video con efectos.\n')
+    console.log(' Reinicia NEX (Ctrl + C y npm start) y pídele por Telegram un video con efectos.\n')
     process.exit(0)
   }
   console.log('\n ❌ La instalación no terminó. Revisa tu internet y vuelve a correr: node scripts/efectos.mjs\n')

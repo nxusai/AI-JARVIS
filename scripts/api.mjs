@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// The API key Nexy runs on (see bridge/apikeys.mjs): the owner's own Nexy and the
+// The API key NEX runs on (see bridge/apikeys.mjs): the owner's own NEX and the
 // groups (client service, NXUS México, Ana Sofi) spend API credits; the owner's
 // subscription stays for building with Claude Code.
 //
-//   node scripts/api.mjs                 asks for the key (hidden), checks it and uses it for all of Nexy
+//   node scripts/api.mjs                 asks for the key (hidden), checks it and uses it for all of NEX
 //   node scripts/api.mjs anasofi         the same, but only for one space (personal, atencion, mexico or anasofi)
 //   node scripts/api.mjs estado          which spaces run on API credits
 //   node scripts/api.mjs quitar [space]  back to the subscription (all, or one space)
@@ -15,7 +15,7 @@ import { API_FILE, checkKey, KEY_SHAPE, readApiKeys, SPACES, writeApiKeys } from
 
 const [cmd, arg] = process.argv.slice(2)
 const say = (s) => console.log(s)
-const NAMES = { grupos: 'todo Nexy (tu Nexy personal y los grupos)', personal: 'tu Nexy personal (voz, consola, tu Telegram, rutinas)', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)', ultron: 'Ultron (la dirección de Mi Semago y Abuelito)' }
+const NAMES = { grupos: 'todo NEX (tu NEX personal y los grupos)', personal: 'tu NEX personal (voz, consola, tu Telegram, rutinas)', atencion: 'atención (cliente y equipo)', mexico: 'NXUS México', anasofi: 'Ana Sofi (etiquetas)', ultron: 'Ultron (la dirección de Mi Semago y Abuelito)' }
 
 /** Read a line without showing it; from a pipe when there is no terminal. */
 function hidden(question) {
@@ -70,7 +70,7 @@ if (cmd === 'quitar') {
   if (arg && SPACES.includes(arg)) delete keys[arg]
   else for (const k of Object.keys(keys)) delete keys[k]
   writeApiKeys(keys)
-  say(`\n✅ ${arg && SPACES.includes(arg) ? NAMES[arg] : 'Todo Nexy'} vuelve a tu suscripción. Reinicia Nexy (Ctrl+C y npm start).\n`)
+  say(`\n✅ ${arg && SPACES.includes(arg) ? NAMES[arg] : 'Todo NEX'} vuelve a tu suscripción. Reinicia NEX (Ctrl+C y npm start).\n`)
   process.exit(0)
 }
 
@@ -93,5 +93,5 @@ if (ok !== true) {
 writeApiKeys({ ...readApiKeys(), [space]: key })
 say(`\n✅ Listo: ${NAMES[space]} → tus créditos de API (guardado en ${API_FILE}, solo tu usuario puede leerlo).`)
 say('   Programar con Claude sigue con tu suscripción.')
-say('   Reinicia Nexy (Ctrl+C en su ventana y npm start) para que lo tome.\n')
+say('   Reinicia NEX (Ctrl+C en su ventana y npm start) para que lo tome.\n')
 process.exit(0)

@@ -8,12 +8,12 @@ import { activeBrand, readBrands } from './brands.mjs'
  *
  * Each one is a second copy of the same Gmail server, signed in to that
  * company's account (info@misemago.com for Mi Semago), with its own
- * credentials file, so Nexy sees it as a separate server: `gmail-mi-semago`.
+ * credentials file, so NEX sees it as a separate server: `gmail-mi-semago`.
  * Connected with `node scripts/correo.mjs conectar mi-semago info@misemago.com`,
  * which checks Google really signed in to that address before keeping it.
  *
  * The lock is the same as with publishing: a company's mailbox is only used
- * (read, drafted, sent) while Nexy is working in that company, and every send
+ * (read, drafted, sent) while NEX is working in that company, and every send
  * waits for the owner's tap with the mailbox on the card.
  *
  *   ~/.nexy/correos.json                 which mailbox belongs to which company

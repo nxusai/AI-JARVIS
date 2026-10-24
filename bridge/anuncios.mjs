@@ -248,7 +248,7 @@ export async function check({ opts = {}, now = Date.now(), notifyPauses = readAd
       const stopped = notifyPauses ? Object.entries(prev.adsets ?? {}).filter(([id, p]) => p.on && !seen[id]?.on) : []
       const who = started.length || rebudget.length ? await whoDid(a.cuenta, sinceSec, opts) : new Map()
       const by = (s) => who.get(s.id) ?? who.get(s.campaign?.id) ?? ''
-      const away = prev.at && now - new Date(prev.at).getTime() > EVERY_MS * 2 ? ' (mientras Nexy estaba apagada)' : ''
+      const away = prev.at && now - new Date(prev.at).getTime() > EVERY_MS * 2 ? ' (mientras NEX estaba apagada)' : ''
       const label = (s) => companyOf(a, s) ?? `${UNTAGGED} (cuenta compartida ${a.empresa})`
       const fix = (s) => (a.compartida && !companyOf(a, s) ? '\n• Ponle al nombre de la campaña la empresa entre corchetes, por ejemplo "[Abuelito Cheese] …", para saber de quién es.' : '')
       for (const s of started) messages.push(`📢 ${label(s)} — se activó un ad${away}\n${describe(s, { currency, zone, who: by(s) })}${fix(s)}`)
@@ -275,7 +275,7 @@ function budgetKeyText(key, currency) {
   return `${money(m[3], currency)} ${m[2] === 'd' ? 'diarios' : 'en total'}${m[1] ? ' (de la campaña completa)' : ''}`
 }
 
-/** Every 15 minutes while Nexy is on; the first look a minute after she starts. */
+/** Every 15 minutes while NEX is on; the first look a minute after she starts. */
 export function startAdsWatch() {
   if (!readAdsKey()) {
     console.log('[jarvis] ads watch off — set it up with: node scripts/meta-ads.mjs')
@@ -418,7 +418,7 @@ const CREATES = /create|duplicate|copy/i
 
 /**
  * A write in a shared ad account (see brands.mjs): what is created is named
- * for the company Nexy is working in ("[Abuelito Cheese] …", added when
+ * for the company NEX is working in ("[Abuelito Cheese] …", added when
  * missing), and what is changed must already carry one of its tags — read
  * from Meta with the read-only key, so the model cannot claim it.
  * Resolves { ok, input?, changed? } or { ok: false, message }.
@@ -471,7 +471,7 @@ export async function sharedWriteCheck(tool, input, tags, opts) {
   return { ok: true }
 }
 
-/** Nexy's tool for "¿qué ads tiene activos Mi Semago?". Read only. */
+/** NEX's tool for "¿qué ads tiene activos Mi Semago?". Read only. */
 export function adsWatchServer() {
   return createSdkMcpServer({
     name: 'jarvis_anuncios',

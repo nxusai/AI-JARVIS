@@ -94,7 +94,7 @@ async function setup() {
   }
   writeUltron({ url, servicio, voz: old?.voz ?? VOZ_ULTRON })
   say(`\n✅ Ultron conectado. Guardado en ${ULTRON_FILE} (solo tu usuario lo puede leer).`)
-  say('   Reinicia Nexy (Ctrl+C y npm start) para que despierte.\n')
+  say('   Reinicia NEX (Ctrl+C y npm start) para que despierte.\n')
 }
 
 async function estado() {

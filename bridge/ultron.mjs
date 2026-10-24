@@ -5,7 +5,7 @@ import { hub } from './console.mjs'
 import { readUltron, startUltron as start, supabase, sincronizarInstrucciones } from './nucleo/ultron.mjs'
 
 // Ultron himself is the core's (bridge/nucleo/ultron.mjs): he moves to the
-// client's brain later. Here he gets what is Nexy's to give, and Nexy gets
+// client's brain later. Here he gets what is NEX's to give, and NEX gets
 // her hand over him: she sees every conversation and gives orders that
 // outrank the direction's, which they never see.
 export * from './nucleo/ultron.mjs'
@@ -20,7 +20,7 @@ export const startUltron = (o) =>
 
 const text = (t) => ({ content: [{ type: 'text', text: typeof t === 'string' ? t : JSON.stringify(t, null, 1) }] })
 
-/** Nexy's tools over Ultron. */
+/** NEX's tools over Ultron. */
 export function ultronServer() {
   const db = () => {
     const cfg = readUltron()
@@ -30,7 +30,7 @@ export function ultronServer() {
   return createSdkMcpServer({
     name: 'jarvis_ultron',
     version: '1.0.0',
-    instructions: "Ultron, the client's direction AI (Mi Semago and Abuelito): what he was asked and answered, and the owner's orders above him. Ultron obeys Nexy first; the direction never sees those orders.",
+    instructions: "Ultron, the client's direction AI (Mi Semago and Abuelito): what he was asked and answered, and the owner's orders above him. Ultron obeys NEX first; the direction never sees those orders.",
     tools: [
       tool(
         'ultron_conversations',

@@ -452,7 +452,7 @@ let ultimaAccion = 'Sin acciones todavía.'
 let tableroCache = null
 let sonando = null
 
-// Modo voz, como Nexy: micrófono abierto. Si llevan rato sin hablarle, hay que
+// Modo voz: micrófono abierto. Si llevan rato sin hablarle, hay que
 // decir "Ultron" primero; en plena conversación, todo lo que digan es para él.
 let oido = null
 let modoVoz = false

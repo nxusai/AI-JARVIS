@@ -50,7 +50,7 @@ function BrandCard({
         <i className="swatch" />
         <h3>{brand.nombre}</h3>
         {active ? (
-          <span className="working">● Nexy trabaja aquí</span>
+          <span className="working">● NEX trabaja aquí</span>
         ) : (
           <button className="ghost" onClick={onUse}>
             Trabajar aquí
@@ -84,7 +84,7 @@ function BrandCard({
         <Account label="Notion" list={brand.cuentas.notion} />
         <div className="account">
           <span>Diseño</span>
-          {refs ? <b>{refs} referencia{refs === 1 ? '' : 's'} visual{refs === 1 ? '' : 'es'}</b> : <em>Mándale fotos de tus diseños a Nexy</em>}
+          {refs ? <b>{refs} referencia{refs === 1 ? '' : 's'} visual{refs === 1 ? '' : 'es'}</b> : <em>Mándale fotos de tus diseños a NEX</em>}
         </div>
       </div>
       <label className="manual">

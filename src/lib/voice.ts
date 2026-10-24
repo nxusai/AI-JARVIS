@@ -68,18 +68,18 @@ const WAKE_DEBOUNCE = 1500
  * His name, and the only wake phrase.
  *
  * The optional prefix is genuinely optional: addressing him by name alone is
- * correct, and during an answer "Nexy" on its own is the natural way to cut
- * in. The negative lookahead keeps possessives ("Nexy's job") from waking her.
+ * correct, and during an answer "NEX" on its own is the natural way to cut
+ * in. The negative lookahead keeps possessives ("NEX's job") from waking her.
  *
- * The alternates are not padding. "Nexy" is not in a general dictation
- * model's vocabulary, so a perfectly clear utterance comes back as Nexi, Nexie,
- * Neksi or Lexi — each of which would otherwise be silently discarded, so the
- * wake word "just didn't work" with no indication why. Better a rare false wake
- * than a name that does not answer. "Wake up", "oye" and "hola" are accepted as
- * prefixes alongside "hey".
+ * The alternates are not padding. "NEX" is not in a general dictation
+ * model's vocabulary, so a perfectly clear utterance comes back as Neks or
+ * Necks — or "next", which only counts after "oye"/"hey" so "next week" never
+ * wakes her. Her old name, Nexy, and its mishearings still answer. Better a
+ * rare false wake than a name that does not answer. "Wake up", "oye" and
+ * "hola" are accepted as prefixes alongside "hey".
  */
 const WAKE =
-  /\b(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\s*(?:nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy)\b(?!'s)/i
+  /\b(?:(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)\s+next|(?:hey|hi|ok|okay|yo|wake up|oye|hola|hello)?\s*(?:nex|nexx|neks|necks|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy))\b(?!'s)/i
 
 /** Everything after the wake phrase, which is usually the actual command. */
 function afterWake(text: string): string {
@@ -272,7 +272,7 @@ const norm = (s: string) =>
  * would be the single most infuriating failure this file could have.
  */
 const OVERRIDE =
-  /(?:^|[^\p{L}])(stop|wait|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no|para|párale|espera|esperate|espérate|alto|ya|basta|cállate|callate|silencio|cancela|cancélalo|olvídalo|olvidalo|déjalo|dejalo|oye)(?![\p{L}])/iu
+  /(?:^|[^\p{L}])(stop|wait|nex|nexx|neks|necks|nexy|nexi|nexie|nexey|nexxy|nexxi|neksy|neksi|nexee|lexi|lexie|lexy|cancel|enough|quiet|hold on|shut up|never ?mind|forget it|no|para|párale|espera|esperate|espérate|alto|ya|basta|cállate|callate|silencio|cancela|cancélalo|olvídalo|olvidalo|déjalo|dejalo|oye)(?![\p{L}])/iu
 
 /**
  * Words too common to be evidence of anything.
@@ -842,7 +842,7 @@ function startBrowserVoice(h: VoiceHandlers): Voice {
 }
 
 /**
- * Whether words heard while Nexy is working on an answer are meant for her:
+ * Whether words heard while NEX is working on an answer are meant for her:
  * her name, or a word that stops or corrects ("no", "espera", "para").
  * Anything else then is the room — a TV, someone else talking — and must not
  * throw away the answer she is preparing.

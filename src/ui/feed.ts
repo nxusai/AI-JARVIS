@@ -5,7 +5,7 @@ import type { Approval, Brands, Org, Server, Task } from '../console/types'
 /**
  * What the bridge knows right now — connectors, tasks, approvals, brands, the
  * team — read from the same feed the console uses, for the command panels on
- * Nexy's face. Read only: `?watch=1` tells the bridge this page answers
+ * NEX's face. Read only: `?watch=1` tells the bridge this page answers
  * nothing, so it never counts as a place approvals are waiting.
  */
 export type Feed = {

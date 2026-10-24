@@ -1,5 +1,5 @@
 // El oído de Ultron en su consola: una frase de audio → texto, con ElevenLabs
-// Scribe (como el de Nexy). Solo para quien habla con Ultron. La llave de
+// Scribe. Solo para quien habla con Ultron. La llave de
 // ElevenLabs vive aquí, en Netlify; el navegador nunca la ve.
 import { json, quien } from '../lib/sb.mjs'
 

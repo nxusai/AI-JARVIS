@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// How much Nexy decides on her own (see bridge/autonomia.mjs).
+// How much NEX decides on her own (see bridge/autonomia.mjs).
 //
 //   node scripts/autonomia.mjs              her mode, and what she did on her own today
 //   node scripts/autonomia.mjs socia        she runs the day-to-day and tells you after (default)
@@ -13,8 +13,8 @@ const say = (s = '') => console.log(s)
 
 if (cmd === 'socia' || cmd === 'asistente') {
   writeAutonomy({ nivel: cmd })
-  say(cmd === 'socia' ? '\n✅ Modo socia: Nexy lleva el día a día sola y te avisa después. Lo tuyo sigue esperando tu toque.' : '\n✅ Modo asistente: Nexy vuelve a pedirte permiso para todo lo que sale de tu Mac.')
-  say('   Reinicia Nexy para que lo tome: Ctrl + C y npm start\n')
+  say(cmd === 'socia' ? '\n✅ Modo socia: NEX lleva el día a día sola y te avisa después. Lo tuyo sigue esperando tu toque.' : '\n✅ Modo asistente: NEX vuelve a pedirte permiso para todo lo que sale de tu Mac.')
+  say('   Reinicia NEX para que lo tome: Ctrl + C y npm start\n')
   process.exit(0)
 }
 if (cmd === 'tope') {

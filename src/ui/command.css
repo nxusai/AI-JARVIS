@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&display=swap');
 
-/* N.E.X.Y. — THE EYE (see Command.tsx). The NXUS colours only: navy, blue,
+/* N.E.X. — THE EYE (see Command.tsx). The NXUS colours only: navy, blue,
    violet, purple and white. */
 
-/* The ground goes on the page, under the 3D layer, so anything Nexy puts in
+/* The ground goes on the page, under the 3D layer, so anything NEX puts in
    the scene still shows; the deck itself is transparent. */
 html body {
   background: radial-gradient(circle at 50% 49%, #1a1360 0%, #080a33 45%, #010110 100%);

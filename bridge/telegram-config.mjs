@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 /**
- * Nexy's Telegram settings: the bot's token, and who its owner is.
+ * NEX's Telegram settings: the bot's token, and who its owner is.
  *
  * Kept in ~/.nexy/telegram.json, readable by this Mac's user only, because the
  * token is a password: whoever has it can read and send as the bot. It is

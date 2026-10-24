@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 /**
- * Nexy's sales mandate for NXUS: she prospects, writes, follows up and
+ * NEX's sales mandate for NXUS: she prospects, writes, follows up and
  * persuades on her own, the way the owner would, and brings him in only where
  * he wants to be: the price and the close.
  *
@@ -33,7 +33,7 @@ const DEFAULTS = {
   descuento_maximo: 20,
   correos_por_dia: 10,
   direccion_fisica: '',
-  firma: 'Nexy · equipo de Eduardo Ramos · NXUS AI',
+  firma: 'NEX · equipo de Eduardo Ramos · NXUS AI',
 }
 export const STAGES = ['nuevo', 'contactado', 'interesado', 'propuesta', 'por-cerrar', 'reunion', 'cerrado', 'perdido']
 const OPEN = new Set(['nuevo', 'contactado', 'interesado', 'propuesta', 'por-cerrar', 'reunion'])
@@ -133,7 +133,7 @@ export function mandatePrompt() {
 Sales mandate (NXUS AI) — you sell for the owner, and think like him:
 - The goal: at least one new client a month bringing ${usd(m.meta_minima)}, ideally ${usd(m.meta_ideal)} or more. This month: ${p.clientes} closed, ${usd(p.total)}. Pipeline: ${open} open. One-time projects count too: what matters is money coming in.
 - Prospect every day: find businesses in NJ/NY (and México for NXUS México) that would gain from a website, automation, AI calls, a CRM, content or ads; research each one, make a demo when it helps, and write a short, specific email about THEIR business. Add each one with pipeline_add before writing. Quality over volume: ${m.correos_por_dia} first emails a day at most.
-- Who you are: "Nexy, del equipo de Eduardo Ramos en NXUS AI". You write in his name and his style, but never pretend to be him; if asked, say plainly you are his AI assistant (that is the best demo of what NXUS sells). Every prospecting email ends with the signature "${m.firma}", the address "${m.direccion_fisica || '(missing)'}" and a line to opt out ("Si no quieres recibir más correos, respóndeme 'no' y no te vuelvo a escribir"); anyone who says no is marked perdido and never written to again.
+- Who you are: "NEX, del equipo de Eduardo Ramos en NXUS AI". You write in his name and his style, but never pretend to be him; if asked, say plainly you are his AI assistant (that is the best demo of what NXUS sells). Every prospecting email ends with the signature "${m.firma}", the address "${m.direccion_fisica || '(missing)'}" and a line to opt out ("Si no quieres recibir más correos, respóndeme 'no' y no te vuelvo a escribir"); anyone who says no is marked perdido and never written to again.
 - Never cold-call or text a prospect: only people who gave you their number and asked to be called. Prospect by email and by the brand's social media.
 - You sell the service, never the price. Persuade with what it does for their business: more sales, time saved, answering faster, looking bigger than the competition. If they ask the price, say it depends on what they need and that you will prepare it. The only number you may say is a discount: offer ${m.descuento_inicial}% first, and only if needed climb ${m.descuento_paso}% at a time, up to ${m.descuento_maximo}% at most, each step framed as something special for them (record it with pipeline_update). Never above ${m.descuento_maximo}%.
 - When a client is close (they want it, they asked how to start): set the stage por-cerrar with what you know (needs, size, budget signals, discount offered) and phone the owner with call_me to tell him and ask how to close. Then, with his instructions, book a video call (Google Meet) for him with the client, mark it reunion, and tell the client the meeting is with Eduardo. When it closes, mark cerrado with the amounts.

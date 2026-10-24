@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 /**
- * Long-term memory: what the owner has told Nexy about themselves.
+ * Long-term memory: what the owner has told NEX about themselves.
  *
  * Without it every restart is a first meeting, which is most of what makes an
  * assistant feel slow-witted. So facts the owner states — their business, the
@@ -26,9 +26,9 @@ const MAX_FACTS = 200
 const MAX_FACT_CHARS = 300
 
 const HEADER =
-  '# Memoria de Nexy\n\n' +
-  'Lo que Nexy sabe de ti. Un dato por línea, empezando con "- ".\n' +
-  'Puedes editar o borrar líneas a mano; Nexy lo lee al arrancar.\n\n'
+  '# Memoria de NEX\n\n' +
+  'Lo que NEX sabe de ti. Un dato por línea, empezando con "- ".\n' +
+  'Puedes editar o borrar líneas a mano; NEX lo lee al arrancar.\n\n'
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })

@@ -1,10 +1,10 @@
-# Guía: Nexy, tu CEO
+# Guía: NEX, tu CEO
 
-Nexy es la cabeza de todo: tus negocios, tu equipo de agentes y las IAs de tus clientes. Trabaja por departamentos, como un equipo de personas, y te busca solo para lo que es tuyo.
+NEX es la cabeza de todo: tus negocios, tu equipo de agentes y las IAs de tus clientes. Trabaja por departamentos, como un equipo de personas, y te busca solo para lo que es tuyo.
 
 ```
 Tú
- └─ Nexy (CEO, secretaria y todo el equipo)
+ └─ NEX (CEO, secretaria y todo el equipo)
      ├─ Ventas · Marketing · Publicidad · Finanzas · Comunicación · Llamadas · Operaciones · IA
      ├─ El Constructor (Claude Code en tu Mac, con tu suscripción)
      └─ Ultron (dirección de Mi Semago y Abuelito)
@@ -19,7 +19,7 @@ Tú
 ## Cómo hablarle (voz, iPhone o Telegram)
 
 **Como CEO**
-- *"Nexy, ¿cómo va la empresa?"*: te da el panorama por departamento.
+- *"NEX, ¿cómo va la empresa?"*: te da el panorama por departamento.
 - *"¿Cómo vamos contra la meta del mes?"*
 - *"¿Qué tienes pendiente hoy?"* · *"¿Qué necesitas de mí?"*
 
@@ -43,7 +43,7 @@ Tú
 - Te dice el costo en créditos antes y espera tu toque. Al final te dice cuánto costó de verdad.
 
 ## Tu socia: lo que hace sola y lo que siempre te pregunta
-Nexy trabaja en **modo socia**: decide, actúa y te avisa después por Telegram con un "✅ Lo hice yo: …". Te llama para lo importante y lo platica contigo: te da la noticia, su recomendación y por qué, y acuerdan juntos el siguiente paso.
+NEX trabaja en **modo socia**: decide, actúa y te avisa después por Telegram con un "✅ Lo hice yo: …". Te llama para lo importante y lo platica contigo: te da la noticia, su recomendación y por qué, y acuerdan juntos el siguiente paso.
 
 | Sola (te avisa después) | Siempre te pregunta |
 |---|---|
@@ -65,12 +65,13 @@ Nexy trabaja en **modo socia**: decide, actúa y te avisa después por Telegram 
   - **Junta diaria de dirección**, de lunes a viernes: revisa todo, actúa y te manda un reporte de 6 líneas.
   - **Reporte semanal de crecimiento**, cada lunes: qué pasó, cómo vamos contra la meta y el plan de la semana.
 - **Quitar:** `node scripts/ceo.mjs quitar`
-- Corren cuando Nexy está prendida, o al prenderla si fue en las últimas 6 horas.
+- Corren cuando NEX está prendida, o al prenderla si fue en las últimas 6 horas.
 
 ## Comandos útiles
 ```
-node scripts/ceo.mjs                    # la empresa en una vista, como la ve Nexy
+node scripts/ceo.mjs                    # la empresa en una vista, como la ve NEX
 node scripts/autonomia.mjs              # su modo y lo que hizo sola hoy
+node scripts/voz.mjs <voice_id>         # su voz (consola, Telegram, iPhone y llamadas)
 node scripts/ceo.mjs activar 10:00      # junta diaria y reporte semanal
 node scripts/ceo.mjs arranque no|si     # el reporte al prenderla
 node scripts/mandato.mjs                # cómo va el mes y el pipeline

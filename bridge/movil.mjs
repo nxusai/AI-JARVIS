@@ -6,8 +6,8 @@ import { dirname, join } from 'node:path'
 import { askFromPhone, forSpeech, speak } from './telegram.mjs'
 
 /**
- * Nexy on the owner's iPhone: the Action button (or "Oye Siri, Nexy") runs a
- * Shortcut that dictates what they say and posts it here; Nexy answers in the
+ * NEX on the owner's iPhone: the Action button (or "Oye Siri, NEX") runs a
+ * Shortcut that dictates what they say and posts it here; NEX answers in the
  * same conversation as Telegram, and the reply comes back as her voice.
  *
  * The bridge itself answers only this Mac. This is a separate, small door:

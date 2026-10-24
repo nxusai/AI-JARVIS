@@ -1,5 +1,5 @@
 /**
- * The console hub: what Nexy is doing, told to whoever is watching.
+ * The console hub: what NEX is doing, told to whoever is watching.
  *
  * The voice interface shows one thing at a time and forgets it. The console is
  * a second page that shows the whole picture — every request as a task, every
@@ -57,7 +57,7 @@ const NO_APPROVAL = new Set([
 
 /** Changes other people will see that the name rule above cannot tell apart. */
 const ALWAYS_APPROVAL = new Set([
-  // A project's price, and raising it: the owner's yes before Nexy spends (see proyectos.mjs).
+  // A project's price, and raising it: the owner's yes before NEX spends (see proyectos.mjs).
   'jarvis_proyectos__start_project',
   'jarvis_proyectos__raise_project_budget',
   // A task whose result reaches a client's person (see encargos.mjs).
@@ -72,7 +72,7 @@ const ALWAYS_APPROVAL = new Set([
   'notion__API-update-a-data-source',
   'notion__API-create-a-database',
   'notion__API-update-a-database',
-  // Who Nexy may phone in the owner's name.
+  // Who NEX may phone in the owner's name.
   'jarvis_contacts__save_contact',
   'jarvis_contacts__remove_contact',
   // Which account each brand publishes to.
@@ -220,7 +220,7 @@ function createHub() {
   return {
     /**
      * A console page connected. Give it everything, then listen for its
-     * answers. `watch` is Nexy's own face reading the same feed for its
+     * answers. `watch` is NEX's own face reading the same feed for its
      * panels: it gets every update but answers nothing, and it does not count
      * as a console where approvals can be answered.
      */
@@ -312,7 +312,7 @@ function createHub() {
     /**
      * What each session reports about its connectors, merged by name: the
      * voice and Telegram sessions each see some of their own, and a server
-     * one of them has not loaded is still Nexy's.
+     * one of them has not loaded is still NEX's.
      */
     setServers(list) {
       const byName = new Map(servers.map((s) => [s.name, s]))
@@ -382,7 +382,7 @@ function createHub() {
 
     /**
      * A tool call, as soon as its input is known. Idempotent per tool-use id.
-     * `parentId` is set for a call made by one of Nexy's agents: it is the id
+     * `parentId` is set for a call made by one of NEX's agents: it is the id
      * of the Agent call that started that agent, so the console can draw the
      * work inside the agent that did it.
      */

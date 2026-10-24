@@ -170,7 +170,7 @@ export function workshopServer(elevenKey) {
                 closeSync(fd)
               }
               if (/^#EXT(M3U|INF)/i.test(head.toString('latin1'))) throw new Error(`${src} is a playlist, not a media file`)
-              // Copied without blocking: raw footage can be gigabytes, and Nexy
+              // Copied without blocking: raw footage can be gigabytes, and NEX
               // must keep answering meanwhile.
               await copyFile(file, join(dir, name))
               const info = await probe(ffmpeg, join(dir, name))

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A company's own mailbox for Nexy (see bridge/correos.mjs).
+// A company's own mailbox for NEX (see bridge/correos.mjs).
 //
 //   node scripts/correo.mjs conectar mi-semago info@misemago.com
 //        opens Google in the browser: sign in with that address and allow it.
@@ -8,7 +8,7 @@
 //   node scripts/correo.mjs quitar mi-semago  disconnects it (deletes its sign-in on this Mac)
 //
 // Uses the same Google app as the owner's Gmail (~/.gmail-mcp/gcp-oauth.keys.json).
-// Restart Nexy afterwards (Ctrl+C, then npm start) so she picks it up.
+// Restart NEX afterwards (Ctrl+C, then npm start) so she picks it up.
 
 import { spawn } from 'node:child_process'
 import { chmodSync, existsSync, readFileSync, rmSync } from 'node:fs'
@@ -72,7 +72,7 @@ if (cmd === 'quitar') {
   if (!b) fail(`No hay un correo conectado para "${marca ?? ''}".`)
   rmSync(b.credenciales, { force: true })
   writeMailboxes(list.filter((x) => x !== b))
-  console.log(`\n✅ Desconecté ${b.email}. Reinicia Nexy (Ctrl+C y npm start).\n`)
+  console.log(`\n✅ Desconecté ${b.email}. Reinicia NEX (Ctrl+C y npm start).\n`)
   process.exit(0)
 }
 
@@ -117,5 +117,5 @@ if (got !== wanted) {
 
 writeMailboxes([...readMailboxes().filter((b) => b.marca !== marca && b.email !== wanted), { marca, email: wanted, archivo }])
 console.log(`\n✅ Listo: ${wanted} conectado como el correo de ${company.nombre}.`)
-console.log('Reinicia Nexy (Ctrl+C en su ventana y luego npm start) para que lo use.\n')
+console.log('Reinicia NEX (Ctrl+C en su ventana y luego npm start) para que lo use.\n')
 process.exit(0)

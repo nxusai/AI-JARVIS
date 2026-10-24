@@ -16,7 +16,7 @@ import { runJob } from './routines.mjs'
  *
  * The Sheet is reached through a small Apps Script web app the owner pastes
  * into it (scripts/ana-sofi.mjs prints it), behind a long random token. It can
- * read the rows and write only the six columns Nexy keeps: Fecha, Estado,
+ * read the rows and write only the six columns NEX keeps: Fecha, Estado,
  * Llamada programada, Resultado, Reunión and Notas.
  *
  * Who gets called is the whole safety argument, as with the owner's own
@@ -29,7 +29,7 @@ import { runJob } from './routines.mjs'
  * went, retrying once when nobody answered, writing the Sheet and telling the
  * owner. What takes judgement — the lead's time zone, "mañana en la tarde",
  * free slots in the owner's calendar, the calendar invitation itself (held
- * for the owner's tap like any invitation) — goes to Nexy as a job, the way a
+ * for the owner's tap like any invitation) — goes to NEX as a job, the way a
  * routine does.
  *
  *   ~/.nexy/ventas.json         { sheetUrl, token, agentId, phoneId }
@@ -49,7 +49,7 @@ const LAST_HOUR = 20
 const MAX_ATTEMPTS = 2
 const RETRY_MS = 2 * 60 * 60_000
 const MAX_AHEAD_MS = 14 * 24 * 60 * 60_000
-/** A job Nexy was handed but never finished is handed again after this. */
+/** A job NEX was handed but never finished is handed again after this. */
 const JOB_STALE_MS = 25 * 60_000
 const MAX_JOB_TRIES = 2
 const NAME_PREFIX = 'Ana Sofi: '
@@ -217,7 +217,7 @@ export async function readLeads(cfg = readSalesConfig()) {
   return (data.rows ?? []).map(leadFrom).filter((l) => Number.isInteger(l.row) && l.row >= 2)
 }
 
-/** Write Nexy's columns on one lead's row; the script checks the row is still that lead. */
+/** Write NEX's columns on one lead's row; the script checks the row is still that lead. */
 async function writeLead(cfg, lead, fields) {
   await sheetCall(cfg, {
     action: 'update',
@@ -407,7 +407,7 @@ async function callOutcome(key, entry) {
   return null
 }
 
-// ── jobs for Nexy ────────────────────────────────────────────────────────
+// ── jobs for NEX ────────────────────────────────────────────────────────
 
 const leadData = (lead) =>
   JSON.stringify(
@@ -558,7 +558,7 @@ const routine = (nombre, prompt, aviso) => runJob(nombre, 'mi-semago', prompt, q
 
 /**
  * Watch the Sheet. Only on the Mac that answers Telegram (see server.mjs),
- * so two copies of Nexy never phone the same lead twice.
+ * so two copies of NEX never phone the same lead twice.
  */
 export function startSales({ elevenKey, zone }) {
   const missing = salesMissing()
@@ -665,12 +665,12 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
       }
       state[lead.key] = { stage: 'nuevo', row: lead.row, since: now, jobAt: now, jobTries: 1, attempts: 0 }
       writeState(state)
-      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — Nexy programa la llamada' })
+      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — NEX programa la llamada' })
       return
     }
     if (!s) return
 
-    // Handed to Nexy but no call booked yet: hand it again, then give up and say so.
+    // Handed to NEX but no call booked yet: hand it again, then give up and say so.
     if ((s.stage === 'nuevo' || s.stage === 'callback') && now - (s.jobAt ?? 0) > JOB_STALE_MS) {
       if ((s.jobTries ?? 0) < MAX_JOB_TRIES) {
         const job = s.stage === 'callback' ? scheduleJob({ ...lead, llamarDespues: s.llamarDespues }, s.since ?? now, zone, 'callback') : scheduleJob(lead, s.since ?? now, zone)
@@ -746,7 +746,7 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
 
 /*
  * The calls themselves happen in ElevenLabs, not on this Mac, so the console
- * would only hear of one minutes after it ended. Every few seconds Nexy asks
+ * would only hear of one minutes after it ended. Every few seconds NEX asks
  * ElevenLabs which of Ana Sofi's calls are on, opens a task for each in the
  * Mi Semago section, adds what each side says as it comes, and closes it with
  * how the call went.
@@ -838,14 +838,14 @@ export async function watchLive(key, cfg) {
  * Leads who call Ana Sofi's number back reach a second agent, "Ana Sofi ·
  * Llamadas entrantes", built from Ana Sofi's own settings by
  * scripts/ana-sofi.mjs. ElevenLabs can't ask this Mac who is calling, so
- * Nexy keeps a short directory of the leads in that agent's prompt — phone,
+ * NEX keeps a short directory of the leads in that agent's prompt — phone,
  * name, company, video call — and the agent recognises the caller by the
- * number ElevenLabs gives it. After the call, Nexy reads what was asked
+ * number ElevenLabs gives it. After the call, NEX reads what was asked
  * (move, book or cancel the video call, a question) and acts on it.
  */
 
 const INBOUND_FILE = join(DIR, 'ventas-entrantes.json')
-const DIR_START = '### DIRECTORIO DE CLIENTES (lo actualiza Nexy solo; no lo edites) ###'
+const DIR_START = '### DIRECTORIO DE CLIENTES (lo actualiza NEX solo; no lo edites) ###'
 const DIR_END = '### FIN DEL DIRECTORIO ###'
 
 export const INBOUND_FIRST_MESSAGE = 'Hola, gracias por llamar a Mi Semago. Habla Ana Sofi, ¿en qué te puedo ayudar?'

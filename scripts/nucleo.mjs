@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Checks that the core (bridge/nucleo) can leave Nexy: what goes to a client's
- * brain must carry nothing of Nexy's.
+ * Checks that the core (bridge/nucleo) can leave NEX: what goes to a client's
+ * brain must carry nothing of NEX's.
  *
  *   node scripts/nucleo.mjs
  *
  * 1. Every import in the core stays in the core (or is Node's own, or one of
  *    the few packages the brain installs).
  * 2. The core built the way the brain gets it (one file, the brain's
- *    lugar.mjs in place of Nexy's) says nothing of Nexy, the owner's
+ *    lugar.mjs in place of NEX's) says nothing of NEX, the owner's
  *    company or his mail.
  * Exits with 1 and says what is wrong when either fails.
  */
@@ -24,7 +24,7 @@ const BRAIN_PLACE = join(BRAIN, 'lugar.mjs')
 /** The packages the brain installs next to its program. */
 export const PACKAGES = ['@anthropic-ai/claude-agent-sdk', 'zod', 'ffmpeg-static']
 /** Words that must never reach a brain. */
-export const FORBIDDEN = /nexy|jarvis|nxus|ramos ?& ?co|contacto@/i
+export const FORBIDDEN = /nexy|\bnex\b|jarvis|nxus|ramos ?& ?co|contacto@/i
 /** What a brain runs: the program, and the keys screen. Built as these names. */
 export const ENTRIES = { 'cerebro.mjs': join(BRAIN, 'main.mjs'), 'llaves.mjs': join(BRAIN, 'llaves.mjs') }
 
@@ -94,7 +94,7 @@ if (run && !problems.length) {
       size += code.length
       problems.push(...leaks(code, name))
     }
-    if (!problems.length) console.log(`✅ The core is clean: ${Object.keys(ENTRIES).join(' and ')} built (${(size / 1024).toFixed(0)} KB), nothing of Nexy.`)
+    if (!problems.length) console.log(`✅ The core is clean: ${Object.keys(ENTRIES).join(' and ')} built (${(size / 1024).toFixed(0)} KB), nothing of NEX.`)
   } catch (err) {
     problems.push(`could not build the core: ${err.message}`)
   }

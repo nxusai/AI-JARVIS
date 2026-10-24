@@ -7,7 +7,7 @@ export type Step = {
   name: string
   server: string
   tool: string
-  /** Set on a call that hands work to one of Nexy's agents: that agent's id. */
+  /** Set on a call that hands work to one of NEX's agents: that agent's id. */
   agent?: string | null
   /** Set on a call one of her agents made: that agent's id. */
   by?: string | null

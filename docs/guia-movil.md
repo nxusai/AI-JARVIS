@@ -1,18 +1,18 @@
-# Guía: Nexy en tu iPhone (botón de acción y "Oye Siri, Nexy")
+# Guía: NEX en tu iPhone (botón de acción y "Oye Siri, NEX")
 
-Presionas el **botón de acción** del iPhone (o dices **"Oye Siri, Nexy"**), hablas, y Nexy te contesta **con su voz**. Es la misma conversación que Telegram: lo que le dices por un lado lo recuerda por el otro.
+Presionas el **botón de acción** del iPhone (o dices **"Oye Siri, NEX"**), hablas, y NEX te contesta **con su voz**. Es la misma conversación que Telegram: lo que le dices por un lado lo recuerda por el otro.
 
 ## Cómo funciona
-- Nexy vive en tu MacBook Pro, encendida y conectada a la corriente.
+- NEX vive en tu MacBook Pro, encendida y conectada a la corriente.
 - El iPhone llega a ella por **Tailscale**, una red privada que solo une **tus** dispositivos. Nada de la Mac queda abierto a internet.
 - Cada pedido lleva una **llave** que solo tienen tu Mac y tu atajo.
 - Lo delicado (publicar, enviar, gastar, borrar) **sigue pidiéndote aprobación** en Telegram.
-- Si algo tarda más de ~50 segundos, Nexy te dice "sigo trabajando" y el resultado te llega por **Telegram**.
+- Si algo tarda más de ~50 segundos, NEX te dice "sigo trabajando" y el resultado te llega por **Telegram**.
 
 ## 1. La MacBook siempre despierta (una vez)
 1. **System Settings** → **Battery** → **Options…** → activa **Prevent automatic sleeping on power adapter when the display is off** → **Done**.
 2. Deja la MacBook **abierta y conectada** a la corriente (cerrada se duerme).
-3. Que Nexy arranque sola y se levante si se cae:
+3. Que NEX arranque sola y se levante si se cae:
    `cd ~/Desktop/nexy && node scripts/siempre.mjs`
 
 ## 2. Tailscale en la Mac y en el iPhone (una vez)
@@ -24,10 +24,10 @@ Presionas el **botón de acción** del iPhone (o dices **"Oye Siri, Nexy"**), ha
 `cd ~/Desktop/nexy && node scripts/movil.mjs`
 - Copia la llave al portapapeles (el iPhone lo comparte con la Mac si usan el mismo Apple ID y tienen Bluetooth y Wi-Fi).
 - Te muestra la **dirección** para el atajo, por ejemplo `http://eduardos-macbook-pro:8789/movil`.
-- Reinicia Nexy (Ctrl + C y `npm start`). En la Terminal debe salir `phone on`.
+- Reinicia NEX (Ctrl + C y `npm start`). En la Terminal debe salir `phone on`.
 
-## 4. El atajo "Nexy" en el iPhone
-1. Abre **Shortcuts** → **+** (arriba a la derecha) → nombre: **Nexy**.
+## 4. El atajo "NEX" en el iPhone
+1. Abre **Shortcuts** → **+** (arriba a la derecha) → nombre: **NEX**.
 2. **Add Action** → busca **Dictate Text** → agrégala. Toca **Language** → **Spanish (Mexico)**; **Stop Listening** → **After Pause**.
 3. **Add Action** → **Get Contents of URL**:
    - URL: la dirección del paso 3.
@@ -38,9 +38,9 @@ Presionas el **botón de acción** del iPhone (o dices **"Oye Siri, Nexy"**), ha
 5. **Done**.
 
 ## 5. El botón de acción
-**Settings** → **Action Button** → desliza hasta **Shortcut** → **Choose a Shortcut…** → **Nexy**.
+**Settings** → **Action Button** → desliza hasta **Shortcut** → **Choose a Shortcut…** → **NEX**.
 
-Listo: presiona el botón, habla, y Nexy contesta. También funciona diciendo **"Oye Siri, Nexy"**.
+Listo: presiona el botón, habla, y NEX contesta. También funciona diciendo **"Oye Siri, NEX"**.
 
 ## Comandos
 ```

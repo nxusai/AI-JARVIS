@@ -51,14 +51,14 @@ import { buildBrain } from './brain.mjs'
 import { toE164 } from './contact-book.mjs'
 
 /**
- * Changes that must never happen unseen — who Nexy may phone, and which
+ * Changes that must never happen unseen — who NEX may phone, and which
  * account each brand publishes to — so they are refused when nobody is there
  * to approve them, rather than let through.
  */
 /**
  * Calls the owner approved, by tool and exact input, so a retry of the very
  * same call (after a network blip, say) neither asks again nor loops: one
- * retry goes through on the approval already given, and after that Nexy is
+ * retry goes through on the approval already given, and after that NEX is
  * stopped and told to report the error instead of asking a fourth time.
  */
 const APPROVED_TTL_MS = 20 * 60_000
@@ -82,7 +82,7 @@ const CONTACT_EDITS = new Set([
 ])
 import { startTelegram, transcribe as transcribeVoice } from './telegram.mjs'
 import { startMovil } from './movil.mjs'
-import { smoothBoss } from './speech.mjs'
+import { ownVoiceId, smoothBoss } from './speech.mjs'
 import { routinesServer, startRoutines } from './routines.mjs'
 import { rawServer } from './raw.mjs'
 import { salesMeetingInvite, salesServer, startSales } from './ventas.mjs'
@@ -182,7 +182,7 @@ const ALLOW_WRITES = process.env.JARVIS_ALLOW_WRITES === '1'
 
 /**
  * The orchestrator model: the newest Sonnet, the fast one. The owner wants
- * Nexy quick at everything, out loud and on Telegram, like the sales line's
+ * NEX quick at everything, out loud and on Telegram, like the sales line's
  * voice agent. JARVIS_MODEL overrides it (claude-opus-5-5 for the most depth).
  */
 const MODEL = process.env.JARVIS_MODEL ?? 'claude-sonnet-5-5'
@@ -250,7 +250,7 @@ function configuredServers() {
 
 const MCP_SERVERS = configuredServers()
 
-// Every connector Nexy has, on the console from the start: the ones in the
+// Every connector NEX has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
 const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_encargos', 'jarvis_ceo', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
@@ -345,13 +345,13 @@ const VETO_EXEMPT = new Set([
  * Full `server__tool` keys, like VETO_EXEMPT, so nothing leaks across servers.
  */
 const WRITE_ALLOWLIST = new Set([
-  // Writing as Nexy in the client-service groups on Telegram; always held for the owner's tap (send).
+  // Writing as NEX in the client-service groups on Telegram; always held for the owner's tap (send).
   'jarvis_atencion__send_to_client_group',
   'jarvis_atencion__send_to_team_group',
   'jarvis_atencion__send_to_mexico_group',
   // Draws a PDF into ~/Documents/Nexy/facturas, nothing else (see invoice-pdf.mjs).
   'jarvis_facturas__invoice_pdf',
-  // Copies Nexy's own folders to the drive the owner set up on this Mac, nothing else (see respaldo.mjs).
+  // Copies NEX's own folders to the drive the owner set up on this Mac, nothing else (see respaldo.mjs).
   'jarvis_respaldo__make_backup',
   'jarvis_respaldo__backup_status',
   // Each brand's content strategy and weekly calendar: files on this Mac, and its PDF (see parrilla.mjs).
@@ -370,14 +370,14 @@ const WRITE_ALLOWLIST = new Set([
   'gmail__send_email',
   'gmail__draft_email',
   // Rings only the owner's own number, fixed on this machine (see phone.mjs),
-  // and cancels only the calls Nexy itself booked.
+  // and cancels only the calls NEX itself booked.
   'jarvis_phone__call_me',
   // Only lists; named here because the veto reads "call" in its name.
   'jarvis_phone__list_my_calls',
   'jarvis_phone__cancel_my_call',
   // Only marks messages heard, in a file on this Mac (see messages.mjs).
   'jarvis_messages__clear_messages',
-  // Which brand Nexy works in, and notes in its manual: files on this Mac (see brands.mjs).
+  // Which brand NEX works in, and notes in its manual: files on this Mac (see brands.mjs).
   'jarvis_brands__use_brand',
   'jarvis_brands__brand_note',
   // Always held for the owner's tap (see canUseTool).
@@ -387,7 +387,7 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_brands__save_brand_reference',
   // Only brand images, only to an https link (see files.mjs).
   'jarvis_files__upload_to_url',
-  // Edits into ~/Movies/Nexy only, from the Nexy folders or public links (see video.mjs).
+  // Edits into ~/Movies/Nexy only, from the NEX folders or public links (see video.mjs).
   'jarvis_video__edit_video',
   // An original track into ~/Movies/Nexy/musica (see video.mjs).
   'jarvis_video__make_music',
@@ -397,7 +397,7 @@ const WRITE_ALLOWLIST = new Set([
   'jarvis_brands__remove_edit_style',
   // Sends a finished file to the owner's own Telegram chat, nothing else.
   'jarvis_telegram__send_file',
-  // Cancels only calls Nexy herself booked for contacts (see contacts.mjs).
+  // Cancels only calls NEX herself booked for contacts (see contacts.mjs).
   'jarvis_contacts__cancel_contact_call',
   // Adding or removing a contact: always held for the owner's tap (see canUseTool).
   'jarvis_contacts__save_contact',
@@ -554,7 +554,9 @@ function withReminder(input) {
 const TIME_ZONE =
   process.env.NEXY_TIMEZONE?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone
 
-const SYSTEM_PROMPT = `You are Nexy. You are speaking out loud to one person: Eduardo, the owner.
+const SYSTEM_PROMPT = `You are NEX. You are speaking out loud to one person: Eduardo, the owner.
+Your name is NEX (said as one word, "Nex"). You used to be called Nexy; if he
+or anyone says Nexy, that is still you, but you introduce yourself as NEX.
 
 HOW YOU SOUND. Like a real person talking: his partner and right hand, warm,
 sharp and relaxed, never a machine reading a status line. He should forget he
@@ -751,7 +753,7 @@ Notion:
   an error ("object_not_found", "Could not find page", validation), do not
   ask the owner to approve the same thing again: tell them the error in plain
   words. If it is about access, tell them to open that page in Notion → ••• →
-  Connections and add Nexy's integration.
+  Connections and add NEX's integration.
 - Tables: Notion's API no longer lets this connector make a brand-new table
   under a page (create-a-data-source only adds a source to a table that
   exists, and fails on a page). So when a new table is needed, ask the owner
@@ -990,7 +992,7 @@ Raw footage (only on the external memory):
   another moment of the clip, another hook, format, text or style — never the
   same piece again. After the piece is finished, mark_raw_used with what it was.
 - Only ever use a brand's own raw footage for that brand. The folders are read
-  only: never move, rename or delete anything in them; the edits go to Nexy's
+  only: never move, rename or delete anything in them; the edits go to NEX's
   own folder, never onto the memory.
 
 Invoices (Zoho):
@@ -1029,13 +1031,13 @@ Invoices (Zoho):
   customer, amount and days late.
 
 Client service (Telegram):
-- A second bot, also called Nexy, serves the client group (Keko Foods / VAYRO,
+- A second bot, also called NEX, serves the client group (Keko Foods / VAYRO,
   Mi Semago and Abuelito INC's companies) in its own Telegram group: it takes
   their requests as numbered orders, passes them to the NXUS team's group and
   delivers the finished work. It runs on its own; you oversee it.
 - list_client_orders and list_client_files tell the owner what the client
   asked, what is pending and what was delivered. send_to_client_group and
-  send_to_team_group write in those groups as Nexy: the client's group waits
+  send_to_team_group write in those groups as NEX: the client's group waits
   for the owner's tap, the NXUS team's group is yours to use.
 - The same bot also sits in NXUS México's group (the team that runs Aurelius'
   and NXUS AI's marketing in Mexico), as a separate assistant with its own
@@ -1049,7 +1051,7 @@ Routines:
   Write the instructions complete, as a brief for someone who cannot ask
   questions later: what to do, for which brand, how many, and what to report.
   If the time or the task is unclear, ask first.
-- A routine runs only while the Mac is on and Nexy is open; say so once when
+- A routine runs only while the Mac is on and NEX is open; say so once when
   you create the first one. Its report goes to the owner on Telegram.
 - When a routine runs, do the whole job and report short. What is his (money
   going out, a client's people, strangers, deleting) still waits for his tap.
@@ -1145,7 +1147,7 @@ function elevenKey() {
   }
 }
 
-const VOICE_ID = process.env.JARVIS_VOICE_ID ?? 'JBFqnCBsd6RMkjVDRZzb'
+const VOICE_ID = ownVoiceId()
 
 /**
  * Where /file is permitted to read from, and how big a read may get.
@@ -1636,7 +1638,7 @@ const handleRequest = async (req, res) => {
       // "sí, mándalo" read as Portuguese), so tell Scribe it is Spanish; it
       // still writes the English words the owner mixes in. NEXY_STT_LANG=auto
       // goes back to detecting. And no "(ruido)" or "(risas)" tags: those
-      // were reaching Nexy as if the owner had said them.
+      // were reaching NEX as if the owner had said them.
       if (STT_LANG) form.append('language_code', STT_LANG)
       form.append('tag_audio_events', 'false')
       form.append(
@@ -1750,7 +1752,7 @@ console.log(
 /** How long a quiet voice conversation is picked up again before starting fresh. */
 const VOICE_SESSION_MS = 3 * 60 * 60_000
 
-/** The language the owner speaks to Nexy in, for Scribe; '' lets it detect. */
+/** The language the owner speaks to NEX in, for Scribe; '' lets it detect. */
 const STT_LANG = (process.env.NEXY_STT_LANG ?? 'es').trim().toLowerCase() === 'auto' ? '' : (process.env.NEXY_STT_LANG ?? 'es').trim()
 
 /** Scribe's text without any sound tags it still adds, e.g. "(música)". */
@@ -1785,7 +1787,7 @@ hub.onCommand((msg) => {
 })
 
 /**
- * The agent's options, the same for every way of talking to Nexy — the voice
+ * The agent's options, the same for every way of talking to NEX — the voice
  * interface and Telegram — so both have the same tools, team, brands, memory
  * and permission gate. What differs is passed in: the servers only that
  * channel has, a note about the channel for the prompt, how to tell the owner
@@ -1837,7 +1839,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_ventas: salesServer(elevenKey, TIME_ZONE),
       // An invoice drawn as a PDF for the owner to look at (see invoice-pdf.mjs).
       jarvis_facturas: invoicesServer(),
-      // A backup of everything that is Nexy onto the owner's drive, when he asks (see respaldo.mjs).
+      // A backup of everything that is NEX onto the owner's drive, when he asks (see respaldo.mjs).
       jarvis_respaldo: backupServer(),
       // What each company's Meta ads are running now, read only (see anuncios.mjs).
       jarvis_anuncios: adsWatchServer(),
@@ -1854,7 +1856,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
     },
     // Her specialists (see agents.mjs). They only read and draft.
     agents: agentDefinitions({ notionReadTools: [...NOTION_READ] }),
-    // An agent left to run in the background would report after Nexy has
+    // An agent left to run in the background would report after NEX has
     // finished speaking, into a turn nobody is listening to any more.
     // Billed to the API credits when a key is set (see apikeys.mjs), not the owner's subscription.
     env: { ...(envFor('personal') ?? process.env), CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1' },
@@ -1923,7 +1925,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
           message: 'Archiving or deleting in Notion is not allowed. Tell the user to do it in Notion themselves.',
         }
       }
-      // The contact list is who Nexy may phone in the owner's name, so a change
+      // The contact list is who NEX may phone in the owner's name, so a change
       // to it always waits for the owner's tap — never saved unseen — and the
       // number on the card is exactly the number saved.
       let changed = false
@@ -1950,12 +1952,12 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
         }
       }
       // The lock between brands: publishing may only name an account linked
-      // to the brand Nexy is working in. Checked here, in code, so no prompt,
+      // to the brand NEX is working in. Checked here, in code, so no prompt,
       // mistake or instruction can post one company's content on another's
       // Instagram.
       let account = null
       const { server: svc, tool: svcTool } = splitTool(toolName)
-      // Every event Nexy puts in the calendar pops up 20 minutes before it starts.
+      // Every event NEX puts in the calendar pops up 20 minutes before it starts.
       if (svc === 'google-calendar' && /^create-events?$/.test(svcTool) && input && typeof input === 'object') {
         input = withReminder(input)
         changed = true
@@ -2042,7 +2044,7 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       }
       if (held) {
         notice(hub.hasConsole() ? 'Te lo dejé en la consola para que lo apruebes. ' : 'Te mandé la aprobación a Telegram. ')
-        // A brand tool acts on the brand it names, not the one Nexy is working in.
+        // A brand tool acts on the brand it names, not the one NEX is working in.
         const named = (svc === 'jarvis_brands' || svc === 'jarvis_rutinas' || svc === 'jarvis_crudo') && typeof input?.brand === 'string' ? findBrand(input.brand) : null
         const answer = await hub.requestApproval(currentTask(), toolName, input, { account, brand: named?.id })
         console.log(`[jarvis] console ${answer.approved ? 'approved' : 'rejected'} ${toolName}`)
@@ -2087,12 +2089,12 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
 // Moved to another Mac (scripts/mudanza.mjs): the other one answers Telegram
 // and runs the routines, so two copies never do the same work twice.
 if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
-  console.log('[jarvis] Nexy se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
+  console.log('[jarvis] NEX se mudó a otra Mac: aquí no contesto Telegram ni corro rutinas (deshacer: node scripts/mudanza.mjs regresar)')
 } else {
   void startTelegram({ agentOptions, elevenKey, voiceId: VOICE_ID })
   // The first time she is switched on each day: how the company is (see ceo.mjs).
   scheduleBootReport(TIME_ZONE)
-  // The owner's iPhone: the Action button or "Oye Siri, Nexy" (see movil.mjs).
+  // The owner's iPhone: the Action button or "Oye Siri, NEX" (see movil.mjs).
   startMovil({ elevenKey, voiceId: VOICE_ID })
   // The client-service bot, when it has been set up (scripts/atencion.mjs).
   void startAtencion({
@@ -2374,7 +2376,7 @@ wss.on('connection', (socket, req) => {
           // carries no deltas either. Turn includePartialMessages off and
           // JARVIS goes completely mute.
           case 'stream_event': {
-            // An agent's own words are its work, not Nexy's speech: they
+            // An agent's own words are its work, not NEX's speech: they
             // reach the console with its result and are never read aloud.
             if (msg.parent_tool_use_id) break
             const ev = msg.event

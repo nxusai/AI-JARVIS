@@ -9,7 +9,7 @@ import { activeBrand, findBrand, fold, MANUALS_DIR, readBrands } from './brands.
  * Raw footage: each brand's folder of unedited videos and photos on the
  * owner's external memory (SSD, USB drive), which the Mac mounts under
  * /Volumes while it is plugged in. Google Drive is not used: streaming big
- * videos from it took minutes. Nexy lists what is there (subfolders included),
+ * videos from it took minutes. NEX lists what is there (subfolders included),
  * picks from it, edits copies, and keeps a ledger of what she has used and
  * for what — so she prefers new footage and, when there is none, recycles old
  * footage in a different way instead of repeating a piece.
@@ -118,7 +118,7 @@ function blocked(path) {
   } catch (err) {
     if (err?.code === 'EPERM' || err?.code === 'EACCES') {
       return (
-        'macOS is not letting Nexy read that memory. Tell the owner: System Settings → Privacy & Security → ' +
+        'macOS is not letting NEX read that memory. Tell the owner: System Settings → Privacy & Security → ' +
         'Files and Folders → Terminal → turn on "Removable Volumes" (or Full Disk Access for Terminal), then try again.'
       )
     }
@@ -300,7 +300,7 @@ export function rawServer() {
 
       tool(
         'link_raw_folder',
-        "Make a folder on the external memory a brand's raw footage: Nexy picks from it, and from no other brand's, when making that brand's " +
+        "Make a folder on the external memory a brand's raw footage: NEX picks from it, and from no other brand's, when making that brand's " +
           'content. Only when the owner says which folder is which brand. The owner approves it with a tap.',
         {
           brand: z.string(),

@@ -74,7 +74,7 @@ export const clock = (t: number) => new Date(t).toLocaleTimeString('es-MX', { ho
 
 export const isToday = (t: number) => new Date(t).toDateString() === new Date().toDateString()
 
-/** A step's name and icon, with Nexy's agents named as the people they are. */
+/** A step's name and icon, with NEX's agents named as the people they are. */
 export function stepLook(s: Step, agents: Agent[]) {
   if (isAgentStep(s)) {
     const a = agents.find((x) => x.id === s.agent)

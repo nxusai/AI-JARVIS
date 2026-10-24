@@ -7,7 +7,7 @@ cambia de nombre, sáltala o manda foto.
 Tiempo total: unas 2 horas.
 
 Necesitas:
-- tu Mac con Nexy prendida;
+- tu Mac con NEX prendida;
 - el Mac mini conectado con cable de internet, teclado, mouse y pantalla;
 - una memoria USB;
 - tu celular con Telegram.
@@ -16,7 +16,7 @@ Necesitas:
 
 ## Fase 0 — En tu Mac, antes de ir al Mac mini (15 min)
 
-**0.1 Actualiza Nexy** (procedimiento de siempre; el resultado esperado viene
+**0.1 Actualiza NEX** (procedimiento de siempre; el resultado esperado viene
 en el mensaje de Claude).
 
 **0.2 Revisa las voces de Ana Sofi.** En una pestaña nueva de Terminal
@@ -47,9 +47,9 @@ cd ~/Desktop/nexy && node scripts/cerebro.mjs armar
 ```
 
 Debe decir "✅ Cerebro … armado y firmado". La carpeta queda en Documentos →
-Nexy → cerebro → Cerebro-(fecha).
+NEX → cerebro → Cerebro-(fecha).
 
-**0.5 Cópiala a la USB.** En Finder abre Documentos → Nexy → cerebro, arrastra
+**0.5 Cópiala a la USB.** En Finder abre Documentos → NEX → cerebro, arrastra
 la carpeta Cerebro-(fecha) a la USB y expúlsala.
 
 **0.6 Tailscale en tu Mac.**
@@ -238,7 +238,7 @@ Va preguntando una por una. Nada se ve al pegar: pega y Enter.
 | Llave de Claude | la de 4.1 |
 | Llave de ElevenLabs | la de 4.2 |
 | Llave (token) del bot de Ana Sofi | **Enter** (va el día de la mudanza, fase 7) |
-| Tu número de cuenta de Telegram | **Enter** (llega solo desde Nexy) |
+| Tu número de cuenta de Telegram | **Enter** (llega solo desde NEX) |
 | Dirección de Drive | la URL de 4.3 |
 | Clave de Drive | la clave del Registro de ejecución de 4.3 |
 
@@ -264,7 +264,7 @@ dice:
 
 ---
 
-## Fase 5 — Conectar Nexy con el cerebro (5 min, en tu Mac)
+## Fase 5 — Conectar NEX con el cerebro (5 min, en tu Mac)
 
 ```
 cd ~/Desktop/nexy && node scripts/cerebro.mjs conectar mi-semago 100.x.x.x soporte
@@ -281,7 +281,7 @@ cd ~/Desktop/nexy && node scripts/cerebro.mjs estado
 - los avisos de "Ana Sofi no tiene bot todavía" y "Falta el dueño" son
   normales por ahora.
 
-Reinicia Nexy (Ctrl + C y `npm start`) para que empiece la vigilancia. En los
+Reinicia NEX (Ctrl + C y `npm start`) para que empiece la vigilancia. En los
 logs debe salir "brain watch on (mi-semago)".
 
 ---
@@ -310,7 +310,7 @@ logs debe salir "brain watch on (mi-semago)".
    reconectó solo), para aquí y avísame.
 
 **6.3 Prueba de alarmas.**
-1. Con Nexy prendida en tu Mac, en el Mac mini cambia a Soporte NXUS
+1. Con NEX prendida en tu Mac, en el Mac mini cambia a Soporte NXUS
    ( → Cerrar sesión, o el menú de usuarios).
 2. En Terminal escribe `sudo -k && sudo ls` y escribe **mal** la contraseña 3
    veces.
@@ -330,7 +330,7 @@ Hazla en un rato tranquilo, sin pedidos de etiquetas pendientes.
    ```
    Debe decir "✅ Las 30 empresas de etiquetas, su grupo y sus voces ya están
    en el cerebro".
-2. **Reinicia Nexy** (Ctrl + C y `npm start`). En los logs debe salir "Ana Sofi
+2. **Reinicia NEX** (Ctrl + C y `npm start`). En los logs debe salir "Ana Sofi
    answers from the client's brain now".
 3. **La llave del bot, en el Mac mini** (como Soporte NXUS):
    1. Abre una ventana de incógnito → https://web.telegram.org → entra con tu
@@ -359,7 +359,7 @@ Hazla en un rato tranquilo, sin pedidos de etiquetas pendientes.
 cd ~/Desktop/nexy && node scripts/cerebro.mjs regresar-anasofi
 ```
 
-Después reinicia Nexy: Ana Sofi vuelve a contestar desde tu Mac como antes.
+Después reinicia NEX: Ana Sofi vuelve a contestar desde tu Mac como antes.
 
 ---
 

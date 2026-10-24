@@ -8,7 +8,7 @@ import { anaSofiVoice as voiceFor, startAnaSofi as start } from './nucleo/anasof
 import { readTelegram } from './telegram-config.mjs'
 
 // Ana Sofi herself is the core's (bridge/nucleo/anasofi.mjs): she runs in the
-// clients' brains too. Here she gets what is Nexy's to give.
+// clients' brains too. Here she gets what is NEX's to give.
 export * from './nucleo/anasofi.mjs'
 
 /** The voice of Ana Sofi, Mi Semago's sales agent on ElevenLabs, when none is set for her. */

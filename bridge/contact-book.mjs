@@ -3,10 +3,10 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 /**
- * The owner's approved contacts — the only people Nexy may phone for them.
+ * The owner's approved contacts — the only people NEX may phone for them.
  *
  * The list lives in a file on this Mac. The owner changes it from the
- * Terminal with scripts/contacts.mjs, or by asking Nexy — and then only
+ * Terminal with scripts/contacts.mjs, or by asking NEX — and then only
  * after tapping Aprobar on a card that shows the exact name and number (the
  * bridge's permission gate refuses the change when no console or Telegram is
  * there to ask). That is the point: a number read out of an email, heard from

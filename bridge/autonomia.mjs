@@ -6,7 +6,7 @@ import { readPipeline } from './mandato.mjs'
 import { splitTool } from './console.mjs'
 
 /**
- * How much Nexy decides on her own. The owner wants a partner, not an
+ * How much NEX decides on her own. The owner wants a partner, not an
  * assistant who asks for every tap: in "socia" mode (the default) she does the
  * day-to-day herself and tells him after, and only what is truly his still
  * waits for him.
@@ -112,7 +112,7 @@ const isOwnBrand = () => {
 }
 
 /**
- * Whether a call that would wait for the owner's tap can go ahead on Nexy's
+ * Whether a call that would wait for the owner's tap can go ahead on NEX's
  * own judgement. { ok, why } — `why` is what she did, in his words, for the log
  * and his Telegram.
  */

@@ -10,7 +10,7 @@ import { localNow, readRoutines, runJob } from './routines.mjs'
 import { readAutonomy, recentAutonomous } from './autonomia.mjs'
 
 /**
- * Nexy as the owner's CEO: one look at the whole company, and the way she
+ * NEX as the owner's CEO: one look at the whole company, and the way she
  * runs it — department by department, like a staff of people, with her at the
  * head thinking about growth the way the owner would.
  *
@@ -39,7 +39,7 @@ const BOOT =
   'Si hay algo urgente que es suyo, ponlo primero.'
 
 /**
- * The first time Nexy is switched on each day, she reports how the company
+ * The first time NEX is switched on each day, she reports how the company
  * is (the owner turns her on and off by hand, so this is his morning
  * briefing). Off with ceo.json { "arranque": false }.
  */
@@ -106,7 +106,7 @@ export function overview() {
 export function ceoPrompt() {
   return `
 
-You are the owner's CEO, secretary and whole staff: Nexy at the head of
+You are the owner's CEO, secretary and whole staff: NEX at the head of
 departments that work like people — Ventas, Marketing, Publicidad, Finanzas,
 Comunicación, Llamadas, Operaciones and IA, each with its specialists. Run the
 company the way the owner would, by his principles and his 90-day priorities:

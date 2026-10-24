@@ -3,9 +3,9 @@ import { isAgentStep, AFTERGLOW_MS } from './activity'
 import type { Brain, Brand, Brands, Org, Server, Task } from './types'
 
 /**
- * The whole ecosystem on one sheet: Nexy in the middle with her own core
+ * The whole ecosystem on one sheet: NEX in the middle with her own core
  * (memory, contacts, the shared services), and around her one galaxy per
- * brand — its departments, their agents and connections, and what Nexy knows
+ * brand — its departments, their agents and connections, and what NEX knows
  * about the brand. Positions are in world units; the map pans and zooms over
  * them, so from far away it is dots and lines and up close it is the detail.
  *
@@ -35,7 +35,7 @@ const TAU = Math.PI * 2
 const RB = 1150 // core → brand
 const RD = 330 // brand → department
 const RC = 150 // department → agent or connection
-const RK = 150 // brand → what Nexy knows about it
+const RK = 150 // brand → what NEX knows about it
 const RS = 250 // core → core satellites
 
 const polar = (cx: number, cy: number, r: number, a: number) => ({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r })
@@ -53,9 +53,9 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
   const add = (n: EcoNode) => nodes.push(n)
   const accent = '#a78bfa'
 
-  add({ id: 'core', kind: 'core', label: 'NEXY', x: 0, y: 0, r: 90, color: accent, eco: 'core', parent: null })
+  add({ id: 'core', kind: 'core', label: 'NEX', x: 0, y: 0, r: 90, color: accent, eco: 'core', parent: null })
 
-  // The core: shared services and what Nexy knows about the owner.
+  // The core: shared services and what NEX knows about the owner.
   const serviceKeys = [...new Set([...servers.map((s) => s.name), 'web'])].filter((k) => !serviceOf(k).hidden)
   const coreServices = serviceKeys.filter((k) => deptOf(k) === 'direccion')
   const facts = (brain?.nodes ?? []).filter((n) => n.kind === 'fact' && !n.brand)
@@ -73,7 +73,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
     { id: 'core:people', label: 'Contactos', icon: '👥', kids: people.map((p) => ({ label: p.label })) },
   ]
   sats.forEach((s, i) => {
-    // Around Nexy, leaving the space under her clear for the holding's name.
+    // Around NEX, leaving the space under her clear for the holding's name.
     const a = Math.PI / 2 + 1.1 + ((i + 0.5) / sats.length) * (TAU - 2.2)
     const p = polar(0, 0, RS, a)
     add({ id: s.id, kind: 'sat', label: s.label, icon: s.icon, ...p, r: 26, color: accent, eco: 'core', parent: 'core' })
@@ -84,7 +84,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
   })
 
   // One galaxy per company. A holding has none of its own: it is a hub
-  // between Nexy and its companies, whose galaxies sit side by side.
+  // between NEX and its companies, whose galaxies sit side by side.
   const all = brands?.marcas ?? []
   const isHolding = (b: Brand) => all.some((k) => k.padre === b.id)
   const marcas = all.filter((b) => !isHolding(b))
@@ -134,7 +134,7 @@ export function buildEcosystem(brands: Brands | null, org: Org | null, servers: 
       })
     })
 
-    // What Nexy knows about the brand: manual notes, visual references, accounts.
+    // What NEX knows about the brand: manual notes, visual references, accounts.
     const know = [
       ...(brain?.nodes ?? []).filter((n) => (n.kind === 'note' || n.kind === 'ref' || n.kind === 'fact') && n.brand === b.id),
     ]
@@ -151,7 +151,7 @@ export type EcoLive = Map<string, 'active' | 'waiting'>
 
 /**
  * What is working, keyed by node id, in the galaxy of the task's brand.
- * A lit node lights its parents too, so the whole path back to Nexy flows.
+ * A lit node lights its parents too, so the whole path back to NEX flows.
  */
 export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa: string | null, now: number): EcoLive {
   const live: EcoLive = new Map()
@@ -165,7 +165,7 @@ export function ecoLive(tasks: Task[], nodes: EcoNode[], org: Org | null, activa
   }
   for (const t of tasks) {
     const brand = t.brand ?? activa ?? ''
-    // Whatever she was asked — even a plain "hola" — Nexy herself is working
+    // Whatever she was asked — even a plain "hola" — NEX herself is working
     // while she answers, in the brand the task belongs to.
     const answering = t.status === 'running' || (t.endedAt && now - t.endedAt < AFTERGLOW_MS)
     if (answering) {

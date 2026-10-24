@@ -6,8 +6,8 @@ import { dirname, join, relative } from 'node:path'
 import { readTelegram } from './telegram-config.mjs'
 
 /**
- * A backup of everything that is Nexy, onto the owner's external drive, when
- * he asks for it ("Nexy, haz un respaldo", on Telegram or by voice) or with
+ * A backup of everything that is NEX, onto the owner's external drive, when
+ * he asks for it ("NEX, haz un respaldo", on Telegram or by voice) or with
  * `node scripts/respaldo.mjs`.
  *
  * Where it goes is set once on this Mac (`node scripts/respaldo.mjs configurar
@@ -27,7 +27,7 @@ import { readTelegram } from './telegram-config.mjs'
 
 const HOME = homedir()
 export const BACKUP_FILE = join(HOME, '.nexy', 'respaldo.json')
-const FOLDER = 'Nexy-respaldo'
+const FOLDER = 'NEX-respaldo'
 const KEEP = 15
 const ENV_LINE = /^\s*export\s+(NEXY_|JARVIS_|ELEVENLABS_)[A-Z0-9_]*=/
 
@@ -67,7 +67,7 @@ export function target(cfg = readBackup(), volumes = '/Volumes') {
 
 /**
  * Copy a tree, skipping files already there with the same size and time.
- * Asynchronous, so Nexy keeps answering while gigabytes of video copy.
+ * Asynchronous, so NEX keeps answering while gigabytes of video copy.
  */
 async function mirror(src, dest, keep = () => true, count = { files: 0, bytes: 0, errors: [] }) {
   if (!existsSync(src)) return count
@@ -149,8 +149,8 @@ export async function backup({ home = HOME, volumes = '/Volumes', cfg = readBack
 
     writeFileSync(
       join(t.dir, 'LEEME.txt'),
-      'Respaldo de Nexy. Tiene llaves (bots de Telegram, sesiones de Google, conectores): cuida este disco como tu cartera.\n\n' +
-        'cerebro/<fecha>/  lo que Nexy sabe: .nexy (empresas, manuales, memoria, contactos, rutinas, clientes, NXUS México, Telegram),\n' +
+      'Respaldo de NEX. Tiene llaves (bots de Telegram, sesiones de Google, conectores): cuida este disco como tu cartera.\n\n' +
+        'cerebro/<fecha>/  lo que NEX sabe: .nexy (empresas, manuales, memoria, contactos, rutinas, clientes, NXUS México, Telegram),\n' +
         '                  .gmail-mcp y .config (sesiones de Gmail y Calendario), claude.json (conectores) y variables.sh (ajustes).\n' +
         'archivos/         Documents/Nexy (facturas, archivos de los grupos) y Movies/Nexy (videos, música, referencias).\n\n' +
         'Para regresarlo a una Mac: copia las carpetas de cerebro/<fecha>/ a tu carpeta de usuario (las que empiezan con punto van ahí),\n' +
@@ -162,7 +162,7 @@ export async function backup({ home = HOME, volumes = '/Volumes', cfg = readBack
     console.log(`[jarvis] backup: done in ${secs} s, ${f.files} file(s) copied, ${errors.length} error(s)`)
     return (
       `✅ Respaldo listo en ${cfg.disco} → ${FOLDER}.\n` +
-      `• Cerebro de Nexy: copia del ${stamp(now).replace('_', ' a las ').replace(/(\d\d)(\d\d)$/, '$1:$2')} (se guardan las últimas ${KEEP}).\n` +
+      `• Cerebro de NEX: copia del ${stamp(now).replace('_', ' a las ').replace(/(\d\d)(\d\d)$/, '$1:$2')} (se guardan las últimas ${KEEP}).\n` +
       `• Archivos: ${f.files ? `${f.files} nuevos o cambiados (${size(f.bytes)})` : 'ya estaban todos al día'}.\n` +
       `• Tardó ${secs < 60 ? `${secs} s` : `${Math.round(secs / 60)} min`}.` +
       (errors.length ? `\n⚠️ ${errors.length} archivo(s) no se pudieron copiar, por ejemplo: ${errors.slice(0, 3).join('; ')}` : '')
@@ -189,16 +189,16 @@ async function tellOwner(text) {
   }
 }
 
-/** Nexy's tool: start a backup; the result reaches the owner's Telegram. */
+/** NEX's tool: start a backup; the result reaches the owner's Telegram. */
 export function backupServer() {
   return createSdkMcpServer({
     name: 'jarvis_respaldo',
     version: '1.0.0',
-    instructions: "A backup of everything that is Nexy, onto the owner's external drive.",
+    instructions: "A backup of everything that is NEX, onto the owner's external drive.",
     tools: [
       tool(
         'make_backup',
-        "Back up everything that is Nexy (her brain, sign-ins and keys, invoices, the groups' files, videos) to the owner's external drive. Only when the owner asks for a backup. Runs in the background; when it ends he gets the summary on Telegram.",
+        "Back up everything that is NEX (her brain, sign-ins and keys, invoices, the groups' files, videos) to the owner's external drive. Only when the owner asks for a backup. Runs in the background; when it ends he gets the summary on Telegram.",
         {},
         async () => {
           const t = target()

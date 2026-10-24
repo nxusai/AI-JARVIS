@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Nexy on Telegram: set up the bot, see its state, or turn it off.
+// NEX on Telegram: set up the bot, see its state, or turn it off.
 //
 //   node scripts/telegram.mjs            asks for the bot token (hidden) and prints a pairing code
 //   node scripts/telegram.mjs estado     shows the bot and who its owner is
@@ -65,7 +65,7 @@ const pairingHelp = (bot, code) =>
   `   1. Abre Telegram y busca @${bot}\n` +
   `   2. Toca "Iniciar" (Start)\n` +
   `   3. Mándale este código:  ${code}\n\n` +
-  ` Nexy tiene que estar encendida (npm start) para recibirlo.\n`
+  ` NEX tiene que estar encendida (npm start) para recibirlo.\n`
 
 if (cmd === 'estado') {
   const cfg = readTelegram()
@@ -93,7 +93,7 @@ if (cmd === 'estado') {
   console.log(pairingHelp(cfg.bot ?? 'tu bot', code))
 } else if (cmd === 'apagar') {
   removeTelegram()
-  console.log(' Telegram quedó desconectado de esta Mac. Reinicia Nexy para que lo note.')
+  console.log(' Telegram quedó desconectado de esta Mac. Reinicia NEX para que lo note.')
 } else if (!cmd) {
   const token = (await hidden(' Pega la llave (token) de tu bot y presiona Enter — no se verá mientras la pegas: ')).replace(/\s+/g, '')
   if (!TOKEN_SHAPE.test(token)) {

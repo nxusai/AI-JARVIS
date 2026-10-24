@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Moving Nexy from one Mac to another, with everything she knows.
+// Moving NEX from one Mac to another, with everything she knows.
 //
-//   node scripts/mudanza.mjs empacar      on the old Mac: packs Nexy into ~/Desktop/nexy-mudanza.tgz
+//   node scripts/mudanza.mjs empacar      on the old Mac: packs NEX into ~/Desktop/nexy-mudanza.tgz
 //                                          and switches off Telegram and routines here, so only one
-//                                          Nexy answers
+//                                          NEX answers
 //   node scripts/mudanza.mjs desempacar   on the new Mac: unpacks it (from the Desktop or Downloads)
 //   node scripts/mudanza.mjs regresar     on the old Mac: undoes the switch-off, if the move is called off
 //
@@ -15,7 +15,7 @@
 // Keychain, so they are signed in again on the new Mac with /mcp.
 //
 // The package holds keys. It is readable by this user only; move it by
-// AirDrop and delete it from both Macs once Nexy works on the new one.
+// AirDrop and delete it from both Macs once NEX works on the new one.
 
 import { spawnSync } from 'node:child_process'
 import { chmodSync, cpSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -23,13 +23,13 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const HOME = homedir()
-const NEXY = join(HOME, '.nexy')
-const MOVED = join(NEXY, 'mudada.json')
+const NEX = join(HOME, '.nexy')
+const MOVED = join(NEX, 'mudada.json')
 const PACKAGE = 'nexy-mudanza.tgz'
 // Sign-ins kept as files by the Gmail and Calendar connectors.
 const EXTRA_DIRS = ['.gmail-mcp', join('.config', 'nexy'), join('.config', 'google-calendar-mcp')]
 const ENV_LINE = /^\s*export\s+(NEXY_|JARVIS_|ELEVENLABS_)[A-Z0-9_]*=/
-const MARK = '# Nexy — traído de la otra Mac'
+const MARK = '# NEX — traído de la otra Mac'
 
 const say = (s = '') => console.log(s)
 const fail = (s) => {
@@ -49,14 +49,14 @@ const readJson = (p, fallback) => {
 }
 
 function empacar() {
-  if (!existsSync(NEXY)) fail('No encuentro a Nexy en esta Mac (no existe ~/.nexy).')
+  if (!existsSync(NEX)) fail('No encuentro a NEX en esta Mac (no existe ~/.nexy).')
   const stage = mkdtempSync(join(tmpdir(), 'nexy-mudanza-'))
   try {
     // What she knows. The conversation ids stay behind: they point at chat
     // logs that live on this Mac only.
-    cpSync(NEXY, join(stage, 'home', '.nexy'), {
+    cpSync(NEX, join(stage, 'home', '.nexy'), {
       recursive: true,
-      filter: (src) => !src.startsWith(join(NEXY, 'sesiones')) && src !== MOVED,
+      filter: (src) => !src.startsWith(join(NEX, 'sesiones')) && src !== MOVED,
     })
     for (const d of EXTRA_DIRS) {
       if (existsSync(join(HOME, d))) cpSync(join(HOME, d), join(stage, 'home', d), { recursive: true })
@@ -76,9 +76,9 @@ function empacar() {
     writeFileSync(MOVED, JSON.stringify({ fecha: new Date().toISOString() }))
 
     const names = Object.keys(servers)
-    say(`\n📦 Listo: Nexy quedó empacada en el Escritorio → ${PACKAGE}`)
+    say(`\n📦 Listo: NEX quedó empacada en el Escritorio → ${PACKAGE}`)
     say(`   Lleva: marcas, manuales, memoria, contactos, rutinas, Telegram, ${env.length} ajustes y ${names.length} conectores (${names.join(', ') || 'ninguno'}).`)
-    say('\n🔕 En ESTA Mac, Nexy ya no contestará Telegram ni correrá rutinas (para que no haya dos Nexys).')
+    say('\n🔕 En ESTA Mac, NEX ya no contestará Telegram ni correrá rutinas (para que no haya dos Nexys).')
     say('   Si te arrepientes: node scripts/mudanza.mjs regresar')
     say('\n⚠️  El archivo tiene llaves: pásalo por AirDrop y bórralo de las dos Macs cuando todo funcione.\n')
   } finally {
@@ -94,13 +94,13 @@ function desempacar() {
   try {
     tar(['-xzf', file, '-C', stage])
     const packed = readJson(join(stage, 'conectores.json'), null)
-    if (!packed || !existsSync(join(stage, 'home', '.nexy'))) fail('Ese archivo no parece una mudanza de Nexy.')
+    if (!packed || !existsSync(join(stage, 'home', '.nexy'))) fail('Ese archivo no parece una mudanza de NEX.')
 
-    // Whatever Nexy already had here is kept aside, not overwritten.
-    if (existsSync(NEXY)) {
-      const aside = `${NEXY}-antes-${new Date().toISOString().slice(0, 10)}`
-      renameSync(NEXY, existsSync(aside) ? `${aside}-${Date.now()}` : aside)
-      say(`(Lo que había de Nexy en esta Mac quedó guardado en ${aside})`)
+    // Whatever NEX already had here is kept aside, not overwritten.
+    if (existsSync(NEX)) {
+      const aside = `${NEX}-antes-${new Date().toISOString().slice(0, 10)}`
+      renameSync(NEX, existsSync(aside) ? `${aside}-${Date.now()}` : aside)
+      say(`(Lo que había de NEX en esta Mac quedó guardado en ${aside})`)
     }
     cpSync(join(stage, 'home'), HOME, { recursive: true })
 
@@ -127,7 +127,7 @@ function desempacar() {
     const browser = Object.entries(servers)
       .filter(([, d]) => d?.type === 'http' || d?.type === 'sse' || d?.url)
       .map(([n]) => n)
-    say('\n🏠 Listo: Nexy ya vive en esta Mac con todo lo que sabe.')
+    say('\n🏠 Listo: NEX ya vive en esta Mac con todo lo que sabe.')
     say(`   Conectores agregados: ${added.join(', ') || 'ya estaban todos'}.`)
     if (browser.length) {
       say(`\n🔑 Falta volver a iniciar sesión en: ${browser.join(', ')}.`)
@@ -142,7 +142,7 @@ function desempacar() {
 function regresar() {
   if (!existsSync(MOVED)) return say('\nNexy no estaba marcada como mudada en esta Mac. Nada que hacer.\n')
   rmSync(MOVED)
-  say('\n↩️  Listo: al reiniciar Nexy en esta Mac, vuelve a contestar Telegram y a correr rutinas.')
+  say('\n↩️  Listo: al reiniciar NEX en esta Mac, vuelve a contestar Telegram y a correr rutinas.')
   say('   Asegúrate de que NO esté prendida en la otra Mac al mismo tiempo.\n')
 }
 

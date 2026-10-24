@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Make Nexy's phone agents hold up on a noisy line.
+// Make NEX's phone agents hold up on a noisy line.
 //
 //   node scripts/voz-llamadas.mjs           shows, then applies, the changes
 //   node scripts/voz-llamadas.mjs ver       only shows the current settings
@@ -30,7 +30,7 @@ import { join } from 'node:path'
 const API = 'https://api.elevenlabs.io/v1/convai/agents'
 const WANT = { turn_eagerness: 'patient', disable_first_message_interruptions: true }
 const onlyShow = process.argv[2] === 'ver'
-const RECEPTION = 'Nexy Recepcionista (llamadas que no contestas)'
+const RECEPTION = 'NEX Recepcionista (llamadas que no contestas)'
 const MESSAGE_BLOCK = `MENSAJE DE ESTA LLAMADA: {{nexy_brief}}
 - Ese es el mensaje que tienes que dar en esta llamada. Si te interrumpen, si hubo ruido o si te piden que lo repitas, dilo otra vez completo y con calma.
 - Ignora ruidos, sonidos, palabras sueltas o frases sin sentido: no les respondas y nunca digas que no tienes mensaje.`
@@ -155,12 +155,12 @@ async function fix(label, id, apiKey, ana) {
 
 const apiKey = key()
 if (!apiKey) {
-  console.log('\n✋ No encuentro la llave de ElevenLabs en esta Mac. Corre esto en la Terminal donde corre Nexy.\n')
+  console.log('\n✋ No encuentro la llave de ElevenLabs en esta Mac. Corre esto en la Terminal donde corre NEX.\n')
   process.exit(1)
 }
 const agents = [
-  ['Nexy Mensajera (llamadas a contactos)', process.env.NEXY_MESSENGER_AGENT_ID],
-  ['Nexy (llamadas a ti)', process.env.NEXY_CALL_AGENT_ID],
+  ['NEX Mensajera (llamadas a contactos)', process.env.NEXY_MESSENGER_AGENT_ID],
+  ['NEX (llamadas a ti)', process.env.NEXY_CALL_AGENT_ID],
   [RECEPTION, process.env.NEXY_RECEPTION_AGENT_ID],
 ].filter(([, id]) => id && /^agent_\w+$/.test(id.trim()))
 if (!agents.length) {
@@ -168,7 +168,7 @@ if (!agents.length) {
   process.exit(1)
 }
 const ana = await anaSofi(apiKey)
-if (ana) console.log(`\nAna Sofi usa: LLM ${JSON.stringify(get(ana, ['agent', 'prompt', 'llm']))} · voz ${JSON.stringify(get(ana, ['tts', 'model_id']))}. Se lo copio a las agentes de Nexy.`)
+if (ana) console.log(`\nAna Sofi usa: LLM ${JSON.stringify(get(ana, ['agent', 'prompt', 'llm']))} · voz ${JSON.stringify(get(ana, ['tts', 'model_id']))}. Se lo copio a las agentes de NEX.`)
 else console.log('\n⚠️  No encontré a Ana Sofi (~/.nexy/ventas.json); solo aplico los demás ajustes.')
 for (const [label, id] of agents) await fix(label, id.trim(), apiKey, ana)
 console.log(onlyShow ? '\nSolo mostré los ajustes. Para aplicarlos: node scripts/voz-llamadas.mjs\n' : '\nListo. Haz una llamada de prueba en altavoz con algo de ruido.\n')

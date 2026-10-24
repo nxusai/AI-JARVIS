@@ -7,18 +7,18 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * The builder: Nexy hands software work to Claude Code running on this Mac,
+ * The builder: NEX hands software work to Claude Code running on this Mac,
  * signed in with the owner's Claude subscription — not the API credits, which
  * stay for her calls and messages.
  *
  * Every project has a folder of its own, ~/Documents/Nexy/proyectos/<id>, with
  * its own git history, and a conversation the builder picks up again next
- * time, like going back to the same tab. The ones already made with Nexy (the
+ * time, like going back to the same tab. The ones already made with NEX (the
  * Abuelito and Aurelius sites, the work centre, the portal) are copied there
- * the first time, so an update of Nexy's own folder never overwrites them.
+ * the first time, so an update of NEX's own folder never overwrites them.
  *
  * The builder works only inside its project's folder: its file tools are
- * fenced to it, and its shell may not touch Nexy's keys, push, publish to
+ * fenced to it, and its shell may not touch NEX's keys, push, publish to
  * production or use sudo. When the subscription's limit is reached it stops
  * and says so; it never falls back to spending API credits.
  *
@@ -32,7 +32,7 @@ const MAX_RUNNING = 2
 const MAX_HOURS = 3
 const NEWS_EVERY_MS = 10 * 60_000
 
-/** What already exists in Nexy's own folder, ready to be taken over. */
+/** What already exists in NEX's own folder, ready to be taken over. */
 const KNOWN = [
   { id: 'abuelito-web', nombre: 'Sitio web de El Abuelito', origen: 'el-abuelito-web' },
   { id: 'aurelius-web', nombre: 'Sitio web de Aurelius', origen: 'aurelius-web' },
@@ -101,7 +101,7 @@ export function builderGate(root) {
     }
     if (toolName === 'Bash') {
       const cmd = String(input?.command ?? '')
-      if (SHELL_REFUSED.test(cmd)) return { behavior: 'deny', message: 'That command is not allowed here: no keys, no sudo, no git push, no publishing to production. Leave publishing to Nexy.' }
+      if (SHELL_REFUSED.test(cmd)) return { behavior: 'deny', message: 'That command is not allowed here: no keys, no sudo, no git push, no publishing to production. Leave publishing to NEX.' }
       return { behavior: 'allow', updatedInput: input }
     }
     if (['TodoWrite', 'WebSearch', 'WebFetch', 'Task', 'Agent'].includes(toolName)) return { behavior: 'allow', updatedInput: input }
@@ -118,7 +118,7 @@ function subscriptionEnv() {
 }
 
 const RULES = `
-You are building software for NXUS AI, handed to you by Nexy, the owner's assistant. Work only in this folder.
+You are building software for NXUS AI, handed to you by NEX, the owner's assistant. Work only in this folder.
 - Build it complete and working, in the NXUS standard: clean, fast, premium, mobile first; Spanish or English as the brief says.
 - Reuse what is here before adding new things. Keep commits small: git add and commit with a clear message as you go (never push).
 - Test what you build: run it, run its checks, and fix what fails. When it is a web page, take a screenshot with Playwright if it is installed.
@@ -144,7 +144,7 @@ function prepare(id, p) {
     try {
       execFileSync('git', ['init', '-q'], { cwd: p.carpeta })
       execFileSync('git', ['add', '-A'], { cwd: p.carpeta })
-      execFileSync('git', ['-c', 'user.name=Nexy', '-c', 'user.email=nexy@localhost', 'commit', '-q', '-m', `Punto de partida: ${p.nombre}`, '--allow-empty'], { cwd: p.carpeta })
+      execFileSync('git', ['-c', 'user.name=NEX', '-c', 'user.email=nexy@localhost', 'commit', '-q', '-m', `Punto de partida: ${p.nombre}`, '--allow-empty'], { cwd: p.carpeta })
     } catch (err) {
       console.log(`[jarvis] builder: git init failed in ${id}: ${err.message}`)
     }

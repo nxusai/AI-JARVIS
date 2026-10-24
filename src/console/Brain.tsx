@@ -3,7 +3,7 @@ import type { Live } from './activity'
 import type { Brain as BrainData, BrainNode } from './types'
 
 /**
- * The brain: everything Nexy knows, as a constellation. Brands with the
+ * The brain: everything NEX knows, as a constellation. Brands with the
  * notes of their manuals, departments with their agents, the people she may
  * call and what the owner told her. Drag to move, scroll to zoom, hover a
  * point to see what it connects to, click it to read it.
@@ -119,7 +119,7 @@ export function Brain({ data, live, brandFilter }: { data: BrainData | null; liv
     return () => ro.disconnect()
   }, [data])
 
-  if (!data?.nodes.length) return <p className="muted">El cerebro aparece en cuanto Nexy arranca.</p>
+  if (!data?.nodes.length) return <p className="muted">El cerebro aparece en cuanto NEX arranca.</p>
 
   const neighbours = new Map<string, Set<string>>()
   for (const l of data.links) {
@@ -219,7 +219,7 @@ export function Brain({ data, live, brandFilter }: { data: BrainData | null; liv
                 <circle cx={p.x} cy={p.y} r={r} style={n.color ? { fill: n.color } : undefined} />
                 {n.kind === 'core' ? (
                   <text x={p.x} y={p.y + 6 * u} textAnchor="middle" className="core-name" style={{ fontSize: FONT.core * u }}>
-                    NEXY
+                    NEX
                   </text>
                 ) : null}
                 {n.kind === 'core' ? null : (
@@ -253,7 +253,7 @@ export function Brain({ data, live, brandFilter }: { data: BrainData | null; liv
 }
 
 const KIND: Record<BrainNode['kind'], string> = {
-  core: 'Nexy',
+  core: 'NEX',
   brand: 'Marca',
   note: 'Nota del manual de marca',
   ref: 'Referencia visual de la marca',

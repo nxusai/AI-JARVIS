@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Nexy as the owner's CEO (see bridge/ceo.mjs).
+// NEX as the owner's CEO (see bridge/ceo.mjs).
 //
-//   node scripts/ceo.mjs                  the company in one look, as Nexy sees it
+//   node scripts/ceo.mjs                  the company in one look, as NEX sees it
 //   node scripts/ceo.mjs activar [10:00]  her daily management meeting (Monday to Friday) and the Monday weekly report
 //   node scripts/ceo.mjs quitar           back to no meetings (her other routines stay)
 //   node scripts/ceo.mjs arranque no|si   her report the first time she is switched on each day (on by default)
@@ -55,18 +55,18 @@ if (cmd === 'activar') {
     { ...base, id: 'reporte-semanal', nombre: 'Reporte semanal de crecimiento', instrucciones: WEEKLY, hora: later, dias: [1], ultima: `${now.date} ${later}` },
   )
   save(list)
-  say(`\n✅ Nexy CEO activa (${ZONE}):`)
+  say(`\n✅ NEX CEO activa (${ZONE}):`)
   say(`   • Junta diaria de dirección: lunes a viernes a las ${hora}`)
   say(`   • Reporte semanal de crecimiento: lunes a las ${later}`)
-  say('   Las hace cuando Nexy está prendida (o al prenderla, si fue en las últimas 6 horas).')
-  say('   Reinicia Nexy para que las tome: Ctrl + C y npm start\n')
+  say('   Las hace cuando NEX está prendida (o al prenderla, si fue en las últimas 6 horas).')
+  say('   Reinicia NEX para que las tome: Ctrl + C y npm start\n')
   process.exit(0)
 }
 
 if (cmd === 'arranque') {
   const on = !/^(no|off|apagar|quitar)$/i.test(String(arg ?? ''))
   writeCeo({ arranque: on })
-  say(on ? '\n✅ Al prenderla por primera vez en el día, Nexy te manda su reporte por Telegram.\n' : '\n✅ Listo: ya no manda el reporte al prenderla.\n')
+  say(on ? '\n✅ Al prenderla por primera vez en el día, NEX te manda su reporte por Telegram.\n' : '\n✅ Listo: ya no manda el reporte al prenderla.\n')
   process.exit(0)
 }
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Nexy on the iPhone (see bridge/movil.mjs and docs/guia-movil.md).
+// NEX on the iPhone (see bridge/movil.mjs and docs/guia-movil.md).
 //
 //   node scripts/movil.mjs              makes the phone's key (once), copies it to the clipboard and shows the address
 //   node scripts/movil.mjs llave        copies the key to the clipboard again
 //   node scripts/movil.mjs nueva-llave  a new key: the old one stops working (if the phone was lost)
-//   node scripts/movil.mjs estado       the address, and whether Nexy's door is open
+//   node scripts/movil.mjs estado       the address, and whether NEX's door is open
 //
 // The key is never printed: it goes to the clipboard, which the iPhone shares
 // with this Mac (same Apple ID), to be pasted into the Shortcut.
@@ -52,9 +52,9 @@ function show(cfg) {
 
 if (cmd === 'nueva-llave') {
   const cfg = newPhoneKey()
-  if (copy(cfg.llave)) say('\n🔑 Llave nueva copiada. Pégala en el atajo "Nexy" del iPhone (en Authorization, después de "Bearer ").')
+  if (copy(cfg.llave)) say('\n🔑 Llave nueva copiada. Pégala en el atajo "NEX" del iPhone (en Authorization, después de "Bearer ").')
   else say('\n🔑 Llave nueva creada, pero no pude copiarla. Corre: node scripts/movil.mjs llave')
-  say('   La anterior ya no sirve. Reinicia Nexy para que la use: Ctrl + C y npm start.')
+  say('   La anterior ya no sirve. Reinicia NEX para que la use: Ctrl + C y npm start.')
   show(cfg)
   process.exit(0)
 }
@@ -76,7 +76,7 @@ if (cmd === 'estado') {
     process.exit(0)
   }
   const open = spawnSync('lsof', ['-ti', `tcp:${cfg.puerto ?? 8789}`], { encoding: 'utf8' }).stdout.trim()
-  say(`\nPuerta del celular: ${open ? '✅ abierta (Nexy está corriendo)' : '❌ cerrada (arranca Nexy con npm start)'}`)
+  say(`\nPuerta del celular: ${open ? '✅ abierta (NEX está corriendo)' : '❌ cerrada (arranca NEX con npm start)'}`)
   show(cfg)
   process.exit(0)
 }
@@ -87,7 +87,7 @@ if (cmd) {
 }
 
 const cfg = readPhone() ?? newPhoneKey()
-say(copy(cfg.llave) ? '\n🔑 Llave del celular copiada. En el iPhone, pégala en el atajo "Nexy" (en Authorization, después de "Bearer ").' : '\n🔑 Llave lista. Cópiala con: node scripts/movil.mjs llave')
-say('   No la pegues en ningún chat: es la llave de entrada a Nexy.')
+say(copy(cfg.llave) ? '\n🔑 Llave del celular copiada. En el iPhone, pégala en el atajo "NEX" (en Authorization, después de "Bearer ").' : '\n🔑 Llave lista. Cópiala con: node scripts/movil.mjs llave')
+say('   No la pegues en ningún chat: es la llave de entrada a NEX.')
 show(cfg)
-say('Reinicia Nexy para abrir la puerta del celular: Ctrl + C y luego npm start\n')
+say('Reinicia NEX para abrir la puerta del celular: Ctrl + C y luego npm start\n')

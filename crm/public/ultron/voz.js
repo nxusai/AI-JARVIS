@@ -1,4 +1,4 @@
-// El oído de Ultron: micrófono siempre abierto, como el de Nexy.
+// El oído de Ultron: micrófono siempre abierto.
 //
 // No usa el reconocimiento de voz del navegador (se queda sordo solo, sin
 // avisar). Mide la energía del micrófono: cuando sube sobre el ruido del

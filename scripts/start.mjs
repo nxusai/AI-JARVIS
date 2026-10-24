@@ -62,7 +62,7 @@ const children = []
  * Where this Node lives, first on the PATH of everything started from here.
  * Started by the Mac on its own (scripts/siempre.mjs) there is no Terminal
  * PATH, so "node" and "npx" (the connectors run on them) were not found and
- * Nexy died on start: "spawn node ENOENT".
+ * NEX died on start: "spawn node ENOENT".
  */
 const PATH = [dirname(process.execPath), '/opt/homebrew/bin', '/usr/local/bin', process.env.PATH ?? '/usr/bin:/bin']
   .filter(Boolean)

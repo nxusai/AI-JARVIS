@@ -193,7 +193,7 @@ export function Departments({
               <h3>Equipo</h3>
               <ul className="dept-list">
                 <li>
-                  <b>🧠 Nexy</b>
+                  <b>🧠 NEX</b>
                   <span>{team.length ? 'Coordina y decide qué especialista usar.' : 'Hace este trabajo directamente.'}</span>
                 </li>
                 {team.map((a) => {
@@ -234,7 +234,7 @@ export function Departments({
                   {molds.length ? (
                     <>
                       <p className="muted small">
-                        Para todas las empresas. En cada edición Nexy escoge el molde que mejor queda, o mezcla varios.
+                        Para todas las empresas. En cada edición NEX escoge el molde que mejor queda, o mezcla varios.
                       </p>
                       <ul className="dept-molds">
                         {molds.map((m) => (
@@ -249,7 +249,7 @@ export function Departments({
                       </ul>
                     </>
                   ) : (
-                    <p className="muted small">Todavía no hay moldes. Mándale a Nexy un video de referencia y lo guarda como molde.</p>
+                    <p className="muted small">Todavía no hay moldes. Mándale a NEX un video de referencia y lo guarda como molde.</p>
                   )}
                 </>
               ) : null}

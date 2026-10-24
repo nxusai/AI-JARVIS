@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { findBrand } from './brands.mjs'
 
 /**
- * Routines: work the owner leaves Nexy to do on her own, every day or on
+ * Routines: work the owner leaves NEX to do on her own, every day or on
  * some days of the week, at a set time — "every morning at 9, find ten
  * prospects for NXUS and draft their emails".
  *
@@ -20,7 +20,7 @@ import { findBrand } from './brands.mjs'
  * Creating, changing and removing a routine is held for the owner's tap too,
  * so a web page or an email can never leave work scheduled behind their back.
  *
- * The Mac has to be on. A routine missed while it was asleep or Nexy was
+ * The Mac has to be on. A routine missed while it was asleep or NEX was
  * closed runs late, if it is within a few hours; past that it is skipped
  * rather than done at a time nobody expects.
  */
@@ -170,7 +170,7 @@ export function routinePrompt(r, late = 0) {
   const brand = r.marca ? findBrand(r.marca) : null
   return (
     `[Scheduled routine «${r.nombre}», set up earlier by the owner and running now on its own` +
-    `${late > 5 ? `, ${late} minutes late because this Mac was asleep or Nexy was closed` : ''}. ` +
+    `${late > 5 ? `, ${late} minutes late because this Mac was asleep or NEX was closed` : ''}. ` +
     'Nobody is waiting live: do the whole job, then answer with a short report for their phone — what you did, ' +
     'what you found, and what is waiting for their approval. Anything that publishes, sends, calls or spends still ' +
     'goes through approval as always; never skip that because the owner is away.' +
@@ -187,7 +187,7 @@ export function setRoutineRunner(fn) {
 }
 
 /**
- * One job handed to Nexy outside any routine — the sales line uses it for a
+ * One job handed to NEX outside any routine — the sales line uses it for a
  * new lead — run the same way and reported the same way. `aviso` is the line
  * the owner sees when it starts. False when nothing can run it yet.
  */
@@ -204,7 +204,7 @@ export function runJob(nombre, marca, prompt, aviso, { silent = false } = {}) {
 
 /**
  * Start the clock. While any routine is active on a Mac, it also keeps the
- * Mac from dozing off on its own (the built-in caffeinate, only while Nexy
+ * Mac from dozing off on its own (the built-in caffeinate, only while NEX
  * runs); closing the lid still puts it to sleep.
  */
 export function startRoutines(zone) {
@@ -216,7 +216,7 @@ export function startRoutines(zone) {
         awake = spawn('caffeinate', ['-i', '-w', String(process.pid)], { stdio: 'ignore' })
         awake.on('error', () => (awake = null))
         awake.on('exit', () => (awake = null))
-        console.log('[jarvis] routines: keeping this Mac awake while Nexy runs')
+        console.log('[jarvis] routines: keeping this Mac awake while NEX runs')
       } catch {
         awake = null
       }
@@ -277,7 +277,7 @@ export function routinesServer(zone) {
     name: 'jarvis_rutinas',
     version: '1.0.0',
     instructions:
-      "The owner's routines: work Nexy does on her own at set times, every day or on some days. Creating, changing or removing one is approved by the owner with a tap.",
+      "The owner's routines: work NEX does on her own at set times, every day or on some days. Creating, changing or removing one is approved by the owner with a tap.",
     alwaysLoad: true,
     tools: [
       tool('list_routines', 'The routines the owner has set up, with their days, time, brand and whether they are paused.', {}, async () => {
@@ -288,7 +288,7 @@ export function routinesServer(zone) {
 
       tool(
         'create_routine',
-        'Schedule work for Nexy to do on her own, at a set time every day or on some days — only when the owner asks for it. ' +
+        'Schedule work for NEX to do on her own, at a set time every day or on some days — only when the owner asks for it. ' +
           'Write the instructions complete and self-contained, as you would brief someone who will not be able to ask: ' +
           'what to do, for which brand, how much, and what to send back. The owner approves it with a tap.',
         {
@@ -326,7 +326,7 @@ export function routinesServer(zone) {
           )
           list.push(r)
           writeRoutines(list)
-          return ok(`Scheduled. ${describeRoutine(r)}\nIt runs while this Mac is on and Nexy is open, and the report arrives on Telegram.`)
+          return ok(`Scheduled. ${describeRoutine(r)}\nIt runs while this Mac is on and NEX is open, and the report arrives on Telegram.`)
         },
       ),
 

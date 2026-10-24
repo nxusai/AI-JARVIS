@@ -3,12 +3,12 @@ import type { EcoLive } from './ecosystem'
 import { gauss, hash, rand, universeOf, type Cloud } from './clouds'
 
 /**
- * The whole ecosystem and everything Nexy knows, as a living field. Each
+ * The whole ecosystem and everything NEX knows, as a living field. Each
  * company is a cloud of light in its colour: its departments, their agents
- * and connections, what Nexy knows about it, and the owner's profile
- * compartment of the same name. Nexy's own core (memory, contacts, shared
+ * and connections, what NEX knows about it, and the owner's profile
+ * compartment of the same name. NEX's own core (memory, contacts, shared
  * services) is one more cloud, and the profile's own compartments (personal,
- * principles, the holding) are the rest — all wired to Nexy in the middle.
+ * principles, the holding) are the rest — all wired to NEX in the middle.
  *
  * What is working lights up: its star pulses and pulses run out along the wire
  * to its cloud. Drag to turn it, scroll to come closer, touch a cloud to see
@@ -74,8 +74,8 @@ export function Nebula({
   const wrap = useRef<HTMLDivElement | null>(null)
   const [full, setFull] = useState(false)
   const view = useRef({ yaw: 0, pitch: -0.32, zoom: 1, warp: 0, drag: null as null | { x: number; y: number; yaw: number; pitch: number }, moved: false })
-  const centre = useRef<{ label: string; color: [number, number, number] | null }>({ label: 'NEXY', color: null })
-  centre.current = { label: inner ? inner.label.toUpperCase() : 'NEXY', color: inner?.color ?? null }
+  const centre = useRef<{ label: string; color: [number, number, number] | null }>({ label: 'NEX', color: null })
+  centre.current = { label: inner ? inner.label.toUpperCase() : 'NEX', color: inner?.color ?? null }
   /** Into a company's universe, or back out (null), with a warp. */
   const go = (id: string | null) => {
     const v = view.current
@@ -183,7 +183,7 @@ export function Nebula({
         }
       }
 
-      // Wires from Nexy to every cloud, with pulses running out along them.
+      // Wires from NEX to every cloud, with pulses running out along them.
       const core = P(0, 0, 0)
       proj.current = cs.map((c, i) => {
         const p = P(...c.center)
@@ -208,7 +208,7 @@ export function Nebula({
         return { x: p.x, y: p.y, r: c.radius * p.f * scale }
       })
 
-      // A soft glow under each cloud — brighter while it works — and rays from Nexy into it.
+      // A soft glow under each cloud — brighter while it works — and rays from NEX into it.
       cs.forEach((c, i) => {
         const p = proj.current[i]
         const [r, g, b] = c.color
@@ -260,7 +260,7 @@ export function Nebula({
         }
       }
 
-      // The centre: Nexy, or the company whose universe this is, pulsing while it works.
+      // The centre: NEX, or the company whose universe this is, pulsing while it works.
       const { label: centreLabel, color: cc } = centre.current
       const nexyOn = cc ? busy.some(Boolean) : lv.has('core')
       const R = (70 * scale + 30) * (nexyOn ? 1.15 + 0.1 * Math.sin(t * 5) : 1)
@@ -309,7 +309,7 @@ export function Nebula({
     return () => cancelAnimationFrame(raf)
   }, [cs, ds])
 
-  if (!clouds.length) return <p className="muted">El cerebro aparece en cuanto Nexy arranca.</p>
+  if (!clouds.length) return <p className="muted">El cerebro aparece en cuanto NEX arranca.</p>
 
   const total = cs.reduce((a, c) => a + c.items.length, 0)
   const working = cs.filter((c) => live.has(c.id) || c.items.some((it) => live.has(it.id))).length
@@ -376,7 +376,7 @@ export function Nebula({
         <nav className="nebula-crumbs">
           <button onClick={() => go(null)}>← Ecosistema</button>
           <span>
-            NEXY › <b>{inner.icon ? `${inner.icon} ` : ''}{inner.label.toUpperCase()}</b>
+            NEX › <b>{inner.icon ? `${inner.icon} ` : ''}{inner.label.toUpperCase()}</b>
           </span>
         </nav>
       ) : null}
@@ -389,7 +389,7 @@ export function Nebula({
       </button>
       <div className="nebula-title">
         <small>{inner ? 'UNIVERSO' : 'ECOSISTEMA Y SEGUNDO CEREBRO'}</small>
-        <h2>{inner ? inner.label : 'Nexy'}</h2>
+        <h2>{inner ? inner.label : 'NEX'}</h2>
         <p>
           <b>{total}</b> piezas · <b>{cs.length}</b> áreas · {working ? <b className="live-txt">{working} trabajando ahora</b> : 'en reposo'}
         </p>

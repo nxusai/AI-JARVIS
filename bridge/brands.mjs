@@ -5,7 +5,7 @@ import { homedir } from 'node:os'
 import { basename, join, sep } from 'node:path'
 
 /**
- * The owner's brands, and which one Nexy is working in right now.
+ * The owner's brands, and which one NEX is working in right now.
  *
  * The owner runs several brands — each with its own accounts, voice and
  * content — and asks for work in one of them at a time: "in VAYRO, draft three
@@ -26,7 +26,7 @@ const DIR = join(homedir(), '.nexy')
 export const BRANDS_FILE = join(DIR, 'marcas.json')
 export const MANUALS_DIR = join(DIR, 'marcas')
 
-/** Images the owner sent Nexy (from Telegram), before any is kept for a brand. */
+/** Images the owner sent NEX (from Telegram), before any is kept for a brand. */
 export const RECEIVED_DIR = join(DIR, 'recibidas')
 const MAX_REFERENCES = 30
 const IMAGE_FILE = /\.(jpe?g|png|webp|gif)$/i
@@ -78,7 +78,7 @@ const STRUCTURE = 4
 const MANUAL_HEADER = (nombre) =>
   `# Manual de marca: ${nombre}\n\n` +
   'Cómo es esta marca: tono, temas, estilo, lo que sí y lo que no.\n' +
-  'Una nota por línea, empezando con "- ". Nexy lo lee antes de crear contenido.\n\n'
+  'Una nota por línea, empezando con "- ". NEX lo lee antes de crear contenido.\n\n'
 
 const ok = (text) => ({ content: [{ type: 'text', text }] })
 const refuse = (text) => ({ isError: true, content: [{ type: 'text', text }] })
@@ -193,7 +193,7 @@ export function accountIdsIn(input) {
  * Semago's, also used for the Abuelito companies). Set by the owner on the
  * Mac (`node scripts/meta-ads.mjs compartir …`), never by the model. In a
  * shared account every campaign, ad set and ad carries its company at the
- * front of its name — "[Abuelito Cheese] Promo queso" — which Nexy adds when
+ * front of its name — "[Abuelito Cheese] Promo queso" — which NEX adds when
  * she creates and checks before she changes anything (see anuncios.mjs).
  *
  *   ~/.nexy/cuentas-compartidas.json   [{ servicio, id, marcas: [ids] }]
@@ -241,7 +241,7 @@ export function tagsFor(b, marcas = readBrands().marcas) {
 
 /**
  * The lock between brands: a publishing call may only name accounts linked
- * to the brand Nexy is working in. Returns { ok, account } or { ok: false, message }.
+ * to the brand NEX is working in. Returns { ok, account } or { ok: false, message }.
  * In a shared ad account it also returns `tags`: the company tags this brand
  * may use there (see anuncios.mjs, which enforces them).
  */
@@ -389,7 +389,7 @@ export const brandsOf = (id, marcas = readBrands().marcas) => marcas.filter((b) 
 /** The holding a company belongs to (itself, when it has none). */
 export const companyId = (id, marcas = readBrands().marcas) => marcas.find((b) => b.id === id)?.padre ?? id
 
-/** The whole layout in plain lines, for Nexy and for list_brands. */
+/** The whole layout in plain lines, for NEX and for list_brands. */
 export function treeText({ grupo, clientes, activa, marcas }, line = (b) => b.nombre) {
   const section = (cartera, title) => {
     const companies = marcas.filter((b) => !b.padre && b.cartera === cartera)
@@ -498,7 +498,7 @@ export function readReferences(id) {
 }
 
 /**
- * Keep images the owner sent as a brand's references. Only files Nexy herself
+ * Keep images the owner sent as a brand's references. Only files NEX herself
  * saved from Telegram are accepted, so a path the model makes up can never
  * copy anything else from this Mac.
  */
@@ -620,7 +620,7 @@ const manualBody = (b) => {
 }
 
 const stylesFile = (id) => join(MANUALS_DIR, id, 'estilos.json')
-/** Styles for every brand: the owner wants what Nexy learns to serve them all. */
+/** Styles for every brand: the owner wants what NEX learns to serve them all. */
 const SHARED_STYLES = join(MANUALS_DIR, 'estilos-todas.json')
 // Every reference the owner sends becomes one, so there is room for many.
 const MAX_STYLES = 80

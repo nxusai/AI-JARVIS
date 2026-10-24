@@ -39,7 +39,9 @@ const MAX_AHEAD_MS = 30 * 24 * 60 * 60_000
 /** A model that retries on silence can ring a phone five times in a minute. */
 const MIN_GAP_MS = 60_000
 /** Every booking carries this prefix, so the cancel tool can tell ours apart. */
-const NAME_PREFIX = 'Nexy: '
+const NAME_PREFIX = 'NEX: '
+// Calls booked before her rename still carry "Nexy: ".
+const OURS = /^(?:NEX|Nexy): /
 
 const NO_MESSAGE = '¿En qué te ayudo?'
 
@@ -100,7 +102,7 @@ function speakable(ms, zone) {
 }
 
 const CALL_ME_DESCRIPTION =
-  "Phone the user on their own mobile using the Nexy phone agent — now, after " +
+  "Phone the user on their own mobile using the NEX phone agent — now, after " +
   'a delay, or at a set time. Use it when they ask you to call them, ring ' +
   'them, or phone them with something — a summary, a reminder, what is on ' +
   'today. For "in 5 minutes" pass in_minutes; for a clock time pass `at` as ' +
@@ -183,7 +185,7 @@ export function phoneServer(elevenKey, zone) {
     name: 'jarvis_phone',
     version: '1.0.0',
     instructions:
-      "Rings the user's own phone through the Nexy phone agent, now or at a " +
+      "Rings the user's own phone through the NEX phone agent, now or at a " +
       'set time, and lists or cancels the calls already booked. It cannot ' +
       'call anyone else.',
     alwaysLoad: true,
@@ -232,7 +234,7 @@ export function phoneServer(elevenKey, zone) {
             )
           }, delay)
           const secs = Math.round(delay / 1000)
-          return ok(`The call will ring in ${secs} seconds. This short wait only works while Nexy stays open.`)
+          return ok(`The call will ring in ${secs} seconds. This short wait only works while NEX stays open.`)
         }
 
         try {
@@ -281,7 +283,7 @@ export function phoneServer(elevenKey, zone) {
           const now = Date.now() / 1000
           const pending = all.filter(
             (b) =>
-              String(b.name ?? '').startsWith(NAME_PREFIX) &&
+              OURS.test(String(b.name ?? '')) &&
               (b.scheduled_time_unix ?? 0) > now - 60 &&
               !/cancel|complet|fail/i.test(String(b.status ?? '')),
           )
@@ -306,8 +308,8 @@ export function phoneServer(elevenKey, zone) {
           if (!/^[\w-]{1,100}$/.test(id ?? '')) return refuse('That is not a valid call id.')
           const got = await api(s.key, `/batch-calling/${id}`)
           if (got.error) return refuse(`That call could not be found (error ${got.error}).`)
-          if (!String(got.data.name ?? '').startsWith(NAME_PREFIX) || got.data.agent_id !== s.agent) {
-            return refuse('That call was not booked by Nexy, so it is left alone.')
+          if (!OURS.test(String(got.data.name ?? '')) || got.data.agent_id !== s.agent) {
+            return refuse('That call was not booked by NEX, so it is left alone.')
           }
           const r = await api(s.key, `/batch-calling/${id}/cancel`, { method: 'POST' })
           if (r.error) return refuse(`The call could not be cancelled (error ${r.error}).`)

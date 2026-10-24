@@ -11,7 +11,7 @@ import { vetTarget } from './net.mjs'
  *
  * Higgsfield (and publishing services) take a local image by giving out a
  * one-time upload link. Without this tool the only way to use that link is
- * the shell, which Nexy rightly does not have. This does the one thing
+ * the shell, which NEX rightly does not have. This does the one thing
  * needed and nothing else: it sends an image from the brand folders — the
  * references the owner kept, or images the owner sent on Telegram — to an
  * https link. No other file on this Mac can be read, and nothing is written.

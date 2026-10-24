@@ -1,7 +1,7 @@
 {
   "name": "nexy-efectos",
   "private": true,
-  "description": "Nexy's effects workshop (Remotion): motion graphics and 3D for the brands' videos.",
+  "description": "NEX's effects workshop (Remotion): motion graphics and 3D for the brands' videos.",
   "dependencies": {
     "remotion": "4.0.528",
     "@remotion/cli": "4.0.528",

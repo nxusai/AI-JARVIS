@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// The approved contact list: the only people Nexy may phone for you.
+// The approved contact list: the only people NEX may phone for you.
 //
-// This script is the only way onto the list — Nexy can read it but not change
+// This script is the only way onto the list — NEX can read it but not change
 // it — so a number from an email or a caller can never be dialled.
 //
 //   node scripts/contacts.mjs list

@@ -164,7 +164,7 @@ export function Hud() {
           behind the transcript and the panels without a z-index war. */}
       <BladeSweep />
 
-      {/* N.E.X.Y. V2: the command deck — top bar, systems, live panels, the
+      {/* N.E.X. V2: the command deck — top bar, systems, live panels, the
           armoured frame round the reactor and the voice dock (Command.tsx). */}
       <Command showBrand={ui.chrome.brand} showSystems={ui.chrome.systems} />
 
@@ -207,7 +207,7 @@ export function Hud() {
                 exit={{ opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 32 }}
               >
-                <span className="log-who">{t.role === 'user' ? 'YOU' : 'NEXY'}</span>
+                <span className="log-who">{t.role === 'user' ? 'YOU' : 'NEX'}</span>
                 {/* Only his half decodes. What the user said was never
                     transmitted from anywhere — dressing it up as machine
                     output would be a lie about where the words came from. */}

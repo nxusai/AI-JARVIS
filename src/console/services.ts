@@ -3,7 +3,7 @@
  * the map it hangs from.
  *
  * A server that is not listed here still appears — with its own name and a
- * plug icon, under Dirección — the moment Nexy connects to it, so nothing breaks
+ * plug icon, under Dirección — the moment NEX connects to it, so nothing breaks
  * when a new app is added. A line here only makes it look nicer and puts it in
  * the right department. For example:
  *
@@ -57,7 +57,7 @@ export const SERVICES: Record<string, Service> = {
   'meta-ads': { label: 'Meta Ads', icon: '📢', dept: 'publicidad' },
   fal: { label: 'Imágenes (fal)', icon: '🖼️', dept: 'ia' },
   replicate: { label: 'Imágenes (Replicate)', icon: '🖼️', dept: 'ia' },
-  // Nexy's own screen: busy all the time, and not a connection worth watching.
+  // NEX's own screen: busy all the time, and not a connection worth watching.
   jarvis: { label: 'Pantalla', icon: '🖥️', hidden: true },
   jarvis_ui: { label: 'Interfaz', icon: '🎨', hidden: true },
   builtin: { label: 'Sistema', icon: '⚙️', hidden: true },

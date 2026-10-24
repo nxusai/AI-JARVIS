@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Nexy's watch over each company's Meta ads (see bridge/anuncios.mjs).
+// NEX's watch over each company's Meta ads (see bridge/anuncios.mjs).
 //
 //   node scripts/meta-ads.mjs              asks for the read-only key (hidden), checks it and saves it
 //   node scripts/meta-ads.mjs estado       the key and which companies' ad accounts are watched
-//   node scripts/meta-ads.mjs probar       what each company has running now, as Nexy reads it
+//   node scripts/meta-ads.mjs probar       what each company has running now, as NEX reads it
 //   node scripts/meta-ads.mjs pausas si|no also tell when an ad is paused or ends (off by default)
 //   node scripts/meta-ads.mjs quitar       deletes the key from this Mac
 //   node scripts/meta-ads.mjs compartir mi-semago abuelito-inc
@@ -63,8 +63,8 @@ function hidden(question) {
 async function accounts(key) {
   const list = watchedAccounts()
   if (!list.length) {
-    say('\n⚠️ Ninguna empresa tiene ligada su cuenta de Meta Ads en Nexy todavía.')
-    say('   Pídeselo a Nexy: "liga la cuenta de Meta Ads <número> a Mi Semago".')
+    say('\n⚠️ Ninguna empresa tiene ligada su cuenta de Meta Ads en NEX todavía.')
+    say('   Pídeselo a NEX: "liga la cuenta de Meta Ads <número> a Mi Semago".')
     return
   }
   for (const a of list) {
@@ -107,7 +107,7 @@ if (cmd === 'pausas') {
     process.exit(1)
   }
   writeAdsKey({ ...key, avisarPausas: /^s[ií]$/i.test(arg ?? '') })
-  say(`\n✅ Avisos cuando se pausa o termina un ad: ${/^s[ií]$/i.test(arg ?? '') ? 'sí' : 'no'}. Reinicia Nexy para que lo tome.\n`)
+  say(`\n✅ Avisos cuando se pausa o termina un ad: ${/^s[ií]$/i.test(arg ?? '') ? 'sí' : 'no'}. Reinicia NEX para que lo tome.\n`)
   process.exit(0)
 }
 
@@ -124,7 +124,7 @@ if (cmd === 'compartir' || cmd === 'descompartir') {
   const rest = readShared().filter((c) => c.id !== cuenta)
   if (cmd === 'descompartir') {
     writeShared(rest)
-    say(`\n✅ La cuenta ${link.nombre || cuenta} ya es solo de ${owner.nombre}. Reinicia Nexy.\n`)
+    say(`\n✅ La cuenta ${link.nombre || cuenta} ya es solo de ${owner.nombre}. Reinicia NEX.\n`)
     process.exit(0)
   }
   const others = ids.slice(1).map((id) => marcas.find((b) => b.id === id))
@@ -137,15 +137,15 @@ if (cmd === 'compartir' || cmd === 'descompartir') {
   writeShared([...rest, { servicio: 'meta-ads', id: cuenta, marcas: [owner.id, ...others.map((b) => b.id)] }])
   const names = [owner, ...others].map((b) => b.nombre).join(' + ')
   say(`\n✅ La cuenta ${link.nombre || cuenta} queda compartida, solo para anuncios: ${names}.`)
-  say('   Nexy pone la empresa al inicio del nombre de cada campaña, por ejemplo "[Abuelito Cheese] Promo queso",')
+  say('   NEX pone la empresa al inicio del nombre de cada campaña, por ejemplo "[Abuelito Cheese] Promo queso",')
   say('   solo cambia las campañas de la empresa en la que está trabajando, y te avisa y reporta cada empresa por separado.')
-  say('   Reinicia Nexy (Ctrl+C y npm start) para que lo tome.\n')
+  say('   Reinicia NEX (Ctrl+C y npm start) para que lo tome.\n')
   process.exit(0)
 }
 
 if (cmd === 'quitar') {
   rmSync(ADS_FILE, { force: true })
-  say('\n✅ Borré la llave de Meta de esta Mac. Nexy ya no vigila los ads (reiníciala).\n')
+  say('\n✅ Borré la llave de Meta de esta Mac. NEX ya no vigila los ads (reiníciala).\n')
   process.exit(0)
 }
 
@@ -185,7 +185,7 @@ try {
   // A system user token may not list its permissions: the account check below tells.
 }
 writeAdsKey({ ...key, quien: me.name ?? 'Meta Business' })
-say(`\n✅ Llave guardada (${me.name ?? 'usuario del sistema'}). Empresas que Nexy va a vigilar:`)
+say(`\n✅ Llave guardada (${me.name ?? 'usuario del sistema'}). Empresas que NEX va a vigilar:`)
 await accounts(key)
-say('\nReinicia Nexy (Ctrl+C en su ventana y npm start). En un minuto te escribe por Telegram qué está vigilando.\n')
+say('\nReinicia NEX (Ctrl+C en su ventana y npm start). En un minuto te escribe por Telegram qué está vigilando.\n')
 process.exit(0)

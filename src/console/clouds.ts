@@ -1,7 +1,7 @@
 import type { EcoNode } from './ecosystem'
 import type { Brain as BrainData } from './types'
 
-/** The nebula's clouds: one per company, Nexy's core, and each profile compartment (see Nebula.tsx). */
+/** The nebula's clouds: one per company, NEX's core, and each profile compartment (see Nebula.tsx). */
 
 export type RGB = [number, number, number]
 export type CloudItem = { id: string; label: string; icon?: string; detail?: string; group: string; depth: number; parent?: string | null }
@@ -35,7 +35,7 @@ function rgb(hex?: string): RGB | null {
 }
 
 /**
- * One cloud per company of the ecosystem (ecosystem.ts), Nexy's core, and each
+ * One cloud per company of the ecosystem (ecosystem.ts), NEX's core, and each
  * profile compartment (bridge/brain.mjs) — merged into the company of the same
  * name when there is one. Item ids are the ecosystem's, so picking one is
  * picking it on the console.
@@ -50,7 +50,7 @@ export function buildClouds(nodes: EcoNode[], brain: BrainData | null): Cloud[] 
   const clouds: Cloud[] = []
   const core = nodes.filter((n) => n.eco === 'core' && n.kind !== 'core')
   if (core.length) {
-    clouds.push({ id: 'core', eco: 'core', label: 'Núcleo de Nexy', icon: '✦', color: [167, 139, 250], items: core.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: 'Núcleo', depth: n.kind === 'dot' ? 1 : 0, parent: n.parent })) })
+    clouds.push({ id: 'core', eco: 'core', label: 'Núcleo de NEX', icon: '✦', color: [167, 139, 250], items: core.map((n) => ({ id: n.id, label: n.label, icon: n.icon, detail: n.detail, group: 'Núcleo', depth: n.kind === 'dot' ? 1 : 0, parent: n.parent })) })
   }
   for (const b of nodes.filter((n) => n.kind === 'brand')) {
     const kids = nodes.filter((n) => n.eco === b.eco && n.kind !== 'brand')
@@ -85,9 +85,9 @@ function shade([r, g, b]: RGB, k: number): RGB {
 }
 
 /**
- * Inside one cloud: its own universe. Each department (or each part of Nexy's
+ * Inside one cloud: its own universe. Each department (or each part of NEX's
  * core) is a cloud of its own, with its agents and connections as its stars;
- * what Nexy knows and the profile are one cloud each. Ids stay the
+ * what NEX knows and the profile are one cloud each. Ids stay the
  * ecosystem's, so picking works as on the outside.
  */
 export function universeOf(c: Cloud): Cloud[] {

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Nexy's backup onto the owner's external drive (see bridge/respaldo.mjs).
+// NEX's backup onto the owner's external drive (see bridge/respaldo.mjs).
 //
 //   node scripts/respaldo.mjs configurar Lexar   once: which drive the backups go to
-//   node scripts/respaldo.mjs ahora              makes one now (Nexy does it too when asked on Telegram)
+//   node scripts/respaldo.mjs ahora              makes one now (NEX does it too when asked on Telegram)
 //   node scripts/respaldo.mjs estado             the drive and the last backup
 
 import { existsSync, readdirSync } from 'node:fs'
@@ -21,8 +21,8 @@ if (cmd === 'configurar') {
     process.exit(1)
   }
   writeBackup({ ...(readBackup() ?? {}), disco: name })
-  say(`\n✅ Listo: los respaldos de Nexy irán a "${name}", en la carpeta Nexy-respaldo.`)
-  say('   Haz el primero con: node scripts/respaldo.mjs ahora  (o pídeselo a Nexy por Telegram: "haz un respaldo")\n')
+  say(`\n✅ Listo: los respaldos de NEX irán a "${name}", en la carpeta NEX-respaldo.`)
+  say('   Haz el primero con: node scripts/respaldo.mjs ahora  (o pídeselo a NEX por Telegram: "haz un respaldo")\n')
   process.exit(0)
 }
 

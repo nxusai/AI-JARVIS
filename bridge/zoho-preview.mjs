@@ -11,7 +11,7 @@ import { join } from 'node:path'
 
 /**
  * Zoho's create calls name the client only by id, which the owner cannot
- * read. Nexy looks clients up before invoicing them, so the names come back
+ * read. NEX looks clients up before invoicing them, so the names come back
  * in those results: they are remembered here (in a small file, so a restart
  * keeps them) and the card says "Cliente: Mi Semago" instead of a number.
  */
@@ -167,7 +167,7 @@ export function zohoLines(input) {
     if (v === undefined || v === null || v === '') continue
     if ((k === 'customer_id' || k === 'contact_id') && typeof v !== 'object') {
       const name = nameOf(v)
-      lines.unshift(name ? `👤 Cliente: ${name}` : `👤 Cliente: id ${v} — ⚠️ Nexy no confirmó el nombre; revísalo en Zoho antes de aprobar`)
+      lines.unshift(name ? `👤 Cliente: ${name}` : `👤 Cliente: id ${v} — ⚠️ NEX no confirmó el nombre; revísalo en Zoho antes de aprobar`)
     } else if (k === 'contact_persons' && Array.isArray(v)) {
       lines.push(`Se envía a: ${v.map((id) => nameOf(id) ?? `id ${id}`).join(', ')}`)
     } else if (k === 'invoices' && Array.isArray(v)) {

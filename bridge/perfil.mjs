@@ -12,7 +12,7 @@ import { join } from 'node:path'
  *
  * memory.mjs keeps short facts and reads all of them into every
  * conversation. The profile is far larger, so only the principles and an
- * index of what each compartment holds ride in the system prompt; Nexy opens
+ * index of what each compartment holds ride in the system prompt; NEX opens
  * a compartment with read_profile when the conversation needs it.
  *
  * It lives only on this Mac (and in its backup, which copies all of ~/.nexy):

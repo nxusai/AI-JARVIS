@@ -6,7 +6,7 @@ poco a poco, empezando por Ana Sofi.
 ## Quién manda
 
 ```
-Eduardo ──► Nexy (Mac de Eduardo, "la madre")
+Eduardo ──► NEX (Mac de Eduardo, "la madre")
               │  baja: actualizaciones firmadas y órdenes
               │  sube: solo reportes (salud, errores, gasto)
               ▼
@@ -16,30 +16,30 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
           └── Vivian   ──► VAYRO
 ```
 
-- Solo Eduardo le habla a Nexy (su cuenta de Telegram).
-- Nexy controla el cerebro. El cerebro nunca puede hablarle ni preguntarle
-  nada a Nexy.
+- Solo Eduardo le habla a NEX (su cuenta de Telegram).
+- NEX controla el cerebro. El cerebro nunca puede hablarle ni preguntarle
+  nada a NEX.
 - El cliente solo ve y habla con Ana Sofi, Regina y Vivian.
-- En el Mac mini no se instala Nexy, sino un programa aparte que solo trae a
-  las tres IA's: sin código, nombre, memoria, correos ni llaves de Nexy.
+- En el Mac mini no se instala NEX, sino un programa aparte que solo trae a
+  las tres IA's: sin código, nombre, memoria, correos ni llaves de NEX.
 - El Mac mini solo acepta paquetes firmados con la llave que vive en la Mac de
   Eduardo. Si una actualización falla, regresa solo a la versión anterior.
 
-## Nexy guarda el original
+## NEX guarda el original
 
-- Nada del cliente desaparece de Nexy. Nexy guarda el original de cada IA:
+- Nada del cliente desaparece de NEX. NEX guarda el original de cada IA:
   personalidad, reglas, productos, etiquetas y voces. El cerebro solo recibe
   una copia.
 - Lo único que "se muda" es dónde contesta cada bot de Telegram, porque un bot
   solo puede contestar desde un lugar a la vez.
 - Lo que pasa en el cerebro (conversaciones, impresiones, leads, cambios hechos
-  por el cliente) sube a Nexy como copia, para que Eduardo lo siga viendo todo.
-- Los cambios de datos hechos en Nexy (productos, días, prompts) llegan al
+  por el cliente) sube a NEX como copia, para que Eduardo lo siga viendo todo.
+- Los cambios de datos hechos en NEX (productos, días, prompts) llegan al
   cerebro en un minuto.
 - Los cambios de programa llegan en la noche o cuando Eduardo lo ordene, con
   regreso automático a la versión anterior si fallan.
 - Si alguien en el cerebro cambia algo con permiso (por ejemplo, los días de
-  vida por medio de Ana Sofi), el cambio sube a Nexy y se guarda en el original.
+  vida por medio de Ana Sofi), el cambio sube a NEX y se guarda en el original.
 
 ## Candados
 
@@ -58,10 +58,10 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
 - Tras un apagón, el usuario del cliente puede desbloquear el disco con su
   propia contraseña, y eso no le da permisos de administrador.
 - Al arrancar, el cerebro revisa la firma de cada archivo. Si alguien lo
-  modificó, se detiene y le avisa a Nexy.
-- Nexy recibe aviso si alguien entra como administrador o si el cerebro deja
+  modificó, se detiene y le avisa a NEX.
+- NEX recibe aviso si alguien entra como administrador o si el cerebro deja
   de reportarse.
-- Desde Nexy se puede apagar el cerebro y borrar sus llaves a distancia.
+- Desde NEX se puede apagar el cerebro y borrar sus llaves a distancia.
 - Las IA's no tienen herramientas para leer su propio código, y la regla de no
   revelar sus instrucciones es fija.
 - El Mac mini queda en un lugar con llave.
@@ -82,7 +82,7 @@ Eduardo ──► Nexy (Mac de Eduardo, "la madre")
 - En Recuperación, todo lo que abre el disco (Terminal, Utilidad de Discos,
   reinstalar conservando datos) pide la contraseña del administrador local.
 - Lo único que puede hacer sin ella es borrar el Mac completo. Eso destruye el
-  cerebro cifrado sin dejar nada legible: no se lleva código ni llaves. Nexy
+  cerebro cifrado sin dejar nada legible: no se lleva código ni llaves. NEX
   avisa porque el cerebro deja de reportarse, y se reinstala desde el original.
 - El disco va soldado y cifrado por el chip del Mac, así que sacarlo no sirve
   de nada.
@@ -105,19 +105,19 @@ Mi Semago distribuye los quesos de Abuelito Inc y VAYRO, por eso:
 
 - Se mandan mensajes de trabajo ("pedido", "pregunta", "aviso") por una mesa
   interna. Ninguna lee la memoria, los correos ni las cuentas de la otra.
-- Cada mensaje queda registrado y Nexy lo puede ver.
+- Cada mensaje queda registrado y NEX lo puede ver.
 
 ## Departamentos
 
-Son los nueve departamentos que Nexy ya maneja. Cada empresa los tiene, menos
-los que Nexy se queda o los que la empresa todavía no tiene (`ocultos`; por
+Son los nueve departamentos que NEX ya maneja. Cada empresa los tiene, menos
+los que NEX se queda o los que la empresa todavía no tiene (`ocultos`; por
 ejemplo, Abuelito Cheese, Meat y Corn no tienen Finanzas).
 
 | Departamento | Dónde vive | Qué hace en el cerebro |
 |---|---|---|
 | Dirección | Cerebro (cada IA) | Coordina su empresa, aprobaciones y reparto de trabajo |
-| Marketing (parrillas y edición de video) | **Nexy** | Nexy lo hace y entrega PDFs y videos |
-| Publicidad (avisos de anuncios de Meta) | **Nexy** | Nexy lo hace y manda los avisos |
+| Marketing (parrillas y edición de video) | **NEX** | NEX lo hace y entrega PDFs y videos |
+| Publicidad (avisos de anuncios de Meta) | **NEX** | NEX lo hace y manda los avisos |
 | Ventas | Cerebro | Leads, prospectos y seguimiento |
 | Finanzas | Cerebro | Facturas, cotizaciones y cobros, con aprobación |
 | Comunicación | Cerebro | Correos y Telegram de la empresa |
@@ -157,31 +157,31 @@ oculta del cerebro el día de la instalación, nunca en un chat.
    privada entre la Mac de Eduardo y el Mac mini: Tailscale (decidido),
    gratis, sin abrir puertos en el internet del cliente.
 2. Crear el programa "Cerebro" (aquí, sin tocar al cliente):
-   1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de Nexy
+   1. ✅ separar a Ana Sofi y las etiquetas en un núcleo que no dependa de NEX
       (`bridge/nucleo`; `node scripts/nucleo.mjs` revisa que siga limpio);
-   2. ✅ programa propio que guarda todo en su carpeta, no en la de Nexy
+   2. ✅ programa propio que guarda todo en su carpeta, no en la de NEX
       (`bridge/cerebro`): `cerebro.mjs` (las IA's), `llaves.mjs` (pantalla
       oculta de llaves) e `instalar.sh` (usuario escondido `_cerebro`,
       carpeta cerrada y arranque solo con el Mac, sin ventanas);
    3. ✅ empaquetador que revisa fugas y firma (`node scripts/cerebro.mjs
-      armar`): si algo dice "Nexy", "NXUS" o el correo de Eduardo, no se arma.
+      armar`): si algo dice "NEX", "NXUS" o el correo de Eduardo, no se arma.
       Cada paquete va firmado con la llave de Eduardo
       (`~/.nexy/cerebro/firma-privada.pem`, entra en su respaldo; huella con
       `node scripts/cerebro.mjs llave`). El Mac mini guarda la llave pública
       la primera vez (Eduardo compara la huella) y solo instala paquetes
       firmados con ella. Al arrancar revisa el sello: si un archivo cambió,
       sobra o falta, no prende ninguna IA y lo dice en su estado;
-   4. ✅ canal de Nexy al cerebro (`bridge/cerebros.mjs`,
-      `bridge/cerebro/canal.sh`): Nexy entra por SSH con su propia llave
+   4. ✅ canal de NEX al cerebro (`bridge/cerebros.mjs`,
+      `bridge/cerebro/canal.sh`): NEX entra por SSH con su propia llave
       (`~/.nexy/cerebro/canal_ed25519`), que en el Mac mini solo puede correr
       la "puerta" con una lista cerrada de órdenes: estado, espejo, registro,
       paquete (firmado), datos (firmados y más nuevos que los últimos),
       reiniciar, apagar, prender y borrar-llaves. El cerebro no tiene ninguna
-      llave ni dirección hacia Nexy. Desde la Mac de Eduardo:
+      llave ni dirección hacia NEX. Desde la Mac de Eduardo:
       `node scripts/cerebro.mjs conectar | estado | enviar | datos | espejo | …`.
       `datos --etiquetas` no pisa cambios hechos en el cerebro (pide
       `--forzar`). Cuando Ana Sofi ya contesta desde el cerebro, `espejo` guarda
-      en Nexy los cambios hechos allá, y Nexy ya no prende su propia Ana Sofi;
+      en NEX los cambios hechos allá, y NEX ya no prende su propia Ana Sofi;
    5. prueba completa en una Mac de ensayo.
 
    ✅ Drive: el cerebro corre con su propio usuario escondido y Google Drive

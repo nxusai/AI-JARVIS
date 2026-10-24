@@ -6,7 +6,7 @@ import { join } from 'node:path'
  * Which Claude account pays for what.
  *
  * The owner's subscription (the Claude login) is for building with Claude
- * Code. Everything Nexy runs — his own Nexy (voice, console, his Telegram,
+ * Code. Everything NEX runs — his own NEX (voice, console, his Telegram,
  * routines) and the groups (client service, NXUS México, Ana Sofi) — runs on
  * API credits instead, with a key from the Claude Console, so it never
  * spends the subscription and shows up in the Console. One key for all of

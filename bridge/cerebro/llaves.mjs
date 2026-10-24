@@ -155,7 +155,7 @@ console.log('\n Llaves del cerebro. Nada de lo que pegues se verá en la pantall
 const claude = await ask('Llave de Claude ("Cerebro Mi Semago")', { has: Boolean(keys.claude), shape: CLAUDE_KEY, check: claudeWorks })
 const eleven = await ask('Llave de ElevenLabs ("Cerebro Mi Semago")', { has: Boolean(keys.elevenlabs), shape: ELEVEN_KEY })
 let me = null
-// Ana Sofi's bot goes last on moving day, once Nexy no longer answers with it (Enter = después).
+// Ana Sofi's bot goes last on moving day, once NEX no longer answers with it (Enter = después).
 const token = await ask('Llave (token) del bot de Ana Sofi', {
   has: Boolean(bot),
   optional: true,

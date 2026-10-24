@@ -15,8 +15,8 @@
  *   node scripts/cerebro.mjs espejo [nombre]                           take a copy of its labels
  *   node scripts/cerebro.mjs registro|reiniciar|apagar|prender [nombre]
  *   node scripts/cerebro.mjs borrar-llaves [nombre]                    emergency: wipe its keys and stop it
- *   node scripts/cerebro.mjs mudar-anasofi [nombre]                    moving day: the labels and her group go to the brain, and Nexy stops answering with her bot
- *   node scripts/cerebro.mjs regresar-anasofi [nombre]                 calls the move off: the brain stops, and she answers from Nexy again
+ *   node scripts/cerebro.mjs mudar-anasofi [nombre]                    moving day: the labels and her group go to the brain, and NEX stops answering with her bot
+ *   node scripts/cerebro.mjs regresar-anasofi [nombre]                 calls the move off: the brain stops, and she answers from NEX again
  * With one brain, the name can be left out.
  *
  * Every package is signed with the owner's key, ~/.nexy/cerebro/firma-privada.pem,
@@ -27,7 +27,7 @@
  * The folder holds the brain's program and its keys screen (each one file,
  * unreadable), the label template and sets, what it needs to install, and
  * the fingerprint of every file. Before anything is written, every file is
- * checked for anything of Nexy's: if one says it, nothing is built.
+ * checked for anything of NEX's: if one says it, nothing is built.
  */
 import { execFileSync } from 'node:child_process'
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign } from 'node:crypto'
@@ -91,7 +91,7 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   files['version.txt'] = `${version}\n`
 
   const found = Object.entries(files).flatMap(([name, text]) => leaks(text, name))
-  if (found.length) throw new Error(`the package would carry something of Nexy's:\n- ${found.join('\n- ')}`)
+  if (found.length) throw new Error(`the package would carry something of NEX's:\n- ${found.join('\n- ')}`)
 
   // The fingerprint of every file, for the brain to check it was not touched.
   const sha = (text) => createHash('sha256').update(text).digest('hex')
@@ -179,7 +179,7 @@ async function door(what, args) {
       saveBrain(name, { ...readBrains()[name], anasofi: 'cerebro' })
       console.log(` ✅ Las ${listClients().length} empresas de etiquetas, su grupo y sus voces ya están en el cerebro ${name}.`)
       console.log(' Ahora, en este orden:')
-      console.log('   1. Reinicia Nexy (Ctrl + C y npm start): ya no contestará con el bot de Ana Sofi.')
+      console.log('   1. Reinicia NEX (Ctrl + C y npm start): ya no contestará con el bot de Ana Sofi.')
       console.log('   2. En el Mac mini pon la llave del bot: sudo node "/Library/Application Support/Cerebro/programa/llaves.mjs" (Enter en todo lo demás).')
       console.log(' Si algo sale mal: node scripts/cerebro.mjs regresar-anasofi')
       return 0
@@ -188,7 +188,7 @@ async function door(what, args) {
       const r = await order(name, 'apagar').catch((err) => ({ code: 1, out: Buffer.from(''), err: err.message }))
       console.log(r.code === 0 ? ` El cerebro ${name} quedó apagado.` : ` ⚠️ No pude apagar el cerebro (${answer(r)}). Apágalo desde el Mac mini antes de seguir, o contestarán los dos.`)
       saveBrain(name, { ...readBrains()[name], anasofi: undefined })
-      console.log(' ✅ Ana Sofi vuelve a Nexy: reinicia Nexy (Ctrl + C y npm start).')
+      console.log(' ✅ Ana Sofi vuelve a NEX: reinicia NEX (Ctrl + C y npm start).')
       return 0
     }
     if (what === 'borrar-llaves') {
@@ -211,7 +211,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (cmd === 'armar') {
     try {
       const { dir, version, files } = await buildPackage()
-      console.log(` ✅ Cerebro ${version} armado y firmado: ${files} archivos, sin nada de Nexy.`)
+      console.log(` ✅ Cerebro ${version} armado y firmado: ${files} archivos, sin nada de NEX.`)
       console.log(` Firma: ${fingerprint(signingKey().publicPem)}`)
       console.log(` Carpeta: ${dir}`)
     } catch (err) {

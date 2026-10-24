@@ -44,7 +44,7 @@ if (cmd === 'importar') {
   say(`\n✅ Perfil guardado en ${PROFILE_DIR}`)
   for (const c of profileIndex()) say(`   ${c.icono} ${c.nombre}: ${c.lineas} datos`)
   if (existsSync(before)) say(`\n   Lo que había antes quedó en ${before}`)
-  say('\n   Reinicia Nexy para que lo lea: Ctrl + C y luego npm start')
+  say('\n   Reinicia NEX para que lo lea: Ctrl + C y luego npm start')
   say('   Ya puedes borrar el archivo que importaste de Descargas.\n')
   process.exit(0)
 }

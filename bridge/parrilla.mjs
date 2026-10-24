@@ -14,7 +14,7 @@ import { CHROMES, run } from './etiquetas.mjs'
  *
  *   idea → en_produccion → listo → aprobado → programado → publicado  (or descartado)
  *
- * Nexy plans the week (with the strategist and the writers), the owner
+ * NEX plans the week (with the strategist and the writers), the owner
  * changes what he wants, she produces it (Canva, Higgsfield, the video
  * editor) and schedules it in Metricool — every post held for his tap, as
  * always — and marks each step here. The week can be drawn as a PDF to send
@@ -158,7 +158,7 @@ export function cleanPost(p, monday, n, subBrands = []) {
   }
 }
 
-// -- what Nexy learns --------------------------------------------------------------
+// -- what NEX learns --------------------------------------------------------------
 
 /**
  * Each brand's learnings: rules the owner or the team gave ("never show
@@ -353,7 +353,7 @@ const POST = z.object({
 })
 
 /**
- * The calendar's tools, for whoever uses them: the owner's Nexy, or the NXUS
+ * The calendar's tools, for whoever uses them: the owner's NEX, or the NXUS
  * team's group (atencion.mjs). `who` names who is asking, `isOwner` says if
  * it is the owner himself, `allowed` refuses a brand this place may not touch,
  * `sendPdf`, when given, posts the PDF where the request came from, and
@@ -567,7 +567,7 @@ export function contentPlanServer() {
   })
 }
 
-/** For Nexy's prompt: how the content calendar works. */
+/** For NEX's prompt: how the content calendar works. */
 export const CONTENT_PLAN_PROMPT = `
 
 # Content calendar (parrilla)

@@ -1,27 +1,27 @@
 /**
- * Nexy's team: departments, and the specialist agents inside them.
+ * NEX's team: departments, and the specialist agents inside them.
  *
- * Nexy is the one the owner talks to. For work that deserves a specialist —
+ * NEX is the one the owner talks to. For work that deserves a specialist —
  * a set of hooks, a video script, an email in a brand's voice — she hands it
  * to one of these agents through the SDK's subagents, and the console shows
  * the work passing through them on its map.
  *
  * Every agent here only drafts or reads. None can send, post, publish, call or
  * change anything: their tool lists say so, and anything that does reach the
- * outside world is Nexy's own call, through the same permission gate and
- * console approval as always. So adding an agent never widens what Nexy can
+ * outside world is NEX's own call, through the same permission gate and
+ * console approval as always. So adding an agent never widens what NEX can
  * do, only how well she does it.
  *
  * To add one: an entry in AGENTS with its department, when to use it (for
- * Nexy, in English), a one-line summary (for the console, in Spanish) and its
+ * NEX, in English), a one-line summary (for the console, in Spanish) and its
  * instructions. It appears on the console map on the next start.
  */
 
 /**
  * The departments, as the owner sees them in the console ("Departamento de …")
- * and as Nexy is told her work is organised. Every brand has the same ones.
- * `hace` is for the console, in Spanish; `nexy` tells Nexy, in English, what
- * belongs there and which connections it uses. Dirección is Nexy's own desk:
+ * and as NEX is told her work is organised. Every brand has the same ones.
+ * `hace` is for the console, in Spanish; `nexy` tells NEX, in English, what
+ * belongs there and which connections it uses. Dirección is NEX's own desk:
  * on the map it is the centre, not a department of a brand.
  */
 export const DEPARTMENTS = [
@@ -30,7 +30,7 @@ export const DEPARTMENTS = [
     label: 'Departamento de Dirección',
     short: 'Dirección',
     icon: '🧠',
-    hace: 'Nexy coordina todo: tu memoria, los manuales de cada marca, las aprobaciones y qué departamento hace cada cosa.',
+    hace: 'NEX coordina todo: tu memoria, los manuales de cada marca, las aprobaciones y qué departamento hace cada cosa.',
     nexy: 'You yourself: the owner\'s memory, the brand manuals (read_brand), approvals, routing work to the right department.',
   },
   {
@@ -70,7 +70,7 @@ export const DEPARTMENTS = [
     label: 'Departamento de Comunicación',
     short: 'Comunicación',
     icon: '✉️',
-    hace: 'Correos (Gmail), Telegram y los mensajes que redacta Nexy para ti.',
+    hace: 'Correos (Gmail), Telegram y los mensajes que redacta NEX para ti.',
     nexy: 'Email (Gmail), Telegram, drafting emails and messages in each brand\'s voice.',
   },
   {
@@ -78,7 +78,7 @@ export const DEPARTMENTS = [
     label: 'Departamento de Llamadas y Recepción',
     short: 'Llamadas',
     icon: '📞',
-    hace: 'La Nexy que te llama, la recepcionista que contesta cuando no puedes, los recados y tus contactos.',
+    hace: 'La NEX que te llama, la recepcionista que contesta cuando no puedes, los recados y tus contactos.',
     nexy: 'Calls to the owner (call_me), calls to approved contacts, the receptionist, messages taken (recados), the contact book.',
   },
   {
@@ -112,7 +112,7 @@ const VIDEO_TOOLS = [
   ),
 ]
 
-const BASE = `You work for Nexy, the assistant of the owner of Ramos & Co. and its brands, as one specialist on her team.
+const BASE = `You work for NEX, the assistant of the owner of Ramos & Co. and its brands, as one specialist on her team.
 - The brand you are working for is named in your task. Before writing anything,
   call read_brand with that brand and follow its manual exactly. If the task
   names no brand, call read_brand with no brand for the active one.
@@ -317,12 +317,12 @@ against the goal and say plainly what to pause, keep or scale.`,
   },
   {
     id: 'correos',
-    resumen: 'Redacta correos y respuestas con la voz de la marca. Nexy los envía solo si tú lo apruebas.',
+    resumen: 'Redacta correos y respuestas con la voz de la marca. NEX los envía solo si tú lo apruebas.',
     label: 'Redacción de correos',
     icon: '📝',
     dept: 'comunicacion',
     description:
-      'Drafts emails and replies in a brand’s voice. Use it for any email longer than a couple of lines; Nexy sends it herself after the owner agrees.',
+      'Drafts emails and replies in a brand’s voice. Use it for any email longer than a couple of lines; NEX sends it herself after the owner agrees.',
     prompt: `${BASE}
 
 You draft emails. Give a subject line and the body, ready to send, in the
@@ -380,7 +380,7 @@ export function agentDefinitions({ notionReadTools = [] } = {}) {
           prompt: a.prompt,
           tools: [...BRAND_TOOLS, ...extra],
           // Answers come back within the owner's turn; a background agent
-          // would report after Nexy has already stopped talking.
+          // would report after NEX has already stopped talking.
           background: false,
           maxTurns: a.maxTurns ?? 12,
         },

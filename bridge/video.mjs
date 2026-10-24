@@ -11,13 +11,13 @@ import { REFS, fetchReference } from './nucleo/referencias.mjs'
 import { rawRoots } from './raw.mjs'
 
 /**
- * Nexy's video editor: the everyday edits, done by FFmpeg on this Mac.
+ * NEX's video editor: the everyday edits, done by FFmpeg on this Mac.
  *
  * One recipe per video — which clips (and which part of each), the format,
  * subtitles, music, a voice-over and the brand's logo — and one finished
  * file. It is deliberately not a general tool: FFmpeg runs with arguments
  * built here, never a command line from the model, and it only reads clips
- * from the Nexy folders or public links and only writes into the Nexy folder.
+ * from the NEX folders or public links and only writes into the NEX folder.
  *
  *   ~/Movies/Nexy/entrada   the owner's own videos (AirDrop them here)
  *   ~/Movies/Nexy/musica    music the owner has the right to use
@@ -134,7 +134,7 @@ function allowedRoots() {
   return [...out, ...rawRoots()]
 }
 
-/** A local source inside the Nexy folders, or a public https link downloaded to `work`. */
+/** A local source inside the NEX folders, or a public https link downloaded to `work`. */
 export async function resolveSource(source, work, n) {
   const s = String(source ?? '').trim()
   if (/^https:\/\//i.test(s)) {
@@ -165,7 +165,7 @@ export async function resolveSource(source, work, n) {
     throw new Error(`file not found: ${s}`)
   }
   if (!allowedRoots().some((r) => real.startsWith(r))) {
-    throw new Error(`only files in ${VIDEO_DIR} or sent to Nexy can be used: ${s}`)
+    throw new Error(`only files in ${VIDEO_DIR} or sent to NEX can be used: ${s}`)
   }
   return real
 }
@@ -229,10 +229,10 @@ export function buildAss(chunks, { width, height, font = 'Arial', colour = '#FFF
     `PlayResX: ${width}\nPlayResY: ${height}\nWrapStyle: 0\n\n` +
     '[V4+ Styles]\n' +
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n' +
-    `Style: Nexy,${font.replace(/,/g, ' ')},${size},${assColour(colour)},&H000000FF,&H00000000,&H78000000,-1,0,0,0,100,100,0,0,1,${Math.round(size / 9)},2,2,${Math.round(width * 0.08)},${Math.round(width * 0.08)},${Math.round(height * 0.22)},1\n\n` +
+    `Style: NEX,${font.replace(/,/g, ' ')},${size},${assColour(colour)},&H000000FF,&H00000000,&H78000000,-1,0,0,0,100,100,0,0,1,${Math.round(size / 9)},2,2,${Math.round(width * 0.08)},${Math.round(width * 0.08)},${Math.round(height * 0.22)},1\n\n` +
     '[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n'
   const clean = (t) => (upper ? t.toUpperCase() : t).replace(/[{}\\]/g, '').replace(/\n/g, ' ')
-  return header + chunks.map((c) => `Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Nexy,,0,0,0,,${clean(c.text)}`).join('\n') + '\n'
+  return header + chunks.map((c) => `Dialogue: 0,${assTime(c.start)},${assTime(c.end)},NEX,,0,0,0,,${clean(c.text)}`).join('\n') + '\n'
 }
 
 /** A path as FFmpeg's filter syntax wants it inside a filter argument. */
@@ -294,7 +294,7 @@ const list = (dir, pattern) => {
 const EDIT_DESCRIPTION =
   'Edit a video: join clips (each optionally cut to a part), set the format, burn in subtitles transcribed from ' +
   "its speech, add background music and/or a voice-over in the owner's voice, and put the brand's logo on it. " +
-  'Clips can be videos or still images, from the Nexy folders (list_videos) or public https links (for example ' +
+  'Clips can be videos or still images, from the NEX folders (list_videos) or public https links (for example ' +
   'Higgsfield results). Use music only from the owner’s music folder (which includes tracks made with make_music) or links ' +
   'they gave. Returns the finished ' +
   'file; show it to the owner before publishing it.'
@@ -314,7 +314,7 @@ export function videoServer(elevenKey) {
     instructions: 'Video editing: clips, cuts, subtitles, music, voice-over and the brand logo.',
     alwaysLoad: true,
     tools: [
-      tool('list_videos', 'List the owner’s videos, music and finished edits in the Nexy folders.', {}, async () => {
+      tool('list_videos', 'List the owner’s videos, music and finished edits in the NEX folders.', {}, async () => {
         const parts = [
           `Owner's videos (${INBOX}):`,
           ...(list(INBOX, VIDEO_EXT).length ? list(INBOX, VIDEO_EXT) : ['(empty)']),
@@ -340,7 +340,7 @@ export function videoServer(elevenKey) {
       tool(
         'clone_owner_voice',
         "Clone the owner's own voice on ElevenLabs from recordings of the owner speaking that they sent (videos or audio in the " +
-          'Nexy folders or their raw footage), so voice-overs and AI scenes can speak in it. Only ever the owner\'s voice, and only ' +
+          'NEX folders or their raw footage), so voice-overs and AI scenes can speak in it. Only ever the owner\'s voice, and only ' +
           'when the owner asks: never anyone else\'s, whoever sends the recording. 1 to 3 minutes of clear speech, one voice, no ' +
           'music, gives the best clone. Replaces the previous clone. The owner approves it with a tap.',
         {
@@ -356,7 +356,7 @@ export function videoServer(elevenKey) {
           const work = mkdtempSync(join(tmpdir(), 'nexy-voz-'))
           try {
             const form = new FormData()
-            form.append('name', 'Dueño (voz propia) · Nexy')
+            form.append('name', 'Dueño (voz propia) · NEX')
             form.append('description', "The owner's own voice, cloned at their request from their own recordings.")
             form.append('remove_background_noise', 'true')
             let seconds = 0
@@ -607,7 +607,7 @@ export function videoServer(elevenKey) {
             }
             if (args.voiceover?.trim()) {
               const key = elevenKey()
-              // Always the owner's own voice: never Nexy's standing in for it.
+              // Always the owner's own voice: never NEX's standing in for it.
               const mine = ownerVoice()
               if (!key) notes.push('No voice-over: the ElevenLabs key is missing.')
               else if (!mine) notes.push("No voice-over: the owner's voice is not cloned yet (clone_owner_voice).")

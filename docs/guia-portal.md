@@ -70,7 +70,7 @@ Tus horarios se cambian arriba en el mismo archivo: días, de 9 a 18, citas de 6
    - `PAGO_MX`
    - `PAGO_US`
    - `STRIPE_KEY`
-   - `NEXY_CLAVE`: una clave larga inventada, para que Nexy lea los prospectos. Guárdala en Contraseñas.
+   - `NEXY_CLAVE`: una clave larga inventada, para que NEX lea los prospectos. Guárdala en Contraseñas.
 4. Dale **Deploy**.
 
 ## 5. empezar.nxusai.org
