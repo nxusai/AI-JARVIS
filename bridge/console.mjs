@@ -60,6 +60,8 @@ const ALWAYS_APPROVAL = new Set([
   // A project's price, and raising it: the owner's yes before Nexy spends (see proyectos.mjs).
   'jarvis_proyectos__start_project',
   'jarvis_proyectos__raise_project_budget',
+  // A task whose result reaches a client's person (see encargos.mjs).
+  'jarvis_encargos__deliver_task',
   'notion__API-post-page',
   'notion__API-patch-page',
   'notion__API-create-a-comment',

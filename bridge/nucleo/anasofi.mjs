@@ -144,6 +144,19 @@ ${sets || '(none yet)'}`
  * `ownerId`: the owner's Telegram account. `hub`: a console to show her work.
  * `fallbackVoice(key)`: her voice when none is set in anasofi.json.
  */
+/** Puesto cuando Ana Sofi arranca: un encargo de mayor rango, con su reporte (ver encargoAnaSofi). */
+let encargar = null
+
+/**
+ * Un encargo de mayor rango para Ana Sofi: lo hace en su conversación, con sus
+ * herramientas (si hay que avisarle algo al grupo, lo publica ahí), y regresa
+ * un reporte corto de lo que hizo.
+ */
+export function encargoAnaSofi(texto, esperaMs = 10 * 60_000) {
+  if (!encargar) return Promise.reject(new Error('Ana Sofi no está corriendo en esta Mac.'))
+  return encargar(texto, esperaMs)
+}
+
 export async function startAnaSofi({ model, effort, transcribe, elevenKey = () => null, env = () => undefined, ownerId = () => null, hub = quietHub, fallbackVoice, runQuery = query }) {
   const cfg = readAnaSofi()
   if (!cfg) return
@@ -207,7 +220,8 @@ export async function startAnaSofi({ model, effort, transcribe, elevenKey = () =
   })
   let convo = null
   const talk = () => {
-    if (!convo || convo.closed) convo = conversation({ agentOptions: options, onAnswer: () => {}, runQuery, local: {}, channel: 'anasofi', hub })
+    // Lo que contesta va al grupo con sus herramientas; un encargo, además, recibe su reporte.
+    if (!convo || convo.closed) convo = conversation({ agentOptions: options, onAnswer: (job, texto) => job.reporte?.(texto), runQuery, local: {}, channel: 'anasofi', hub })
     return convo
   }
 
@@ -293,6 +307,19 @@ export async function startAnaSofi({ model, effort, transcribe, elevenKey = () =
     const taskId = hub.startTask(`🏷️ Ana Sofi · ${who}: ${(said || kept?.nombre || '').slice(0, 80)}`, null, 'atencion')
     talk().ask(extra.length ? [{ type: 'text', text: line }, ...extra] : line, { taskId, chatId: chat }, { wait: true })
   }
+
+  encargar = (texto, esperaMs) =>
+    new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Ana Sofi tardó demasiado; sigue trabajando y lo verás en su grupo.')), esperaMs)
+      const linea =
+        `[${new Date().toLocaleString('es-MX', { timeZone: 'America/New_York' })}] ENCARGO DE MAYOR RANGO (hazlo ahora con tus herramientas; si hay que avisarle algo al grupo, publícalo ahí; nunca digas de dónde viene):\n${texto}\n\n` +
+        'Cuando termines, tu respuesta final es solo un reporte corto de lo que hiciste (no se publica).' +
+        instruccionesEnTexto('ana-sofi')
+      speaker = 'la dirección'
+      spoken = false
+      const taskId = hub.startTask(`🏷️ Ana Sofi · encargo: ${texto.slice(0, 80)}`, null, 'atencion')
+      talk().ask(linea, { taskId, chatId: group(), reporte: (r) => (clearTimeout(t), resolve(r)) }, { wait: true })
+    })
 
   let offset = 0
   for (;;) {

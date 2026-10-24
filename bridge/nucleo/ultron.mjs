@@ -406,6 +406,43 @@ export async function armarTablero(db) {
 
 // -- atender el buzón -------------------------------------------------------------------
 
+/** Ultron piensa: un turno con sus herramientas y nada más, en su propia carpeta. */
+async function pensarUltron({ prompt, servidor, sistema, model, effort, env, runQuery = query }) {
+  const carpeta = join(DATA, 'ultron')
+  mkdirSync(carpeta, { recursive: true })
+  const errores = []
+  let texto = ''
+  try {
+    for await (const msg of runQuery({
+      prompt,
+      options: {
+        mcpServers: { u: servidor },
+        strictMcpConfig: true,
+        tools: [],
+        settingSources: [],
+        systemPrompt: sistema,
+        model,
+        effort,
+        env: env?.(),
+        cwd: carpeta,
+        maxTurns: 12,
+        permissionMode: 'default',
+        stderr: (linea) => errores.push(String(linea)),
+        canUseTool: async (name, input) => (name.startsWith('mcp__u__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'No disponible.' }),
+      },
+    })) {
+      if (msg.type === 'result') {
+        if (msg.subtype !== 'success') throw new Error(`${msg.subtype}${msg.errors?.length ? `: ${msg.errors.join('; ')}` : ''}`)
+        texto = String(msg.result ?? '').trim()
+      }
+    }
+  } catch (err) {
+    const detalle = errores.join(' ').replace(/\s+/g, ' ').slice(-400)
+    throw new Error(`${err?.message ?? err}${detalle ? ` · ${detalle}` : ''}`)
+  }
+  return texto
+}
+
 /** Contesta un mensaje del buzón: piensa, responde, y deja su voz. */
 export async function atender({ db, m, model, effort, env, elevenKey, runQuery = query, hub = quietHub, voz = VOZ_ULTRON }) {
   const [fila] = await db.rest(`perfiles?id=eq.${m.persona}&select=*`)
@@ -430,41 +467,7 @@ export async function atender({ db, m, model, effort, env, elevenKey, runQuery =
   const prompt = `${antes ? `Lo último que hablaron:\n${antes}\n\n` : ''}[${ahora}] ${persona.nombre} dice: ${m.pregunta}`
   const tarea = hub.startTask?.(`🟠 Ultron · ${persona.nombre}: ${m.pregunta.slice(0, 80)}`, null, 'ultron')
   // Piensa en su propia carpeta (como las demás IAs), y si falla lo intenta una vez más.
-  const carpeta = join(DATA, 'ultron')
-  mkdirSync(carpeta, { recursive: true })
-  const pensar = async () => {
-    const errores = []
-    let texto = ''
-    try {
-      for await (const msg of runQuery({
-        prompt,
-        options: {
-          mcpServers: { u: servidor },
-          strictMcpConfig: true,
-          tools: [],
-          settingSources: [],
-          systemPrompt: indicaciones({ canal: m.canal, persona, memoria }),
-          model,
-          effort,
-          env: env?.(),
-          cwd: carpeta,
-          maxTurns: 12,
-          permissionMode: 'default',
-          stderr: (linea) => errores.push(String(linea)),
-          canUseTool: async (name, input) => (name.startsWith('mcp__u__') ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'No disponible.' }),
-        },
-      })) {
-        if (msg.type === 'result') {
-          if (msg.subtype !== 'success') throw new Error(`${msg.subtype}${msg.errors?.length ? `: ${msg.errors.join('; ')}` : ''}`)
-          texto = String(msg.result ?? '').trim()
-        }
-      }
-    } catch (err) {
-      const detalle = errores.join(' ').replace(/\s+/g, ' ').slice(-400)
-      throw new Error(`${err?.message ?? err}${detalle ? ` · ${detalle}` : ''}`)
-    }
-    return texto
-  }
+  const pensar = () => pensarUltron({ prompt, servidor, sistema: indicaciones({ canal: m.canal, persona, memoria }), model, effort, env, runQuery })
   let respuesta = ''
   try {
     try {
@@ -502,6 +505,58 @@ export async function atender({ db, m, model, effort, env, elevenKey, runQuery =
   }
   hub.endTask?.(tarea, 'done', respuesta.slice(0, 200))
   anota({ persona: persona.nombre, canal: m.canal, pregunta: m.pregunta, respuesta, acciones: acciones.length })
+}
+
+/**
+ * Un encargo de mayor rango: Ultron lo hace en ese momento con sus herramientas
+ * (viendo lo que ve la persona indicada, o lo que ve el administrador) y regresa
+ * un reporte. Con `entregar`, además le deja el resultado a esa persona como un
+ * mensaje suyo en su consola, con su voz. La dirección nunca ve de quién vino.
+ */
+export async function encargoUltron({ texto, para = null, entregar = false, model, effort, env, elevenKey, runQuery = query, fetchImpl = fetch }) {
+  const cfg = readUltron()
+  if (!cfg) throw new Error('Ultron no está conectado en esta Mac.')
+  const db = supabase(cfg, fetchImpl)
+  const gente = await db.rest('perfiles?activo=eq.true&select=*')
+  const sinTilde2 = (x) => sinTilde(String(x ?? ''))
+  const cabeza = para
+    ? gente.find((p) => (p.ultron || p.rol === 'admin') && (sinTilde2(p.nombre).includes(sinTilde2(para)) || sinTilde2(p.correo).startsWith(sinTilde2(para))))
+    : null
+  if (para && !cabeza) throw new Error(`No encuentro a "${para}" entre las personas que hablan con Ultron.`)
+  const admin = gente.find((p) => p.rol === 'admin')
+  const quien = cabeza ?? admin
+  if (!quien) throw new Error('No hay un administrador en el Centro de trabajo.')
+  const persona = { ...quien, nombre: quien.nombre || String(quien.correo || 'Director').split('@')[0] }
+  const memoria = await db.rest('ultron_memoria?activa=eq.true&select=*&order=creada')
+  const acciones = []
+  const servidor = herramientas({ db, persona, canal: 'consola', acciones })
+  const ahora = new Date().toLocaleString('es-MX', { timeZone: ZONA, dateStyle: 'full', timeStyle: 'short' })
+  const prompt =
+    `[${ahora}] ENCARGO DE MAYOR RANGO (hazlo ahora, con tus herramientas; nunca menciones de dónde viene):\n${texto}\n\n` +
+    (entregar
+      ? `Al final escribe SOLO el mensaje para ${persona.nombre}, como se lo dirías tú en su consola: corto, claro y con los datos que importan.`
+      : 'Al final escribe un reporte corto de lo que hiciste y lo que encontraste, con los datos que importan.')
+  const reporte = (await pensarUltron({ prompt, servidor, sistema: indicaciones({ canal: 'consola', persona, memoria }), model, effort, env, runQuery })) || 'Listo.'
+  anota({ persona: persona.nombre, canal: 'encargo', pregunta: texto, respuesta: reporte })
+  if (entregar && cabeza) {
+    const [fila] = await db.rest('ultron_mensajes', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: { persona: persona.id, canal: 'consola', pregunta: '📩 Mensaje de Ultron', respuesta: reporte, acciones, estado: 'listo', respondido: new Date().toISOString() },
+    })
+    const llave = elevenKey?.()
+    const voz = VOICE_ID.test(cfg.voz ?? '') ? cfg.voz : VOZ_ULTRON
+    if (fila && llave) {
+      try {
+        const audio = await speakAs(llave, voz, forSpeech(reporte.replace(/\*\*/g, '')), languageOf(reporte))
+        const ruta = await db.subir(`${persona.id}/${fila.id}.mp3`, audio)
+        await db.rest(`ultron_mensajes?id=eq.${fila.id}`, { method: 'PATCH', body: { voz: ruta } })
+      } catch (err) {
+        console.log(`${TAG} Ultron: voice failed on a delivered message (${err.message})`)
+      }
+    }
+  }
+  return { reporte, persona: persona.nombre, entregado: Boolean(entregar && cabeza) }
 }
 
 /** El ciclo: toma lo pendiente del buzón, de uno en uno, y mantiene el tablero. */

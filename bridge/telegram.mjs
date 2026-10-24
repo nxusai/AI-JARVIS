@@ -17,6 +17,7 @@ import { country, toE164 } from './contact-book.mjs'
 import { setRoutineRunner } from './routines.mjs'
 import { setSalesNotifier } from './ventas.mjs'
 import { setBuilderNotifier } from './constructor.mjs'
+import { setTasksNotifier } from './encargos.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
@@ -571,6 +572,11 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
   // US) comes straight here, without a turn of Nexy's.
   // The builder's news (started, how it goes, done) comes straight here too.
   setBuilderNotifier((text) => {
+    const owner = readTelegram()?.owner
+    if (owner) void say(owner.id, text)
+  })
+  // Reports from the AIs under her (see encargos.mjs).
+  setTasksNotifier((text) => {
     const owner = readTelegram()?.owner
     if (owner) void say(owner.id, text)
   })

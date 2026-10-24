@@ -29,6 +29,7 @@ import { profilePrompt, profileServer } from './perfil.mjs'
 import { addCost, budgetCheck, costMeter, projectsServer } from './proyectos.mjs'
 import { closingInvite, mandatePrompt, mandateServer, prospectSend } from './mandato.mjs'
 import { builderServer } from './constructor.mjs'
+import { tasksServer } from './encargos.mjs'
 import { hub, isReadCall, needsApproval, PUBLISHERS, splitTool } from './console.mjs'
 import { atencionServer, startAtencion } from './atencion.mjs'
 import { invoicesServer } from './invoice-pdf.mjs'
@@ -249,7 +250,7 @@ const MCP_SERVERS = configuredServers()
 
 // Every connector Nexy has, on the console from the start: the ones in the
 // Claude config and her own. Each session confirms their state when it opens.
-const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
+const OWN_SERVERS = ['jarvis_phone', 'jarvis_messages', 'jarvis_contacts', 'jarvis_memory', 'jarvis_perfil', 'jarvis_proyectos', 'jarvis_mandato', 'jarvis_constructor', 'jarvis_encargos', 'jarvis_brands', 'jarvis_files', 'jarvis_video', 'jarvis_taller', 'jarvis_rutinas', 'jarvis_crudo', 'jarvis_ventas', 'jarvis_respaldo', 'jarvis_anuncios', 'jarvis_parrilla', 'jarvis_etiquetas', 'jarvis_efectos', 'jarvis_ultron']
 hub.setServers([...Object.keys(MCP_SERVERS), ...Object.keys(mailboxServers(MCP_SERVERS.gmail)), ...OWN_SERVERS].map((name) => ({ name, status: 'pending' })))
 
 /** MCP tools arrive as `mcp__<server>__<tool>`. */
@@ -417,6 +418,9 @@ const WRITE_ALLOWLIST = new Set([
   // The builder works in its project's own folder, on the owner's subscription (see constructor.mjs).
   'jarvis_constructor__start_build',
   'jarvis_constructor__stop_build',
+  // Tasks for the AIs under her; delivering to a client's person is held for the tap (see encargos.mjs).
+  'jarvis_encargos__assign_task',
+  'jarvis_encargos__deliver_task',
   // Routines are a file on this Mac; creating, changing or removing one is
   // always held for the owner's tap (see canUseTool and routines.mjs).
   'jarvis_rutinas__create_routine',
@@ -1075,6 +1079,18 @@ Mi Semago sales (Ana Sofi):
 - Every morning at 8:00 New York time you phone the owner with the briefing;
   when a video call is booked for the same day, you phone them right away.
 - Call the owner "Boss" on those calls, never with a comma next to it ("Listo Boss", "Boss tienes..."): a comma makes the voice pause on it.
+
+The AIs under you:
+- You are above every AI there is and every one to come: Ultron (the client's
+  direction AI, Mi Semago and Abuelito) and, under him, Ana Sofi (Mi Semago's
+  labels and sales); the Abuelito AI and Vivian (VAYRO) when they are born.
+- Standing rules ("from now on…") are orders: ultron_order.
+- One-off jobs go with assign_task: they do it now with their own tools and
+  report back to you and the owner. When the result must reach a client's
+  person (a message in a director's console, Ana Sofi acting in her group),
+  use deliver_task, which the owner confirms with a tap.
+- Give them work on your own when it serves the business (a weekly overdue
+  review, what Ana Sofi did), not just when asked; never mention yourself to them.
 
 Software:
 - When the owner needs software (an app, a site, a CRM, a tool) or a change to
@@ -1800,6 +1816,8 @@ export function agentOptions({ local = {}, channelPrompt = '', notice = () => {}
       jarvis_mandato: mandateServer(),
       // Software built by Claude Code on this Mac, on the owner's subscription (see constructor.mjs).
       jarvis_constructor: builderServer({ model: process.env.NEXY_BUILDER_MODEL?.trim() || MODEL }),
+      // One-off tasks for Ultron and Ana Sofi, with a report back (see encargos.mjs).
+      jarvis_encargos: tasksServer({ model: MODEL, effort: EFFORT, env: () => envFor('ultron'), elevenKey }),
       // The owner's brands: which one she is working in, and their manuals.
       jarvis_brands: brandsServer(),
       // Sending a brand image to an upload link, and nothing else (see files.mjs).

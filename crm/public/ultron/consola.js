@@ -392,6 +392,20 @@ async function fuenteReal(cfg) {
       }
       return { texto: 'No me llega respuesta: mi computadora no está respondiendo. Intenta en un rato.' }
     },
+    // Lo que Ultron le dejó a esta persona por su cuenta (un aviso, un resumen), más nuevo que `desde`.
+    async avisos(desde) {
+      const { data } = await sb
+        .from('ultron_mensajes')
+        .select('id, respuesta, voz, respondido')
+        .eq('persona', yo.id)
+        .eq('pregunta', '📩 Mensaje de Ultron')
+        .eq('estado', 'listo')
+        .gt('id', desde)
+        .order('id', { ascending: true })
+        .limit(5)
+      const firmar = async (ruta) => (ruta ? ((await sb.storage.from('ultron').createSignedUrl(ruta, 3600)).data?.signedUrl ?? null) : null)
+      return Promise.all((data ?? []).map(async (m) => ({ id: m.id, texto: m.respuesta || '', voz: await firmar(m.voz) })))
+    },
     // Una frase de audio → texto (ElevenLabs Scribe, en Netlify).
     async transcribir(blob) {
       const { data: s } = await sb.auth.getSession()
@@ -958,5 +972,43 @@ async function arrancar() {
   marco()
   tablero().then(() => pintarLado())
   manosLibres()
+  if (F.avisos) {
+    revisarAvisos()
+    setInterval(revisarAvisos, 20_000)
+  }
+}
+
+/** Los mensajes que Ultron deja por su cuenta: aparecen como su respuesta y los dice con su voz, una sola vez. */
+async function revisarAvisos() {
+  if (pensando) return
+  let visto = 0
+  try {
+    visto = Number(localStorage.getItem('ultron-avisos') || 0)
+  } catch {
+    visto = 0
+  }
+  let nuevos = []
+  try {
+    nuevos = await F.avisos(visto)
+  } catch {
+    return
+  }
+  for (const a of nuevos) {
+    try {
+      localStorage.setItem('ultron-avisos', String(a.id))
+    } catch {
+      // Sin almacenamiento: se volvería a decir al recargar; no pasa nada grave.
+    }
+    if (vista !== 'consola') {
+      vista = 'consola'
+      await pintarVista()
+    }
+    ultimo = { q: '📩 Mensaje de Ultron', r: a.texto, acciones: [] }
+    ultimaCharla = Date.now()
+    pintarSubs(true)
+    pintarLado()
+    if (a.voz) sonar(a.voz)
+    else nucleo?.hablar(Math.min(9000, 900 + a.texto.length * 38))
+  }
 }
 arrancar()
