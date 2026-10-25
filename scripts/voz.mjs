@@ -4,6 +4,8 @@
 //   node scripts/voz.mjs                 which voice he uses now
 //   node scripts/voz.mjs prueba          a test phrase, as the iPhone gets it: saved on the Desktop,
 //                                        played here, with how loud it came out
+//   node scripts/voz.mjs saludo          on his calls he waits for the other person to speak first, greets
+//                                        once and never repeats himself
 //   node scripts/voz.mjs llamadas        his phone agents get his current voice, its flat delivery
 //                                        and his name, without changing anything else
 //   node scripts/voz.mjs <voice_id>      his new voice: the face, Telegram voice notes, the iPhone
@@ -80,6 +82,56 @@ async function agent(label, agentId, apiKey, voiceId) {
   say(up.ok ? `  ✅ ${label}: voz plana y fría${patch.agent || body.name ? ', nombre NEX y estilo sin expresiones' : ''}.` : `  ✋ ${label}: ElevenLabs no aceptó el cambio (error ${up.status}): ${(await up.text()).slice(0, 200)}`)
 }
 
+/**
+ * How a call starts and goes on. When NEX places the call he says nothing
+ * until the person answers: the agent's first message is emptied (ElevenLabs
+ * then waits for the other side to speak) and the greeting moves into his
+ * instructions, said once. He never greets or introduces himself twice, and
+ * says the message once unless asked to repeat it. On calls he receives (the
+ * receptionist) he still answers first, once.
+ */
+const TALK_MARK = 'CÓMO EMPIEZA Y SIGUE LA LLAMADA'
+const OLD_REPEAT = 'Si te interrumpen, si hubo ruido o si te piden que lo repitas, dilo otra vez completo y con calma.'
+const NEW_REPEAT = 'Dilo una sola vez. Solo repítelo si la persona te pide que lo repitas.'
+const NEVER_TWICE = `- Nunca repitas el saludo ni te vuelvas a presentar en la misma llamada, aunque haya ruido, silencio o te interrumpan.
+- No repitas el mensaje ni nada de lo que ya dijiste, salvo que la persona te pida que lo repitas.
+- Si hay silencio, espera. Si sigue el silencio, pregunta una sola vez "¿Me escuchas?".`
+
+async function conversation(label, agentId, apiKey, inbound) {
+  const res = await fetch(`${API}/convai/agents/${agentId}`, { headers: { 'xi-api-key': apiKey } })
+  if (!res.ok) return say(`  ✋ ${label}: no pude leer la agente (error ${res.status}).`)
+  const agentCfg = (await res.json()).conversation_config?.agent ?? {}
+  const prompt = agentCfg.prompt ?? {}
+  const first = String(agentCfg.first_message ?? '').trim()
+  let text = String(prompt.prompt ?? '').replace(OLD_REPEAT, NEW_REPEAT).trim()
+  const patch = {}
+  if (!text.includes(TALK_MARK)) {
+    if (inbound) {
+      text += `\n\n${TALK_MARK}\n- Tu saludo es tu primer mensaje: dilo una sola vez.\n${NEVER_TWICE}`
+    } else {
+      // The greeting he used to say on his own, without the message in it.
+      const greeting = rename(first.replace(/\{\{\s*nexy_brief\s*\}\}/g, '')).replace(/\s+/g, ' ').trim()
+      if (/\{\{\s*nexy_brief\s*\}\}/.test(first) && !/\{\{\s*nexy_brief\s*\}\}/.test(text)) text += '\n\nMENSAJE DE ESTA LLAMADA: {{nexy_brief}}'
+      text +=
+        `\n\n${TALK_MARK}\n- Tú hiciste la llamada. No hables primero: espera en silencio a que la persona conteste y diga algo ("Hola", "¿Bueno?", "¿Sí?").` +
+        `\n- Cuando hable, saluda una sola vez${greeting ? ` así: "${greeting}"` : ''} y enseguida da el mensaje de esta llamada, una sola vez.\n${NEVER_TWICE}`
+    }
+  }
+  if (text !== String(prompt.prompt ?? '').trim()) patch.prompt = { ...prompt, prompt: text }
+  if (!inbound && first) patch.first_message = ''
+  if (!Object.keys(patch).length) return say(`  ✅ ${label}: ya espera y no repite.`)
+  const up = await fetch(`${API}/convai/agents/${agentId}`, {
+    method: 'PATCH',
+    headers: { 'xi-api-key': apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({ conversation_config: { agent: patch } }),
+  })
+  say(
+    up.ok
+      ? `  ✅ ${label}: ${inbound ? 'contesta una sola vez y no repite' : 'espera a que contesten, saluda una vez y no repite'}.`
+      : `  ✋ ${label}: ElevenLabs no aceptó el cambio (error ${up.status}): ${(await up.text()).slice(0, 200)}`,
+  )
+}
+
 const apiKey = key()
 
 if (!id) {
@@ -140,8 +192,20 @@ const callAgents = () =>
   [
     ['Llamadas a ti', process.env.NEXY_CALL_AGENT_ID],
     ['Mensajera (llamadas a contactos)', process.env.NEXY_MESSENGER_AGENT_ID],
-    ['Recepcionista', process.env.NEXY_RECEPTION_AGENT_ID],
+    ['Recepcionista', process.env.NEXY_RECEPTION_AGENT_ID, true],
   ].filter(([, a]) => a && /^agent_\w+$/.test(a.trim()))
+
+if (id === 'saludo') {
+  const agents = callAgents()
+  if (!apiKey || !agents.length) {
+    say('\n✋ No encuentro la llave de ElevenLabs o los ids de tus agentes en esta Terminal. Abre una pestaña nueva e inténtalo otra vez.\n')
+    process.exit(1)
+  }
+  say('\nCómo empiezan las llamadas:')
+  for (const [label, a, inbound] of agents) await conversation(label, a.trim(), apiKey, Boolean(inbound))
+  say('\nListo. Haz una llamada de prueba: NEX espera a que digas "Hola".\n')
+  process.exit(0)
+}
 
 if (id === 'llamadas') {
   const agents = callAgents()
@@ -150,7 +214,10 @@ if (id === 'llamadas') {
     process.exit(1)
   }
   say('\nAgentes de llamadas en ElevenLabs:')
-  for (const [label, a] of agents) await agent(label, a.trim(), apiKey, ownVoiceId())
+  for (const [label, a, inbound] of agents) {
+    await agent(label, a.trim(), apiKey, ownVoiceId())
+    await conversation(label, a.trim(), apiKey, Boolean(inbound))
+  }
   say('\nListo. Haz una llamada de prueba.\n')
   process.exit(0)
 }

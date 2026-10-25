@@ -32,7 +32,7 @@ const WANT = { turn_eagerness: 'patient', disable_first_message_interruptions: t
 const onlyShow = process.argv[2] === 'ver'
 const RECEPTION = 'NEX Recepcionista (llamadas que no contestas)'
 const MESSAGE_BLOCK = `MENSAJE DE ESTA LLAMADA: {{nexy_brief}}
-- Ese es el mensaje que tienes que dar en esta llamada. Si te interrumpen, si hubo ruido o si te piden que lo repitas, dilo otra vez completo y con calma.
+- Ese es el mensaje que tienes que dar en esta llamada. Dilo una sola vez. Solo repítelo si la persona te pide que lo repitas.
 - Ignora ruidos, sonidos, palabras sueltas o frases sin sentido: no les respondas y nunca digas que no tienes mensaje.`
 
 function key() {
