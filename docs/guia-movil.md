@@ -34,8 +34,12 @@ Presionas el **botón de acción** del iPhone (o dices **"Oye Siri, NEX"**), hab
    - Toca la flecha **›** → **Method**: **POST**.
    - **Headers** → **Add new header**: Key `Authorization`, Text `Bearer ` y pega la llave (con un espacio después de Bearer).
    - **Request Body**: **JSON** → **Add new field** → **Text** → Key `texto` → en el valor toca **Dictated Text**.
-4. **Add Action** → **Play Sound** (recibe **Contents of URL**).
-5. **Done**.
+4. Antes de que suene, tres acciones que dejan el volumen siempre bien (después de dictar, el iPhone se queda en "modo micrófono" y suena bajito):
+   - **Add Action** → **Wait** → **1** segundo.
+   - **Add Action** → **Set Playback Destination** → **iPhone**.
+   - **Add Action** → **Set Volume** → **100%**.
+5. **Add Action** → **Play Sound** → toca el valor y elige **Contents of URL** (no "Wait" ni otra variable).
+6. **Done**.
 
 ## 5. El botón de acción
 **Settings** → **Action Button** → desliza hasta **Shortcut** → **Choose a Shortcut…** → **NEX**.

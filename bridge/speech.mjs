@@ -53,6 +53,10 @@ export function louder(mp3) {
     // up, and the result is brought to -9 LUFS with a limiter so it never
     // clips.
     const filter = [
+      // A breath of silence first: the iPhone is still switching from the
+      // microphone to the speaker when the sound starts, and would swallow or
+      // duck the first syllables.
+      'adelay=450:all=1',
       'highpass=f=170:poles=2',
       'equalizer=f=250:t=q:w=1:g=-4',
       'equalizer=f=2800:t=q:w=1.2:g=6',
