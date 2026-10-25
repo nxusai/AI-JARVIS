@@ -37,6 +37,7 @@ const ICONOS = {
   tareas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
   biblioteca: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   catalogos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>',
+  parrilla: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
   usuarios: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>',
   bitacora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 }
@@ -54,7 +55,13 @@ const S = {
   carpetas: [],
   biblioteca: [],
   catalogos: [],
+  contenidos: [],
   usuarios: [],
+  parrillaMes: (() => {
+    const x = new Date()
+    return new Date(x.getFullYear(), x.getMonth(), 1)
+  })(),
+  parrillaEmpresa: '',
   vista: 'tareas',
   mes: 'pendientes',
   anio: new Date().getFullYear(),
@@ -170,15 +177,16 @@ async function ocupado(boton, trabajo) {
 // -- cargar ------------------------------------------------------------------
 
 async function cargarTodo() {
-  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes] = await Promise.all([
+  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos] = await Promise.all([
     D.empresas(),
     S.yo.ve_tareas !== false || esEquipo() ? D.tareas() : [],
     D.carpetas(),
     D.biblioteca(),
     D.catalogos(),
     esEquipo() ? D.clientes() : [],
+    D.contenidos ? D.contenidos() : [],
   ])
-  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes })
+  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos })
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
 
@@ -286,6 +294,8 @@ async function empezar() {
 function vistasPermitidas() {
   const v = []
   if (esEquipo() || S.yo.ve_tareas !== false) v.push('tareas')
+  // La parrilla la ven todos; solo el equipo la cambia.
+  v.push('parrilla')
   if (esEquipo() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
   if (esEquipo() || S.yo.ve_catalogos !== false) v.push('catalogos')
   if (esAdmin()) v.push('usuarios', 'bitacora')
@@ -294,7 +304,7 @@ function vistasPermitidas() {
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', biblioteca: 'Biblioteca', catalogos: 'Catálogos', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -322,6 +332,7 @@ function pintarVista() {
   if (!el) return
   const v = {
     tareas: vistaTareas,
+    parrilla: vistaParrilla,
     biblioteca: vistaBiblioteca,
     catalogos: vistaCatalogos,
     usuarios: vistaUsuarios,
@@ -880,6 +891,126 @@ function formABiblioteca(archivoId) {
   })
 }
 
+// -- parrilla de contenidos ----------------------------------------------------
+
+const CANALES = { whatsapp: 'WhatsApp', estado: 'Estado de WhatsApp', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', otro: 'Otro' }
+const ESTADO_CONTENIDO = { borrador: 'Borrador', listo: 'Listo', enviado: 'Enviado' }
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const isoDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const horaCorta = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : '')
+
+function contenidosDelMes() {
+  const m = S.parrillaMes
+  const prefijo = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`
+  return S.contenidos
+    .filter((c) => c.fecha.startsWith(prefijo) && (!S.parrillaEmpresa || c.empresa_id === S.parrillaEmpresa))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || String(a.hora ?? '').localeCompare(String(b.hora ?? '')))
+}
+
+function chipContenido(c) {
+  return `<button class="contenido c-${c.estado}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
+    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}</span><b>${h(c.titulo)}</b></button>`
+}
+
+function vistaParrilla() {
+  const m = S.parrillaMes
+  const mes = contenidosDelMes()
+  const hoy = isoDia(new Date())
+  // La cuadrícula del mes, de lunes a domingo.
+  const primero = new Date(m.getFullYear(), m.getMonth(), 1)
+  const inicio = new Date(primero)
+  inicio.setDate(1 - ((primero.getDay() + 6) % 7))
+  const celdas = []
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(inicio)
+    d.setDate(inicio.getDate() + i)
+    if (i >= 35 && d.getMonth() !== m.getMonth()) break
+    const iso = isoDia(d)
+    const delDia = mes.filter((c) => c.fecha === iso)
+    celdas.push(`<div class="dia ${d.getMonth() !== m.getMonth() ? 'fuera' : ''} ${iso === hoy ? 'hoy' : ''}">
+      <div class="dia-num">${d.getDate()}${esEquipo() && d.getMonth() === m.getMonth() ? `<button class="mas" data-nuevo-contenido="${iso}" aria-label="Agregar contenido el ${d.getDate()}">+</button>` : ''}</div>
+      ${delDia.map(chipContenido).join('')}
+    </div>`)
+  }
+  const emps = S.empresas.filter((e) => e.activa && (esEquipo() || !S.yo.empresas || S.yo.empresas.includes(e.id)))
+  const titulo = m.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+  return `
+    <p class="ayuda" style="margin-top:0">Lo que las vendedoras publican y mandan cada día. ${esEquipo() ? 'Tú y tu equipo la llenan; todos la ven.' : 'La prepara el equipo de NXUS.'}</p>
+    <div class="barra parrilla-barra">
+      <div class="mes-nav"><button class="btn chico" data-parrilla-mes="-1" aria-label="Mes anterior">←</button><b>${h(titulo[0].toUpperCase() + titulo.slice(1))}</b><button class="btn chico" data-parrilla-mes="1" aria-label="Mes siguiente">→</button><button class="btn chico" data-parrilla-mes="0">Hoy</button></div>
+      <select data-filtro="parrillaEmpresa"><option value="">Todas las empresas</option>${opcionesEmpresa(emps, S.parrillaEmpresa)}</select>
+      ${esEquipo() ? `<button class="btn principal" data-nuevo-contenido="">+ Contenido</button>` : ''}
+    </div>
+    <div class="calendario">
+      ${DIAS_SEMANA.map((d) => `<div class="dia-nombre">${d}</div>`).join('')}
+      ${celdas.join('')}
+    </div>
+    <div class="parrilla-lista">
+      ${mes.length ? mes.map((c) => `<div class="fila-contenido"><div class="fecha-contenido">${h(fecha(c.fecha))}</div>${chipContenido(c)}</div>`).join('') : '<div class="vacio-msg">No hay contenidos este mes.</div>'}
+    </div>`
+}
+
+function abrirContenido(id, fechaNueva = '') {
+  const c = id ? S.contenidos.find((x) => x.id === id) : null
+  if (id && !c) return
+  if (!esEquipo()) {
+    abrirVentana(
+      h(c.titulo),
+      `<div class="barra" style="margin-top:0"><span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
+      ${c.texto ? `<div class="texto-contenido">${h(c.texto)}</div><button class="btn" data-copiar="${c.id}">Copiar texto</button>` : ''}
+      ${c.enlace ? ` <a class="btn" href="${h(c.enlace)}" target="_blank" rel="noopener">Abrir material ↗</a>` : ''}`,
+    )
+    return
+  }
+  const emps = S.empresas.filter((e) => e.activa)
+  const v = c ?? { empresa_id: S.parrillaEmpresa || emps[0]?.id, fecha: fechaNueva || isoDia(new Date()), hora: '', canal: 'whatsapp', titulo: '', texto: '', enlace: '', estado: 'borrador' }
+  abrirVentana(
+    c ? 'Editar contenido' : 'Nuevo contenido',
+    `<form id="form-contenido">
+      <div class="dos-campos">
+        <div class="campo"><label for="ct-emp">Empresa</label><select id="ct-emp" required>${opcionesEmpresa(emps, v.empresa_id)}</select></div>
+        <div class="campo"><label for="ct-canal">Dónde</label><select id="ct-canal">${Object.entries(CANALES).map(([k, t]) => `<option value="${k}" ${k === v.canal ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="campo"><label for="ct-fecha">Día</label><input id="ct-fecha" type="date" required value="${h(v.fecha)}"></div>
+        <div class="campo"><label for="ct-hora">Hora (opcional)</label><input id="ct-hora" type="time" value="${h(String(v.hora ?? '').slice(0, 5))}"></div>
+      </div>
+      <div class="campo"><label for="ct-titulo">Título</label><input id="ct-titulo" maxlength="200" required value="${h(v.titulo)}" placeholder="Promo de quesos frescos"></div>
+      <div class="campo"><label for="ct-texto">Texto para las vendedoras</label><textarea id="ct-texto" rows="5" maxlength="4000" placeholder="Lo que van a publicar o mandar, tal cual">${h(v.texto)}</textarea></div>
+      <div class="campo"><label for="ct-enlace">Material (link a la imagen o video)</label><input id="ct-enlace" type="url" pattern="https://.*" value="${h(v.enlace)}" placeholder="https://…"></div>
+      <div class="campo"><label for="ct-estado">Estado</label><select id="ct-estado">${Object.entries(ESTADO_CONTENIDO).map(([k, t]) => `<option value="${k}" ${k === v.estado ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="barra" style="justify-content:flex-end">
+        ${c && esAdmin() ? '<button type="button" class="btn peligro" data-borrar-contenido="' + c.id + '" style="margin-right:auto">Borrar</button>' : ''}
+        <button type="button" class="btn" data-accion="cerrar">Cancelar</button>
+        <button class="btn principal" data-ocupado="Guardando…">Guardar</button>
+      </div>
+    </form>`,
+  )
+  $('#form-contenido').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.guardarContenido({
+          ...(c ? { id: c.id } : {}),
+          empresa_id: $('#ct-emp').value,
+          canal: $('#ct-canal').value,
+          fecha: $('#ct-fecha').value,
+          hora: $('#ct-hora').value || null,
+          titulo: $('#ct-titulo').value.trim(),
+          texto: $('#ct-texto').value.trim(),
+          enlace: $('#ct-enlace').value.trim(),
+          estado: $('#ct-estado').value,
+        })
+        const f = aFecha($('#ct-fecha').value)
+        S.parrillaMes = new Date(f.getFullYear(), f.getMonth(), 1)
+        cerrarVentana()
+        avisar('Guardado en la parrilla')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
 // -- catálogos ----------------------------------------------------------------
 
 function vistaCatalogos() {
@@ -1198,6 +1329,29 @@ async function alClic(e) {
     if (d.vista) {
       S.vista = d.vista
       pintar()
+      return
+    }
+    if (d.parrillaMes !== undefined) {
+      const paso = Number(d.parrillaMes)
+      const m = paso === 0 ? new Date() : new Date(S.parrillaMes.getFullYear(), S.parrillaMes.getMonth() + paso, 1)
+      S.parrillaMes = new Date(m.getFullYear(), m.getMonth(), 1)
+      pintarVista()
+      return
+    }
+    if (d.contenido) return abrirContenido(d.contenido)
+    if (d.nuevoContenido !== undefined) return abrirContenido(null, d.nuevoContenido)
+    if (d.copiar) {
+      const c = S.contenidos.find((x) => x.id === d.copiar)
+      await navigator.clipboard.writeText(c?.texto ?? '')
+      avisar('Texto copiado')
+      return
+    }
+    if (d.borrarContenido) {
+      if (!(await preguntar('Borrar contenido', 'Se quita de la parrilla. ¿Seguro?', { boton: 'Borrar', peligro: true }))) return
+      await D.borrarContenido(d.borrarContenido)
+      cerrarVentana()
+      avisar('Borrado')
+      await recargar()
       return
     }
     if (d.mes !== undefined) {

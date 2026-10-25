@@ -194,6 +194,17 @@ export function crearSupabase({ url, anon }) {
     async catalogos() {
       return ok(await sb.from('archivos').select('*').eq('tipo', 'catalogo').limit(5000))
     },
+    // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
+    async contenidos() {
+      return ok(await sb.from('contenidos').select('*').order('fecha').order('hora', { nullsFirst: true }).limit(5000))
+    },
+    async guardarContenido({ id, ...c }) {
+      if (id) return ok(await sb.from('contenidos').update(c).eq('id', id).select().single())
+      return ok(await sb.from('contenidos').insert(c).select().single())
+    },
+    async borrarContenido(id) {
+      ok(await sb.from('contenidos').delete().eq('id', id))
+    },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       const s = await subir(`catalogos/${empresa_id}`, file)
       ok(await sb.from('archivos').insert({ tipo: 'catalogo', empresa_id, anterior_id: anterior_id ?? null, nombre: file.name, ...s }))

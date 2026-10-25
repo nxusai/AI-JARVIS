@@ -795,3 +795,69 @@ drop policy if exists ultron_oir on storage.objects;
 create policy ultron_oir on storage.objects for select to authenticated using (
   bucket_id = 'ultron' and (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- ---------------------------------------------------------------------------
+-- Parrilla de contenidos para las vendedoras
+-- ---------------------------------------------------------------------------
+-- Lo que las vendedoras publican o mandan cada día, por empresa. Todos los que
+-- entran la ven (de sus empresas); solo el admin y el equipo la llenan y la
+-- cambian; solo el admin borra. Después la IA se los manda por Telegram
+-- (enviado = cuándo se mandó).
+
+create table if not exists public.contenidos (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id text not null references public.empresas (id),
+  fecha date not null,
+  hora time,
+  canal text not null default 'whatsapp' check (canal in ('whatsapp', 'estado', 'instagram', 'facebook', 'tiktok', 'otro')),
+  titulo text not null check (char_length(titulo) between 1 and 200),
+  texto text not null default '' check (char_length(texto) <= 4000),
+  enlace text not null default '' check (enlace = '' or enlace ~ '^https://'),
+  estado text not null default 'borrador' check (estado in ('borrador', 'listo', 'enviado')),
+  enviado timestamptz,
+  creado_por uuid references public.perfiles (id) on delete set null,
+  creada timestamptz not null default now(),
+  actualizada timestamptz not null default now()
+);
+create index if not exists contenidos_fecha on public.contenidos (fecha, empresa_id);
+
+create or replace function public.antes_contenido() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creada := now();
+    new.creado_por := auth.uid();
+  else
+    new.creada := old.creada;
+    new.creado_por := old.creado_por;
+  end if;
+  new.actualizada := now();
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_contenido on public.contenidos;
+create trigger crm_antes_contenido before insert or update on public.contenidos
+  for each row execute function public.antes_contenido();
+
+drop trigger if exists crm_bitacora on public.contenidos;
+create trigger crm_bitacora after insert or update or delete on public.contenidos
+  for each row execute function public.anotar_cambio();
+
+alter table public.contenidos enable row level security;
+
+-- Los ve todo el que entra, de las empresas que le tocan.
+drop policy if exists contenidos_ver on public.contenidos;
+create policy contenidos_ver on public.contenidos for select to authenticated using (
+  es_equipo() or exists (
+    select 1 from public.perfiles p
+    where p.id = auth.uid() and p.activo and (p.empresas is null or contenidos.empresa_id = any (p.empresas))
+  )
+);
+-- Solo el admin y el equipo los ponen y los cambian.
+drop policy if exists contenidos_crear on public.contenidos;
+create policy contenidos_crear on public.contenidos for insert to authenticated with check (es_equipo());
+drop policy if exists contenidos_cambiar on public.contenidos;
+create policy contenidos_cambiar on public.contenidos for update to authenticated using (es_equipo()) with check (es_equipo());
+-- Borrar, solo el admin.
+drop policy if exists contenidos_borrar on public.contenidos;
+create policy contenidos_borrar on public.contenidos for delete to authenticated using (es_admin());

@@ -55,7 +55,23 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [] }
+  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [] }
+  {
+    // Una parrilla de ejemplo para este mes.
+    const d = (n) => {
+      const x = new Date()
+      x.setDate(x.getDate() + n)
+      return x.toISOString().slice(0, 10)
+    }
+    const c = (dia, empresa_id, canal, titulo, texto, hora, estado = 'listo') =>
+      db.contenidos.push({ id: uid(), empresa_id, fecha: d(dia), hora, canal, titulo, texto, enlace: '', estado, enviado: estado === 'enviado' ? ahora() : null, creado_por: 'u-equipo1', creada: ahora(), actualizada: ahora() })
+    c(-3, 'mi-semago', 'whatsapp', 'Lista de precios de la semana', 'Buen día. Les comparto los quesos disponibles esta semana. Pedidos antes del jueves para entrega el viernes.', '09:00', 'enviado')
+    c(-1, 'abuelito-cheese', 'estado', 'Receta: pupusas con quesillo', 'Hoy en casa: pupusas con quesillo Abuelito. ¿Ya lo probaste? Pídelo con tu vendedora.', '11:00', 'enviado')
+    c(0, 'abuelito-meat', 'instagram', 'Chorizo salvadoreño estilo casero', 'Nuevo empaque, mismo sabor de siempre. Disponible con tu distribuidor.', '10:00')
+    c(1, 'mi-semago', 'whatsapp', 'Promo cliente nuevo', 'Si tu tienda es nueva con nosotros, el primer pedido lleva 10% de descuento en quesos frescos.', '09:30')
+    c(3, 'abuelito-corn', 'estado', 'Tortillas recién hechas', 'Tortillas de maíz Abuelito, recién salidas. Pregunta por el paquete de 30.', '12:00', 'borrador')
+    c(6, 'abuelito-cheese', 'facebook', 'Queso fresco para el fin de semana', '¿Carne asada este fin? No olvides el queso fresco Abuelito.', '17:00', 'borrador')
+  }
   const blobs = new Map()
   let yo = null
   let folio = 0
@@ -378,6 +394,29 @@ export function crearMuestra() {
     },
     async catalogos() {
       return copia(db.archivos.filter((a) => a.tipo === 'catalogo' && veoArchivo(a)))
+    },
+    async contenidos() {
+      const p = perfil()
+      if (!p) return []
+      return copia(db.contenidos.filter((c) => equipo() || !p.empresas || p.empresas.includes(c.empresa_id)))
+    },
+    async guardarContenido({ id, ...c }) {
+      if (!equipo()) no('Solo tu equipo llena la parrilla')
+      if (id) {
+        const x = db.contenidos.find((v) => v.id === id)
+        Object.assign(x, c, { actualizada: ahora() })
+        anota('cambió', 'contenidos', id)
+        return copia(x)
+      }
+      const x = { id: uid(), enlace: '', texto: '', hora: null, estado: 'borrador', enviado: null, ...c, creado_por: yo, creada: ahora(), actualizada: ahora() }
+      db.contenidos.push(x)
+      anota('creó', 'contenidos', x.id)
+      return copia(x)
+    },
+    async borrarContenido(id) {
+      if (!admin()) no('Solo el admin borra')
+      db.contenidos = db.contenidos.filter((c) => c.id !== id)
+      anota('borró', 'contenidos', id)
     },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       await espera(400)
