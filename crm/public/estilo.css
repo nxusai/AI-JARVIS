@@ -414,3 +414,90 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 @media (max-width: 860px) {
   .ultron-panel { width: calc(100vw - 16px); right: 8px; bottom: 8px; height: calc(100vh - 80px); }
 }
+
+/* ===========================================================================
+   Grafito claro: diseño neutro. El centro de trabajo lo usan varias empresas,
+   cada una con su color; el fondo no compite con ellas. Va al final para
+   ganarle a lo de arriba sin tocarlo.
+   =========================================================================== */
+:root {
+  --fondo: #f6f6f4;
+  --fondo-2: #fbfbfa;
+  --panel: #ffffff;
+  --panel-2: #f1f1ee;
+  --vidrio: #ffffff;
+  --linea: #e3e3df;
+  --linea-2: #cfcfca;
+  --texto: #18181b;
+  --suave: #6b6b72;
+  --cian: #18181b;
+  --azul: #3f3f46;
+  --violeta: #52525b;
+  --degradado: linear-gradient(100deg, #18181b, #3f3f46);
+  --marca: #18181b;
+  --marca-2: #3f3f46;
+  --marca-fondo: #ededea;
+  --sobre-marca: #ffffff;
+  --ok: #1f8a5b;
+  --ok-fondo: #e7f4ec;
+  --sobre-ok: #ffffff;
+  --aviso: #b7791f;
+  --aviso-fondo: #fbf1e0;
+  --mal: #c2410c;
+  --mal-fondo: #fbe9e1;
+  --info: #2563eb;
+  --info-fondo: #e8eefc;
+  --morado: #6d28d9;
+  --morado-fondo: #efe9fb;
+  --gris-fondo: #efefec;
+  --sombra: 0 8px 24px rgba(24, 24, 27, .06);
+  --brillo: 0 0 0 1px #cfcfca, 0 8px 24px rgba(24, 24, 27, .07);
+  color-scheme: light;
+}
+body { background: var(--fondo); background-image: none; }
+a { color: var(--texto); }
+.grad { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--texto); }
+.cabeza { background: rgba(246, 246, 244, .9); }
+.cabeza::after, .ventana-cabeza::after, .u-cabeza::after { background: var(--linea); opacity: 1; }
+.logo polygon { fill: var(--texto); }
+.logo linearGradient { display: none; }
+.pestana.activa { color: var(--texto); background: var(--marca-fondo); border-color: var(--linea-2); box-shadow: none; }
+.franja-muestra { background: var(--marca-fondo); }
+.btn:hover { border-color: var(--linea-2); }
+.btn.principal { background: var(--marca); color: var(--sobre-marca); box-shadow: none; }
+.btn.principal:hover { background: var(--marca-2); box-shadow: none; }
+.btn.ok { background: var(--ok); color: var(--sobre-ok); box-shadow: none; }
+.btn.peligro { border-color: #f1c7b5; }
+input, select, textarea { background: var(--panel); }
+input:focus, select:focus, textarea:focus { border-color: var(--texto); box-shadow: 0 0 0 3px rgba(24, 24, 27, .08); }
+.dato.llama { border-color: var(--linea-2); box-shadow: none; animation: none; }
+.paso i { border-color: var(--linea-2); }
+.mes.pend { border-color: var(--linea-2); }
+.mes.pend.activo { background: var(--marca); color: #fff; }
+.tarjeta.revisar { border-color: #cdb8f0; }
+.chip.emp { background: color-mix(in srgb, var(--color-emp) 12%, #fff); color: color-mix(in srgb, var(--color-emp) 75%, #000); border-color: color-mix(in srgb, var(--color-emp) 35%, #fff); }
+.nuevo { background: var(--marca-fondo); }
+.avance .hecho i { background: var(--texto); border-color: var(--texto); }
+.avance .aqui i { background: #fff; border-color: var(--texto); box-shadow: 0 0 0 4px rgba(24, 24, 27, .1); }
+#modal, .capa-dialogo { background: rgba(24, 24, 27, .35); }
+.ventana { box-shadow: 0 30px 80px rgba(24, 24, 27, .18); }
+.aprobar-caja { background: var(--ok-fondo); border-color: #b9e0ca; }
+.aprobada-caja { border-color: #b9e0ca; }
+.solo-admin { border-color: #f1c7b5; background: #fdf5f1; }
+.archivo-icono { border-color: #f1c7b5; }
+.archivo-icono.img { border-color: #c5d4f7; }
+.arbol-emp.activa { border-color: var(--linea-2); }
+.carpeta .ico { background: #d6d6d1; }
+.carpeta .ico::before { background: #d6d6d1; }
+.soltar { border-color: var(--linea-2); background: var(--fondo-2); color: var(--suave); }
+.soltar.encima { background: var(--marca-fondo); border-color: var(--texto); }
+.entrada-caja { backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 20px 60px rgba(24, 24, 27, .08); }
+.entrada-caja::before { display: none; }
+.entrada-marca .logo { filter: none; }
+.aviso { box-shadow: 0 10px 30px rgba(24, 24, 27, .12); border-color: var(--linea-2); }
+.aviso.mal { background: var(--mal-fondo); color: var(--mal); }
+/* El panel de Ultron, en claro; su orbe conserva sus colores, es su identidad. */
+.ultron-panel { background: #ffffff !important; border-color: var(--linea-2) !important; box-shadow: 0 30px 80px rgba(24, 24, 27, .18) !important; }
+.u-msg.yo { background: var(--marca); }
+.u-sug { border-color: var(--linea-2); background: var(--fondo-2); color: var(--texto); }
+.u-sug:hover { background: var(--marca-fondo); }
