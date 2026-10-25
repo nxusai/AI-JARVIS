@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@600;700&display=swap');
 
-/* N.E.X. — THE WATCHER (see Command.tsx). Black, blood red and a cold white. */
+/* N.E.X. — THE SPHERE (see Command.tsx). Deep navy, holographic blue and cyan, cold white. */
 
 /* The ground goes on the page, under the 3D layer, so anything NEX puts in
    the scene still shows; the deck itself is transparent. */
 html body {
-  background: radial-gradient(circle at 50% 49%, #2a0302 0%, #0b0000 42%, #000 100%);
+  background: radial-gradient(circle at 50% 49%, #06264a 0%, #020c1a 45%, #000 100%);
 }
 html body #root { background: transparent; }
 
@@ -14,7 +14,7 @@ html body #root { background: transparent; }
   inset: 0;
   overflow: hidden;
   font-family: 'Rajdhani', sans-serif;
-  color: #ece8e6;
+  color: #dff4ff;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -67,7 +67,7 @@ html body #root { background: transparent; }
   content: '';
   position: absolute;
   inset: 0;
-  border-top: 1.2px solid rgba(140, 20, 16, 0.5);
+  border-top: 1.2px solid rgba(60, 140, 210, 0.45);
   clip-path: polygon(0 0, 31% 0, 33% 100%, 67% 100%, 69% 0, 100% 0, 100% 2px, 69% 2px, 67% 100%, 33% 100%, 31% 2px, 0 2px);
 }
 .ey-frame-top::after,
@@ -90,31 +90,31 @@ html body #root { background: transparent; }
   font-size: 34px;
   letter-spacing: 0.06em;
   color: #fff;
-  text-shadow: 0 0 22px rgba(255, 30, 20, 0.45);
+  text-shadow: 0 0 22px rgba(80, 190, 255, 0.6);
 }
-.ey-sub { margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: rgba(200, 30, 22, 0.95); }
+.ey-sub { margin-top: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: rgba(95, 190, 255, 0.95); }
 .ey-status { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.22em; color: #fff; }
-.ey-status i { width: 10px; height: 10px; border-radius: 50%; background: #ff2a1a; box-shadow: 0 0 14px #ff2a1a; animation: pulse 1.6s ease-in-out infinite; }
-.ey-date { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: rgba(150, 140, 138, 0.9); }
+.ey-status i { width: 10px; height: 10px; border-radius: 50%; background: #78e1ff; box-shadow: 0 0 14px #78e1ff; animation: pulse 1.6s ease-in-out infinite; }
+.ey-date { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: rgba(130, 180, 215, 0.9); }
 
 /* the callout from the lock */
-.ey-callout { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(220, 215, 212, 0.85); white-space: nowrap; }
-.ey-callout em { display: block; margin-top: 4px; font-style: normal; color: #ff3a28; }
+.ey-callout { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: rgba(210, 235, 250, 0.85); white-space: nowrap; }
+.ey-callout em { display: block; margin-top: 4px; font-style: normal; color: #78e1ff; }
 
 /* readouts */
 .ey-readout { width: 270px; }
-.ey-readout-title { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #c0201a; }
+.ey-readout-title { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #5fbfff; }
 .ey-right .ey-readout-title { text-align: right; }
-.ey-readout-rule { position: relative; height: 1px; margin: 8px 0 6px; background: rgba(120, 16, 12, 0.7); }
-.ey-readout-rule i { position: absolute; top: -1px; left: 0; width: 40px; height: 3px; background: #ff2a1a; box-shadow: 0 0 8px #ff2a1a; }
+.ey-readout-rule { position: relative; height: 1px; margin: 8px 0 6px; background: rgba(40, 110, 180, 0.7); }
+.ey-readout-rule i { position: absolute; top: -1px; left: 0; width: 40px; height: 3px; background: #78e1ff; box-shadow: 0 0 8px #78e1ff; }
 .ey-right .ey-readout-rule i { left: auto; right: 0; }
-.ey-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 5px; border-bottom: 1px solid rgba(120, 16, 12, 0.22); }
-.ey-row span { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: rgba(150, 140, 138, 0.9); }
-.ey-row b { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; color: #ece8e6; }
-.ey-warn { color: #ff3a28 !important; text-shadow: 0 0 8px rgba(255, 40, 20, 0.7); }
+.ey-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 5px; border-bottom: 1px solid rgba(40, 110, 180, 0.2); }
+.ey-row span { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: rgba(130, 180, 215, 0.9); }
+.ey-row b { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; color: #dff4ff; }
+.ey-warn { color: #ffb347 !important; text-shadow: 0 0 8px rgba(255, 180, 70, 0.6); }
 
 .ey-trace { display: block; width: 270px; height: 50px; }
-.ey-tiny { margin-top: 6px; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: rgba(140, 30, 24, 0.9); }
+.ey-tiny { margin-top: 6px; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: rgba(70, 150, 210, 0.9); }
 
 /* bottom */
 .ey-bars { position: absolute; left: 0; top: 806px; width: 1672px; height: 56px; }
@@ -126,9 +126,9 @@ html body #root { background: transparent; }
   letter-spacing: 0.32em;
   color: #fff;
   white-space: nowrap;
-  text-shadow: 0 0 18px rgba(255, 20, 10, 0.9);
+  text-shadow: 0 0 18px rgba(80, 190, 255, 0.9);
 }
-.ey-cursor { animation: ey-blink 1s steps(1) infinite; color: #ff2a1a; }
+.ey-cursor { animation: ey-blink 1s steps(1) infinite; color: #78e1ff; }
 @keyframes ey-blink { 50% { opacity: 0; } }
 /* dark for a beat before he speaks */
 .ey::after {
@@ -152,7 +152,7 @@ html body #root { background: transparent; }
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.16em;
-  color: rgba(130, 40, 32, 0.95);
+  color: rgba(80, 160, 215, 0.95);
   white-space: nowrap;
 }
 .ey-hint:hover { color: #fff; }
@@ -172,7 +172,7 @@ html body #root { background: transparent; }
 }
 .hud.v2 .log-line { font-size: 13px; }
 .hud.v2 .log-who { flex-basis: 44px; }
-.hud.v2 .log-jarvis .log-text { color: #ece8e6; text-shadow: 0 0 14px rgba(255, 30, 20, 0.6), 0 0 4px #000; }
+.hud.v2 .log-jarvis .log-text { color: #dff4ff; text-shadow: 0 0 14px rgba(80, 190, 255, 0.7), 0 0 4px #000; }
 .hud.v2 .caption {
   left: 3.8vw;
   right: auto;
@@ -181,11 +181,11 @@ html body #root { background: transparent; }
   max-width: 26vw;
   text-align: left;
   font-size: 14px;
-  color: #ff8f80;
+  color: #9fdcff;
 }
 .hud.v2 .tool-badge { top: 13vh; }
 .hud.v2 .suggest { display: none; }
 .hud.v2 .error { bottom: 4px; }
-.hud.v2 > * { --accent: #ff3a28; }
+.hud.v2 > * { --accent: #78e1ff; }
 /* The deck draws its own vignette and scanlines; the page-wide ones would dim it twice. */
 html body::after { display: none; }
