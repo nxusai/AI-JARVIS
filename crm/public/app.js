@@ -72,6 +72,7 @@ const S = {
   bibCarpeta: null,
   bibBusca: '',
   abierta: null,
+  contenidoAbierto: null,
   abiertosAnteriores: new Set(),
 }
 
@@ -195,6 +196,7 @@ async function recargar() {
     await cargarTodo()
     pintar()
     if (S.abierta) abrirTarea(S.abierta)
+    else if (S.contenidoAbierto) abrirContenido(S.contenidoAbierto)
   } catch (err) {
     falla(err)
   }
@@ -908,8 +910,9 @@ function contenidosDelMes() {
 }
 
 function chipContenido(c) {
+  const n = c.archivos?.length ?? 0
   return `<button class="contenido c-${c.estado}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
-    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}</span><b>${h(c.titulo)}</b></button>`
+    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}${n ? ` · 📎${n}` : ''}</span><b>${h(c.titulo)}</b></button>`
 }
 
 function vistaParrilla() {
@@ -950,16 +953,50 @@ function vistaParrilla() {
     </div>`
 }
 
+/** El material de un contenido: una vista previa grande de cada imagen o video, con Ver y Descargar. */
+function bloqueMaterial(c) {
+  const lista = c?.archivos ?? []
+  if (!lista.length) return ''
+  return `<div class="material">${lista
+    .map(
+      (a) => `<div class="material-uno">
+        <div class="previa" data-previa="${a.id}" data-mime="${h(a.tipo_mime)}"><span class="ayuda">Cargando…</span></div>
+        ${filaArchivo(a, { borrar: true })}
+      </div>`,
+    )
+    .join('')}</div>`
+}
+/** Pone las vistas previas cuando ya están las direcciones firmadas. */
+async function cargarPrevias() {
+  for (const el of document.querySelectorAll('[data-previa]')) {
+    const a = todosLosArchivos().find((x) => x.id === el.dataset.previa)
+    if (!a) continue
+    try {
+      const url = await D.url(a)
+      const video = /^video\//.test(a.tipo_mime) || /\.(mp4|mov|m4v|webm)$/i.test(a.nombre)
+      const img = /^image\//.test(a.tipo_mime) || /\.(png|jpe?g|gif|webp|heic)$/i.test(a.nombre)
+      el.innerHTML = video ? `<video src="${h(url)}" controls playsinline preload="metadata"></video>` : img ? `<img src="${h(url)}" alt="${h(a.nombre)}">` : `<span class="ayuda">${h(a.nombre)}</span>`
+    } catch {
+      el.innerHTML = '<span class="ayuda">No se pudo cargar la vista previa.</span>'
+    }
+  }
+}
+
 function abrirContenido(id, fechaNueva = '') {
   const c = id ? S.contenidos.find((x) => x.id === id) : null
   if (id && !c) return
+  S.contenidoAbierto = c?.id ?? null
+  const alCerrar = () => (S.contenidoAbierto = null)
   if (!esEquipo()) {
     abrirVentana(
       h(c.titulo),
       `<div class="barra" style="margin-top:0"><span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
       ${c.texto ? `<div class="texto-contenido">${h(c.texto)}</div><button class="btn" data-copiar="${c.id}">Copiar texto</button>` : ''}
-      ${c.enlace ? ` <a class="btn" href="${h(c.enlace)}" target="_blank" rel="noopener">Abrir material ↗</a>` : ''}`,
+      ${c.enlace ? ` <a class="btn" href="${h(c.enlace)}" target="_blank" rel="noopener">Abrir link ↗</a>` : ''}
+      ${bloqueMaterial(c) || (c.enlace ? '' : '<p class="ayuda">Este contenido todavía no tiene imagen ni video.</p>')}`,
+      { alCerrar },
     )
+    cargarPrevias()
     return
   }
   const emps = S.empresas.filter((e) => e.activa)
@@ -975,7 +1012,9 @@ function abrirContenido(id, fechaNueva = '') {
       </div>
       <div class="campo"><label for="ct-titulo">Título</label><input id="ct-titulo" maxlength="200" required value="${h(v.titulo)}" placeholder="Promo de quesos frescos"></div>
       <div class="campo"><label for="ct-texto">Texto para las vendedoras</label><textarea id="ct-texto" rows="5" maxlength="4000" placeholder="Lo que van a publicar o mandar, tal cual">${h(v.texto)}</textarea></div>
-      <div class="campo"><label for="ct-enlace">Material (link a la imagen o video)</label><input id="ct-enlace" type="url" pattern="https://.*" value="${h(v.enlace)}" placeholder="https://…"></div>
+      <div class="campo"><label for="ct-material">Imágenes o videos</label><input id="ct-material" type="file" multiple accept="image/*,video/*"><span class="ayuda">Hasta 50 MB cada uno. No se ven en el calendario: se abren al dar clic en el contenido.</span></div>
+      ${c ? bloqueMaterial(c) : ''}
+      <div class="campo"><label for="ct-enlace">Link (opcional: Drive, Canva…)</label><input id="ct-enlace" type="url" pattern="https://.*" value="${h(v.enlace)}" placeholder="https://…"></div>
       <div class="campo"><label for="ct-estado">Estado</label><select id="ct-estado">${Object.entries(ESTADO_CONTENIDO).map(([k, t]) => `<option value="${k}" ${k === v.estado ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="barra" style="justify-content:flex-end">
         ${c && esAdmin() ? '<button type="button" class="btn peligro" data-borrar-contenido="' + c.id + '" style="margin-right:auto">Borrar</button>' : ''}
@@ -983,12 +1022,17 @@ function abrirContenido(id, fechaNueva = '') {
         <button class="btn principal" data-ocupado="Guardando…">Guardar</button>
       </div>
     </form>`,
+    { alCerrar },
   )
+  cargarPrevias()
   $('#form-contenido').addEventListener('submit', async (e) => {
     e.preventDefault()
     await ocupado(e.submitter, async () => {
       try {
-        await D.guardarContenido({
+        const archivos = [...$('#ct-material').files]
+        const grandes = archivos.filter((f) => f.size > 50 * 1024 * 1024)
+        if (grandes.length) throw new Error(`Pesa más de 50 MB: ${grandes.map((f) => f.name).join(', ')}`)
+        const guardado = await D.guardarContenido({
           ...(c ? { id: c.id } : {}),
           empresa_id: $('#ct-emp').value,
           canal: $('#ct-canal').value,
@@ -999,10 +1043,11 @@ function abrirContenido(id, fechaNueva = '') {
           enlace: $('#ct-enlace').value.trim(),
           estado: $('#ct-estado').value,
         })
+        for (const file of archivos) await D.subirMaterial(guardado, file)
         const f = aFecha($('#ct-fecha').value)
         S.parrillaMes = new Date(f.getFullYear(), f.getMonth(), 1)
         cerrarVentana()
-        avisar('Guardado en la parrilla')
+        avisar(archivos.length ? `Guardado con ${archivos.length} archivo${archivos.length === 1 ? '' : 's'}` : 'Guardado en la parrilla')
         await recargar()
       } catch (err) {
         falla(err)
@@ -1266,7 +1311,7 @@ const pedirTexto = (titulo, etiqueta, valor = '') =>
 // -- archivos: ver, bajar, enviar ------------------------------------------------
 
 function todosLosArchivos() {
-  return [...S.biblioteca, ...S.catalogos, ...S.tareas.flatMap((t) => t.archivos)]
+  return [...S.biblioteca, ...S.catalogos, ...S.tareas.flatMap((t) => t.archivos), ...S.contenidos.flatMap((c) => c.archivos ?? [])]
 }
 async function verArchivo(id, descargar) {
   const a = todosLosArchivos().find((x) => x.id === id)

@@ -196,14 +196,21 @@ export function crearSupabase({ url, anon }) {
     },
     // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
     async contenidos() {
-      return ok(await sb.from('contenidos').select('*').order('fecha').order('hora', { nullsFirst: true }).limit(5000))
+      return ok(await sb.from('contenidos').select('*, archivos(*)').order('fecha').order('hora', { nullsFirst: true }).limit(5000))
     },
     async guardarContenido({ id, ...c }) {
       if (id) return ok(await sb.from('contenidos').update(c).eq('id', id).select().single())
       return ok(await sb.from('contenidos').insert(c).select().single())
     },
     async borrarContenido(id) {
+      const material = ok(await sb.from('archivos').select('ruta').eq('contenido_id', id))
       ok(await sb.from('contenidos').delete().eq('id', id))
+      await limpiar(material.map((a) => a.ruta))
+    },
+    // Una imagen o un video para un contenido de la parrilla.
+    async subirMaterial(contenido, file) {
+      const s = await subir(`contenidos/${contenido.empresa_id}`, file)
+      ok(await sb.from('archivos').insert({ tipo: 'contenido', contenido_id: contenido.id, empresa_id: contenido.empresa_id, nombre: file.name, ...s }))
     },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       const s = await subir(`catalogos/${empresa_id}`, file)

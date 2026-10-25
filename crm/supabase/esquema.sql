@@ -351,7 +351,7 @@ create table if not exists public.carpetas (
 
 create table if not exists public.archivos (
   id uuid primary key default gen_random_uuid(),
-  tipo text not null check (tipo in ('referencia', 'entrega', 'biblioteca', 'catalogo')),
+  tipo text not null check (tipo in ('referencia', 'entrega', 'biblioteca', 'catalogo', 'contenido')),
   empresa_id text not null references public.empresas (id),
   tarea_id uuid references public.tareas (id) on delete cascade,
   correccion_id uuid references public.correcciones (id) on delete cascade,
@@ -407,6 +407,14 @@ begin
         select empresa_id into new.empresa_id from carpetas where id = new.carpeta_id;
       end if;
       if new.tipo = 'catalogo' then new.carpeta_id := null; end if;
+      -- El material de la parrilla va pegado a su contenido y es de su empresa.
+      if new.tipo = 'contenido' then
+        new.carpeta_id := null;
+        select empresa_id into new.empresa_id from contenidos where id = new.contenido_id;
+        if not found then raise exception 'Falta el contenido'; end if;
+      else
+        new.contenido_id := null;
+      end if;
     end if;
     -- Una versión nueva: hereda el lugar de la anterior.
     if new.anterior_id is not null then
@@ -430,7 +438,8 @@ begin
     or new.subido_por is distinct from old.subido_por
     or new.anterior_id is distinct from old.anterior_id
     or new.vigente is distinct from old.vigente
-    or new.nota_id is distinct from old.nota_id then
+    or new.nota_id is distinct from old.nota_id
+    or new.contenido_id is distinct from old.contenido_id then
     raise exception 'De un archivo solo se cambia el nombre, la carpeta y las notas';
   end if;
   if old.tipo in ('referencia', 'entrega') and (new.nombre is distinct from old.nombre or new.carpeta_id is distinct from old.carpeta_id) then
@@ -861,3 +870,21 @@ create policy contenidos_cambiar on public.contenidos for update to authenticate
 -- Borrar, solo el admin.
 drop policy if exists contenidos_borrar on public.contenidos;
 create policy contenidos_borrar on public.contenidos for delete to authenticated using (es_admin());
+
+-- El material de cada contenido (imágenes y videos): va en "archivos", pegado
+-- al contenido. Lo ve quien ve el contenido, lo sube el equipo y lo borra el
+-- admin (las reglas de archivos ya lo dicen así).
+alter table public.archivos add column if not exists contenido_id uuid references public.contenidos (id) on delete cascade;
+create index if not exists archivos_contenido on public.archivos (contenido_id);
+alter table public.archivos drop constraint if exists archivos_tipo_check;
+alter table public.archivos add constraint archivos_tipo_check check (tipo in ('referencia', 'entrega', 'biblioteca', 'catalogo', 'contenido'));
+
+drop policy if exists archivos_ver on public.archivos;
+create policy archivos_ver on public.archivos for select to authenticated using (
+  case tipo
+    when 'biblioteca' then veo('biblioteca', empresa_id)
+    when 'catalogo' then veo('catalogos', empresa_id)
+    when 'contenido' then exists (select 1 from contenidos c where c.id = contenido_id)
+    else exists (select 1 from tareas t where t.id = tarea_id)
+  end
+);

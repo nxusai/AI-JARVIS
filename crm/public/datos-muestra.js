@@ -93,7 +93,13 @@ export function crearMuestra() {
   }
   const veoTarea = (t) => equipo() || (t.cliente_id === yo && veo('tareas', t.empresa_id))
   const veoArchivo = (a) =>
-    a.tipo === 'biblioteca' ? veo('biblioteca', a.empresa_id) : a.tipo === 'catalogo' ? veo('catalogos', a.empresa_id) : veoTarea(db.tareas.find((t) => t.id === a.tarea_id) ?? {})
+    a.tipo === 'biblioteca'
+      ? veo('biblioteca', a.empresa_id)
+      : a.tipo === 'catalogo'
+        ? veo('catalogos', a.empresa_id)
+        : a.tipo === 'contenido'
+          ? Boolean(perfil()) && (equipo() || !perfil().empresas || perfil().empresas.includes(a.empresa_id))
+          : veoTarea(db.tareas.find((t) => t.id === a.tarea_id) ?? {})
   const no = (m) => {
     throw new Error(m)
   }
@@ -113,6 +119,7 @@ export function crearMuestra() {
       tarea_id: campos.tarea_id ?? null,
       correccion_id: campos.correccion_id ?? null,
       nota_id: campos.nota_id ?? null,
+      contenido_id: campos.contenido_id ?? null,
       carpeta_id: campos.carpeta_id ?? null,
       nombre: campos.nombre,
       ruta: campos.ruta ?? guardarBlob(blob),
@@ -398,7 +405,11 @@ export function crearMuestra() {
     async contenidos() {
       const p = perfil()
       if (!p) return []
-      return copia(db.contenidos.filter((c) => equipo() || !p.empresas || p.empresas.includes(c.empresa_id)))
+      return copia(
+        db.contenidos
+          .filter((c) => equipo() || !p.empresas || p.empresas.includes(c.empresa_id))
+          .map((c) => ({ ...c, archivos: db.archivos.filter((a) => a.tipo === 'contenido' && a.contenido_id === c.id) })),
+      )
     },
     async guardarContenido({ id, ...c }) {
       if (!equipo()) no('Solo tu equipo llena la parrilla')
@@ -416,7 +427,13 @@ export function crearMuestra() {
     async borrarContenido(id) {
       if (!admin()) no('Solo el admin borra')
       db.contenidos = db.contenidos.filter((c) => c.id !== id)
+      db.archivos = db.archivos.filter((a) => a.contenido_id !== id)
       anota('borró', 'contenidos', id)
+    },
+    async subirMaterial(contenido, file) {
+      await espera(300)
+      if (!equipo()) no('Solo tu equipo sube material')
+      nuevoArchivo({ tipo: 'contenido', contenido_id: contenido.id, empresa_id: contenido.empresa_id, nombre: file.name }, file)
     },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       await espera(400)

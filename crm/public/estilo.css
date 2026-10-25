@@ -533,3 +533,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--texto); box-shad
   .mes-nav { margin-right: 0; width: 100%; justify-content: space-between; }
   .parrilla-barra select { width: 100%; }
 }
+.material { display: grid; gap: 12px; margin: 14px 0; }
+.material-uno { border: 1px solid var(--linea); border-radius: 14px; padding: 10px; background: var(--panel); }
+.previa { display: grid; place-items: center; background: var(--panel-2); border-radius: 10px; min-height: 120px; overflow: hidden; margin-bottom: 8px; }
+.previa img, .previa video { display: block; max-width: 100%; max-height: 60vh; border-radius: 10px; }
