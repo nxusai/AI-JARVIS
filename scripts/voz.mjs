@@ -251,6 +251,9 @@ if (!apiKey) say('⚠️  No encontré la llave de ElevenLabs en esta Terminal, 
 else if (!agents.length) say('ℹ️  No encontré los ids de tus agentes de llamadas en esta Terminal; las llamadas siguen con su voz de antes.')
 else {
   say('\nAgentes de llamadas en ElevenLabs:')
-  for (const [label, a] of agents) await agent(label, a.trim(), apiKey, id)
+  for (const [label, a, inbound] of agents) {
+    await agent(label, a.trim(), apiKey, id)
+    await conversation(label, a.trim(), apiKey, Boolean(inbound))
+  }
 }
 say('\nReinicia NEX para que hable con su voz nueva: Ctrl + C y npm start\n')
