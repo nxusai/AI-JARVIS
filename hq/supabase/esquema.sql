@@ -221,9 +221,9 @@ create table if not exists public.nomina (
   persona uuid primary key references public.perfiles (id) on delete cascade,
   esquema text not null default 'fijo' check (esquema in ('fijo', 'medio-tiempo', 'comision')),
   monto_quincena numeric(12, 2) not null default 0 check (monto_quincena >= 0),
-  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  moneda text not null default 'MXN' check (moneda in ('USD', 'MXN')),
   horas_semana numeric(5, 2) not null default 40 check (horas_semana > 0),
-  pago_dia_completo numeric(12, 2) not null default 0 check (pago_dia_completo >= 0), -- extra por cada día completo
+  pago_dia_completo numeric(12, 2) not null default 0 check (pago_dia_completo >= 0), -- extra por día completo; 0 = lo calcula la página
   porcentaje numeric(5, 2) not null default 0 check (porcentaje between 0 and 100), -- comisión de socios
   notas text not null default ''
 );
@@ -244,9 +244,13 @@ create table if not exists public.comisiones (
   fecha date not null default current_date,
   monto_cobrado numeric(12, 2) not null check (monto_cobrado >= 0),
   porcentaje numeric(5, 2) not null default 50 check (porcentaje between 0 and 100),
-  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  moneda text not null default 'MXN' check (moneda in ('USD', 'MXN')),
   pagada boolean not null default false
 );
+
+-- El equipo cobra en pesos (para quien ya corrió una versión anterior).
+alter table public.nomina alter column moneda set default 'MXN';
+alter table public.comisiones alter column moneda set default 'MXN';
 
 -- ---------------------------------------------------------------------------
 -- Bitácora: quién hizo qué, también NEX

@@ -18,6 +18,20 @@ const SEDE = { usa: 'NXUS USA', mexico: 'NXUS MÉXICO' }
 const ESQUEMA = { fijo: 'Sueldo fijo', 'medio-tiempo': 'Medio tiempo', comision: 'Comisión' }
 const META_USD = 20000
 const DIA_COMPLETO_HORAS = 7
+const JORNADA_COMPLETA = 8
+
+/**
+ * Lo que vale un día completo de medio tiempo, si Eduardo no puso un monto:
+ * su pago por hora (lo de la quincena entre las horas de una quincena, 15/7
+ * de semana) por las horas que trabaja de más ese día (8 menos las de un día
+ * normal). Ángeles: 2,500 / (20 × 15/7) = 58.33 la hora; 4 horas más = 233.33.
+ */
+function valorDiaCompleto(n) {
+  if (Number(n.pago_dia_completo) > 0) return Number(n.pago_dia_completo)
+  const horasDia = Number(n.horas_semana || 40) / 5
+  const porHora = Number(n.monto_quincena || 0) / (Number(n.horas_semana || 40) * (15 / 7))
+  return Math.round(Math.max(0, JORNADA_COMPLETA - horasDia) * porHora * 100) / 100
+}
 
 const dinero = (n, moneda = 'USD') =>
   `${moneda === 'MXN' ? 'MX$' : '$'}${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
@@ -76,7 +90,7 @@ function calcularPago(n, { jornadas, ajustes, comisiones, desde, hasta }) {
   const trabajado = jornadas.filter((j) => j.persona === n.persona).reduce((s, j) => s + duracion(j), 0)
   const completos = n.esquema === 'medio-tiempo' ? diasCompletos(jornadas, n.persona) : 0
   const base = n.esquema === 'comision' ? 0 : Number(n.monto_quincena || 0)
-  const extra = completos * Number(n.pago_dia_completo || 0)
+  const extra = completos * valorDiaCompleto(n)
   const mias = comisiones.filter((c) => c.persona === n.persona && enRango(c.fecha))
   const comision = mias.reduce((s, c) => s + (Number(c.monto_cobrado) * Number(c.porcentaje)) / 100, 0)
   const misAjustes = ajustes.filter((a) => a.persona === n.persona && enRango(a.fecha))
@@ -694,7 +708,7 @@ export function iniciar(D, { muestra = false } = {}) {
                 <div class="fila"><div><b>${h(p.nombre)}</b> <span class="chip">${ESQUEMA[n.esquema]}</span> <span class="chip ${p.sede}">${SEDE[p.sede]}</span></div><b class="total">${dinero(r.total, n.moneda)}</b></div>
                 <div class="desglose">
                   ${n.esquema !== 'comision' ? `<span>Base quincenal <b>${dinero(r.base, n.moneda)}</b></span>` : ''}
-                  ${n.esquema === 'medio-tiempo' ? `<span>Días completos <b>${r.completos} × ${dinero(n.pago_dia_completo, n.moneda)} = ${dinero(r.extra, n.moneda)}</b></span>` : ''}
+                  ${n.esquema === 'medio-tiempo' ? `<span>Días completos <b>${r.completos} × ${dinero(valorDiaCompleto(n), n.moneda)} = ${dinero(r.extra, n.moneda)}</b>${Number(n.pago_dia_completo) > 0 ? '' : ' <small>(calculado)</small>'}</span>` : ''}
                   ${n.esquema === 'comision' ? `<span>Comisiones <b>${dinero(r.comision, n.moneda)}</b> <small>(${r.mias.length} contratos al ${n.porcentaje}%)</small></span>` : ''}
                   ${r.ajuste ? `<span>Ajustes <b>${dinero(r.ajuste, n.moneda)}</b></span>` : ''}
                   <span>Horas registradas <b>${horas(r.trabajado)}</b></span>
@@ -705,7 +719,7 @@ export function iniciar(D, { muestra = false } = {}) {
               </div>`,
         )
         .join('')}
-      <p class="nota">Medio tiempo: cuenta como día completo el que tú marques, o cualquier día con ${DIA_COMPLETO_HORAS} horas o más registradas.</p>`
+      <p class="nota">Medio tiempo: cuenta como día completo el que tú marques, o cualquier día con ${DIA_COMPLETO_HORAS} horas o más registradas. Si no le pones monto, el sistema paga las horas de más a su tarifa por hora (día completo = ${JORNADA_COMPLETA} horas).</p>`
     $('#q-ant', v).onclick = () => (saltoNomina--, mostrar())
     $('#q-sig', v).onclick = () => (saltoNomina++, mostrar())
     $$('[data-esq]', v).forEach((b) => (b.onclick = () => editarEsquema(persona(b.dataset.esq), nom.find((x) => x.persona === b.dataset.esq))))
@@ -724,7 +738,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Moneda<select name="moneda">${opciones({ MXN: 'Pesos (MXN)', USD: 'Dólares (USD)' }, n.moneda || 'MXN')}</select></label>
           <label>Pago por quincena<input name="monto_quincena" type="number" min="0" step="0.01" value="${h(n.monto_quincena ?? 0)}"></label>
           <label>Horas a la semana<input name="horas_semana" type="number" min="1" step="0.5" value="${h(n.horas_semana ?? 40)}"></label>
-          <label>Extra por día completo<input name="pago_dia_completo" type="number" min="0" step="0.01" value="${h(n.pago_dia_completo ?? 0)}"></label>
+          <label>Extra por día completo <small>0 = que lo calcule el sistema</small><input name="pago_dia_completo" type="number" min="0" step="0.01" value="${h(n.pago_dia_completo ?? 0)}"></label>
           <label>Comisión %<input name="porcentaje" type="number" min="0" max="100" step="0.5" value="${h(n.porcentaje ?? 0)}"></label>
           <label class="ancho">Notas<textarea name="notas" rows="2">${h(n.notas)}</textarea></label>
         </div>
