@@ -2354,7 +2354,7 @@ wss.on('connection', (socket, req) => {
     const step = hub.runningStepName(task)
     if (stuckNote || Date.now() - lastSign < (step && SLOW_VOICE_STEP.test(step) ? VOICE_STUCK_MS * 3 : VOICE_STUCK_MS)) return
     console.log(`[jarvis] voice turn stuck${step ? ` on ${step}` : ''}; stopping it`)
-    stuckNote = `Me quedé atorada${step ? ' esperando una conexión' : ''} y lo detuve. ¿Lo intento otra vez?`
+    stuckNote = `Me quedé atorado${step ? ' esperando una conexión' : ''} y lo detuve. ¿Lo intento otra vez?`
     Promise.resolve(session.interrupt?.()).catch(() => {})
   }, 15_000)
   socket.on('close', () => clearInterval(watchdog))

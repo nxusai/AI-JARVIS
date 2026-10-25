@@ -62,6 +62,24 @@ const PROMPT = (tarea, creado) =>
   'Hazlo completo con tus herramientas, dentro de tus reglas de siempre (lo que necesita su toque, lo espera). ' +
   'Al terminar mándale por Telegram, en dos o tres líneas, qué hiciste o qué falta y por qué.'
 
+const TAKEN_FILE = join(homedir(), '.nexy', 'llamada-tomados.json')
+function taken() {
+  try {
+    const list = JSON.parse(readFileSync(TAKEN_FILE, 'utf8'))
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+function remember(id) {
+  mkdirSync(dirname(TAKEN_FILE), { recursive: true })
+  writeFileSync(TAKEN_FILE, JSON.stringify([...taken(), id].slice(-500)) + '\n')
+}
+async function markTaken(api, headers, id) {
+  const res = await fetch(api, { method: 'POST', headers, body: JSON.stringify({ id }) }).catch(() => null)
+  if (!res?.ok) console.log(`[jarvis] call tasks: the portal did not record a task as taken (${res?.status ?? 'no answer'}); it will not run twice`)
+}
+
 export function startCallTasks() {
   const cfg = readCall()
   if (!cfg) {
@@ -79,10 +97,18 @@ export function startCallTasks() {
       if (!res.ok) throw new Error(`portal ${res.status}`)
       const { encargos = [] } = await res.json()
       for (const e of encargos) {
+        // Each task runs once, even if the portal never hears it was taken:
+        // otherwise a failed "taken" would hand NEX the same job every 30 s
+        // until he is too busy to answer anyone.
+        if (taken().includes(e.id)) {
+          await markTaken(api, headers, e.id)
+          continue
+        }
         // Telegram (which runs the job) may still be starting; try again next tick.
         if (!runJob('📞 Encargo por llamada', 'nxus-ai', PROMPT(e.tarea, e.creado), '')) break
+        remember(e.id)
         console.log('[jarvis] call task picked up')
-        await fetch(api, { method: 'POST', headers, body: JSON.stringify({ id: e.id }) })
+        await markTaken(api, headers, e.id)
       }
     } catch (err) {
       console.log(`[jarvis] call tasks: ${err?.message ?? err}`)
