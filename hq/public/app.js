@@ -10,7 +10,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)]
 const h = (v) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
-const LOGO = `<svg viewBox="160 310 950 620" aria-hidden="true"><g fill="currentColor"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const LOGO = `<svg viewBox="160 310 950 620" aria-hidden="true"><defs><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#lg)"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
 
 const ESTADOS = { prospecto: 'Prospecto', activo: 'Activo', pausado: 'Pausado', terminado: 'Terminado' }
 const TAREA = { pendiente: 'Pendiente', 'en-curso': 'En curso', hecha: 'Hecha' }
