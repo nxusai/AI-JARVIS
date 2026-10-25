@@ -45,6 +45,13 @@ function key() {
   }
 }
 
+/** ElevenLabs refuses a prompt with both `tools` and `tool_ids` (a GET returns both once the agent has a standalone tool): send only tool_ids. */
+const onlyToolIds = (p) => {
+  if (!Array.isArray(p?.tool_ids)) return p
+  const { tools: _tools, ...rest } = p
+  return rest
+}
+
 /** Every place a setting lives in the config, as a path of keys. */
 function findPaths(obj, name, path = [], out = []) {
   if (!obj || typeof obj !== 'object') return out
@@ -141,7 +148,7 @@ async function fix(label, id, apiKey, ana) {
   } else if (promptObj && label !== RECEPTION) {
     console.log('  ✅ system prompt ya tiene el mensaje ({{nexy_brief}})')
   }
-  if (promptObj && (nextPrompt.llm !== promptObj.llm || nextPrompt.prompt !== promptObj.prompt)) setIn(patch, ['agent', 'prompt'], nextPrompt)
+  if (promptObj && (nextPrompt.llm !== promptObj.llm || nextPrompt.prompt !== promptObj.prompt)) setIn(patch, ['agent', 'prompt'], onlyToolIds(nextPrompt))
   const llm = get(conv, ['agent', 'prompt', 'llm'])
   if (llm && !ana) console.log(`  ℹ️  Modelo: ${llm} (no encontré a Ana Sofi para copiarle el suyo)`)
   if (onlyShow || !changes) return

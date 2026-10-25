@@ -990,6 +990,13 @@ export async function assignInbound(key, cfg, agentId) {
   return r.error ? { error: r.error } : { ok: true }
 }
 
+/** ElevenLabs refuses a prompt with both `tools` and `tool_ids` (a GET returns both once the agent has a standalone tool): send only tool_ids. */
+const onlyToolIds = (p) => {
+  if (!Array.isArray(p?.tool_ids)) return p
+  const { tools: _tools, ...rest } = p
+  return rest
+}
+
 async function syncDirectory(key, cfg, leads, ent) {
   const text = directoryText(leads)
   const hash = createHash('sha1').update(text).digest('hex')
@@ -1000,7 +1007,7 @@ async function syncDirectory(key, cfg, leads, ent) {
   const next = withDirectory(promptObj.prompt, text)
   const r = await eleven(key, `/agents/${cfg.inboundAgentId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ conversation_config: { agent: { prompt: { ...promptObj, prompt: next } } } }),
+    body: JSON.stringify({ conversation_config: { agent: { prompt: onlyToolIds({ ...promptObj, prompt: next }) } } }),
   })
   if (!r.error) ent.hash = hash
 }

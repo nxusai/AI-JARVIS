@@ -40,6 +40,13 @@ Así está la empresa de Eduardo al momento de esta llamada (ventas, clientes po
 }
 const STYLE = 'Eres NEX, hombre. Hablas en masculino, frío, calmado y directo: sin expresiones, sin exclamaciones, sin risas, sin entusiasmo. Frases completas y cortas.'
 
+/** ElevenLabs refuses a prompt with both `tools` and `tool_ids` (a GET returns both once the agent has a standalone tool): send only tool_ids. */
+const onlyToolIds = (p) => {
+  if (!Array.isArray(p?.tool_ids)) return p
+  const { tools: _tools, ...rest } = p
+  return rest
+}
+
 function copy(text) {
   if (process.platform !== 'darwin') return false
   return spawnSync('pbcopy', { input: text }).status === 0
@@ -156,7 +163,7 @@ if (cmd === 'agente') {
   let text = String(prompt.prompt ?? '').trim()
   for (const part of ['negocio', ...want]) if (!text.includes(MARKS[part])) text += `\n\n${BLOCKS[part]}`
   if (!text.includes(STYLE)) text += `\n\n${STYLE}`
-  const next = { ...prompt, prompt: text, tool_ids: [...new Set([...(prompt.tool_ids ?? []), ...want.map((n) => made[n])])] }
+  const next = onlyToolIds({ ...prompt, prompt: text, tool_ids: [...new Set([...(prompt.tool_ids ?? []), ...want.map((n) => made[n])])] })
   const up = await fetch(`${API}/convai/agents/${agentId}`, {
     method: 'PATCH',
     headers: h,

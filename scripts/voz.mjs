@@ -57,6 +57,13 @@ const STYLE = `${STYLE_MARK}
 /** His old name becomes NEX, said as a word ("Nex") on the phone. */
 const rename = (s) => String(s ?? '').replace(/\bNexy\b/g, 'Nex').replace(/\bNEXY\b/g, 'NEX')
 
+/** ElevenLabs refuses a prompt with both `tools` and `tool_ids` (a GET returns both once the agent has a standalone tool): send only tool_ids. */
+const onlyToolIds = (p) => {
+  if (!Array.isArray(p?.tool_ids)) return p
+  const { tools: _tools, ...rest } = p
+  return rest
+}
+
 async function agent(label, agentId, apiKey, voiceId) {
   const res = await fetch(`${API}/convai/agents/${agentId}`, { headers: { 'xi-api-key': apiKey } })
   if (!res.ok) return say(`  ✋ ${label}: no pude leer la agente (error ${res.status}).`)
@@ -69,7 +76,7 @@ async function agent(label, agentId, apiKey, voiceId) {
   if (prompt?.prompt) {
     let text = rename(prompt.prompt)
     if (!text.includes(STYLE_MARK)) text = `${text.trim()}\n\n${STYLE}`
-    if (text !== prompt.prompt) agentPatch.prompt = { ...prompt, prompt: text }
+    if (text !== prompt.prompt) agentPatch.prompt = onlyToolIds({ ...prompt, prompt: text })
   }
   if (conv.agent?.first_message && rename(conv.agent.first_message) !== conv.agent.first_message) agentPatch.first_message = rename(conv.agent.first_message)
   if (Object.keys(agentPatch).length) patch.agent = agentPatch
@@ -117,7 +124,7 @@ async function conversation(label, agentId, apiKey, inbound) {
         `\n- Cuando hable, saluda una sola vez${greeting ? ` así: "${greeting}"` : ''} y enseguida da el mensaje de esta llamada, una sola vez.\n${NEVER_TWICE}`
     }
   }
-  if (text !== String(prompt.prompt ?? '').trim()) patch.prompt = { ...prompt, prompt: text }
+  if (text !== String(prompt.prompt ?? '').trim()) patch.prompt = onlyToolIds({ ...prompt, prompt: text })
   if (!inbound && first) patch.first_message = ''
   if (!Object.keys(patch).length) return say(`  ✅ ${label}: ya espera y no repite.`)
   const up = await fetch(`${API}/convai/agents/${agentId}`, {
