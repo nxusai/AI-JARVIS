@@ -4,6 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { askFromPhone, forSpeech, speak } from './telegram.mjs'
+import { findFfmpeg } from './nucleo/medios.mjs'
 
 /**
  * NEX on the owner's iPhone: the Action button (or "Oye Siri, NEX") runs a
@@ -85,6 +86,7 @@ export function startMovil({ elevenKey, voiceId }) {
     console.log('[jarvis] phone off — set it up with: node scripts/movil.mjs')
     return null
   }
+  if (!findFfmpeg()) console.log('[jarvis] phone: no FFmpeg, so his voice will sound quiet on the iPhone — cd ~/Desktop/nexy && npm install ffmpeg-static')
   const hits = []
   const server = http.createServer(async (req, res) => {
     const reply = (status, body, type = 'application/json; charset=utf-8') => {

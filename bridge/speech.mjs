@@ -36,8 +36,8 @@ export function ownVoiceId(fallback = 'JBFqnCBsd6RMkjVDRZzb') {
  * The same loudness whatever the voice. ElevenLabs voices come out as loud as
  * the sample they were made from, so a new voice can be much quieter than the
  * old one; on the iPhone and in Telegram voice notes that means straining to
- * hear him even at full volume. Compressed and brought up to -10 LUFS, with a
- * ceiling so it never clips. Without FFmpeg, or if it fails, the audio
+ * hear him even at full volume — and a deep voice loses most of itself on a
+ * phone's small speaker. Shaped for that speaker and brought to -9 LUFS. Without FFmpeg, or if it fails, the audio
  * goes out as it came.
  */
 export function louder(mp3) {
@@ -46,10 +46,21 @@ export function louder(mp3) {
   if (!ffmpeg || !mp3?.length) return Promise.resolve(mp3)
   return new Promise((resolve) => {
     const chunks = []
-    // A compressor first, so the quiet syllables come up with the loud ones,
-    // then loud (-10 LUFS, near a phone's own ringtone) with a ceiling that
-    // keeps it from clipping on the iPhone's speaker.
-    const filter = 'highpass=f=80,acompressor=threshold=-24dB:ratio=4:attack=5:release=80:makeup=6dB,loudnorm=I=-10:TP=-0.5:LRA=7'
+    // Shaped for a phone's speaker, which cannot play the low end: a deep
+    // voice keeps most of its energy below 250 Hz, so it measures loud and
+    // sounds faint. The lows are cut, the presence band (where words are
+    // understood) is lifted, everything is compressed so soft syllables come
+    // up, and the result is brought to -9 LUFS with a limiter so it never
+    // clips.
+    const filter = [
+      'highpass=f=170:poles=2',
+      'equalizer=f=250:t=q:w=1:g=-4',
+      'equalizer=f=2800:t=q:w=1.2:g=6',
+      'equalizer=f=5000:t=q:w=1:g=3',
+      'acompressor=threshold=-26dB:ratio=5:attack=4:release=60:makeup=8dB',
+      'loudnorm=I=-9:TP=-0.8:LRA=5',
+      'alimiter=limit=0.95',
+    ].join(',')
     const p = spawn(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-af', filter, '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '128k', '-f', 'mp3', 'pipe:1'], { stdio: ['pipe', 'pipe', 'ignore'] })
     const t = setTimeout(() => p.kill('SIGKILL'), 20_000)
     p.stdout.on('data', (c) => chunks.push(c))
