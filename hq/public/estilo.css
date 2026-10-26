@@ -230,3 +230,77 @@ p.desc { white-space: pre-line; }
 }
 #pr-quien { width: auto; }
 label.mini { display: grid; gap: 4px; font-size: 12px; color: var(--suave); min-width: 180px; }
+
+/* ===========================================================================
+   Cristal NXUS: el mismo vidrio esmerilado del Centro de trabajo, en la noche
+   de NXUS. Detrás, luces del degradado del logo (cian, azul, violeta); encima,
+   paneles translúcidos con un filo de luz. Va al final para ganarle a lo de
+   arriba sin tocarlo; el logo y los colores se quedan igual.
+   =========================================================================== */
+:root {
+  --panel: rgba(16, 26, 58, .38);
+  --panel2: rgba(30, 44, 92, .42);
+  --borde: rgba(150, 175, 255, .16);
+  --vidrio-filo: inset 0 1px 0 rgba(255, 255, 255, .09);
+  --vidrio-sombra: 0 14px 40px rgba(0, 0, 0, .35), var(--vidrio-filo);
+  --esmerilado: blur(26px) saturate(160%);
+  --radio: 20px;
+}
+html, body { background-color: var(--fondo); }
+body {
+  background-image:
+    radial-gradient(34vw 34vw at 6% 4%, rgba(0, 229, 255, .30), transparent 70%),
+    radial-gradient(38vw 38vw at 96% 10%, rgba(160, 28, 255, .34), transparent 70%),
+    radial-gradient(42vw 34vw at 55% 58%, rgba(10, 108, 255, .26), transparent 70%),
+    radial-gradient(30vw 30vw at 12% 92%, rgba(160, 28, 255, .22), transparent 70%),
+    radial-gradient(28vw 28vw at 90% 88%, rgba(0, 229, 255, .18), transparent 70%),
+    linear-gradient(160deg, #050914 0%, #071028 50%, #050914 100%);
+  background-attachment: fixed;
+}
+.entrada { background: transparent; }
+
+/* Las superficies, de vidrio. */
+.nav, .tarjeta, .kpi, .cliente, .columna, .persona, .entrada-caja, #modal .caja, .aviso, .embudo a, .link-caja {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  backdrop-filter: var(--esmerilado);
+  -webkit-backdrop-filter: var(--esmerilado);
+  box-shadow: var(--vidrio-sombra);
+}
+.tarjeta, .kpi, .cliente, .columna, .persona { border-radius: var(--radio); }
+.cliente:hover { background: rgba(24, 38, 84, .5); border-color: rgba(0, 229, 255, .4); }
+.tarea { background: rgba(255, 255, 255, .05); border-color: var(--borde); box-shadow: var(--vidrio-filo); border-radius: 14px; }
+.tarea:hover { background: rgba(255, 255, 255, .08); }
+.tarea.atrasada { border-color: var(--rojo); }
+.tarea-ia, .servicios li { background: rgba(255, 255, 255, .06); }
+.tarjeta.solo-tu { border-color: rgba(160, 28, 255, .45); }
+
+/* La barra de navegación y la de arriba, flotando como vidrio. */
+.nav { margin: 12px 0 12px 12px; height: calc(100vh - 24px); top: 12px; border-radius: 24px; }
+.top { background: rgba(8, 14, 34, .42); backdrop-filter: var(--esmerilado); -webkit-backdrop-filter: var(--esmerilado); border-bottom-color: var(--borde); }
+.nav nav a { border-radius: 12px; }
+.nav nav a:hover { background: rgba(255, 255, 255, .06); }
+
+/* Botones y campos */
+.btn { background: rgba(255, 255, 255, .06); border-color: var(--borde); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; }
+.btn:hover { background: rgba(255, 255, 255, .11); }
+.btn.primario { background: var(--grad); border: 0; box-shadow: 0 6px 22px rgba(10, 108, 255, .35); }
+.segmento { border-color: var(--borde); background: rgba(255, 255, 255, .04); }
+.segmento button { background: transparent; }
+.segmento button.on { background: rgba(255, 255, 255, .1); }
+input, select, textarea { background: rgba(8, 14, 34, .45); border-color: var(--borde); }
+select option { background: #0b1224; }
+
+/* Ventanas y avisos: más sólidos para leer bien. */
+#modal .fondo { background: rgba(2, 4, 12, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#modal .caja { background: rgba(12, 20, 46, .72); border-radius: 24px; }
+.aviso { background: rgba(16, 26, 58, .75); }
+
+/* Si el navegador no sabe esmerilar, que se lea igual. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --panel: rgba(11, 18, 36, .94); --panel2: rgba(16, 26, 51, .96); }
+}
+
+@media (max-width: 860px) {
+  .nav { margin: 0; height: 100vh; top: 0; border-radius: 0 24px 24px 0; background: rgba(10, 16, 38, .82); }
+}
