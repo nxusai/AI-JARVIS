@@ -5,6 +5,8 @@
 // equipo, sus tareas y su propio reloj. Las reglas de verdad están en la base
 // de datos (supabase/esquema.sql); aquí solo se esconde lo que no le toca.
 
+import { fraseDelDia, saludo } from './frases.js'
+
 const $ = (s, el = document) => el.querySelector(s)
 const $$ = (s, el = document) => [...el.querySelectorAll(s)]
 const h = (v) =>
@@ -265,8 +267,10 @@ export function iniciar(D, { muestra = false } = {}) {
             <div class="reloj-top" id="reloj-top"></div>
           </header>
           <section id="vista"></section>
+          <footer class="frase" id="frase"><span>Frase del día</span><p></p></footer>
         </main>
       </div>`
+    $('#frase p').textContent = fraseDelDia(esAdmin())
     $('#menu').onclick = () => $('.nav').classList.toggle('abierta')
     $('#yo').innerHTML = `${await avatar(yo)}<div><b>${h(yo.nombre)}</b><span>${h(yo.cargo || '')}</span></div><button class="enlace" id="salir">Salir</button>`
     $('#salir').onclick = async () => {
@@ -329,7 +333,8 @@ export function iniciar(D, { muestra = false } = {}) {
   // ------------------------------------------------------------- inicio
 
   async function inicio(v) {
-    titulo(`Hola ${yo.nombre.split(' ')[0]}`)
+    titulo(saludo(yo.nombre))
+    $('#frase p').textContent = fraseDelDia(esAdmin())
     const tareas = await D.tareas()
     const mias = tareas.filter((t) => t.asignado === yo.id && t.estado !== 'hecha')
     const tarjetaTarea = (t) =>
@@ -367,6 +372,8 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="tarjeta"><h3>Mi reloj</h3><p>${abierta ? `Trabajando desde las ${hora(abierta.entrada)} (${horas(duracion(abierta))}).` : 'No has marcado entrada hoy.'}</p>
           <button class="btn ${abierta ? '' : 'primario'}" id="i-reloj">${abierta ? 'Marcar salida' : 'Marcar entrada'}</button></div>`
     }
+    if (!yo.nombre.trim())
+      html = `<div class="tarjeta"><p>Tu perfil no tiene nombre todavía, por eso el saludo no te llama por tu nombre. ${esAdmin() ? `Ponlo en <a href="#personas">Personas</a> → <b>Editar</b> en tu renglón.` : 'Pídele a Eduardo que lo agregue.'}</p></div>` + html
     if (vePros()) html += await resumenProspectos()
     html += `<div class="tarjeta"><h3>Mis pendientes</h3>${mias.length ? `<ul class="lista tareas">${mias.map(tarjetaTarea).join('')}</ul>` : '<p class="vacio">No tienes pendientes.</p>'}</div>`
     v.innerHTML = html

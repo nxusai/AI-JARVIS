@@ -304,3 +304,24 @@ select option { background: #0b1224; }
 @media (max-width: 860px) {
   .nav { margin: 0; height: 100vh; top: 0; border-radius: 0 24px 24px 0; background: rgba(10, 16, 38, .82); }
 }
+
+/* La frase del día: abajo de cada hoja, siempre a la vista (se queda pegada
+   al fondo de la pantalla aunque la hoja sea larga). */
+main { display: flex; flex-direction: column; min-height: 100vh; }
+#vista { flex: 1; width: 100%; align-content: start; }
+.frase {
+  position: sticky; bottom: 14px; z-index: 4; align-self: center;
+  width: min(820px, calc(100% - 56px)); margin: 0 auto 14px;
+  display: grid; gap: 2px; text-align: center; padding: 12px 22px;
+  background: rgba(14, 22, 52, .55); border: 1px solid var(--borde); border-radius: 20px;
+  backdrop-filter: var(--esmerilado); -webkit-backdrop-filter: var(--esmerilado);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .09);
+}
+.frase span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .16em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }
+.frase p { margin: 0; font-size: 15px; line-height: 1.4; color: var(--texto); font-weight: 550; text-wrap: balance; }
+#avisos { bottom: 96px; }
+@media (max-width: 860px) {
+  .frase { width: calc(100% - 24px); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; border-radius: 16px; }
+  .frase p { font-size: 13.5px; }
+  #avisos { left: 12px; right: 12px; bottom: 110px; }
+}
