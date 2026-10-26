@@ -681,3 +681,6 @@ select option, select optgroup { background: #fff; }
   .frase p { font-size: 13px; }
   #avisos { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 }
+/* El botón verde (Aprobado) conserva su color al pasar el mouse. */
+.btn.ok, .btn.ok:hover { background: var(--ok); color: var(--sobre-ok); border-color: var(--ok); }
+.btn.ok:hover { filter: brightness(1.07); }
