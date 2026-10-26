@@ -3,7 +3,8 @@
 // lea, con la llave de servicio.
 
 const env = (k) => process.env[k] || ''
-export const URL_SB = () => env('SUPABASE_URL').replace(/\/$/, '')
+// Solo la raíz del proyecto: a veces se pega la "API URL" del panel, que trae /rest/v1/.
+export const URL_SB = () => env('SUPABASE_URL').trim().replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '')
 
 export const json = (o, status = 200) => Response.json(o, { status, headers: { 'cache-control': 'no-store' } })
 
