@@ -537,3 +537,120 @@ input:focus, select:focus, textarea:focus { border-color: var(--texto); box-shad
 .material-uno { border: 1px solid var(--linea); border-radius: 14px; padding: 10px; background: var(--panel); }
 .previa { display: grid; place-items: center; background: var(--panel-2); border-radius: 10px; min-height: 120px; overflow: hidden; margin-bottom: 8px; }
 .previa img, .previa video { display: block; max-width: 100%; max-height: 60vh; border-radius: 10px; }
+
+/* ===========================================================================
+   Cristal: todo el centro de trabajo como vidrio esmerilado sobre una luz
+   cálida (arena, madera, crema). Va al final para ganarle a lo de arriba sin
+   tocarlo; los logos, el color de cada empresa y el orbe de Ultron se quedan
+   como están.
+   =========================================================================== */
+:root {
+  --fondo: #d9cbbb;
+  --fondo-2: rgba(255, 255, 255, .42);
+  --panel: rgba(255, 255, 255, .38);
+  --panel-2: rgba(255, 255, 255, .26);
+  --vidrio: rgba(255, 255, 255, .32);
+  --linea: rgba(255, 255, 255, .55);
+  --linea-2: rgba(255, 255, 255, .78);
+  --texto: #1c1917;
+  --suave: #57504a;
+  --marca: #1c1917;
+  --marca-2: #3a3330;
+  --marca-fondo: rgba(255, 255, 255, .62);
+  --gris-fondo: rgba(255, 255, 255, .4);
+  --radio: 22px;
+  --sombra: 0 10px 34px rgba(70, 48, 28, .13), inset 0 1px 0 rgba(255, 255, 255, .65);
+  --brillo: 0 0 0 1px rgba(255, 255, 255, .8), 0 10px 34px rgba(70, 48, 28, .16);
+  --esmerilado: blur(26px) saturate(150%);
+}
+body {
+  background-color: var(--fondo);
+  background-image:
+    radial-gradient(38vw 38vw at 12% 8%, rgba(255, 250, 240, .95), transparent 70%),
+    radial-gradient(30vw 46vw at 92% 18%, rgba(132, 92, 60, .55), transparent 70%),
+    radial-gradient(34vw 30vw at 70% 62%, rgba(214, 120, 74, .32), transparent 70%),
+    radial-gradient(40vw 34vw at 18% 78%, rgba(96, 70, 50, .42), transparent 70%),
+    radial-gradient(28vw 28vw at 46% 40%, rgba(255, 255, 255, .55), transparent 70%),
+    linear-gradient(160deg, #efe6da 0%, #d6c3ae 45%, #b79c82 100%);
+  background-attachment: fixed;
+}
+body::before { background: transparent; }
+
+/* Las superficies: vidrio esmerilado con un filo de luz arriba. */
+.cabeza, .dato, .pasos, .tarjeta, .vacio-msg, .seccion, .fecha-caja, .arbol, .carpeta, .cat, .tabla,
+.entrada-caja, .aviso, .dia, .material-uno, .ventana, .franja-muestra {
+  background: var(--vidrio);
+  border: 1px solid var(--linea);
+  backdrop-filter: var(--esmerilado);
+  -webkit-backdrop-filter: var(--esmerilado);
+  box-shadow: var(--sombra);
+}
+.tarjeta, .dato, .carpeta, .cat { border-radius: var(--radio); }
+.tarjeta:hover, .dato:hover, .carpeta:hover { background: rgba(255, 255, 255, .44); border-color: var(--linea-2); }
+.seccion, .material-uno, .fecha-caja { background: rgba(255, 255, 255, .3); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6); }
+.dia { border-radius: 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55); }
+.dia.fuera { opacity: .55; }
+.dia.hoy { border-color: var(--texto); box-shadow: inset 0 0 0 1px var(--texto); }
+.tabla th { background: rgba(255, 255, 255, .3); }
+
+/* El encabezado flota como una barra de vidrio. */
+.cabeza { margin: 10px 12px 0; border-radius: 26px; top: calc(env(safe-area-inset-top, 0px) + 10px); }
+.cabeza::after { display: none; }
+
+/* Pestañas y meses: píldoras; la activa, blanca y sólida. */
+.pestana { color: var(--suave); }
+.pestana:hover { background: rgba(255, 255, 255, .35); color: var(--texto); }
+.pestana.activa { background: #fff; color: var(--texto); border-color: #fff; box-shadow: 0 4px 14px rgba(70, 48, 28, .14); }
+.mes { background: rgba(255, 255, 255, .3); border-color: var(--linea); }
+.mes.activo, .mes.pend.activo { background: var(--marca); color: #fff; border-color: var(--marca); }
+
+/* Botones: vidrio claro; el principal, oscuro como píldora. */
+.btn { background: rgba(255, 255, 255, .42); border-color: var(--linea-2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 999px; }
+.btn:hover { background: rgba(255, 255, 255, .62); border-color: #fff; }
+.btn.principal { background: var(--marca); color: #fff; border-color: var(--marca); }
+.btn.principal:hover { background: var(--marca-2); }
+.btn.peligro { border-color: rgba(194, 65, 12, .35); }
+.cerrar { background: rgba(255, 255, 255, .45); border-color: var(--linea-2); border-radius: 999px; }
+
+/* Campos */
+input[type=text], input[type=email], input[type=password], input[type=search], input[type=date], input, select, textarea {
+  background: rgba(255, 255, 255, .5); border-color: var(--linea-2);
+}
+input:focus, select:focus, textarea:focus { background: rgba(255, 255, 255, .72); border-color: var(--texto); box-shadow: 0 0 0 3px rgba(28, 25, 23, .08); }
+select option, select optgroup { background: #fff; }
+
+/* Ventanas y avisos: más opacos para leer bien encima de todo. */
+#modal, .capa-dialogo { background: rgba(60, 42, 26, .22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.ventana { background: rgba(255, 255, 255, .58); border-color: var(--linea-2); border-radius: 26px; box-shadow: 0 30px 80px rgba(60, 40, 22, .25), inset 0 1px 0 rgba(255, 255, 255, .7); }
+.ventana-cabeza { background: rgba(255, 255, 255, .35); border-bottom-color: var(--linea); }
+.aviso { background: rgba(255, 255, 255, .7); }
+.aviso.mal { background: rgba(251, 233, 225, .85); }
+.texto-cliente, .nota, .texto-contenido, .soltar, .previa { background: rgba(255, 255, 255, .34); }
+.archivo { background: rgba(255, 255, 255, .34); border-color: var(--linea); }
+.solo-admin { background: rgba(253, 245, 241, .5); }
+
+/* Entrada */
+.entrada-caja { background: rgba(255, 255, 255, .4); border-radius: 28px; }
+
+/* Ultron: su panel también es de vidrio; el orbe conserva sus colores. */
+.ultron-panel {
+  background: rgba(255, 255, 255, .55) !important; border-color: var(--linea-2) !important;
+  backdrop-filter: var(--esmerilado) !important; -webkit-backdrop-filter: var(--esmerilado) !important;
+  box-shadow: 0 30px 80px rgba(60, 40, 22, .25), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+.u-msg.ultron { background: rgba(255, 255, 255, .6); }
+.u-sug { background: rgba(255, 255, 255, .45); }
+
+/* Si el navegador no sabe esmerilar, que se lea igual. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --vidrio: rgba(255, 255, 255, .82); --panel: rgba(255, 255, 255, .88); }
+}
+.pasos { overflow: hidden; }
+.franja-muestra { border-radius: 26px 26px 0 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (max-width: 760px) {
+  .cabeza { margin: 8px 8px 0; border-radius: 22px; }
+  .marca { min-width: 0; overflow: hidden; }
+  .marca b { font-size: 12px; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; }
+  .quien { flex: none; }
+}
+@media (max-width: 760px) { .paso + .paso::before { display: none; } }
