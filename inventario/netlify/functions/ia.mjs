@@ -117,7 +117,9 @@ export default async (req) => {
   if (!yo) return json({ ok: false, error: 'Tu sesión se cerró. Vuelve a entrar.' }, 401)
   if (!process.env.ANTHROPIC_API_KEY) return json({ ok: false, error: 'Falta ANTHROPIC_API_KEY en Netlify' }, 503)
   const d = await req.json().catch(() => ({}))
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 25_000, maxRetries: 1 })
+  // Netlify corta una función a los 60 segundos: un solo intento de 50, para
+  // que Ana Sofi tenga tiempo de leer varias fotos y aun así contestemos.
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 50_000, maxRetries: 0 })
 
   try {
     const fotos = imagenes(d.imagenes)
@@ -177,6 +179,9 @@ export default async (req) => {
   } catch (err) {
     if (err.status === 413 || err.status === 422) return json({ ok: false, error: err.message }, err.status)
     console.log('ia:', err?.status ?? '', err?.message ?? err)
+    if (err instanceof Anthropic.AuthenticationError) return json({ ok: false, error: 'La llave de Anthropic no sirve. Revisa ANTHROPIC_API_KEY en Netlify.' }, 503)
+    if (err instanceof Anthropic.PermissionDeniedError || /credit balance/i.test(err?.message ?? '')) return json({ ok: false, error: 'La cuenta de Anthropic no tiene saldo. Hay que recargar créditos.' }, 503)
+    if (err instanceof Anthropic.RateLimitError) return json({ ok: false, error: 'Ana Sofi está muy ocupada. Intenta en un minuto.' }, 429)
     return json({ ok: false, error: 'Ana Sofi no respondió a tiempo. Intenta otra vez.' }, 502)
   }
 }
