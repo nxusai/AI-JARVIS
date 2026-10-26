@@ -1,0 +1,18 @@
+# Inventario Mi Semago — ver docs/guia-inventario.md
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
