@@ -634,7 +634,7 @@ select option, select optgroup { background: #fff; }
 
 /* Ultron: su panel también es de vidrio; el orbe conserva sus colores. */
 .ultron-panel {
-  background: rgba(255, 255, 255, .55) !important; border-color: var(--linea-2) !important;
+  background: rgba(250, 246, 241, .86) !important; border-color: var(--linea-2) !important;
   backdrop-filter: var(--esmerilado) !important; -webkit-backdrop-filter: var(--esmerilado) !important;
   box-shadow: 0 30px 80px rgba(60, 40, 22, .25), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
@@ -654,3 +654,9 @@ select option, select optgroup { background: #fff; }
   .quien { flex: none; }
 }
 @media (max-width: 760px) { .paso + .paso::before { display: none; } }
+
+/* Ultron vive abajo a la izquierda: abajo a la derecha Netlify pone su letrero. */
+.orbe { right: auto; left: max(18px, env(safe-area-inset-left, 0px)); }
+.orbe-nombre { right: auto; left: calc(100% + 10px); }
+.ultron-panel { right: auto !important; left: max(16px, env(safe-area-inset-left, 0px)); transform-origin: bottom left; }
+@media (max-width: 860px) { .ultron-panel { left: 8px; } }
