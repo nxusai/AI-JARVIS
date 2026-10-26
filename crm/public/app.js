@@ -43,6 +43,7 @@ const ICONOS = {
 }
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
+import { fraseDelDia } from './frases.js'
 import { desmontarUltron, montarUltron } from './ultron.js'
 
 let D // los datos
@@ -325,8 +326,27 @@ function pintar() {
           .join('')}
       </nav>
     </header>
-    <main id="vista"></main>`
+    <main id="vista"></main>
+    ${esCliente() ? `<footer class="frase"><span>Frase del día</span><p>${fraseDelDia(datosFrase())}</p></footer>` : ''}`
   pintarVista()
+}
+
+/** Los números del cliente para la frase del día (solo lo que él ya puede ver). */
+function datosFrase() {
+  const ahora = new Date()
+  const mes = (f) => {
+    const d = new Date(f)
+    return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth()
+  }
+  const hoyISO = ahora.toLocaleDateString('en-CA')
+  const enSemana = new Date(ahora.getTime() + 7 * 864e5).toLocaleDateString('en-CA')
+  return {
+    entregadasMes: S.tareas.filter((t) => t.entregada && mes(t.entregada)).length,
+    aprobadas: S.tareas.filter((t) => t.estatus === 'aprobada').length,
+    archivos: S.biblioteca.filter((a) => a.vigente !== false).length,
+    contenidosSemana: S.contenidos.filter((c) => c.estado !== 'borrador' && c.fecha >= hoyISO && c.fecha <= enSemana).length,
+    porRevisar: S.tareas.filter((t) => t.estatus === 'entregada').length,
+  }
 }
 
 function pintarVista() {

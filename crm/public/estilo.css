@@ -660,3 +660,24 @@ select option, select optgroup { background: #fff; }
 .orbe-nombre { right: auto; left: calc(100% + 10px); }
 .ultron-panel { right: auto !important; left: max(16px, env(safe-area-inset-left, 0px)); transform-origin: bottom left; }
 @media (max-width: 860px) { .ultron-panel { left: 8px; } }
+
+/* La frase del día (solo el cliente): abajo de cada hoja, siempre a la vista. */
+#app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+#app > main { flex: 1; width: 100%; }
+.frase {
+  position: sticky; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 40;
+  width: min(760px, calc(100% - 200px)); margin: 0 auto 14px;
+  display: grid; gap: 2px; text-align: center; padding: 11px 22px;
+  background: rgba(250, 246, 241, .78); border: 1px solid var(--linea-2); border-radius: 22px;
+  backdrop-filter: var(--esmerilado); -webkit-backdrop-filter: var(--esmerilado);
+  box-shadow: 0 12px 34px rgba(70, 48, 28, .16), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.frase span { font: 700 10.5px var(--display); text-transform: uppercase; letter-spacing: .16em; color: var(--suave); }
+.frase p { margin: 0; font: 600 15px/1.4 var(--display); color: var(--texto); text-wrap: balance; }
+#avisos { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 760px) {
+  /* En el celular, a la derecha del círculo de Ultron. */
+  .frase { width: auto; margin: 0 10px 10px 92px; padding: 9px 12px; border-radius: 18px; text-align: left; }
+  .frase p { font-size: 13px; }
+  #avisos { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+}
