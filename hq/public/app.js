@@ -689,8 +689,7 @@ export function iniciar(D, { muestra = false } = {}) {
                 .join('')}</ul></details>`
             : ''
         })
-        .join('')}
-      <p class="nota">Los prospectos llegan solos desde <a href="${PORTAL}" target="_blank" rel="noopener">empezar.nxusai.org</a>: cuando abren su link, dejan sus datos, pagan y agendan.${esAdmin() ? ' Tú decides en <a href="#personas">Personas</a> quién ve cuáles y qué puede hacer.' : ''}</p>`
+        .join('')}`
     $('#pr-link', v).onclick = crearLink
     $('#pr-nuevo', v)?.addEventListener('click', () => editarProspecto(null))
     $$('[data-pf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-pros', b.dataset.pf), mostrar())))

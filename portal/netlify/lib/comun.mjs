@@ -38,8 +38,8 @@ export async function saveLead(lead) {
 
 /** Manda el prospecto a NXUS HQ (sección Prospectos). Si HQ no contesta, el portal sigue. */
 export async function aHQ(lead) {
-  const url = env('HQ_URL').replace(/\/$/, '')
-  const clave = env('PORTAL_CLAVE')
+  const url = env('HQ_URL').trim().replace(/\/+$/, '')
+  const clave = env('PORTAL_CLAVE').trim()
   if (!url || !clave) return
   try {
     const res = await fetch(`${url}/.netlify/functions/portal`, {

@@ -9,8 +9,9 @@ const ETAPAS = ['abrio', 'datos', 'pagado', 'cita']
 const texto = (v, max) => String(v ?? '').trim().slice(0, max)
 
 function autorizado(req) {
-  const want = Buffer.from(process.env.PORTAL_CLAVE || '')
-  const got = Buffer.from(req.headers.get('x-portal-clave') || '')
+  // Sin espacios ni saltos de línea: al pegarla en Netlify a veces se cuela uno.
+  const want = Buffer.from((process.env.PORTAL_CLAVE || '').trim())
+  const got = Buffer.from((req.headers.get('x-portal-clave') || '').trim())
   return want.length >= 24 && want.length === got.length && timingSafeEqual(want, got)
 }
 
