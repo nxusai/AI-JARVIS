@@ -71,6 +71,8 @@ Tus horarios se cambian arriba en el mismo archivo: días, de 9 a 18, citas de 6
    - `PAGO_US`
    - `STRIPE_KEY`
    - `NEXY_CLAVE`: una clave larga inventada, para que NEX lea los prospectos. Guárdala en Contraseñas.
+   - `HQ_URL`: `https://app.nxusai.org`, para que cada prospecto caiga en **NXUS HQ → Prospectos**.
+   - `PORTAL_CLAVE`: la misma clave que pusiste en el proyecto de HQ (ver docs/guia-hq.md, "Conectar el portal").
 4. Dale **Deploy**.
 
 ## 5. empezar.nxusai.org
@@ -83,6 +85,10 @@ Tus horarios se cambian arriba en el mismo archivo: días, de 9 a 18, citas de 6
 ## Cómo se usa
 
 - **Link para cada prospecto:** `https://empezar.nxusai.org/nombre-apellido`. El portal lo saluda por su nombre.
+  - Con `?de=codigo` al final (por ejemplo `?de=barbara`), el prospecto queda a nombre de esa persona en HQ. El código se pone en HQ → Personas → Editar.
+  - Lo más fácil es hacerlo desde HQ → Prospectos → **🔗 Link para un prospecto**, que también te da el mensaje para WhatsApp.
+- **Aviso de privacidad:** `https://empezar.nxusai.org/privacidad`. Antes de mandar links a clientes, llena en `portal/public/privacidad.html` la **razón social** y el **domicilio** (salen marcados en naranja), y que lo revise un abogado.
+- **Permiso de novedades:** en la pantalla de datos hay una casilla opcional para recibir casos de éxito y novedades. Quien la marca sale en HQ con "Acepta novedades"; solo a ellos se les puede mandar contenido después.
 - **Lo que te llega a Telegram:**
   - 🆕 Abrió su link
   - 📋 Datos completos

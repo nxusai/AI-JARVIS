@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aviso de privacidad · NXUS AI</title>
+<link rel="icon" href="/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* El aviso de privacidad del portal, con el mismo azul noche. */
+:root {
+  --bg: #05080f; --panel: #0b1120; --line: #1c2741;
+  --ink: #eef3ff; --ink-2: #a9b4cf; --ink-3: #6e7a96; --cyan: #4fd8f7; --pendiente: #ffb86b;
+  --display: "Sora", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink-2); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+main { max-width: 680px; margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 18px 56px; }
+.logo { display: flex; align-items: center; gap: 10px; color: var(--ink); font-family: var(--display); font-weight: 800; text-decoration: none; }
+.logo img { height: 26px; }
+h1 { font-family: var(--display); color: var(--ink); font-size: clamp(28px, 7vw, 36px); line-height: 1.1; margin: 28px 0 6px; }
+h2 { font-family: var(--display); color: var(--ink); font-size: 19px; margin: 30px 0 8px; }
+p, li { margin: 0 0 10px; }
+ul { padding-left: 20px; margin: 0 0 10px; }
+b { color: var(--ink); }
+a { color: var(--cyan); }
+.fecha { color: var(--ink-3); font-size: 14px; }
+.caja { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 18px 0; }
+/* Lo que Eduardo debe llenar antes de publicar (ver docs/guia-portal.md). */
+.pendiente { color: var(--pendiente); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <a class="logo" href="/"><img src="/img/logo.png" alt="">NXUS AI</a>
+  <h1>Aviso de privacidad</h1>
+  <p class="fecha">Última actualización: 25 de octubre de 2026</p>
+
+  <div class="caja">
+    <p><b>En corto:</b> usamos tus datos solo para contestar tu solicitud, agendar tu reunión y, si pagas, cobrar tu consultoría. No los vendemos. Puedes pedirnos verlos, corregirlos o borrarlos escribiendo a <a href="mailto:contacto@nxusai.org">contacto@nxusai.org</a>.</p>
+  </div>
+
+  <h2>1. Quién es responsable de tus datos</h2>
+  <p><b class="pendiente">[Razón social]</b>, que opera con el nombre comercial <b>NXUS AI</b>, con domicilio en <b class="pendiente">[Domicilio completo]</b>, es responsable del tratamiento de tus datos personales. Contacto: <a href="mailto:contacto@nxusai.org">contacto@nxusai.org</a>.</p>
+
+  <h2>2. Qué datos recabamos</h2>
+  <ul>
+    <li><b>De identificación y contacto:</b> nombre, empresa, dirección del negocio, WhatsApp y correo.</li>
+    <li><b>De tu negocio:</b> giro, número de personas, dónde operan, qué tanto te urge, los servicios que te interesan y lo que nos cuentes con tus palabras.</li>
+    <li><b>De tu cita y pago:</b> la fecha y hora que elijas y, si pagas la consultoría, la confirmación del pago (monto, moneda y referencia). <b>Los datos de tu tarjeta los recibe directamente Stripe; NXUS AI nunca los ve.</b></li>
+  </ul>
+  <p>No recabamos datos personales sensibles.</p>
+
+  <h2>3. Para qué los usamos</h2>
+  <p><b>Finalidades necesarias</b> (sin ellas no podemos atender tu solicitud):</p>
+  <ul>
+    <li>Contactarte por WhatsApp y correo sobre tu solicitud.</li>
+    <li>Preparar tu propuesta o tu consultoría.</li>
+    <li>Agendar tu reunión, mandarte la invitación y los recordatorios.</li>
+    <li>Cobrar la consultoría y llevar el registro del pago.</li>
+    <li>Dar seguimiento a tu solicitud dentro de nuestro equipo.</li>
+  </ul>
+  <p><b>Finalidad adicional</b> (solo si marcaste la casilla “También quiero recibir casos de éxito y novedades”):</p>
+  <ul>
+    <li>Mandarte casos de éxito, ejemplos de nuestro trabajo y novedades de NXUS AI.</li>
+  </ul>
+  <p>Si no quieres la finalidad adicional, no marques la casilla. Si ya la marcaste, escríbenos a <a href="mailto:contacto@nxusai.org">contacto@nxusai.org</a> o contesta “ya no” a cualquiera de esos mensajes, y dejamos de mandártelos. Eso no afecta tu solicitud.</p>
+
+  <h2>4. Con quién se comparten</h2>
+  <p>No vendemos ni rentamos tus datos. Para funcionar usamos proveedores que los tratan por cuenta nuestra y bajo nuestras instrucciones:</p>
+  <ul>
+    <li><b>Stripe</b>, para el cobro de la consultoría.</li>
+    <li><b>Google</b> (Calendar, Meet y correo), para tu cita y las confirmaciones.</li>
+    <li><b>Netlify</b> y <b>Supabase</b>, donde se guarda tu registro.</li>
+    <li><b>Telegram</b>, para avisar a nuestro equipo que llegó tu solicitud.</li>
+  </ul>
+  <p>Algunos de estos proveedores guardan información fuera de México (por ejemplo, en Estados Unidos). Solo compartiríamos tus datos con alguien más si una autoridad competente lo pide conforme a la ley.</p>
+
+  <h2>5. Tus derechos (ARCO) y cómo retirar tu consentimiento</h2>
+  <p>Puedes <b>acceder</b> a tus datos, <b>rectificarlos</b>, <b>cancelarlos</b> u <b>oponerte</b> a su uso, y también <b>retirar tu consentimiento</b>. Para hacerlo, escribe a <a href="mailto:contacto@nxusai.org">contacto@nxusai.org</a> con:</p>
+  <ul>
+    <li>Tu nombre y el correo o WhatsApp con el que te registraste.</li>
+    <li>Qué derecho quieres ejercer y sobre qué datos.</li>
+    <li>Una copia de tu identificación (o la de tu representante y el documento que lo acredite).</li>
+  </ul>
+  <p>Te contestamos en un máximo de 20 días hábiles y, si procede, lo aplicamos dentro de los 15 días hábiles siguientes.</p>
+
+  <h2>6. Cuánto tiempo los guardamos</h2>
+  <p>Mientras atendemos tu solicitud y, si te vuelves cliente, mientras dure la relación. Los registros de pago se guardan el tiempo que piden las leyes fiscales. Después los borramos.</p>
+
+  <h2>7. Cookies</h2>
+  <p>Este sitio no usa cookies de publicidad ni de rastreo. Tu navegador guarda lo que vas llenando para que no lo pierdas si recargas la página o vas a pagar; puedes borrarlo limpiando los datos del sitio.</p>
+
+  <h2>8. Cambios a este aviso</h2>
+  <p>Si cambiamos este aviso, lo publicamos en esta misma página con su nueva fecha.</p>
+
+  <p style="margin-top:32px"><a href="/">← Volver</a></p>
+</main>
+</body>
+</html>

@@ -16,6 +16,19 @@ const ESTADOS = { prospecto: 'Prospecto', activo: 'Activo', pausado: 'Pausado', 
 const TAREA = { pendiente: 'Pendiente', 'en-curso': 'En curso', hecha: 'Hecha' }
 const SEDE = { usa: 'NXUS USA', mexico: 'NXUS MÉXICO' }
 const ESQUEMA = { fijo: 'Sueldo fijo', 'medio-tiempo': 'Medio tiempo', comision: 'Comisión' }
+const ETAPAS = {
+  abrio: 'Abrió su link',
+  datos: 'Dejó sus datos',
+  pagado: 'Pagó consultoría',
+  cita: 'Cita agendada',
+  reunion: 'Reunión hecha',
+  propuesta: 'Propuesta enviada',
+  cliente: 'Cliente',
+  perdido: 'Perdido',
+}
+const EN_CURSO = ['abrio', 'datos', 'pagado', 'cita', 'reunion', 'propuesta']
+const VER_PROS = { nada: 'No ve prospectos', suyos: 'Solo los suyos (de su link o que tú le asignes)', todos: 'Todos' }
+const PORTAL = 'https://empezar.nxusai.org'
 const META_USD = 20000
 const DIA_COMPLETO_HORAS = 7
 const JORNADA_COMPLETA = 8
@@ -50,6 +63,25 @@ const iniciales = (n) =>
     .map((p) => p[0].toUpperCase())
     .join('')
 const hoyISO = () => new Date().toISOString().slice(0, 10)
+const fechaHora = (s) => (s ? new Date(s).toLocaleString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '')
+/** "Juan Pérez" → "juan-perez", para el link del portal. */
+const slug = (t) =>
+  String(t || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+/** Lo cobrado por consultorías en el mes de una fecha, por moneda. */
+function cobradoMes(pagos, ref = new Date()) {
+  const r = { USD: 0, MXN: 0 }
+  for (const g of pagos) {
+    const d = new Date(g.fecha)
+    if (d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth()) r[g.moneda] += Number(g.monto || 0)
+  }
+  return r
+}
 
 /** La quincena que contiene una fecha: del 1 al 15, o del 16 al último día. */
 function quincena(ref = new Date(), salto = 0) {
@@ -125,6 +157,9 @@ export function iniciar(D, { muestra = false } = {}) {
     }
   }
   const esAdmin = () => yo?.rol === 'admin'
+  // Prospectos: lo que Eduardo le dio a cada quien en Personas (la base de datos lo hace cumplir).
+  const vePros = () => esAdmin() || (yo?.pros_ver ?? 'nada') !== 'nada'
+  const puedePros = (que) => esAdmin() || !!yo?.[`pros_${que}`]
   const persona = (pid) => personas.find((p) => p.id === pid)
   const nombreDe = (pid) => persona(pid)?.nombre ?? '—'
   const clienteDe = (cid) => clientes.find((c) => c.id === cid)
@@ -195,10 +230,12 @@ export function iniciar(D, { muestra = false } = {}) {
   const SECCIONES = [
     ['inicio', 'Inicio', '◈'],
     ['clientes', 'Clientes', '◉'],
+    ['prospectos', 'Prospectos', '✦'],
     ['tareas', 'Tareas', '☰'],
     ['equipo', 'Equipo', '◎'],
     ['reloj', 'Mi reloj', '◷'],
   ]
+  const misSecciones = () => SECCIONES.filter(([id]) => id !== 'prospectos' || vePros())
   const SECCIONES_ADMIN = [
     ['nomina', 'Nómina', '⧉'],
     ['dinero', 'Dinero', '$'],
@@ -216,7 +253,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <aside class="nav">
           <div class="marca">${LOGO}<div><b>NXUS HQ</b><span>${muestra ? 'Muestra' : 'app.nxusai.org'}</span></div></div>
           <nav>
-            ${SECCIONES.map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}
+            ${misSecciones().map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}
             ${esAdmin() ? `<div class="sep">Solo tú</div>${SECCIONES_ADMIN.map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}` : ''}
           </nav>
           <div class="yo" id="yo"></div>
@@ -273,14 +310,15 @@ export function iniciar(D, { muestra = false } = {}) {
     if (!yo || !$('#vista')) return
     $('.nav')?.classList.remove('abierta')
     const [ruta, arg] = (location.hash.slice(1) || 'inicio').split('/')
-    const todas = [...SECCIONES, ...(esAdmin() ? SECCIONES_ADMIN : [])]
-    const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : 'inicio'
+    const todas = [...misSecciones(), ...(esAdmin() ? SECCIONES_ADMIN : [])]
+    const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : ruta === 'prospecto' && vePros() ? 'prospectos' : 'inicio'
     $$('[data-ir]').forEach((a) => a.classList.toggle('activa', a.dataset.ir === sec))
     const vista = $('#vista')
     vista.innerHTML = '<div class="cargando">Cargando…</div>'
-    const VISTAS = { inicio, clientes: vistaClientes, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
+      else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
       else await VISTAS[sec](vista)
     } catch (err) {
       vista.innerHTML = `<p class="error">${h(err.message)}</p>`
@@ -299,9 +337,9 @@ export function iniciar(D, { muestra = false } = {}) {
     let html = ''
     if (esAdmin()) {
       const q = quincena()
-      const [din, nom, jor, aju, com, abiertas] = await Promise.all([D.dinero(), D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.abiertas()])
+      const [din, nom, jor, aju, com, abiertas, pagos] = await Promise.all([D.dinero(), D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.abiertas(), D.pagosProspectos()])
       const activos = clientes.filter((c) => c.estado === 'activo')
-      const ingreso = { USD: 0, MXN: 0 }
+      const ingreso = cobradoMes(pagos)
       for (const d of din) if (clienteDe(d.cliente_id)?.estado === 'activo') ingreso[d.moneda] += Number(d.mensualidad || 0)
       const pago = { USD: 0, MXN: 0 }
       for (const n of nom) pago[n.moneda] += calcularPago(n, { jornadas: jor, ajustes: aju, comisiones: com, desde: q.desde, hasta: q.hasta }).total
@@ -311,11 +349,11 @@ export function iniciar(D, { muestra = false } = {}) {
       html = `
         <div class="kpis">
           <div class="kpi"><span>Clientes activos</span><b>${activos.length}</b><small>${clientes.filter((c) => c.estado === 'prospecto').length} prospectos</small></div>
-          <div class="kpi"><span>Ingreso mensual</span><b>${dinero(ingreso.USD)}</b><small>${ingreso.MXN ? `+ ${dinero(ingreso.MXN, 'MXN')}` : 'en dólares'}</small></div>
+          <div class="kpi"><span>Ingreso del mes</span><b>${dinero(ingreso.USD)}</b><small>${ingreso.MXN ? `+ ${dinero(ingreso.MXN, 'MXN')}` : 'en dólares'}</small></div>
           <div class="kpi"><span>Nómina de esta quincena</span><b>${pago.MXN ? dinero(pago.MXN, 'MXN') : dinero(pago.USD)}</b><small>${pago.MXN && pago.USD ? `+ ${dinero(pago.USD)}` : q.nombre}</small></div>
           <div class="kpi"><span>Tareas abiertas</span><b>${abiertasHoy.length}</b><small class="${atrasadas.length ? 'rojo' : ''}">${atrasadas.length} atrasadas</small></div>
         </div>
-        <div class="tarjeta meta"><div class="fila"><b>Meta: ${dinero(META_USD)} al mes</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div><small>Ingreso mensual en dólares de clientes activos. Pon lo que paga cada cliente en <a href="#dinero">Dinero</a>.</small></div>
+        <div class="tarjeta meta"><div class="fila"><b>Meta: ${dinero(META_USD)} al mes</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div><small>Ingreso del mes en dólares: clientes activos más consultorías cobradas. Pon lo que paga cada cliente en <a href="#dinero">Dinero</a>.</small></div>
         <div class="dos">
           <div class="tarjeta"><h3>Trabajando ahora</h3>${
             abiertas.length
@@ -329,6 +367,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="tarjeta"><h3>Mi reloj</h3><p>${abierta ? `Trabajando desde las ${hora(abierta.entrada)} (${horas(duracion(abierta))}).` : 'No has marcado entrada hoy.'}</p>
           <button class="btn ${abierta ? '' : 'primario'}" id="i-reloj">${abierta ? 'Marcar salida' : 'Marcar entrada'}</button></div>`
     }
+    if (vePros()) html += await resumenProspectos()
     html += `<div class="tarjeta"><h3>Mis pendientes</h3>${mias.length ? `<ul class="lista tareas">${mias.map(tarjetaTarea).join('')}</ul>` : '<p class="vacio">No tienes pendientes.</p>'}</div>`
     v.innerHTML = html
     $('#i-reloj', v)?.addEventListener('click', () => (abierta ? marcarSalida() : marcarEntrada()))
@@ -373,8 +412,9 @@ export function iniciar(D, { muestra = false } = {}) {
       return
     }
     titulo(c.nombre)
-    const [tareas, din] = await Promise.all([D.tareas(), esAdmin() ? D.dinero() : []])
+    const [tareas, din, pros] = await Promise.all([D.tareas(), esAdmin() ? D.dinero() : [], vePros() ? D.prospectos() : []])
     const d = din.find((x) => x.cliente_id === c.id)
+    const vino = pros.find((x) => x.cliente_id === c.id)
     const suyas = tareas.filter((t) => t.cliente_id === c.id)
     v.innerHTML = `
       <a class="enlace" href="#clientes">← Clientes</a>
@@ -382,10 +422,11 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="tarjeta">
           <div class="fila"><span class="chip ${c.estado}">${ESTADOS[c.estado]}</span><span class="chip ${c.equipo}">${SEDE[c.equipo]}</span>${c.propio ? '<span class="chip">Empresa propia</span>' : ''}</div>
           ${c.grupo ? `<p><small>${h(c.grupo)}</small></p>` : ''}
-          <p>${h(c.descripcion) || '<span class="vacio">Sin descripción.</span>'}</p>
+          <p class="desc">${h(c.descripcion) || '<span class="vacio">Sin descripción.</span>'}</p>
           <h3>Servicios</h3><ul class="servicios">${c.servicios.map((s) => `<li>${h(s)}</li>`).join('') || '<li>Por definir</li>'}</ul>
           <h3>Contacto</h3><p>${[c.contacto_nombre, c.contacto_correo, c.contacto_tel].filter(Boolean).map(h).join(' · ') || '<span class="vacio">Sin contacto.</span>'}</p>
           <p><small>Responsable: ${h(nombreDe(c.responsable))}${c.traido_por ? ` · Lo trajo: ${h(nombreDe(c.traido_por))}` : ''}${c.inicio ? ` · Desde ${fechaCorta(c.inicio)}` : ''}</small></p>
+          ${vino ? `<p><a href="#prospecto/${vino.id}">✦ Llegó como prospecto: ver cómo llegó y sus notas →</a></p>` : ''}
           <div class="acciones">
             ${c.sistema_url ? `<a class="btn primario" href="${h(c.sistema_url)}" target="_blank" rel="noopener">Entrar a su sistema · ${h(c.sistema_nombre || 'Abrir')} ↗</a>` : c.sistema_nombre ? `<span class="chip">${h(c.sistema_nombre)}: falta la dirección</span>` : ''}
             ${esAdmin() ? '<button class="btn" id="cl-editar">Editar</button>' : ''}
@@ -570,6 +611,271 @@ export function iniciar(D, { muestra = false } = {}) {
     )
   }
 
+  // ---------------------------------------------------------- prospectos
+
+  const resumenPermisos = (p) => {
+    if ((p.pros_ver || 'nada') === 'nada') return '<small>—</small>'
+    const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte', p.pros_pagos && 've pagos'].filter(Boolean)
+    return `<small>${p.pros_ver === 'todos' ? 'Todos' : 'Los suyos'}${puede.length ? ` · ${puede.join(', ')}` : ''}${p.codigo ? ` · link: ${h(p.codigo)}` : ''}</small>`
+  }
+  const nombrePros = (x) => x.empresa || x.nombre || (x.link ? x.link.replace(/-/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : 'Sin nombre')
+  const atrasado = (x) => x.siguiente_fecha && x.siguiente_fecha < hoyISO() && EN_CURSO.includes(x.etapa)
+
+  /** En Inicio: a ti el embudo y las próximas citas; al equipo, sus prospectos con su siguiente paso. */
+  async function resumenProspectos() {
+    const pros = await D.prospectos()
+    const citas = pros.filter((x) => x.cita && new Date(x.cita) > new Date() && EN_CURSO.includes(x.etapa)).sort((a, b) => a.cita.localeCompare(b.cita))
+    if (esAdmin()) {
+      const semana = pros.filter((x) => Date.now() - new Date(x.creado) < 7 * 864e5).length
+      return `<div class="tarjeta"><div class="fila"><h3>Prospectos</h3><a href="#prospectos">Ver todos →</a></div>
+        <div class="embudo">${EN_CURSO.map((e) => `<a href="#prospectos"><b>${pros.filter((x) => x.etapa === e).length}</b><span>${ETAPAS[e]}</span></a>`).join('')}</div>
+        <p><small>${semana} nuevos esta semana · ${pros.filter(atrasado).length} con seguimiento atrasado</small></p>
+        ${citas.length ? `<h3>Próximas citas</h3><ul class="lista">${citas.slice(0, 5).map((x) => `<li><a href="#prospecto/${x.id}"><b>${h(nombrePros(x))}</b></a><small>${fechaHora(x.cita)} · ${h(nombreDe(x.asignado))}</small></li>`).join('')}</ul>` : ''}
+      </div>`
+    }
+    const mios = pros.filter((x) => EN_CURSO.includes(x.etapa) && (x.asignado === yo.id || x.traido_por === yo.id))
+    return `<div class="tarjeta"><div class="fila"><h3>Mis prospectos</h3><a href="#prospectos">Ver →</a></div>${
+      mios.length
+        ? `<ul class="lista tareas">${mios
+            .map((x) => `<li><span class="chip etapa-${x.etapa}">${ETAPAS[x.etapa]}</span><a href="#prospecto/${x.id}"><b>${h(nombrePros(x))}</b></a><small class="${atrasado(x) ? 'rojo' : ''}">${x.siguiente ? `${h(x.siguiente)}${x.siguiente_fecha ? ` · ${fechaCorta(x.siguiente_fecha)}` : ''}` : 'Sin siguiente paso'}</small></li>`)
+            .join('')}</ul>`
+        : '<p class="vacio">No tienes prospectos abiertos.</p>'
+    }</div>`
+  }
+
+  async function vistaProspectos(v) {
+    titulo('Prospectos')
+    const [pros, pagos] = await Promise.all([D.prospectos(), puedePros('pagos') ? D.pagosProspectos() : []])
+    const pagado = new Set(pagos.map((g) => g.prospecto_id))
+    const verMios = !esAdmin() && yo.pros_ver === 'suyos'
+    const filtro = verMios ? 'mios' : sessionStorage.getItem('hq-pros') || 'todos'
+    const lista = filtro === 'mios' ? pros.filter((x) => x.asignado === yo.id || x.traido_por === yo.id) : filtro === 'todos' ? pros : pros.filter((x) => x.asignado === filtro)
+    const mes = new Date().toISOString().slice(0, 7)
+    const tarjeta = (x) => `<a class="tarea pros ${atrasado(x) ? 'atrasada' : ''}" href="#prospecto/${x.id}">
+        <b>${h(nombrePros(x))}</b>
+        ${x.empresa && x.nombre ? `<small>${h(x.nombre)}</small>` : ''}
+        ${x.lineas.length ? `<small>${h(x.lineas.map((l) => l.split(': ')[1] || l).slice(0, 3).join(' · '))}${x.lineas.length > 3 ? '…' : ''}</small>` : ''}
+        <div class="fila chips">${x.camino === 'consulta' ? '<span class="chip">Consultoría</span>' : x.camino === 'propuesta' ? '<span class="chip">Propuesta</span>' : ''}${pagado.has(x.id) ? '<span class="chip hecha">Pagó ✓</span>' : ''}${x.origen === 'manual' ? '<span class="chip">A mano</span>' : ''}</div>
+        <small>${x.cita && EN_CURSO.includes(x.etapa) ? `📅 ${fechaHora(x.cita)} · ` : ''}${h(nombreDe(x.asignado))}${x.traido_por && x.traido_por !== x.asignado ? ` · link de ${h(nombreDe(x.traido_por).split(' ')[0])}` : ''}</small>
+        ${atrasado(x) ? `<small class="rojo">Seguimiento atrasado: ${h(x.siguiente || 'sin nota')}</small>` : ''}
+      </a>`
+    v.innerHTML = `
+      <div class="acciones">
+        <button class="btn primario" id="pr-link">🔗 Link para un prospecto</button>
+        ${puedePros('trabajar') ? '<button class="btn" id="pr-nuevo">+ Apuntar a mano</button>' : ''}
+        ${
+          verMios
+            ? ''
+            : `<div class="segmento"><button data-pf="todos" class="${filtro === 'todos' ? 'on' : ''}">Todos</button><button data-pf="mios" class="${filtro === 'mios' ? 'on' : ''}">Míos</button></div>
+               ${esAdmin() ? `<select id="pr-quien" aria-label="De quién"><option value="">Por persona…</option>${personas.filter((p) => p.activo).map((p) => `<option value="${p.id}" ${filtro === p.id ? 'selected' : ''}>${h(p.nombre)}</option>`).join('')}</select>` : ''}`
+        }
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span>En proceso</span><b>${lista.filter((x) => EN_CURSO.includes(x.etapa)).length}</b><small>${lista.filter((x) => Date.now() - new Date(x.creado) < 7 * 864e5).length} nuevos esta semana</small></div>
+        <div class="kpi"><span>Citas próximas</span><b>${lista.filter((x) => x.cita && new Date(x.cita) > new Date() && EN_CURSO.includes(x.etapa)).length}</b><small>con Google Meet</small></div>
+        <div class="kpi"><span>Clientes este mes</span><b>${lista.filter((x) => x.etapa === 'cliente' && x.actualizado.slice(0, 7) === mes).length}</b><small>${lista.filter((x) => x.etapa === 'cliente').length} en total</small></div>
+        <div class="kpi"><span>Seguimiento atrasado</span><b class="${lista.some(atrasado) ? 'rojo' : ''}">${lista.filter(atrasado).length}</b><small>siguiente paso vencido</small></div>
+      </div>
+      <div class="tablero embudo-tablero">${EN_CURSO.map((e) => {
+        const col = lista.filter((x) => x.etapa === e)
+        return `<div class="columna ${col.length ? '' : 'vacia'}"><h3>${ETAPAS[e]} <small>${col.length}</small></h3>${col.map(tarjeta).join('') || '<p class="vacio">—</p>'}</div>`
+      }).join('')}</div>
+      ${['cliente', 'perdido']
+        .map((e) => {
+          const col = lista.filter((x) => x.etapa === e)
+          return col.length
+            ? `<details class="tarjeta cerrados"><summary><b>${e === 'cliente' ? 'Se hicieron clientes' : 'Perdidos'}</b> <small>${col.length}</small></summary><ul class="lista tareas">${col
+                .map((x) => `<li><a href="#prospecto/${x.id}"><b>${h(nombrePros(x))}</b></a><small>${e === 'perdido' ? h(x.motivo_perdido || 'Sin motivo') : `cliente desde ${fechaCorta(x.actualizado)}`} · ${h(nombreDe(x.asignado))}</small></li>`)
+                .join('')}</ul></details>`
+            : ''
+        })
+        .join('')}
+      <p class="nota">Los prospectos llegan solos desde <a href="${PORTAL}" target="_blank" rel="noopener">empezar.nxusai.org</a>: cuando abren su link, dejan sus datos, pagan y agendan.${esAdmin() ? ' Tú decides en <a href="#personas">Personas</a> quién ve cuáles y qué puede hacer.' : ''}</p>`
+    $('#pr-link', v).onclick = crearLink
+    $('#pr-nuevo', v)?.addEventListener('click', () => editarProspecto(null))
+    $$('[data-pf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-pros', b.dataset.pf), mostrar())))
+    $('#pr-quien', v)?.addEventListener('change', (e) => (sessionStorage.setItem('hq-pros', e.target.value || 'todos'), mostrar()))
+  }
+
+  async function vistaProspecto(v, pid) {
+    const [pros, notas, pagos] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : []])
+    const x = pros.find((p) => p.id === pid)
+    if (!x) {
+      titulo('Prospecto')
+      v.innerHTML = '<a class="enlace" href="#prospectos">← Prospectos</a><p class="vacio">Ese prospecto no existe o no te toca verlo.</p>'
+      return
+    }
+    titulo(nombrePros(x))
+    const d = x.diagnostico || {}
+    const suyos = pagos.filter((g) => g.prospecto_id === x.id)
+    const porLinea = {}
+    for (const l of x.lineas) {
+      const [linea, item] = l.includes(': ') ? l.split(': ') : ['Otro', l]
+      ;(porLinea[linea] ??= []).push(item)
+    }
+    const cliente = x.cliente_id && clienteDe(x.cliente_id)
+    v.innerHTML = `
+      <a class="enlace" href="#prospectos">← Prospectos</a>
+      <div class="ficha dos-cols">
+        <div class="tarjeta">
+          <div class="fila chips"><span class="chip etapa-${x.etapa}">${ETAPAS[x.etapa]}</span>${x.camino ? `<span class="chip">${x.camino === 'consulta' ? 'Quiere consultoría' : 'Quiere su propuesta'}</span>` : ''}<span class="chip">${x.origen === 'portal' ? 'Llegó por el portal' : 'Apuntado a mano'}</span>${x.acepta_novedades ? '<span class="chip hecha">Acepta novedades</span>' : ''}</div>
+          <h3>Contacto</h3>
+          <p><b>${h(x.nombre || '—')}</b>${x.empresa ? ` · ${h(x.empresa)}` : ''}</p>
+          <p>${[x.whatsapp && `<a href="https://wa.me/${h(x.whatsapp.replace(/\D/g, ''))}" target="_blank" rel="noopener">WhatsApp ${h(x.whatsapp)}</a>`, x.correo && `<a href="mailto:${h(x.correo)}">${h(x.correo)}</a>`].filter(Boolean).join(' · ') || '<span class="vacio">Todavía no deja sus datos.</span>'}</p>
+          ${x.direccion ? `<p><small>${h(x.direccion)}</small></p>` : ''}
+          <p><small>Lo atiende: <b>${h(nombreDe(x.asignado))}</b>${x.traido_por ? ` · Link de: ${h(nombreDe(x.traido_por))}` : ''}${x.link ? ` · ${PORTAL.replace('https://', '')}/${h(x.link)}` : ''} · Llegó ${fechaCorta(x.creado)}</small></p>
+          ${x.cita ? `<p>📅 <b>${fechaHora(x.cita)}</b>${x.meet ? ` · <a href="${h(x.meet)}" target="_blank" rel="noopener">Entrar al Meet ↗</a>` : ''}</p>` : ''}
+          ${x.etapa === 'perdido' && x.motivo_perdido ? `<p class="rojo">Perdido: ${h(x.motivo_perdido)}</p>` : ''}
+          ${cliente ? `<p><a class="btn" href="#cliente/${cliente.id}">Ver su ficha de cliente →</a></p>` : ''}
+          <div class="acciones">
+            ${puedePros('convertir') && x.etapa !== 'cliente' ? '<button class="btn primario" id="px-convertir">✓ Convertir en cliente</button>' : ''}
+            ${(esAdmin() || puedePros('etapas')) && x.etapa !== 'cliente' ? `<label class="mini">Etapa<select id="px-etapa">${Object.entries(ETAPAS).filter(([k]) => k !== 'cliente').map(([k, t]) => `<option value="${k}" ${k === x.etapa ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
+            ${esAdmin() ? `<label class="mini">Lo atiende<select id="px-asignar">${opcionesPersonas(x.asignado, 'Sin asignar')}</select></label>` : ''}
+            ${puedePros('trabajar') ? '<button class="btn" id="px-editar">Editar datos</button>' : ''}
+            ${esAdmin() ? '<button class="btn peligro" id="px-borrar">Borrar</button>' : ''}
+          </div>
+        </div>
+        <div class="tarjeta">
+          <h3>Siguiente paso</h3>
+          ${
+            puedePros('trabajar')
+              ? `<form id="px-sig" class="campos"><label class="ancho">Qué sigue<input name="siguiente" maxlength="300" value="${h(x.siguiente)}" placeholder="Ej.: Mandarle el caso de Abuelito y llamarle el jueves"></label>
+                 <label>Cuándo<input name="siguiente_fecha" type="date" value="${h(x.siguiente_fecha || '')}"></label><button class="btn">Guardar</button></form>`
+              : `<p>${h(x.siguiente) || '<span class="vacio">Sin siguiente paso.</span>'}${x.siguiente_fecha ? ` · ${fechaCorta(x.siguiente_fecha)}` : ''}</p>`
+          }
+          ${atrasado(x) ? '<p class="rojo">Este seguimiento ya se pasó de fecha.</p>' : ''}
+          <h3>Lo que le interesa</h3>
+          ${Object.keys(porLinea).length ? Object.entries(porLinea).map(([l, items]) => `<p><b>${h(l)}</b></p><ul class="servicios">${items.map((i) => `<li>${h(i)}</li>`).join('')}</ul>`).join('') : '<p class="vacio">Todavía no elige.</p>'}
+          <h3>Su empresa</h3>
+          ${
+            Object.keys(d).length
+              ? `<p>${[d.giro, d.tamano && `${d.tamano} personas`, d.pais, d.urgencia].filter(Boolean).map(h).join(' · ')}</p>${d.quiere ? `<blockquote>${h(d.quiere)}</blockquote>` : ''}`
+              : '<p class="vacio">Todavía no contesta el diagnóstico.</p>'
+          }
+          ${puedePros('pagos') ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
+        </div>
+        <div class="tarjeta ancho-total">
+          <h3>Notas <small>no se borran ni se cambian</small></h3>
+          ${notas.length ? `<ul class="lista notas">${notas.map((n) => `<li><b>${h(nombreDe(n.autor))}</b><small>${fechaCorta(n.creada)} ${hora(n.creada)}</small><p>${h(n.texto)}</p></li>`).join('')}</ul>` : '<p class="vacio">Sin notas todavía.</p>'}
+          ${puedePros('trabajar') ? `<form id="px-nota"><textarea name="texto" rows="2" maxlength="2000" required placeholder="Qué pasó: le llamé, le mandé un caso, pidió precio…"></textarea><div class="acciones"><button class="btn">Agregar nota</button></div></form>` : ''}
+        </div>
+      </div>`
+    const guardar = async (cambio, bien) => (await intenta(() => D.guardarProspecto({ id: x.id, ...cambio }), bien)) && mostrar()
+    $('#px-etapa', v)?.addEventListener('change', async (e) => {
+      if (e.target.value === 'perdido') {
+        const motivo = prompt('¿Por qué se perdió? (opcional)', x.motivo_perdido || '')
+        if (motivo === null) return (e.target.value = x.etapa)
+        return guardar({ etapa: 'perdido', motivo_perdido: motivo.trim().slice(0, 300) }, 'Marcado como perdido')
+      }
+      guardar({ etapa: e.target.value }, `Ahora: ${ETAPAS[e.target.value]}`)
+    })
+    $('#px-asignar', v)?.addEventListener('change', (e) => guardar({ asignado: e.target.value || null }, 'Asignado'))
+    $('#px-sig', v)?.addEventListener('submit', (e) => {
+      e.preventDefault()
+      const f = Object.fromEntries(new FormData(e.target))
+      guardar({ siguiente: f.siguiente.trim(), siguiente_fecha: f.siguiente_fecha || null }, 'Siguiente paso guardado')
+    })
+    $('#px-nota', v)?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const texto = e.target.texto.value.trim()
+      if (texto && (await intenta(() => D.agregarNota(x.id, texto), 'Nota agregada'))) mostrar()
+    })
+    $('#px-editar', v)?.addEventListener('click', () => editarProspecto(x))
+    $('#px-convertir', v)?.addEventListener('click', async () => {
+      if (!confirm(`¿Convertir a ${nombrePros(x)} en cliente? Se crea su ficha en Clientes con lo que contestó.`)) return
+      const cid = await intenta(() => D.convertirProspecto(x.id), `${nombrePros(x)} ya es cliente`)
+      if (cid) {
+        clientes = await D.clientes()
+        location.hash = `#cliente/${cid}`
+      }
+    })
+    $('#px-borrar', v)?.addEventListener('click', async () => {
+      if (!confirm(`¿Borrar a ${nombrePros(x)} con sus notas y pagos? No se puede deshacer.`)) return
+      if ((await intenta(() => D.borrarProspecto(x.id), 'Prospecto borrado')) !== undefined) location.hash = '#prospectos'
+    })
+  }
+
+  function editarProspecto(x) {
+    abrirModal(
+      `<form id="f-pros"><h2>${x ? 'Datos del prospecto' : 'Apuntar un prospecto'}</h2>
+        ${x ? '' : '<p class="nota">Para alguien que conociste por otro lado (llamada, evento, recomendación). Si prefieres que él mismo llene todo, mejor mándale su link.</p>'}
+        <div class="campos">
+          <label>Nombre<input name="nombre" maxlength="80" required value="${h(x?.nombre)}"></label>
+          <label>Empresa<input name="empresa" maxlength="120" value="${h(x?.empresa)}"></label>
+          <label>WhatsApp<input name="whatsapp" maxlength="30" value="${h(x?.whatsapp)}"></label>
+          <label>Correo<input name="correo" type="email" maxlength="120" value="${h(x?.correo)}"></label>
+          <label class="ancho">Dirección<input name="direccion" maxlength="200" value="${h(x?.direccion)}"></label>
+          ${!x && esAdmin() ? `<label>Es de<select name="traido_por">${opcionesPersonas(yo.id, 'Nadie')}</select></label>` : ''}
+        </div>
+        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-pros', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const fila = { nombre: d.nombre.trim(), empresa: d.empresa.trim(), whatsapp: d.whatsapp.trim(), correo: d.correo.trim().toLowerCase(), direccion: d.direccion.trim() }
+          if (!x && esAdmin()) fila.traido_por = d.traido_por || null
+          const r = await intenta(() => D.guardarProspecto(x ? { id: x.id, ...fila } : fila), 'Guardado')
+          if (!r) return
+          cerrarModal()
+          if (x) mostrar()
+          else location.hash = `#prospecto/${r.id}`
+        }
+      },
+    )
+  }
+
+  /** El link del portal para un prospecto, a nombre de quien lo manda (para su comisión). */
+  function crearLink() {
+    const conCodigo = personas.filter((p) => p.activo && p.codigo)
+    abrirModal(
+      `<form id="f-link"><h2>🔗 Link para un prospecto</h2>
+        <p class="nota">Escribe su nombre. El portal lo saluda por su nombre y, cuando se registre, aparece aquí solo.</p>
+        <div class="campos">
+          <label class="ancho">Nombre del prospecto<input name="nombre" required maxlength="60" placeholder="Juan Pérez"></label>
+          ${
+            esAdmin()
+              ? `<label class="ancho">A nombre de<select name="de"><option value="">Nadie (link general)</option>${conCodigo.map((p) => `<option value="${h(p.codigo)}" ${p.id === yo.id ? 'selected' : ''}>${h(p.nombre)}</option>`).join('')}</select><small>Solo salen las personas con código de link (se lo pones en Personas → Editar).</small></label>`
+              : yo.codigo
+                ? ''
+                : '<p class="nota ancho">Aún no tienes código de link: pídeselo a Eduardo para que los prospectos queden a tu nombre.</p>'
+          }
+        </div>
+        <div id="link-listo" hidden>
+          <div class="link-caja"><code id="link-url"></code></div>
+          <textarea id="link-msj" rows="4"></textarea>
+          <div class="acciones"><button type="button" class="btn primario" id="copiar-link">Copiar link</button><button type="button" class="btn" id="copiar-msj">Copiar mensaje</button><a class="btn" id="link-wa" target="_blank" rel="noopener">Abrir WhatsApp</a></div>
+        </div>
+        <div class="acciones"><button class="btn primario" id="link-hacer">Crear link</button><button type="button" class="btn" data-cerrar>Cerrar</button></div></form>`,
+      (caja) => {
+        const copiar = async (t, bien) => {
+          try {
+            await navigator.clipboard.writeText(t)
+            aviso(bien)
+          } catch {
+            aviso('No se pudo copiar; selecciónalo y cópialo a mano', 'mal')
+          }
+        }
+        $('#f-link', caja).onsubmit = (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const s = slug(d.nombre)
+          if (!s) return aviso('Escribe su nombre', 'mal')
+          const de = esAdmin() ? d.de : yo.codigo
+          const url = `${PORTAL}/${s}${de ? `?de=${encodeURIComponent(de)}` : ''}`
+          const primero = d.nombre.trim().split(/\s+/)[0]
+          const msj = `Hola ${primero}, te comparto el catálogo de NXUS AI: ahí ves lo que podemos hacer por tu empresa, nos cuentas qué necesitas en 2 minutos y, si quieres, agendas una reunión con nosotros cuando te acomode:\n${url}`
+          $('#link-url', caja).textContent = url
+          $('#link-msj', caja).value = msj
+          $('#link-wa', caja).href = `https://wa.me/?text=${encodeURIComponent(msj)}`
+          $('#link-listo', caja).hidden = false
+          $('#link-hacer', caja).textContent = 'Crear otro'
+        }
+        $('#copiar-link', caja).onclick = () => copiar($('#link-url', caja).textContent, 'Link copiado')
+        $('#copiar-msj', caja).onclick = () => copiar($('#link-msj', caja).value, 'Mensaje copiado')
+      },
+    )
+  }
+
   // -------------------------------------------------------------- tareas
 
   async function vistaTareas(v) {
@@ -685,8 +991,9 @@ export function iniciar(D, { muestra = false } = {}) {
   async function vistaNomina(v) {
     titulo('Nómina')
     const q = quincena(new Date(), saltoNomina)
-    const [nom, jor, aju, com] = await Promise.all([D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones()])
-    personas = await D.personas()
+    const [nom, jor, aju, com, din] = await Promise.all([D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.dinero()])
+    ;[personas, clientes] = await Promise.all([D.personas(), D.clientes()])
+    const trajo = (pid) => clientes.filter((c) => c.traido_por === pid && c.estado === 'activo').map((c) => ({ c, d: din.find((x) => x.cliente_id === c.id) ?? {} }))
     const equipo = personas.filter((p) => p.rol !== 'admin' && p.activo)
     const totales = { USD: 0, MXN: 0 }
     const filas = equipo.map((p) => {
@@ -715,6 +1022,13 @@ export function iniciar(D, { muestra = false } = {}) {
                 </div>
                 <div class="acciones"><button class="btn chico" data-esq="${p.id}">Su pago</button><button class="btn chico" data-aj="${p.id}">+ Ajuste</button>${n.esquema === 'comision' ? `<button class="btn chico" data-com="${p.id}">+ Comisión</button>` : ''}<button class="btn chico" data-dias="${p.id}">Ver días</button></div>
                 ${r.misAjustes.length ? `<ul class="lista">${r.misAjustes.map((a) => `<li><small>${fechaCorta(a.fecha)}</small> ${h(a.concepto)} <b>${dinero(a.monto, n.moneda)}</b> <button class="enlace" data-borrar-aj="${a.id}">quitar</button></li>`).join('')}</ul>` : ''}
+                ${
+                  n.esquema === 'comision' && trajo(p.id).length
+                    ? `<div class="sugeridas"><small>Clientes que trajo (activos):</small><ul class="lista">${trajo(p.id)
+                        .map(({ c, d }) => `<li>${h(c.nombre)} <small>${d.mensualidad ? `${dinero(d.mensualidad, d.moneda)}/mes` : 'sin monto'}</small> <button class="btn chico" data-cobro="${p.id}" data-cli="${c.id}">Registrar cobro</button></li>`)
+                        .join('')}</ul></div>`
+                    : ''
+                }
                 ${r.mias.length ? `<ul class="lista">${r.mias.map((c) => `<li><small>${fechaCorta(c.fecha)}</small> ${h(clienteDe(c.cliente_id)?.nombre ?? c.concepto)} · cobrado ${dinero(c.monto_cobrado, c.moneda)} → <b>${dinero((c.monto_cobrado * c.porcentaje) / 100, c.moneda)}</b> <button class="enlace" data-borrar-com="${c.id}">quitar</button></li>`).join('')}</ul>` : ''}
               </div>`,
         )
@@ -725,6 +1039,13 @@ export function iniciar(D, { muestra = false } = {}) {
     $$('[data-esq]', v).forEach((b) => (b.onclick = () => editarEsquema(persona(b.dataset.esq), nom.find((x) => x.persona === b.dataset.esq))))
     $$('[data-aj]', v).forEach((b) => (b.onclick = () => nuevoAjuste(persona(b.dataset.aj))))
     $$('[data-com]', v).forEach((b) => (b.onclick = () => nuevaComision(persona(b.dataset.com), nom.find((x) => x.persona === b.dataset.com))))
+    $$('[data-cobro]', v).forEach(
+      (b) =>
+        (b.onclick = () => {
+          const d = din.find((x) => x.cliente_id === b.dataset.cli) ?? {}
+          nuevaComision(persona(b.dataset.cobro), nom.find((x) => x.persona === b.dataset.cobro), { cliente_id: b.dataset.cli, monto_cobrado: d.mensualidad || '', moneda: d.moneda })
+        }),
+    )
     $$('[data-dias]', v).forEach((b) => (b.onclick = () => verDias(persona(b.dataset.dias), jor)))
     $$('[data-borrar-aj]', v).forEach((b) => (b.onclick = () => intenta(() => D.borrarAjuste(b.dataset.borrarAj), 'Ajuste quitado').then(() => mostrar())))
     $$('[data-borrar-com]', v).forEach((b) => (b.onclick = () => intenta(() => D.borrarComision(b.dataset.borrarCom), 'Comisión quitada').then(() => mostrar())))
@@ -779,15 +1100,15 @@ export function iniciar(D, { muestra = false } = {}) {
     )
   }
 
-  function nuevaComision(p, n) {
+  function nuevaComision(p, n, pre = {}) {
     abrirModal(
-      `<form id="f-com"><h2>Comisión de ${h(p.nombre)}</h2><p class="nota">Un contrato que consiguió: lo que se cobró y su porcentaje.</p>
+      `<form id="f-com"><h2>Comisión de ${h(p.nombre)}</h2><p class="nota">Un contrato que consiguió: lo que se cobró y su porcentaje. Las consultorías que pagan sus prospectos se agregan solas.</p>
         <div class="campos">
-          <label>Cliente<select name="cliente_id"><option value="">Otro</option>${clientes.map((c) => `<option value="${c.id}">${h(c.nombre)}</option>`).join('')}</select></label>
+          <label>Cliente<select name="cliente_id"><option value="">Otro</option>${clientes.map((c) => `<option value="${c.id}" ${c.id === pre.cliente_id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select></label>
           <label>Concepto<input name="concepto" placeholder="Si es otro"></label>
-          <label>Cobrado<input name="monto_cobrado" type="number" min="0" step="0.01" required></label>
+          <label>Cobrado<input name="monto_cobrado" type="number" min="0" step="0.01" required value="${h(pre.monto_cobrado ?? '')}"></label>
           <label>Porcentaje<input name="porcentaje" type="number" min="0" max="100" step="0.5" value="${h(n?.porcentaje ?? 50)}"></label>
-          <label>Moneda<select name="moneda">${opciones({ MXN: 'Pesos (MXN)', USD: 'Dólares (USD)' }, n?.moneda || 'MXN')}</select></label>
+          <label>Moneda<select name="moneda">${opciones({ MXN: 'Pesos (MXN)', USD: 'Dólares (USD)' }, pre.moneda || n?.moneda || 'MXN')}</select></label>
           <label>Fecha<input name="fecha" type="date" value="${hoyISO()}"></label>
         </div>
         <div class="acciones"><button class="btn primario">Agregar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
@@ -827,9 +1148,10 @@ export function iniciar(D, { muestra = false } = {}) {
   async function vistaDinero(v) {
     titulo('Dinero')
     const q = quincena()
-    const [din, nom, jor, aju, com] = await Promise.all([D.dinero(), D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones()])
+    const [din, nom, jor, aju, com, pagos, pros] = await Promise.all([D.dinero(), D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.pagosProspectos(), D.prospectos()])
     clientes = await D.clientes()
-    const ingreso = { USD: 0, MXN: 0 }
+    const consultas = cobradoMes(pagos)
+    const ingreso = { ...consultas }
     const filas = clientes.map((c) => ({ c, d: din.find((x) => x.cliente_id === c.id) ?? {} }))
     for (const { c, d } of filas) if (c.estado === 'activo') ingreso[d.moneda || 'USD'] += Number(d.mensualidad || 0)
     const nominaMes = { USD: 0, MXN: 0 }
@@ -838,7 +1160,8 @@ export function iniciar(D, { muestra = false } = {}) {
     const avance = Math.min(100, Math.round((Math.max(0, margen('USD')) / META_USD) * 100))
     v.innerHTML = `
       <div class="kpis">
-        <div class="kpi"><span>Ingreso mensual</span><b>${dinero(ingreso.USD)}</b><small>${dinero(ingreso.MXN, 'MXN')}</small></div>
+        <div class="kpi"><span>Ingreso del mes</span><b>${dinero(ingreso.USD)}</b><small>${dinero(ingreso.MXN, 'MXN')}</small></div>
+        <div class="kpi"><span>Consultorías cobradas (mes)</span><b>${dinero(consultas.MXN, 'MXN')}</b><small>${consultas.USD ? `+ ${dinero(consultas.USD)}` : 'por el portal'}</small></div>
         <div class="kpi"><span>Nómina al mes (aprox.)</span><b>${dinero(nominaMes.USD)}</b><small>${dinero(nominaMes.MXN, 'MXN')}</small></div>
         <div class="kpi"><span>Queda (antes de gastos)</span><b class="${margen('USD') < 0 ? 'rojo' : ''}">${dinero(margen('USD'))}</b><small class="${margen('MXN') < 0 ? 'rojo' : ''}">${dinero(margen('MXN'), 'MXN')}</small></div>
       </div>
@@ -847,7 +1170,17 @@ export function iniciar(D, { muestra = false } = {}) {
         <table class="tabla"><tr><th>Cliente</th><th>Estado</th><th>Mensualidad</th><th>Pago único</th><th>Cobro</th><th></th></tr>
         ${filas.map(({ c, d }) => `<tr><td><a href="#cliente/${c.id}">${h(c.nombre)}</a></td><td><span class="chip ${c.estado}">${ESTADOS[c.estado]}</span></td><td>${dinero(d.mensualidad, d.moneda)}</td><td>${dinero(d.pago_unico, d.moneda)}</td><td>${d.dia_cobro ? `día ${d.dia_cobro}` : '—'}</td><td><button class="btn chico" data-din="${c.id}">Cambiar</button></td></tr>`).join('')}
         </table></div>
-      <p class="nota">Facturas: Zoho Invoice se conecta en la siguiente fase, solo para ti.</p>`
+      <div class="tarjeta"><h3>Consultorías cobradas por el portal</h3>${
+        pagos.length
+          ? `<table class="tabla"><tr><th>Fecha</th><th>Prospecto</th><th>Monto</th></tr>${pagos
+              .map((g) => {
+                const x = pros.find((y) => y.id === g.prospecto_id)
+                return `<tr><td>${fechaCorta(g.fecha)}</td><td>${x ? `<a href="#prospecto/${x.id}">${h(x.empresa || x.nombre || x.link)}</a>` : '—'}</td><td>${dinero(g.monto, g.moneda)}</td></tr>`
+              })
+              .join('')}</table>`
+          : '<p class="vacio">Todavía no hay consultorías cobradas.</p>'
+      }</div>
+      <p class="nota">Ingreso del mes = mensualidades de clientes activos + consultorías cobradas este mes. Facturas: Zoho Invoice se conecta en la siguiente fase, solo para ti.</p>`
     $$('[data-din]', v).forEach((b) => (b.onclick = () => editarDinero(clienteDe(b.dataset.din), din.find((x) => x.cliente_id === b.dataset.din))))
   }
 
@@ -859,13 +1192,13 @@ export function iniciar(D, { muestra = false } = {}) {
     const filas = await Promise.all(
       personas.map(
         async (p) =>
-          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${h(p.correo)}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><button class="btn chico" data-per="${p.id}">Editar</button></td></tr>`,
+          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${h(p.correo)}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><button class="btn chico" data-per="${p.id}">Editar</button></td></tr>`,
       ),
     )
     v.innerHTML = `
       <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button></div>
-      <div class="tarjeta"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Dónde</th><th>Rol</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div>
-      <p class="nota">Cada persona entra con su correo y su contraseña. Solo tú ves todo; los demás, aunque sean socios, entran como equipo.</p>`
+      <div class="tarjeta"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Dónde</th><th>Rol</th><th>Prospectos</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div>
+      <p class="nota">Cada persona entra con su correo y su contraseña. Solo tú ves todo; los demás, aunque sean socios, entran como equipo. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
     $('#p-nueva', v).onclick = () => editarPersona(null)
     $$('[data-per]', v).forEach((b) => (b.onclick = () => editarPersona(persona(b.dataset.per))))
   }
@@ -883,6 +1216,21 @@ export function iniciar(D, { muestra = false } = {}) {
           ${!nueva && p.id !== yo.id ? `<label class="check"><input type="checkbox" name="activo" ${p.activo ? 'checked' : ''}> Acceso prendido</label>` : ''}
           ${!nueva ? `<label class="ancho">Foto<input name="foto" type="file" accept="image/jpeg,image/png,image/webp"></label>` : ''}
         </div>
+        ${
+          !nueva && p.rol !== 'admin'
+            ? `<fieldset class="permisos"><legend>Prospectos</legend>
+                <div class="campos">
+                  <label class="ancho">Qué prospectos ve<select name="pros_ver">${opciones(VER_PROS, p.pros_ver || 'nada')}</select></label>
+                  <label class="check ancho"><input type="checkbox" name="pros_trabajar" ${p.pros_trabajar ? 'checked' : ''}> Trabajarlos: notas, siguiente paso, datos de contacto y apuntar prospectos nuevos</label>
+                  <label class="check ancho"><input type="checkbox" name="pros_etapas" ${p.pros_etapas ? 'checked' : ''}> Mover etapas (reunión hecha, propuesta enviada, perdido…)</label>
+                  <label class="check ancho"><input type="checkbox" name="pros_convertir" ${p.pros_convertir ? 'checked' : ''}> Convertirlos en clientes</label>
+                  <label class="check ancho"><input type="checkbox" name="pros_pagos" ${p.pros_pagos ? 'checked' : ''}> Ver lo que pagaron</label>
+                  <label class="ancho">Código de su link <small>empezar.nxusai.org/nombre-del-prospecto?de=<b>código</b></small><input name="codigo" maxlength="30" pattern="[a-z0-9-]{2,30}" value="${h(p.codigo || '')}" placeholder="${h(slug(p.nombre.split(' ')[0]))}"></label>
+                </div>
+                <p class="nota">Asignar y borrar prospectos es solo tuyo. Los prospectos que lleguen por su link quedan a su nombre (y su comisión, si cobra comisión).</p>
+              </fieldset>`
+            : ''
+        }
         <div class="acciones"><button class="btn primario">${nueva ? 'Dar de alta' : 'Guardar'}</button>
           ${!nueva && p.id !== yo.id ? '<button type="button" class="btn" id="p-clave">Nueva contraseña</button>' : ''}
           <button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
@@ -894,7 +1242,11 @@ export function iniciar(D, { muestra = false } = {}) {
           if (nueva) {
             ok = await intenta(() => D.crearPersona({ nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, correo: d.correo.trim(), clave: d.clave }), `${d.nombre} ya puede entrar con su correo`)
           } else {
-            ok = await intenta(() => D.guardarPersona({ id: p.id, nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, ...(p.id !== yo.id ? { activo: !!d.activo } : {}) }), 'Guardado')
+            const pros =
+              p.rol !== 'admin'
+                ? { pros_ver: d.pros_ver, pros_trabajar: !!d.pros_trabajar, pros_etapas: !!d.pros_etapas, pros_convertir: !!d.pros_convertir, pros_pagos: !!d.pros_pagos, codigo: slug(d.codigo).slice(0, 30) || null }
+                : {}
+            ok = await intenta(() => D.guardarPersona({ id: p.id, nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, ...(p.id !== yo.id ? { activo: !!d.activo } : {}), ...pros }), 'Guardado')
             const foto = e.target.foto?.files?.[0]
             if (ok && foto) {
               if (foto.size > 5 * 1024 * 1024) aviso('La foto pesa más de 5 MB', 'mal')
@@ -921,10 +1273,10 @@ export function iniciar(D, { muestra = false } = {}) {
     titulo('Bitácora')
     const b = await D.bitacora()
     const QUE = { insert: 'creó', update: 'cambió', delete: 'borró' }
-    const TABLA = { perfiles: 'una persona', clientes: 'un cliente', clientes_dinero: 'lo que paga un cliente', tareas: 'una tarea', jornadas: 'una entrada/salida', nomina: 'una nómina', nomina_ajustes: 'un ajuste', comisiones: 'una comisión' }
+    const TABLA = { perfiles: 'una persona', clientes: 'un cliente', clientes_dinero: 'lo que paga un cliente', tareas: 'una tarea', jornadas: 'una entrada/salida', nomina: 'una nómina', nomina_ajustes: 'un ajuste', comisiones: 'una comisión', prospectos: 'un prospecto', prospectos_notas: 'una nota de prospecto', prospectos_pagos: 'un pago de consultoría' }
     v.innerHTML = `<div class="tarjeta">${
       b.length
-        ? `<table class="tabla"><tr><th>Cuándo</th><th>Quién</th><th>Qué</th></tr>${b.map((x) => `<tr><td>${fechaCorta(x.cuando)} ${hora(x.cuando)}</td><td>${h(x.quien ? nombreDe(x.quien) : 'Sistema / NEX')}</td><td>${QUE[x.accion] ?? x.accion} ${TABLA[x.tabla] ?? x.tabla}</td></tr>`).join('')}</table>`
+        ? `<table class="tabla"><tr><th>Cuándo</th><th>Quién</th><th>Qué</th></tr>${b.map((x) => `<tr><td>${fechaCorta(x.cuando)} ${hora(x.cuando)}</td><td>${h(x.quien ? nombreDe(x.quien) : 'Sistema / portal / NEX')}</td><td>${QUE[x.accion] ?? x.accion} ${TABLA[x.tabla] ?? x.tabla}</td></tr>`).join('')}</table>`
         : '<p class="vacio">Todavía no hay movimientos.</p>'
     }</div>`
   }

@@ -8,7 +8,7 @@ export const URL_SB = () => env('SUPABASE_URL').replace(/\/$/, '')
 export const json = (o, status = 200) => Response.json(o, { status, headers: { 'cache-control': 'no-store' } })
 
 /** Pide a Supabase con la sesión de la persona (o con la llave de servicio). */
-export async function sb(path, { token, servicio = false, method = 'GET', body } = {}) {
+export async function sb(path, { token, servicio = false, method = 'GET', body, prefer } = {}) {
   const llave = servicio ? env('SUPABASE_SERVICE_KEY') : env('SUPABASE_ANON_KEY')
   const res = await fetch(`${URL_SB()}${path}`, {
     method,
@@ -17,7 +17,7 @@ export async function sb(path, { token, servicio = false, method = 'GET', body }
       // Las llaves nuevas (sb_secret_) van solo en apikey; las de antes (JWT) también como Bearer.
       ...(servicio ? (/^eyJ/.test(llave) ? { authorization: `Bearer ${llave}` } : {}) : { authorization: `Bearer ${token}` }),
       'content-type': 'application/json',
-      ...(method === 'POST' && path.startsWith('/rest/') ? { prefer: 'return=representation' } : {}),
+      ...(prefer ? { prefer } : method === 'POST' && path.startsWith('/rest/') ? { prefer: 'return=representation' } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })

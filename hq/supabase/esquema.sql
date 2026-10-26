@@ -409,3 +409,273 @@ where not exists (select 1 from public.clientes c where c.nombre = v.nombre);
 
 insert into public.clientes_dinero (cliente_id)
 select id from public.clientes c where not exists (select 1 from public.clientes_dinero d where d.cliente_id = c.id);
+
+-- ---------------------------------------------------------------------------
+-- Prospectos: los que llegan por el portal (empezar.nxusai.org) o se apuntan
+-- a mano. Eduardo decide, persona por persona, quién los ve y qué puede hacer
+-- con ellos; él siempre ve y hace todo, y es el único que asigna y borra.
+-- ---------------------------------------------------------------------------
+
+-- Lo que cada persona puede hacer con los prospectos (lo cambia solo el admin,
+-- porque solo él cambia perfiles).
+alter table public.perfiles add column if not exists codigo text; -- su link: empezar.nxusai.org/juan-perez?de=codigo
+alter table public.perfiles add column if not exists pros_ver text not null default 'nada';
+alter table public.perfiles add column if not exists pros_trabajar boolean not null default false;
+alter table public.perfiles add column if not exists pros_etapas boolean not null default false;
+alter table public.perfiles add column if not exists pros_convertir boolean not null default false;
+alter table public.perfiles add column if not exists pros_pagos boolean not null default false;
+alter table public.perfiles drop constraint if exists perfiles_pros_ver_check;
+alter table public.perfiles add constraint perfiles_pros_ver_check check (pros_ver in ('nada', 'suyos', 'todos'));
+alter table public.perfiles drop constraint if exists perfiles_codigo_check;
+alter table public.perfiles add constraint perfiles_codigo_check check (codigo is null or codigo ~ '^[a-z0-9-]{2,30}$');
+create unique index if not exists perfiles_codigo on public.perfiles (codigo) where codigo is not null;
+
+create table if not exists public.prospectos (
+  id uuid primary key default gen_random_uuid(),
+  portal_id text unique, -- su registro en el portal; null si se apuntó a mano
+  origen text not null default 'portal' check (origen in ('portal', 'manual')),
+  link text not null default '', -- juan-perez
+  nombre text not null default '' check (char_length(nombre) <= 80),
+  empresa text not null default '' check (char_length(empresa) <= 120),
+  direccion text not null default '' check (char_length(direccion) <= 200),
+  whatsapp text not null default '' check (char_length(whatsapp) <= 30),
+  correo text not null default '' check (char_length(correo) <= 120),
+  lineas text[] not null default '{}', -- lo que marcó del catálogo
+  diagnostico jsonb not null default '{}', -- giro, tamaño, país, urgencia, lo que quiere
+  camino text not null default '' check (camino in ('', 'consulta', 'propuesta')),
+  acepta_novedades boolean not null default false, -- quiere recibir casos y novedades
+  etapa text not null default 'abrio' check (etapa in ('abrio', 'datos', 'pagado', 'cita', 'reunion', 'propuesta', 'cliente', 'perdido')),
+  cita timestamptz,
+  meet text not null default '',
+  siguiente text not null default '' check (char_length(siguiente) <= 300), -- el siguiente paso
+  siguiente_fecha date,
+  motivo_perdido text not null default '' check (char_length(motivo_perdido) <= 300),
+  traido_por uuid references public.perfiles (id) on delete set null, -- de quién era el link
+  asignado uuid references public.perfiles (id) on delete set null, -- quién lo atiende
+  cliente_id uuid references public.clientes (id) on delete set null, -- en qué cliente se convirtió
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists prospectos_etapa on public.prospectos (etapa, actualizado desc);
+
+create table if not exists public.prospectos_notas (
+  id uuid primary key default gen_random_uuid(),
+  prospecto_id uuid not null references public.prospectos (id) on delete cascade,
+  autor uuid references public.perfiles (id) on delete set null,
+  texto text not null check (char_length(texto) between 1 and 2000),
+  creada timestamptz not null default now()
+);
+create index if not exists prospectos_notas_de on public.prospectos_notas (prospecto_id, creada);
+
+-- Lo que pagó (la consultoría por Stripe). Solo el admin, o quien tenga permiso.
+create table if not exists public.prospectos_pagos (
+  id uuid primary key default gen_random_uuid(),
+  prospecto_id uuid not null references public.prospectos (id) on delete cascade,
+  concepto text not null default 'Consultoría',
+  monto numeric(12, 2) not null check (monto >= 0),
+  moneda text not null default 'MXN' check (moneda in ('USD', 'MXN')),
+  sesion text unique, -- la sesión de Stripe (para no contarlo dos veces)
+  fecha timestamptz not null default now()
+);
+
+-- Qué puede hacer quien pide, con los prospectos.
+create or replace function public.pros_puede(que text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select es_admin() or exists (
+    select 1 from perfiles p where p.id = auth.uid() and p.activo and case que
+      when 'trabajar' then p.pros_trabajar
+      when 'etapas' then p.pros_etapas
+      when 'convertir' then p.pros_convertir
+      when 'pagos' then p.pros_pagos
+      else false end)
+$$;
+
+-- Si ve un prospecto: el admin todos; los demás, según lo que Eduardo les dio
+-- ("suyos" = los de su link o los que él les asignó).
+create or replace function public.pros_ve(asignado uuid, traido uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select es_admin() or exists (
+    select 1 from perfiles p where p.id = auth.uid() and p.activo
+      and (p.pros_ver = 'todos' or (p.pros_ver = 'suyos' and auth.uid() in (asignado, traido))))
+$$;
+
+create or replace function public.orden_etapa(e text) returns int
+language sql immutable as $$
+  select array_position(array['abrio', 'datos', 'pagado', 'cita', 'reunion', 'propuesta', 'cliente', 'perdido'], e)
+$$;
+
+create or replace function public.antes_prospecto() returns trigger
+language plpgsql as $$
+declare convirtiendo boolean := coalesce(current_setting('hq.convirtiendo', true), '') = 'si';
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    if not es_sistema() then
+      -- A mano: nace de quien lo apunta (el admin puede ponerlo a nombre de alguien).
+      new.origen := 'manual';
+      new.portal_id := null;
+      new.cliente_id := null;
+      if new.etapa in ('cliente', 'perdido') then new.etapa := 'datos'; end if;
+      if not es_admin() then
+        new.traido_por := auth.uid();
+        new.asignado := auth.uid();
+      end if;
+    end if;
+    new.asignado := coalesce(new.asignado, new.traido_por);
+  else
+    new.id := old.id;
+    new.portal_id := old.portal_id;
+    new.origen := old.origen;
+    new.creado := old.creado;
+    if es_sistema() then
+      -- El portal solo avanza: nunca regresa una etapa ni cambia a quién es.
+      new.traido_por := coalesce(old.traido_por, new.traido_por);
+      new.asignado := coalesce(old.asignado, new.asignado, new.traido_por);
+      new.cliente_id := old.cliente_id;
+      if old.etapa in ('reunion', 'propuesta', 'cliente', 'perdido') or orden_etapa(new.etapa) < orden_etapa(old.etapa) then
+        new.etapa := old.etapa;
+      end if;
+    elsif not es_admin() then
+      -- Lo que llenó el prospecto en el portal no se toca.
+      new.link := old.link;
+      new.lineas := old.lineas;
+      new.diagnostico := old.diagnostico;
+      new.camino := old.camino;
+      new.acepta_novedades := old.acepta_novedades;
+      new.cita := old.cita;
+      new.meet := old.meet;
+      if new.traido_por is distinct from old.traido_por or new.asignado is distinct from old.asignado then
+        raise exception 'Solo Eduardo asigna prospectos';
+      end if;
+      if new.cliente_id is distinct from old.cliente_id and not convirtiendo then
+        raise exception 'Para hacerlo cliente usa "Convertir en cliente"';
+      end if;
+      if new.etapa is distinct from old.etapa then
+        if new.etapa = 'cliente' or old.etapa = 'cliente' then
+          if not convirtiendo then raise exception 'Para hacerlo cliente usa "Convertir en cliente"'; end if;
+        elsif not pros_puede('etapas') then
+          raise exception 'No tienes permiso para mover la etapa';
+        end if;
+      end if;
+      if (new.nombre, new.empresa, new.direccion, new.whatsapp, new.correo, new.siguiente, new.siguiente_fecha, new.motivo_perdido)
+         is distinct from (old.nombre, old.empresa, old.direccion, old.whatsapp, old.correo, old.siguiente, old.siguiente_fecha, old.motivo_perdido)
+         and not pros_puede('trabajar') then
+        raise exception 'No tienes permiso para trabajar este prospecto';
+      end if;
+    end if;
+  end if;
+  new.actualizado := now();
+  return new;
+end $$;
+
+drop trigger if exists hq_antes_prospecto on public.prospectos;
+create trigger hq_antes_prospecto before insert or update on public.prospectos
+  for each row execute function public.antes_prospecto();
+
+-- Las notas no se cambian: se agregan, con su autor y su hora.
+create or replace function public.antes_nota_prospecto() returns trigger
+language plpgsql as $$
+begin
+  if not es_sistema() then new.autor := auth.uid(); end if;
+  new.creada := now();
+  return new;
+end $$;
+
+drop trigger if exists hq_antes_nota_prospecto on public.prospectos_notas;
+create trigger hq_antes_nota_prospecto before insert on public.prospectos_notas
+  for each row execute function public.antes_nota_prospecto();
+
+-- Si el prospecto llegó por el link de alguien que cobra comisión, lo que
+-- pagó le genera su comisión sola (Eduardo la puede quitar en Nómina).
+create or replace function public.comision_por_pago() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare r record;
+begin
+  select p.traido_por, p.empresa, p.nombre, n.porcentaje into r
+  from prospectos p join nomina n on n.persona = p.traido_por
+  where p.id = new.prospecto_id and n.esquema = 'comision' and n.porcentaje > 0;
+  if found then
+    insert into comisiones (persona, concepto, fecha, monto_cobrado, porcentaje, moneda)
+    values (r.traido_por, left(new.concepto || ' · ' || coalesce(nullif(r.empresa, ''), nullif(r.nombre, ''), 'prospecto'), 200),
+            (new.fecha at time zone 'America/Mexico_City')::date, new.monto, r.porcentaje, new.moneda);
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists hq_comision_por_pago on public.prospectos_pagos;
+create trigger hq_comision_por_pago after insert on public.prospectos_pagos
+  for each row execute function public.comision_por_pago();
+
+-- Convertir en cliente: crea su ficha en Clientes con lo que contestó y lo
+-- marca como cliente. Lo hace el admin o quien tenga ese permiso.
+create or replace function public.convertir_prospecto(pid uuid) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare p prospectos; nuevo uuid; d jsonb;
+begin
+  select * into p from prospectos where id = pid;
+  if not found or not pros_ve(p.asignado, p.traido_por) then raise exception 'Ese prospecto no existe'; end if;
+  if not pros_puede('convertir') then raise exception 'No tienes permiso para convertir prospectos en clientes'; end if;
+  if p.cliente_id is not null then return p.cliente_id; end if;
+  d := p.diagnostico;
+  insert into clientes (nombre, estado, equipo, servicios, descripcion, contacto_nombre, contacto_correo, contacto_tel, inicio, responsable, traido_por)
+  values (
+    left(coalesce(nullif(p.empresa, ''), nullif(p.nombre, ''), 'Cliente nuevo'), 120),
+    'activo',
+    case when d ->> 'pais' = 'USA' then 'usa' else 'mexico' end,
+    p.lineas,
+    left(concat_ws(E'\n',
+      case when p.origen = 'portal' then 'Llegó por el portal.' end,
+      nullif(concat_ws(' · ', d ->> 'giro', nullif(d ->> 'tamano', '') || ' personas', d ->> 'pais'), ''),
+      case when coalesce(d ->> 'quiere', '') <> '' then 'Quiere: ' || (d ->> 'quiere') end,
+      case when p.direccion <> '' then 'Dirección: ' || p.direccion end), 5000),
+    p.nombre, p.correo, p.whatsapp, current_date, p.asignado, p.traido_por)
+  returning id into nuevo;
+  insert into clientes_dinero (cliente_id) values (nuevo) on conflict do nothing;
+  perform set_config('hq.convirtiendo', 'si', true);
+  update prospectos set etapa = 'cliente', cliente_id = nuevo where id = pid;
+  perform set_config('hq.convirtiendo', '', true);
+  return nuevo;
+end $$;
+
+revoke all on function public.convertir_prospecto(uuid) from public;
+grant execute on function public.convertir_prospecto(uuid) to authenticated;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['prospectos', 'prospectos_notas', 'prospectos_pagos'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+  end loop;
+end $$;
+
+alter table public.prospectos enable row level security;
+alter table public.prospectos_notas enable row level security;
+alter table public.prospectos_pagos enable row level security;
+
+do $$
+declare r record;
+begin
+  for r in select policyname, tablename from pg_policies where schemaname = 'public'
+    and tablename in ('prospectos', 'prospectos_notas', 'prospectos_pagos')
+  loop
+    execute format('drop policy if exists %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $$;
+
+create policy prospectos_ver on public.prospectos for select to authenticated using (pros_ve(asignado, traido_por));
+create policy prospectos_crear on public.prospectos for insert to authenticated with check (pros_puede('trabajar'));
+create policy prospectos_cambiar on public.prospectos for update to authenticated
+  using (pros_ve(asignado, traido_por) and (pros_puede('trabajar') or pros_puede('etapas')))
+  with check (pros_ve(asignado, traido_por));
+create policy prospectos_borrar on public.prospectos for delete to authenticated using (es_admin());
+
+create policy pros_notas_ver on public.prospectos_notas for select to authenticated
+  using (exists (select 1 from prospectos p where p.id = prospecto_id));
+create policy pros_notas_crear on public.prospectos_notas for insert to authenticated
+  with check (pros_puede('trabajar') and exists (select 1 from prospectos p where p.id = prospecto_id));
+create policy pros_notas_borrar on public.prospectos_notas for delete to authenticated using (es_admin());
+
+create policy pros_pagos_ver on public.prospectos_pagos for select to authenticated
+  using (pros_puede('pagos') and exists (select 1 from prospectos p where p.id = prospecto_id));
+create policy pros_pagos_admin on public.prospectos_pagos for all to authenticated using (es_admin()) with check (es_admin());

@@ -122,13 +122,16 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // Who the link is for: empezar.nxusai.org/juan-perez → "Juan".
 const slug = decodeURIComponent(location.pathname.slice(1)).replace(/[^\w-]/g, '').slice(0, 60)
 const firstName = slug ? slug.split('-')[0].replace(/^./, (c) => c.toUpperCase()) : ''
+// De quién es el link: empezar.nxusai.org/juan-perez?de=barbara → el prospecto es de Barbara.
+const vendedor = (new URLSearchParams(location.search).get('de') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30)
 
 // Everything the client has filled, kept in this browser so a reload or the trip to Stripe loses nothing.
-const blank = () => ({ id: '', slug, step: 'bienvenida', chosen: [], open: 'neural', answers: {}, camino: '', contacto: { nombre: firstName, empresa: '', direccion: '', whatsapp: '', correo: '' }, acepta: true, cita: null })
+const blank = () => ({ id: '', slug, vendedor, step: 'bienvenida', chosen: [], open: 'neural', answers: {}, camino: '', contacto: { nombre: firstName, empresa: '', direccion: '', whatsapp: '', correo: '' }, acepta: true, novedades: false, cita: null })
 let st = blank()
 try {
   const saved = JSON.parse(localStorage.getItem('nxus-portal') || 'null')
-  if (saved && saved.slug === slug) st = { ...st, ...saved }
+  // De regreso de Stripe la dirección ya no trae su nombre (/?pagado=…): se sigue con lo guardado.
+  if (saved && (saved.slug === slug || new URLSearchParams(location.search).has('pagado'))) st = { ...st, ...saved }
 } catch {}
 const keep = () => { try { localStorage.setItem('nxus-portal', JSON.stringify(st)) } catch {} }
 let error = '', busy = false, horarios = null, dia = 0, hora = ''
@@ -190,7 +193,8 @@ function screen() {
       ${f('direccion', 'Dirección del negocio', 'autocomplete="street-address" maxlength="200" placeholder="Calle, número, colonia, ciudad"')}
       <div class="q"><label for="c-whatsapp">Tu WhatsApp</label><input id="c-whatsapp" data-c="whatsapp" value="${esc(c.whatsapp)}" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="+52 …"><span class="tiny">Confírmalo o corrígelo.</span></div>
       ${f('correo', 'Tu correo', 'inputmode="email" autocomplete="email" maxlength="120" placeholder="tu@empresa.com"')}
-      <label class="ok-box"><input type="checkbox" id="acepta" ${st.acepta ? 'checked' : ''}> Acepto que NXUS AI me contacte por WhatsApp y correo sobre mi solicitud.</label>
+      <label class="ok-box"><input type="checkbox" id="acepta" ${st.acepta ? 'checked' : ''}> <span>Acepto que NXUS AI me contacte por WhatsApp y correo sobre mi solicitud, según el <a href="/privacidad" target="_blank" rel="noopener" style="color:var(--cyan)">aviso de privacidad</a>.</span></label>
+      <label class="ok-box"><input type="checkbox" id="novedades" ${st.novedades ? 'checked' : ''}> <span>También quiero recibir casos de éxito y novedades de NXUS AI (opcional).</span></label>
       ${err}<button class="btn" data-next="datos" ${busy ? 'disabled' : ''}>${st.camino === 'consulta' ? 'Continuar al pago' : 'Elegir horario'}</button>`
     }
     case 'pago': return `${top}${backBtn}<h2>Paga tu consultoría</h2><p>Después de pagar eliges tu horario.</p>
@@ -266,7 +270,7 @@ document.addEventListener('click', async (e) => {
     if (!st.acepta) return (error = 'Necesitamos tu permiso para contactarte.'), render()
     busy = true; error = ''; render()
     try {
-      await call('lead', { accion: 'guardar', id: st.id, lineas: st.chosen, diagnostico: st.answers, camino: st.camino, contacto: c })
+      await call('lead', { accion: 'guardar', id: st.id, lineas: st.chosen, diagnostico: st.answers, camino: st.camino, contacto: c, novedades: st.novedades })
       busy = false
       if (st.camino === 'consulta') return go('pago')
       go('agenda'); return loadHorarios()
@@ -290,9 +294,14 @@ document.addEventListener('input', (e) => {
   if (d.c) st.contacto[d.c] = e.target.value
   if (d.ans) st.answers[d.ans] = e.target.value
   if (e.target.id === 'acepta') st.acepta = e.target.checked
+  if (e.target.id === 'novedades') st.novedades = e.target.checked
   keep()
 })
-document.addEventListener('change', (e) => { if (e.target.id === 'acepta') { st.acepta = e.target.checked; keep() } })
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'acepta') st.acepta = e.target.checked
+  if (e.target.id === 'novedades') st.novedades = e.target.checked
+  keep()
+})
 
 async function start() {
   // Back from Stripe: check the payment, then on to the calendar.
@@ -309,7 +318,7 @@ async function start() {
   }
   render()
   if (!st.id) {
-    try { st.id = (await call('lead', { accion: 'abrio', de: slug })).id; keep() } catch {}
+    try { st.id = (await call('lead', { accion: 'abrio', de: slug, vendedor: st.vendedor })).id; keep() } catch {}
   }
   if (st.step === 'agenda') loadHorarios()
 }

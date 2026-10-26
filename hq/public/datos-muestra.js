@@ -18,13 +18,18 @@ const AN = 'u-angeles'
 const S1 = 'u-socia1'
 const S2 = 'u-socia2'
 
+/** Lo que cada quien puede hacer con los prospectos (lo decide Eduardo en Personas). */
+function permisos(codigo, ver = 'nada', trabajar = false, etapas = false, convertir = false, pagos = false) {
+  return { codigo, pros_ver: ver, pros_trabajar: trabajar, pros_etapas: etapas, pros_convertir: convertir, pros_pagos: pagos }
+}
+
 const db = {
   perfiles: [
-    { id: ED, nombre: 'Eduardo Ramos', correo: 'contacto@nxusai.org', rol: 'admin', activo: true, cargo: 'Fundador y CEO', sede: 'usa', foto: null, reporta_a: null, creado: dia(-90) },
-    { id: LU, nombre: 'Luis Enrique', correo: 'luis@nxusai.org', rol: 'equipo', activo: true, cargo: 'Encargado de operaciones', sede: 'usa', foto: null, reporta_a: ED, creado: dia(-80) },
-    { id: AN, nombre: 'María de los Ángeles', correo: 'angeles@nxusai.org', rol: 'equipo', activo: true, cargo: 'Diseñadora', sede: 'usa', foto: null, reporta_a: LU, creado: dia(-60) },
-    { id: S1, nombre: 'Barbara', correo: 'barbara@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30) },
-    { id: S2, nombre: 'Tania', correo: 'tania@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30) },
+    { id: ED, nombre: 'Eduardo Ramos', correo: 'contacto@nxusai.org', rol: 'admin', activo: true, cargo: 'Fundador y CEO', sede: 'usa', foto: null, reporta_a: null, creado: dia(-90), ...permisos('eduardo', 'todos', true, true, true, true) },
+    { id: LU, nombre: 'Luis Enrique', correo: 'luis@nxusai.org', rol: 'equipo', activo: true, cargo: 'Encargado de operaciones', sede: 'usa', foto: null, reporta_a: ED, creado: dia(-80), ...permisos('luis', 'todos', true, true, true, false) },
+    { id: AN, nombre: 'María de los Ángeles', correo: 'angeles@nxusai.org', rol: 'equipo', activo: true, cargo: 'Diseñadora', sede: 'usa', foto: null, reporta_a: LU, creado: dia(-60), ...permisos(null) },
+    { id: S1, nombre: 'Barbara', correo: 'barbara@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('barbara', 'suyos', true, true, false, false) },
+    { id: S2, nombre: 'Tania', correo: 'tania@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('tania', 'suyos', true, true, false, false) },
   ],
   clientes: [],
   clientes_dinero: [],
@@ -39,6 +44,9 @@ const db = {
   nomina_ajustes: [],
   comisiones: [],
   bitacora: [],
+  prospectos: [],
+  prospectos_notas: [],
+  prospectos_pagos: [],
 }
 
 const cliente = (c, dinero) => {
@@ -79,6 +87,47 @@ for (let d = -6; d <= -1; d++) {
 }
 db.jornadas.push({ id: id(), persona: LU, entrada: dia(0, 9, 5), salida: null, dia_completo: false, nota: '' })
 
+// Prospectos que llegaron por el portal (y uno apuntado a mano).
+const prospecto = (p) => {
+  const x = { id: id(), portal_id: id(), origen: 'portal', link: '', nombre: '', empresa: '', direccion: '', whatsapp: '', correo: '', lineas: [], diagnostico: {}, camino: '', acepta_novedades: false, etapa: 'abrio', cita: null, meet: '', siguiente: '', siguiente_fecha: null, motivo_perdido: '', traido_por: null, asignado: null, cliente_id: null, creado: dia(-5), actualizado: dia(-1), ...p }
+  x.asignado ??= x.traido_por
+  db.prospectos.push(x)
+  return x
+}
+const nota = (p, autor, texto, d) => db.prospectos_notas.push({ id: id(), prospecto_id: p.id, autor, texto, creada: dia(d, 12) })
+const juan = prospecto({
+  link: 'juan-perez', nombre: 'Juan Pérez', empresa: 'Distribuidora Pérez', direccion: 'Av. Juárez 120, Centro, Monterrey', whatsapp: '+52 81 1234 5678', correo: 'juan@distribuidoraperez.mx',
+  lineas: ['NXUS Neural: Consulta', 'NXUS Neural: Coordina', 'Software a la medida: Ventas y CRM'],
+  diagnostico: { giro: 'Distribución', tamano: '21 a 100', pais: 'México', urgencia: 'Pronto: este mes', quiere: 'Saber en tiempo real cuánto vendemos y que el inventario se pida solo.' },
+  camino: 'consulta', acepta_novedades: true, etapa: 'cita', cita: dia(2, 11), meet: 'https://meet.google.com/abc-defg-hij', traido_por: S1, creado: dia(-4), actualizado: dia(-1),
+  siguiente: 'Preparar la consultoría con su caso de inventarios', siguiente_fecha: fecha(1),
+})
+nota(juan, S1, 'Le mandé el video del Centro de trabajo de Abuelito; le encantó lo de las tareas por mes.', -3)
+nota(juan, ED, 'Pagó la consultoría. Que Luis prepare la demo de inventarios.', -1)
+db.prospectos_pagos.push({ id: id(), prospecto_id: juan.id, concepto: 'Consultoría', monto: 2500, moneda: 'MXN', sesion: 'cs_muestra_1', fecha: dia(-2, 16) })
+db.comisiones.push({ id: id(), persona: S1, cliente_id: null, concepto: 'Consultoría · Distribuidora Pérez', fecha: fecha(-2), monto_cobrado: 2500, porcentaje: 50, moneda: 'MXN', pagada: false })
+prospecto({
+  link: 'karla-mendez', nombre: 'Karla Méndez', empresa: 'Clínica Dental Sonríe', whatsapp: '+52 55 2345 6789', correo: 'karla@sonrie.mx',
+  lineas: ['Atención y ventas con IA: WhatsApp y mensajes', 'Marketing y producción: Publicidad digital'],
+  diagnostico: { giro: 'Servicios', tamano: '6 a 20', pais: 'México', urgencia: 'Urgente: lo necesito ya', quiere: 'Que el WhatsApp conteste solo y agende citas.' },
+  camino: 'propuesta', etapa: 'datos', traido_por: S2, creado: dia(-1, 18), actualizado: dia(-1, 18),
+})
+prospecto({ link: 'roberto-diaz', etapa: 'abrio', traido_por: S2, creado: dia(0, 9), actualizado: dia(0, 9) })
+const mario = prospecto({
+  link: 'mario-ruiz', nombre: 'Mario Ruiz', empresa: 'Taquería El Güero', direccion: 'Newark, NJ', whatsapp: '+1 973 555 0182', correo: 'mario@elguero.com',
+  lineas: ['Web, conexiones y datos: Websites y tiendas', 'Marketing y producción: Estrategia y redes'],
+  diagnostico: { giro: 'Restaurantes', tamano: '6 a 20', pais: 'USA', urgencia: 'Planeándolo: 1 a 3 meses', quiere: 'Página con pedidos en línea y redes que se vean pro.' },
+  camino: 'propuesta', etapa: 'propuesta', cita: dia(-6, 15), traido_por: null, asignado: LU, creado: dia(-12), actualizado: dia(-2),
+  siguiente: 'Llamarle para cerrar la propuesta', siguiente_fecha: fecha(-1),
+})
+nota(mario, LU, 'Se le mandó la propuesta: web + redes, 800 USD al mes.', -2)
+prospecto({
+  link: 'sofia-luna', nombre: 'Sofía Luna', empresa: 'Boutique Luna', whatsapp: '+52 33 3456 7890', correo: 'sofia@boutiqueluna.mx',
+  lineas: ['Marketing y producción: Contenido con IA'], diagnostico: { giro: 'Comercio', tamano: '1 a 5', pais: 'México', urgencia: 'Sin prisa: solo explorando', quiere: '' },
+  camino: 'propuesta', etapa: 'perdido', motivo_perdido: 'Por ahora no tiene presupuesto; retomar en enero.', traido_por: S1, creado: dia(-20), actualizado: dia(-8),
+})
+prospecto({ origen: 'manual', portal_id: null, nombre: 'Lic. Andrés Torres', empresa: 'Despacho Torres', whatsapp: '+52 81 9876 5432', etapa: 'reunion', traido_por: ED, asignado: ED, creado: dia(-3), actualizado: dia(-1), siguiente: 'Mandarle el portal para que llene su diagnóstico', siguiente_fecha: fecha(0) })
+
 let yo = null
 const copia = (x) => JSON.parse(JSON.stringify(x))
 const admin = () => yo?.rol === 'admin'
@@ -86,6 +135,9 @@ const nunca = () => {
   throw new Error('No tienes permiso para hacer eso')
 }
 const anotar = (accion, tabla, fila) => db.bitacora.unshift({ id: db.bitacora.length + 1, quien: yo?.id ?? null, accion, tabla, fila: String(fila ?? ''), cuando: new Date().toISOString() })
+const yoPerfil = () => db.perfiles.find((p) => p.id === yo?.id)
+const puede = (que) => admin() || !!yoPerfil()?.[`pros_${que}`]
+const veProspecto = (p) => !!p && (admin() || yoPerfil()?.pros_ver === 'todos' || (yoPerfil()?.pros_ver === 'suyos' && [p.asignado, p.traido_por].includes(yo?.id)))
 const espera = (x) => new Promise((r) => setTimeout(() => r(copia(x)), 60))
 
 function upsert(lista, fila, llave = 'id') {
@@ -122,12 +174,13 @@ export function crearMuestra() {
     personas: () => espera(db.perfiles),
     async guardarPersona(p) {
       if (!admin()) nunca()
+      if (p.codigo && db.perfiles.some((x) => x.codigo === p.codigo && x.id !== p.id)) throw new Error('Ese código de link ya lo tiene otra persona')
       anotar('update', 'perfiles', p.id)
       return copia(upsert(db.perfiles, p))
     },
     async crearPersona(p) {
       if (!admin()) nunca()
-      const nueva = { id: id(), nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString() }
+      const nueva = { id: id(), nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString(), ...permisos(null) }
       db.perfiles.push(nueva)
       anotar('insert', 'perfiles', nueva.id)
       return { ok: true, id: nueva.id }
@@ -227,6 +280,78 @@ export function crearMuestra() {
     },
 
     bitacora: () => espera(admin() ? db.bitacora : []),
+
+    // Prospectos: las mismas reglas que la base de datos (supabase/esquema.sql).
+    prospectos: () => espera(db.prospectos.filter(veProspecto).sort((a, b) => b.actualizado.localeCompare(a.actualizado))),
+    async guardarProspecto(p) {
+      const viejo = p.id && db.prospectos.find((x) => x.id === p.id && veProspecto(x))
+      if (p.id && !viejo) nunca()
+      if (!viejo) {
+        if (!puede('trabajar')) nunca()
+        const nuevo = { id: id(), portal_id: null, origen: 'manual', link: '', nombre: '', empresa: '', direccion: '', whatsapp: '', correo: '', lineas: [], diagnostico: {}, camino: '', acepta_novedades: false, etapa: 'datos', cita: null, meet: '', siguiente: '', siguiente_fecha: null, motivo_perdido: '', cliente_id: null, ...p, creado: new Date().toISOString(), actualizado: new Date().toISOString() }
+        if (!admin()) Object.assign(nuevo, { traido_por: yo.id, asignado: yo.id })
+        nuevo.asignado ??= nuevo.traido_por
+        if (['cliente', 'perdido'].includes(nuevo.etapa)) nuevo.etapa = 'datos'
+        db.prospectos.push(nuevo)
+        anotar('insert', 'prospectos', nuevo.id)
+        return copia(nuevo)
+      }
+      if (!admin()) {
+        if (!puede('trabajar') && !puede('etapas')) nunca()
+        if (('asignado' in p && p.asignado !== viejo.asignado) || ('traido_por' in p && p.traido_por !== viejo.traido_por)) throw new Error('Solo Eduardo asigna prospectos')
+        if ('etapa' in p && p.etapa !== viejo.etapa) {
+          if (p.etapa === 'cliente' || viejo.etapa === 'cliente') throw new Error('Para hacerlo cliente usa "Convertir en cliente"')
+          if (!puede('etapas')) throw new Error('No tienes permiso para mover la etapa')
+        }
+        const trabajo = ['nombre', 'empresa', 'direccion', 'whatsapp', 'correo', 'siguiente', 'siguiente_fecha', 'motivo_perdido'].some((k) => k in p && p[k] !== viejo[k])
+        if (trabajo && !puede('trabajar')) throw new Error('No tienes permiso para trabajar este prospecto')
+        for (const k of ['link', 'lineas', 'diagnostico', 'camino', 'acepta_novedades', 'cita', 'meet', 'cliente_id']) delete p[k]
+      }
+      anotar('update', 'prospectos', p.id)
+      return copia(upsert(db.prospectos, { ...p, actualizado: new Date().toISOString() }))
+    },
+    async borrarProspecto(pid) {
+      if (!admin()) nunca()
+      db.prospectos = db.prospectos.filter((p) => p.id !== pid)
+      db.prospectos_notas = db.prospectos_notas.filter((n) => n.prospecto_id !== pid)
+      db.prospectos_pagos = db.prospectos_pagos.filter((n) => n.prospecto_id !== pid)
+    },
+    notasProspecto: (pid) => espera(db.prospectos_notas.filter((n) => n.prospecto_id === pid && veProspecto(db.prospectos.find((p) => p.id === pid)))),
+    async agregarNota(pid, texto) {
+      const p = db.prospectos.find((x) => x.id === pid)
+      if (!p || !veProspecto(p) || !puede('trabajar')) nunca()
+      const n = { id: id(), prospecto_id: pid, autor: yo.id, texto, creada: new Date().toISOString() }
+      db.prospectos_notas.push(n)
+      anotar('insert', 'prospectos_notas', n.id)
+      return copia(n)
+    },
+    pagosProspectos: () => espera(db.prospectos_pagos.filter((g) => admin() || (puede('pagos') && veProspecto(db.prospectos.find((p) => p.id === g.prospecto_id))))),
+    async convertirProspecto(pid) {
+      const p = db.prospectos.find((x) => x.id === pid)
+      if (!p || !veProspecto(p)) throw new Error('Ese prospecto no existe')
+      if (!puede('convertir')) throw new Error('No tienes permiso para convertir prospectos en clientes')
+      if (p.cliente_id) return p.cliente_id
+      const d = p.diagnostico || {}
+      const c = cliente(
+        {
+          nombre: p.empresa || p.nombre || 'Cliente nuevo',
+          equipo: d.pais === 'USA' ? 'usa' : 'mexico',
+          servicios: p.lineas,
+          descripcion: [p.origen === 'portal' ? 'Llegó por el portal.' : '', [d.giro, d.tamano && `${d.tamano} personas`, d.pais].filter(Boolean).join(' · '), d.quiere ? `Quiere: ${d.quiere}` : '', p.direccion ? `Dirección: ${p.direccion}` : ''].filter(Boolean).join('\n'),
+          contacto_nombre: p.nombre,
+          contacto_correo: p.correo,
+          contacto_tel: p.whatsapp,
+          inicio: fecha(0),
+          responsable: p.asignado,
+          traido_por: p.traido_por,
+          creado: new Date().toISOString(),
+        },
+        {},
+      )
+      Object.assign(p, { etapa: 'cliente', cliente_id: c.id, actualizado: new Date().toISOString() })
+      anotar('insert', 'clientes', c.id)
+      return c.id
+    },
 
     // La IA real (netlify/functions/ordenar.mjs) entiende cualquier texto; la
     // muestra solo saca lo básico para enseñar cómo se ve.

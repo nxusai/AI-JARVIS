@@ -10,6 +10,7 @@ function claro(error) {
   if (/Invalid login credentials/i.test(m)) return new Error('Correo o contraseña incorrectos')
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
+  if (/duplicate key.*perfiles_codigo/i.test(m)) return new Error('Ese código de link ya lo tiene otra persona')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -117,6 +118,14 @@ export function crearSupabase({ url, anon }) {
     comisiones: async () => ok(await tabla('comisiones').select('*').order('fecha', { ascending: false })),
     guardarComision: (c) => guardar('comisiones', c),
     borrarComision: async (id) => ok(await tabla('comisiones').delete().eq('id', id)),
+
+    prospectos: async () => ok(await tabla('prospectos').select('*').order('actualizado', { ascending: false })),
+    guardarProspecto: (p) => guardar('prospectos', p),
+    borrarProspecto: async (id) => ok(await tabla('prospectos').delete().eq('id', id)),
+    notasProspecto: async (id) => ok(await tabla('prospectos_notas').select('*').eq('prospecto_id', id).order('creada')),
+    agregarNota: async (id, texto) => ok(await tabla('prospectos_notas').insert({ prospecto_id: id, texto }).select().single()),
+    pagosProspectos: async () => ok(await tabla('prospectos_pagos').select('*').order('fecha', { ascending: false })),
+    convertirProspecto: async (id) => ok(await sb.rpc('convertir_prospecto', { pid: id })),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 

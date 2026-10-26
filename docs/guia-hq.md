@@ -12,6 +12,13 @@ Las reglas viven en la base de datos: aunque alguien se brinque la página, no p
 ## Lo que tiene
 - **Inicio:** a ti te muestra clientes activos, ingreso del mes, la nómina de la quincena, tareas atrasadas, quién está trabajando ahora y tu meta de $20,000. Al equipo, su reloj y sus pendientes.
 - **Clientes:** una ficha por cliente con el botón **"Entrar a su sistema"**. **✦ Nuevo cliente con IA:** escribes el cliente con tus palabras y la IA arma la ficha, lo que paga y las primeras tareas; tú revisas y guardas.
+- **Prospectos:** todo lo que llega por el portal (empezar.nxusai.org), en un tablero por etapas:
+  - Abrió su link → Dejó sus datos → Pagó consultoría → Cita agendada → Reunión hecha → Propuesta enviada → **Cliente** o **Perdido**.
+  - El portal mueve solo las primeras cuatro; las demás las mueve quien tenga permiso.
+  - Cada prospecto tiene su ficha: contacto, lo que le interesa, su diagnóstico, su cita con Meet, lo que pagó, el **siguiente paso** con fecha (si se pasa, sale en rojo) y **notas** que no se borran.
+  - **✓ Convertir en cliente** crea su ficha en Clientes con todo lo que contestó.
+  - **🔗 Link para un prospecto:** escribes su nombre y te da el link y un mensaje listo para WhatsApp. El link lleva el código de quien lo manda (`?de=barbara`): el prospecto queda a su nombre.
+  - **+ Apuntar a mano:** para alguien que conociste por otro lado.
 - **Tareas:** tablero Pendiente / En curso / Hecha. Cada quien mueve el estado de lo suyo.
 - **Equipo:** tarjeta de cada persona con su foto, su cargo y si es NXUS USA o NXUS MÉXICO.
 - **Mi reloj:** marcar entrada y salida. La hora la pone el sistema y nadie la cambia a mano.
@@ -21,7 +28,20 @@ Las reglas viven en la base de datos: aunque alguien se brinque la página, no p
   - **Comisión** (socias de México): el % de lo cobrado en los contratos que consigan.
   - **Ajustes:** bonos o descuentos.
 - **Dinero (solo tú):** lo que paga cada cliente, ingreso del mes menos la nómina, y el avance a tu meta.
-- **Personas (solo tú):** dar de alta, cargo, sede, foto, apagar el acceso y cambiar contraseñas.
+- **Personas (solo tú):** dar de alta, cargo, sede, foto, apagar el acceso y cambiar contraseñas. En **Editar**, la parte **Prospectos**:
+
+  | Permiso | Qué deja hacer |
+  |---|---|
+  | Qué prospectos ve | Nada · Solo los suyos (de su link o que tú le asignes) · Todos |
+  | Trabajarlos | Notas, siguiente paso, datos de contacto y apuntar prospectos nuevos |
+  | Mover etapas | Reunión hecha, propuesta enviada, perdido… |
+  | Convertirlos en clientes | El botón **✓ Convertir en cliente** |
+  | Ver lo que pagaron | Los pagos de consultoría |
+  | Código de su link | Lo que va en `?de=` (por ejemplo `barbara`) |
+
+  Asignar y borrar prospectos es solo tuyo.
+- **Comisiones solas:** si un prospecto llegó por el link de alguien que cobra comisión y paga su consultoría, su comisión aparece sola en Nómina. Cuando se vuelve cliente, en Nómina sale en "Clientes que trajo" con el botón **Registrar cobro**.
+- **Dinero:** el ingreso del mes suma las mensualidades y las consultorías cobradas por el portal.
 - **Bitácora (solo tú):** quién hizo qué y cuándo.
 
 ## Instalarlo (una sola vez)
@@ -65,6 +85,15 @@ Un proyecto **nuevo y aparte** del Centro de trabajo, para que nada de NXUS se m
 2. **Personas** → **+ Dar de alta**: Luis, Ángeles y las socias, cada quien con su correo y una contraseña que tú les das. Luego **Editar** para subir su foto.
 3. **Nómina** → **Su pago** en cada persona.
 4. **Dinero** → **Cambiar** en cada cliente: lo que paga.
+
+### 5. Conectar el portal (Prospectos)
+Es una sola clave que comparten los dos sitios de Netlify, para que solo el portal pueda mandar prospectos a HQ.
+1. Inventa una clave larga (40 letras y números o más; en tu Mac: `openssl rand -hex 24`). Guárdala en **Contraseñas** de tu Mac.
+2. En Netlify, proyecto **nxus-hq** → **Project configuration** → **Environment variables** → `PORTAL_CLAVE` = esa clave (marca **Contains secret values**).
+3. En Netlify, el proyecto del portal → **Environment variables**:
+   - `PORTAL_CLAVE` = la misma clave (secreta).
+   - `HQ_URL` = `https://app.nxusai.org`
+4. **Trigger deploy** en los dos proyectos.
 
 ## La muestra
 Para verla sin instalar nada: `node scripts/hq-muestra.mjs` arma `hq-muestra.html`. Ábrelo y entra como cualquier persona.

@@ -190,3 +190,43 @@ textarea { resize: vertical; }
   .tarea-ia select { grid-row: auto; grid-column: 1; }
   .tabla { font-size: 13px; display: block; overflow-x: auto; }
 }
+
+/* Prospectos */
+.embudo-tablero { grid-template-columns: repeat(6, minmax(165px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
+.tarea.pros { color: var(--texto); }
+.tarea.pros:hover { border-color: var(--azul); }
+.fila.chips { justify-content: flex-start; gap: 6px; flex-wrap: wrap; }
+.fila.chips:empty { display: none; }
+.chip.etapa-abrio { color: var(--suave); }
+.chip.etapa-datos, .chip.etapa-reunion { color: var(--cian); }
+.chip.etapa-pagado, .chip.etapa-cita, .chip.etapa-propuesta { color: var(--ambar); }
+.chip.etapa-cliente { color: var(--verde); }
+.chip.etapa-perdido { color: var(--rojo); }
+.embudo { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0; }
+.embudo a { background: var(--panel2); border: 1px solid var(--borde); border-radius: 10px; padding: 10px; display: grid; gap: 2px; color: var(--texto); }
+.embudo b { font-size: 22px; }
+.embudo span { color: var(--suave); font-size: 11px; }
+.dos-cols { grid-template-columns: 1fr 1fr; align-items: start; }
+.dos-cols .ancho-total { grid-column: 1 / -1; }
+.ficha blockquote { margin: 8px 0; padding: 10px 14px; border-left: 3px solid var(--cian); background: var(--panel2); border-radius: 0 10px 10px 0; color: #cfdcf7; }
+.lista.notas li { display: block; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+.lista.notas li:last-child { border: 0; }
+.lista.notas small { margin-left: 8px; }
+.lista.notas p { margin: 4px 0 0; }
+#px-nota textarea, #link-msj { width: 100%; margin-top: 10px; }
+.cerrados summary { cursor: pointer; }
+.cerrados[open] summary { margin-bottom: 8px; }
+fieldset.permisos { border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px 14px; margin: 14px 0 0; }
+fieldset.permisos legend { padding: 0 6px; color: var(--cian); font-weight: 700; }
+.link-caja { background: var(--panel2); border: 1px solid var(--azul); border-radius: 10px; padding: 12px; margin: 12px 0 0; overflow-wrap: anywhere; }
+.link-caja code { color: var(--cian); font-size: 14px; }
+.sugeridas { margin-top: 8px; }
+p.desc { white-space: pre-line; }
+@media (max-width: 860px) {
+  .dos-cols { grid-template-columns: 1fr; }
+  .embudo-tablero { grid-template-columns: 1fr; overflow: visible; }
+  .embudo-tablero .columna.vacia { display: none; }
+  .embudo { grid-template-columns: repeat(3, 1fr); }
+}
+#pr-quien { width: auto; }
+label.mini { display: grid; gap: 4px; font-size: 12px; color: var(--suave); min-width: 180px; }

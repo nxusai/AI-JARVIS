@@ -15,6 +15,8 @@ import { getStore } from '@netlify/blobs'
  *   NEXY_CLAVE       la llave con la que NEX lee los prospectos
  *   NEX_LLAMADA_CLAVE la llave de las llamadas de NEX contigo (scripts/llamada.mjs)
  *   ANTHROPIC_API_KEY para que NEX investigue en internet durante la llamada
+ *   HQ_URL           NXUS HQ (https://app.nxusai.org): cada prospecto cae ahí
+ *   PORTAL_CLAVE     la clave que comparten el portal y HQ (la misma en los dos)
  */
 
 export const env = (k) => (typeof Netlify !== 'undefined' ? Netlify.env.get(k) : process.env[k]) ?? ''
@@ -30,7 +32,26 @@ export async function readLead(id) {
 export async function saveLead(lead) {
   lead.actualizado = new Date().toISOString()
   await store().setJSON(lead.id, lead)
+  await aHQ(lead)
   return lead
+}
+
+/** Manda el prospecto a NXUS HQ (sección Prospectos). Si HQ no contesta, el portal sigue. */
+export async function aHQ(lead) {
+  const url = env('HQ_URL').replace(/\/$/, '')
+  const clave = env('PORTAL_CLAVE')
+  if (!url || !clave) return
+  try {
+    const res = await fetch(`${url}/.netlify/functions/portal`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-portal-clave': clave },
+      body: JSON.stringify({ lead }),
+      signal: AbortSignal.timeout(6000),
+    })
+    if (!res.ok) console.error(`HQ respondió ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  } catch (err) {
+    console.error(`HQ no contestó: ${err.message}`)
+  }
 }
 
 /** Texto limpio y corto, de lo que mande el navegador. */
@@ -62,7 +83,7 @@ export async function agenda(body) {
   return data
 }
 
-export const quien = (l) => `${l.contacto?.nombre || l.de || 'Alguien'}${l.contacto?.empresa ? ` · ${l.contacto.empresa}` : ''}`
+export const quien = (l) => `${l.contacto?.nombre || l.de || 'Alguien'}${l.contacto?.empresa ? ` · ${l.contacto.empresa}` : ''}${l.vendedor ? ` (link de ${l.vendedor})` : ''}`
 
 /** Si la petición trae la llave de las llamadas de NEX (header x-nex-clave). */
 export function nexAutorizado(req) {
