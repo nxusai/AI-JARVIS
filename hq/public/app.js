@@ -618,7 +618,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte', p.pros_pagos && 've pagos'].filter(Boolean)
     return `<small>${p.pros_ver === 'todos' ? 'Todos' : 'Los suyos'}${puede.length ? ` · ${puede.join(', ')}` : ''}${p.codigo ? ` · link: ${h(p.codigo)}` : ''}</small>`
   }
-  const nombrePros = (x) => x.empresa || x.nombre || (x.link ? x.link.replace(/-/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : 'Sin nombre')
+  const nombrePros = (x) => x.empresa || x.nombre || (x.link ? x.link.replace(/-/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : 'Link sin nombre')
   const atrasado = (x) => x.siguiente_fecha && x.siguiente_fecha < hoyISO() && EN_CURSO.includes(x.etapa)
 
   /** En Inicio: a ti el embudo y las próximas citas; al equipo, sus prospectos con su siguiente paso. */
@@ -656,7 +656,7 @@ export function iniciar(D, { muestra = false } = {}) {
         ${x.empresa && x.nombre ? `<small>${h(x.nombre)}</small>` : ''}
         ${x.lineas.length ? `<small>${h(x.lineas.map((l) => l.split(': ')[1] || l).slice(0, 3).join(' · '))}${x.lineas.length > 3 ? '…' : ''}</small>` : ''}
         <div class="fila chips">${x.camino === 'consulta' ? '<span class="chip">Consultoría</span>' : x.camino === 'propuesta' ? '<span class="chip">Propuesta</span>' : ''}${pagado.has(x.id) ? '<span class="chip hecha">Pagó ✓</span>' : ''}${x.origen === 'manual' ? '<span class="chip">A mano</span>' : ''}</div>
-        <small>${x.cita && EN_CURSO.includes(x.etapa) ? `📅 ${fechaHora(x.cita)} · ` : ''}${h(nombreDe(x.asignado))}${x.traido_por && x.traido_por !== x.asignado ? ` · link de ${h(nombreDe(x.traido_por).split(' ')[0])}` : ''}</small>
+        <small>${x.cita && EN_CURSO.includes(x.etapa) ? `📅 ${fechaHora(x.cita)} · ` : ''}${x.asignado ? h(nombreDe(x.asignado)) : 'Sin asignar'} · ${fechaCorta(x.creado)}${x.traido_por && x.traido_por !== x.asignado ? ` · link de ${h(nombreDe(x.traido_por).split(' ')[0])}` : ''}</small>
         ${atrasado(x) ? `<small class="rojo">Seguimiento atrasado: ${h(x.siguiente || 'sin nota')}</small>` : ''}
       </a>`
     v.innerHTML = `
