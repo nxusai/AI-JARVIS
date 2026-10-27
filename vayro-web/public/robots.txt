@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://vayrofoods.com/sitemap.xml
+Sitemap: https://vayroinc.com/sitemap.xml

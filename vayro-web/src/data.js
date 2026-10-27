@@ -2,9 +2,9 @@
 // Anything marked CONFIRM is a placeholder until the real value exists.
 
 export const site = {
-  domain: 'https://vayrofoods.com', // CONFIRM: final domain
-  email: 'hello@vayrofoods.com', // CONFIRM: consumer contact inbox
-  salesEmail: 'sales@vayrofoods.com', // CONFIRM: wholesale / retail inbox
+  domain: 'https://vayroinc.com',
+  email: 'hello@vayroinc.com', // CONFIRM: create this inbox
+  salesEmail: 'sales@vayroinc.com', // CONFIRM: create this inbox
   // Optional form endpoints (Formspree, Netlify Forms, your CRM…). Empty = the form opens
   // the visitor's email app with the message ready to send.
   forms: {
