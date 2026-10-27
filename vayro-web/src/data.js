@@ -87,6 +87,8 @@ export const products = [
     accent: '#EA6620',
     sizes: [
       { id: 'oaxaca-12', label: '12 oz', grams: '340 g', img: 'img/products/oax12.webp', servings: 6, channel: 'retail' },
+      // CONFIRM: servings for 30 oz (850 g ÷ 58.8 g per serving ≈ 14).
+      { id: 'oaxaca-30', label: '30 oz', grams: '850 g', img: 'img/products/oax30.webp', servings: 14, channel: 'club' },
       { id: 'oaxaca-32', label: '2 lb', grams: '32 oz', img: 'img/products/oax2.webp', servings: 16, channel: 'club' },
     ],
     serving: '1/2 cup (58.8 g)',
