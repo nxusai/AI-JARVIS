@@ -14,8 +14,8 @@ Website for **VAYRO**, a premium, high-protein food brand. One page with scroll 
 | **Line-up · Chapter 01: Cheese** | The 5 SKUs with their real labels. Horizontal pinned scroll on desktop, swipe on phones. Ends with a "Chapter 02" card so the brand reads as bigger than cheese |
 | **Product drawer** | Sizes, overview, recipes, a full Nutrition Facts panel and ingredients, all taken from the labels |
 | **Nutrition** | Counters (up to 10g protein, up to 30% DV calcium, 0g added sugar, ≤4g carbs) and a "Build your fuel" calculator |
-| **Lifestyle** | Train / Prep / Live panels with parallax |
-| **Recipes** | 6 recipes with filters (pre-workout, post-workout, meal prep, family) and a full recipe view |
+| **Lifestyle** | Move / Prep / Live panels with parallax |
+| **Recipes** | 6 recipes with filters (quick & easy, protein-packed, meal prep, family) and a full recipe view |
 | **Story & philosophy** | The meaning of the V mark and the brand values |
 | **Community** | #MadeForMore grid linking to Instagram |
 | **Retailers** | Formats (12 oz retail, 2–3 lb club, 5 lb foodservice) and a wholesale form |

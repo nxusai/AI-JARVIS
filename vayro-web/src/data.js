@@ -122,13 +122,13 @@ export const products = [
 export const recipes = [
   {
     id: 'seared-bowl',
-    tags: ['post', 'prep'],
+    tags: ['protein', 'prep'],
     img: 'img/life/seared.webp',
     product: 'frying',
     time: 15,
     serves: 2,
     title: { en: 'Golden Sear Power Plate', es: 'Plato Power Dorado' },
-    blurb: { en: 'Seared cheese, greens, grains and a sharp dressing. Post-training in 15.', es: 'Queso dorado, verdes, granos y un aderezo ácido. Post-entreno en 15.' },
+    blurb: { en: 'Seared cheese, greens, grains and a sharp dressing. Dinner in 15.', es: 'Queso dorado, verdes, granos y un aderezo ácido. La cena en 15.' },
     ingredients: {
       en: ['8 oz VAYRO Frying Cheese, sliced 1/2 in thick', '2 cups cooked quinoa or rice', '2 handfuls mixed greens', '1 cucumber, sliced', '1 cup cherry tomatoes, halved', '2 tbsp olive oil + 1 lemon', 'Salt, pepper, chili flakes'],
       es: ['8 oz de Queso para Freír VAYRO, rebanadas de 1 cm', '2 tazas de quinoa o arroz cocido', '2 puños de hojas verdes', '1 pepino rebanado', '1 taza de jitomates cherry en mitades', '2 cdas de aceite de oliva + 1 limón', 'Sal, pimienta, hojuelas de chile'],
@@ -140,13 +140,13 @@ export const recipes = [
   },
   {
     id: 'protein-toast',
-    tags: ['pre', 'family'],
+    tags: ['quick', 'family'],
     img: 'img/life/toast.webp',
     product: 'fresh',
     time: 8,
     serves: 1,
     title: { en: 'Morning Stack Toast', es: 'Toast de la Mañana' },
-    blurb: { en: 'Sourdough, a jammy egg and a fresh-cheese crumble. Fuel before the first rep.', es: 'Pan de masa madre, huevo cremoso y queso fresco desmoronado. Energía antes del primer rep.' },
+    blurb: { en: 'Sourdough, a jammy egg and a fresh-cheese crumble. Ready before the day starts.', es: 'Pan de masa madre, huevo cremoso y queso fresco desmoronado. Listo antes de que empiece el día.' },
     ingredients: {
       en: ['1 thick slice sourdough', '1–2 eggs', '1/4 cup VAYRO Fresh Cheese, crumbled', '1/2 avocado (optional)', 'Chili flakes, black pepper, herbs'],
       es: ['1 rebanada gruesa de pan de masa madre', '1–2 huevos', '1/4 taza de Queso Fresco VAYRO desmoronado', '1/2 aguacate (opcional)', 'Hojuelas de chile, pimienta, hierbas'],
@@ -158,7 +158,7 @@ export const recipes = [
   },
   {
     id: 'ultimate-melt',
-    tags: ['family'],
+    tags: ['quick', 'family'],
     img: 'img/life/melt.webp',
     product: 'oaxaca',
     time: 10,
@@ -193,14 +193,14 @@ export const recipes = [
     },
   },
   {
-    id: 'recovery-bowl',
-    tags: ['post'],
+    id: 'power-bowl',
+    tags: ['protein'],
     img: 'img/life/bowl-salmon.webp',
     product: 'fresh',
     time: 20,
     serves: 2,
-    title: { en: 'Recovery Bowl', es: 'Bowl de Recuperación' },
-    blurb: { en: 'Salmon, grains, crunch and a fresh-cheese finish. Built for the hour after.', es: 'Salmón, granos, algo crujiente y queso fresco al final. Hecho para la hora después.' },
+    title: { en: 'Salmon Power Bowl', es: 'Bowl Power de Salmón' },
+    blurb: { en: 'Salmon, grains, crunch and a fresh-cheese finish. Built for busy evenings.', es: 'Salmón, granos, algo crujiente y queso fresco al final. Hecho para las noches con prisa.' },
     ingredients: {
       en: ['2 salmon fillets', '2 cups cooked grains', 'Shredded cabbage, carrot, cucumber', '1/2 cup VAYRO Fresh Cheese, crumbled', 'Lime, olive oil, sesame seeds'],
       es: ['2 filetes de salmón', '2 tazas de granos cocidos', 'Col rallada, zanahoria, pepino', '1/2 taza de Queso Fresco VAYRO desmoronado', 'Limón, aceite de oliva, ajonjolí'],
@@ -212,7 +212,7 @@ export const recipes = [
   },
   {
     id: 'prep-plate',
-    tags: ['prep', 'post'],
+    tags: ['prep', 'protein'],
     img: 'img/life/plate-chicken.webp',
     product: 'panela',
     time: 30,
