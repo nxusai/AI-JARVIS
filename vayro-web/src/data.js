@@ -237,7 +237,7 @@ export const stores = [
 
 export const gallery = [
   { img: 'img/life/core.webp', pos: '50% 60%' },
-  { img: 'img/life/bowl-green.webp', pos: '50% 50%' },
+  { img: 'img/life/watermelon-cheese.webp', pos: '50% 55%' },
   { img: 'img/life/squat.webp', pos: '50% 30%' },
   { img: 'img/life/bowl-egg.webp', pos: '50% 50%' },
   { img: 'img/life/run.webp', pos: '50% 50%' },
