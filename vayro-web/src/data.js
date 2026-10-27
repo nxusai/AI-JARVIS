@@ -48,6 +48,33 @@ export const products = [
     pairs: { en: ['Power bowls', 'Eggs & toast', 'Salads', 'Roasted veggies'], es: ['Power bowls', 'Huevos y pan tostado', 'Ensaladas', 'Verduras asadas'] },
   },
   {
+    id: 'fresh-leaf',
+    family: 'fresh',
+    name: { en: 'Fresh Cheese with Banana Leaf', es: 'Queso Fresco con Hoja de Plátano' },
+    line: { en: 'Soft, fresh, wrapped in leaf.', es: 'Suave, fresco, envuelto en hoja.' },
+    use: { en: 'Traditional flavor with a fresh, soft and crumbly texture', es: 'Sabor tradicional con textura fresca, suave y desmoronable' },
+    desc: {
+      en: 'Our fresh cheese, rested on banana leaf for a delicate, natural aroma. Soft enough to crumble, firm enough to slice, with 10g of protein per serving.',
+      es: 'Nuestro queso fresco, reposado sobre hoja de plátano para un aroma delicado y natural. Lo bastante suave para desmoronar y firme para rebanar, con 10 g de proteína por porción.',
+    },
+    accent: '#EA6620',
+    sizes: [
+      { id: 'fresh-leaf-12', label: '12 oz', grams: '340 g', img: 'img/products/fresh-leaf-12.webp', servings: 6, channel: 'retail' },
+      { id: 'fresh-leaf-14', label: '14 oz', grams: '396 g', img: 'img/products/fresh-leaf-14.webp', servings: 7, channel: 'retail' },
+      { id: 'fresh-leaf-80', label: '5 lb', grams: '80 oz', img: 'img/products/fresh-leaf-5lb.webp', servings: 40, channel: 'foodservice' },
+    ],
+    serving: '2 oz (56.8 g)',
+    // CONFIRM: same panel as VAYRO Fresh Cheese (matches the legible values on the 12 oz label).
+    nf: {
+      calories: 180, fat: ['14g', 18], satFat: ['9g', 45], transFat: '0g', cholesterol: ['30mg', 10], sodium: ['470mg', 20],
+      carbs: ['4g', 1], fiber: ['0g', 0], sugars: '0g', addedSugars: ['0g', 0], protein: 10,
+      vitD: 2, calcium: 25, iron: 0, potassium: 0,
+    },
+    ingredients: 'Pasteurized Milk, Nonfat Dry Milk, Palm Oil, Salt, Acetic Acid, Culture, Enzymes, Natamycin, and Sorbic Acid (mold inhibitor).',
+    contains: 'Milk & Soy',
+    pairs: { en: ['Breakfast plates', 'Salads', 'Grilled vegetables', 'Fruit & honey'], es: ['Desayunos', 'Ensaladas', 'Verduras asadas', 'Fruta con miel'] },
+  },
+  {
     id: 'oaxaca',
     family: 'melt',
     name: { en: 'Oaxaca Cheese', es: 'Queso Oaxaca' },
@@ -94,6 +121,26 @@ export const products = [
     ingredients: 'Pasteurized Milk, Nonfat Dry Milk, Salt, Enzymes, Natamycin, and Sorbic Acid (mold inhibitor).',
     contains: 'Milk & Soy',
     pairs: { en: ['Grill & skewers', 'Meal prep', 'Sandwiches', 'Snack plates'], es: ['Parrilla y brochetas', 'Meal prep', 'Sándwiches', 'Tablas de snack'] },
+  },
+  {
+    id: 'basket',
+    family: 'slice',
+    name: { en: 'Basket Cheese', es: 'Queso Canasta' },
+    line: { en: 'One wheel. Every meal.', es: 'Una rueda. Todas las comidas.' },
+    use: { en: 'Perfect for slicing, crumbling and everyday meals', es: 'Perfecto para rebanar, desmoronar y las comidas de todos los días' },
+    desc: {
+      en: 'A big fresh-cheese wheel with the classic basket-weave pattern. Slices clean, crumbles easily and feeds a full kitchen, with 9g of protein per serving.',
+      es: 'Una rueda grande de queso fresco con el clásico tejido de canasta. Se rebana limpio, se desmorona fácil y rinde para toda una cocina, con 9 g de proteína por porción.',
+    },
+    accent: '#EA6620',
+    sizes: [{ id: 'basket-224', label: '14 lb', grams: '224 oz', img: 'img/products/basket.webp', servings: null, channel: 'foodservice' }],
+    serving: null,
+    // CONFIRM: only the front-of-pack claims are known (9g protein, excellent source of calcium).
+    // Add the full panel and ingredients from the label to show them on the site.
+    nf: { protein: 9, calcium: null },
+    ingredients: null,
+    contains: null,
+    pairs: { en: ['Sandwiches', 'Platters', 'Salads', 'Family meals'], es: ['Sándwiches', 'Tablas', 'Ensaladas', 'Comidas familiares'] },
   },
   {
     id: 'frying',

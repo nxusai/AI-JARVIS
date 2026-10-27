@@ -278,6 +278,9 @@ function manifesto() {
 }
 
 /* ═════════ Products ═════════ */
+// Some products only have their front-of-pack claims so far; their full panel is on the package.
+const hasPanel = (p) => p.nf.calories !== undefined;
+
 function productCards() {
   const cards = products
     .map((p) => {
@@ -293,8 +296,8 @@ function productCards() {
         <p class="pcard__line">${tx(p.line)}</p>
         <div class="pcard__facts">
           <div><b class="o">${p.nf.protein}g</b><span>${t('protein')}</span></div>
-          <div><b>${p.nf.calcium}%</b><span>${t('calcium')}</span></div>
-          <div><b>${p.nf.calories}</b><span>kcal</span></div>
+          ${p.nf.calcium != null ? `<div><b>${p.nf.calcium}%</b><span>${t('calcium')}</span></div>` : `<div><b>Ca</b><span>${t('caShort')}</span></div>`}
+          ${hasPanel(p) ? `<div><b>${p.nf.calories}</b><span>kcal</span></div>` : `<div><b>${s.label}</b><span>${t('size')}</span></div>`}
         </div>
         <span class="pcard__more">${t('details')}<i>→</i></span>
       </button>`;
@@ -375,8 +378,8 @@ function openDrawer(id, sizeId) {
     <div class="tabpane" data-pane="o">
       <div class="kpis">
         <div><b>${n.protein}g</b><span>${t('protein')} ${t('perServing')}</span></div>
-        <div><b>${n.calcium}%</b><span>${t('calcium')}</span></div>
-        <div><b>${n.addedSugars[0]}</b><span>${t('addedShort')}</span></div>
+        ${n.calcium != null ? `<div><b>${n.calcium}%</b><span>${t('calcium')}</span></div>` : `<div><b>Ca</b><span>${t('caSource')}</span></div>`}
+        ${hasPanel(p) ? `<div><b>${n.addedSugars[0]}</b><span>${t('addedShort')}</span></div>` : `<div><b>${s.label}</b><span>${t('size')}</span></div>`}
       </div>
       <p>${tx(p.desc)}</p>
       <p class="dsub">${t('pairs')}</p>
@@ -384,7 +387,7 @@ function openDrawer(id, sizeId) {
       ${related.length ? `<p class="dsub">${t('recipes')}</p>${related.map((r) => `<button class="rmade" type="button" data-recipe="${r.id}"><img src="${r.img}" alt="" style="object-fit:cover;border-radius:12px" /><span><b>${tx(r.title)}</b><span>${r.time} ${t('min')}</span></span></button>`).join('')}` : ''}
     </div>
     <div class="tabpane" data-pane="n" hidden>
-      <div class="nf">
+      ${hasPanel(p) ? `<div class="nf">
         <h4>${t('nutritionFacts')}</h4>
         <div class="bar-m" style="padding:4px 0 6px;font-size:14px">${s.servings} ${t('servingsPer')}<br /><b>${t('servingSize')}</b> <b style="float:right">${p.serving}</b></div>
         <div class="bar-l"></div>
@@ -403,11 +406,11 @@ function openDrawer(id, sizeId) {
         <div class="bar-l">${row(`<b>${t('proteinNF')}</b>`, `${n.protein}g`)}</div>
         <div class="row">${t('vitD')} ${n.vitD}% · ${t('calciumNF')} ${n.calcium}% · ${t('iron')} ${n.iron}% · ${t('potassium')} ${n.potassium}%</div>
         <div class="row small">* ${lang === 'es' ? 'El % de Valor Diario indica cuánto aporta un nutriente en una porción a una dieta diaria. Se usan 2,000 calorías al día como consejo general de nutrición.' : 'The % Daily Value tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.'}</div>
-      </div>
+      </div>` : `<p class="ingr">${fill(t('nfOnPack'), { protein: n.protein })}</p>`}
     </div>
     <div class="tabpane" data-pane="i" hidden>
-      <p class="ingr"><b>${lang === 'es' ? 'Ingredientes (como aparecen en la etiqueta)' : 'Ingredients'}:</b> ${p.ingredients}</p>
-      <span class="contains">${t('contains')}: ${p.contains}</span>
+      ${p.ingredients ? `<p class="ingr"><b>${lang === 'es' ? 'Ingredientes (como aparecen en la etiqueta)' : 'Ingredients'}:</b> ${p.ingredients}</p>
+      <span class="contains">${t('contains')}: ${p.contains}</span>` : `<p class="ingr">${t('ingrOnPack')}</p>`}
       <p class="ingr" style="margin-top:16px">${t('keepCold')}</p>
     </div>
     <div class="dactions">
@@ -481,6 +484,7 @@ function layers() {
 let calcId = products[0].id;
 function calc() {
   $('#calcProducts').innerHTML = products
+    .filter(hasPanel)
     .map((p) => `<button type="button" role="radio" aria-checked="${p.id === calcId}" data-calc="${p.id}">${tx(p.name)}</button>`)
     .join('');
   $$('[data-calc]').forEach((b) =>
