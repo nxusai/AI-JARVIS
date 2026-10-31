@@ -77,7 +77,7 @@ In the agent: **Tools → Add tool → Webhook**. Create three. For all three: M
 If the UI calls these "Server tools", "Client vs Server", "Body parameters / Value type: Constant / Dynamic variable / LLM prompt", use those equivalents. Save the agent.
 
 ## Part 3 — What NEX writes down (Analysis → Data collection)
-Add these data collection items (type **string**), with these exact identifiers and descriptions:
+Data collection fields are shared across the whole workspace (Ana Sofi uses some, like `empresa` and `resultado`). **Do not edit or reuse any existing field.** Create these new ones (type **string**), each identifier with the prefix `nxus_` (`nxus_empresa`, `nxus_necesidad`, `nxus_usa_hoy`, `nxus_decide`, `nxus_urgencia`, `nxus_presupuesto`, `nxus_consejo`, `nxus_resultado`) and these descriptions:
 
 | Identifier | Description |
 |---|---|

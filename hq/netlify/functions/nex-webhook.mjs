@@ -21,7 +21,8 @@ export function firmaValida(cuerpo, encabezado, secreto) {
 const PUNTOS = ['empresa', 'necesidad', 'usa_hoy', 'decide', 'urgencia', 'presupuesto', 'consejo']
 const RESULTADOS = { ahora_no: 'ahora_no', no_interesa: 'no_interesa', no_llamar: 'no_llamar', colgo: 'colgo', buzon: 'no_contesto', no_contesto: 'no_contesto', numero_malo: 'numero_malo' }
 
-const valor = (r, k) => String(r?.[k]?.value ?? '').trim()
+// En ElevenLabs los campos se comparten entre agentes: los de NEX Ventas llevan "nxus_" para no chocar con los de Ana Sofi.
+const valor = (r, k) => String(r?.[`nxus_${k}`]?.value ?? r?.[k]?.value ?? '').trim()
 
 /** De la llamada ya terminada, lo que se guarda en el lead. */
 export function cierre(lead, d) {
