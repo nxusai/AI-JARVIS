@@ -28,6 +28,13 @@ const ETAPAS = {
   cliente: 'Cliente',
   perdido: 'Perdido',
 }
+// Leads de los anuncios (ManyChat → HQ → llamada de NEX).
+const LEAD = { incompleto: 'No calificado', nuevo: 'Por llamar', llamando: 'NEX llamando', agendado: 'Agendó meeting', cartera: 'En cartera', no_llamar: 'No llamar' }
+const MOTIVO = { no_contesto: 'No contestó', no_interesa: 'Ya no le interesa', colgo: 'Colgó', ahora_no: 'Ahora no', numero_malo: 'Número equivocado', sin_permiso: 'Sin permiso de llamada' }
+const CANAL = { instagram: 'Instagram', facebook: 'Facebook' }
+const PAIS = { mexico: 'México', usa: 'USA', otro: 'Otro país' }
+// Lo que NEX anota en la llamada (lead.puntos), en el orden en que se lee.
+const PUNTOS = { empresa: 'Su empresa', necesidad: 'Lo que necesita', usa_hoy: 'Cómo lo hace hoy', decide: '¿Decide?', urgencia: 'Urgencia', presupuesto: 'Presupuesto', consejo: 'Lo que NEX le aconsejó', otro: 'Otro' }
 const EN_CURSO = ['abrio', 'datos', 'pagado', 'cita', 'reunion', 'propuesta']
 const VER_PROS = { nada: 'No ve prospectos', suyos: 'Solo los suyos (de su link o que tú le asignes)', todos: 'Todos' }
 const PORTAL = 'https://empezar.nxusai.org'
@@ -233,11 +240,13 @@ export function iniciar(D, { muestra = false } = {}) {
     ['inicio', 'Inicio', '◈'],
     ['clientes', 'Clientes', '◉'],
     ['prospectos', 'Prospectos', '✦'],
+    ['leads', 'Leads', '⚡'],
+    ['cartera', 'Cartera', '◌'],
     ['tareas', 'Tareas', '☰'],
     ['equipo', 'Equipo', '◎'],
     ['reloj', 'Mi reloj', '◷'],
   ]
-  const misSecciones = () => SECCIONES.filter(([id]) => id !== 'prospectos' || vePros())
+  const misSecciones = () => SECCIONES.filter(([id]) => !['prospectos', 'leads', 'cartera'].includes(id) || vePros())
   const SECCIONES_ADMIN = [
     ['nomina', 'Nómina', '⧉'],
     ['dinero', 'Dinero', '$'],
@@ -315,14 +324,15 @@ export function iniciar(D, { muestra = false } = {}) {
     $('.nav')?.classList.remove('abierta')
     const [ruta, arg] = (location.hash.slice(1) || 'inicio').split('/')
     const todas = [...misSecciones(), ...(esAdmin() ? SECCIONES_ADMIN : [])]
-    const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : ruta === 'prospecto' && vePros() ? 'prospectos' : 'inicio'
+    const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : ruta === 'prospecto' && vePros() ? 'prospectos' : ruta === 'lead' && vePros() ? 'leads' : 'inicio'
     $$('[data-ir]').forEach((a) => a.classList.toggle('activa', a.dataset.ir === sec))
     const vista = $('#vista')
     vista.innerHTML = '<div class="cargando">Cargando…</div>'
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
+      else if (ruta === 'lead' && arg && vePros()) await vistaLead(vista, arg)
       else await VISTAS[sec](vista)
     } catch (err) {
       vista.innerHTML = `<p class="error">${h(err.message)}</p>`
@@ -374,7 +384,7 @@ export function iniciar(D, { muestra = false } = {}) {
     }
     if (!yo.nombre.trim())
       html = `<div class="tarjeta"><p>Tu perfil no tiene nombre todavía, por eso el saludo no te llama por tu nombre. ${esAdmin() ? `Ponlo en <a href="#personas">Personas</a> → <b>Editar</b> en tu renglón.` : 'Pídele a Eduardo que lo agregue.'}</p></div>` + html
-    if (vePros()) html += await resumenProspectos()
+    if (vePros()) html += (await resumenLeads()) + (await resumenProspectos())
     html += `<div class="tarjeta"><h3>Mis pendientes</h3>${mias.length ? `<ul class="lista tareas">${mias.map(tarjetaTarea).join('')}</ul>` : '<p class="vacio">No tienes pendientes.</p>'}</div>`
     v.innerHTML = html
     $('#i-reloj', v)?.addEventListener('click', () => (abierta ? marcarSalida() : marcarEntrada()))
@@ -662,7 +672,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <b>${h(nombrePros(x))}</b>
         ${x.empresa && x.nombre ? `<small>${h(x.nombre)}</small>` : ''}
         ${x.lineas.length ? `<small>${h(x.lineas.map((l) => l.split(': ')[1] || l).slice(0, 3).join(' · '))}${x.lineas.length > 3 ? '…' : ''}</small>` : ''}
-        <div class="fila chips">${x.camino === 'consulta' ? '<span class="chip">Consultoría</span>' : x.camino === 'propuesta' ? '<span class="chip">Propuesta</span>' : ''}${pagado.has(x.id) ? '<span class="chip hecha">Pagó ✓</span>' : ''}${x.origen === 'manual' ? '<span class="chip">A mano</span>' : ''}</div>
+        <div class="fila chips">${x.camino === 'consulta' ? '<span class="chip">Consultoría</span>' : x.camino === 'propuesta' ? '<span class="chip">Propuesta</span>' : ''}${pagado.has(x.id) ? '<span class="chip hecha">Pagó ✓</span>' : ''}${x.origen === 'manual' ? '<span class="chip">A mano</span>' : x.origen === 'anuncio' ? '<span class="chip sistema">Anuncio · NEX</span>' : ''}</div>
         <small>${x.cita && EN_CURSO.includes(x.etapa) ? `📅 ${fechaHora(x.cita)} · ` : ''}${x.asignado ? h(nombreDe(x.asignado)) : 'Sin asignar'} · ${fechaCorta(x.creado)}${x.traido_por && x.traido_por !== x.asignado ? ` · link de ${h(nombreDe(x.traido_por).split(' ')[0])}` : ''}</small>
         ${atrasado(x) ? `<small class="rojo">Seguimiento atrasado: ${h(x.siguiente || 'sin nota')}</small>` : ''}
       </a>`
@@ -704,7 +714,7 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   async function vistaProspecto(v, pid) {
-    const [pros, notas, pagos] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : []])
+    const [pros, notas, pagos, leads] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : [], D.leads()])
     const x = pros.find((p) => p.id === pid)
     if (!x) {
       titulo('Prospecto')
@@ -724,7 +734,7 @@ export function iniciar(D, { muestra = false } = {}) {
       <a class="enlace" href="#prospectos">← Prospectos</a>
       <div class="ficha dos-cols">
         <div class="tarjeta">
-          <div class="fila chips"><span class="chip etapa-${x.etapa}">${ETAPAS[x.etapa]}</span>${x.camino ? `<span class="chip">${x.camino === 'consulta' ? 'Quiere consultoría' : 'Quiere su propuesta'}</span>` : ''}<span class="chip">${x.origen === 'portal' ? 'Llegó por el portal' : 'Apuntado a mano'}</span>${x.acepta_novedades ? '<span class="chip hecha">Acepta novedades</span>' : ''}</div>
+          <div class="fila chips"><span class="chip etapa-${x.etapa}">${ETAPAS[x.etapa]}</span>${x.camino ? `<span class="chip">${x.camino === 'consulta' ? 'Quiere consultoría' : 'Quiere su propuesta'}</span>` : ''}<span class="chip">${{ portal: 'Llegó por el portal', anuncio: 'Llegó por los anuncios', manual: 'Apuntado a mano' }[x.origen]}</span>${x.acepta_novedades ? '<span class="chip hecha">Acepta novedades</span>' : ''}</div>
           <h3>Contacto</h3>
           <p><b>${h(x.nombre || '—')}</b>${x.empresa ? ` · ${h(x.empresa)}` : ''}</p>
           <p>${[x.whatsapp && `<a href="https://wa.me/${h(x.whatsapp.replace(/\D/g, ''))}" target="_blank" rel="noopener">WhatsApp ${h(x.whatsapp)}</a>`, x.correo && `<a href="mailto:${h(x.correo)}">${h(x.correo)}</a>`].filter(Boolean).join(' · ') || '<span class="vacio">Todavía no deja sus datos.</span>'}</p>
@@ -733,6 +743,10 @@ export function iniciar(D, { muestra = false } = {}) {
           ${x.cita ? `<p>📅 <b>${fechaHora(x.cita)}</b>${x.meet ? ` · <a href="${h(x.meet)}" target="_blank" rel="noopener">Entrar al Meet ↗</a>` : ''}</p>` : ''}
           ${x.etapa === 'perdido' && x.motivo_perdido ? `<p class="rojo">Perdido: ${h(x.motivo_perdido)}</p>` : ''}
           ${cliente ? `<p><a class="btn" href="#cliente/${cliente.id}">Ver su ficha de cliente →</a></p>` : ''}
+          ${(() => {
+            const l = leads.find((y) => y.prospecto_id === x.id)
+            return l ? `<p><a class="btn" href="#lead/${l.id}">Ver su llamada con NEX →</a></p>` : ''
+          })()}
           <div class="acciones">
             ${puedePros('convertir') && x.etapa !== 'cliente' ? '<button class="btn primario" id="px-convertir">✓ Convertir en cliente</button>' : ''}
             ${(esAdmin() || puedePros('etapas')) && x.etapa !== 'cliente' ? `<label class="mini">Etapa<select id="px-etapa">${Object.entries(ETAPAS).filter(([k]) => k !== 'cliente').map(([k, t]) => `<option value="${k}" ${k === x.etapa ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
@@ -755,7 +769,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <h3>Su empresa</h3>
           ${
             Object.keys(d).length
-              ? `<p>${[d.giro, d.tamano && `${d.tamano} personas`, d.pais, d.urgencia].filter(Boolean).map(h).join(' · ')}</p>${d.quiere ? `<blockquote>${h(d.quiere)}</blockquote>` : ''}`
+              ? `<p>${[d.giro, d.tamano && `${d.tamano} personas`, d.ciudad, d.pais, d.idioma && `habla ${d.idioma.toLowerCase()}`, d.urgencia].filter(Boolean).map(h).join(' · ')}</p>${d.quiere ? `<blockquote>${h(d.quiere)}</blockquote>` : ''}`
               : '<p class="vacio">Todavía no contesta el diagnóstico.</p>'
           }
           ${puedePros('pagos') ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
@@ -878,6 +892,252 @@ export function iniciar(D, { muestra = false } = {}) {
         }
         $('#copiar-link', caja).onclick = () => copiar($('#link-url', caja).textContent, 'Link copiado')
         $('#copiar-msj', caja).onclick = () => copiar($('#link-msj', caja).value, 'Mensaje copiado')
+      },
+    )
+  }
+
+  // -------------------------------------------------------------- leads
+
+  const nombreLead = (l) => l.empresa || l.nombre || 'Sin nombre'
+  const duracionLlamada = (seg) => (seg == null ? '' : seg < 60 ? `${seg} s` : `${Math.floor(seg / 60)} min ${String(seg % 60).padStart(2, '0')} s`)
+  const chipLead = (l) => `<span class="chip lead-${l.estado}">${l.estado === 'cartera' && l.motivo ? MOTIVO[l.motivo] : LEAD[l.estado]}</span>`
+  const diaDe = (s) => {
+    const d = new Date(s).toDateString()
+    if (d === new Date().toDateString()) return 'Hoy'
+    if (d === new Date(Date.now() - 864e5).toDateString()) return 'Ayer'
+    return new Date(s).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  }
+  /** Un renglón de lead: hora, quién, qué quiere y de dónde vino. */
+  const filaLead = (l, { conHora = true } = {}) => `<a class="lead-fila" href="#lead/${l.id}">
+      <span class="lead-hora">${conHora ? hora(l.creado) : fechaCorta(l.creado)}</span>
+      <span class="lead-quien"><b>${h(nombreLead(l))}</b>${l.empresa && l.nombre ? `<small>${h(l.nombre)}</small>` : ''}</span>
+      <span class="lead-que">${l.servicio ? h(l.servicio) : '<span class="vacio">—</span>'}${l.resumen && ['cartera', 'no_llamar', 'agendado'].includes(l.estado) ? `<small>${h(l.resumen.length > 90 ? `${l.resumen.slice(0, 90)}…` : l.resumen)}</small>` : ''}</span>
+      <span class="lead-chips">${l.canal ? `<span class="chip">${CANAL[l.canal]}</span>` : '<span class="chip">A mano</span>'}${l.pais ? `<span class="chip ${l.pais === 'otro' ? '' : l.pais}">${PAIS[l.pais]}${l.idioma === 'en' ? ' · EN' : ''}</span>` : ''}${l.permiso_llamada || l.motivo === 'sin_permiso' ? '' : '<span class="chip rojo">Sin permiso</span>'}${chipLead(l)}</span>
+    </a>`
+  /** Los renglones agrupados por día (Hoy, Ayer, sábado 24 de octubre…). */
+  const porDia = (lista) => {
+    const grupos = []
+    for (const l of lista) {
+      const d = diaDe(l.creado)
+      if (grupos.at(-1)?.[0] !== d) grupos.push([d, []])
+      grupos.at(-1)[1].push(l)
+    }
+    return grupos.map(([d, ls]) => `<h3 class="grupo-dia">${h(d)} <small>${ls.length}</small></h3><div class="leads">${ls.map((l) => filaLead(l)).join('')}</div>`).join('')
+  }
+  const semana = (s) => Date.now() - new Date(s) < 7 * 864e5
+
+  /** En Inicio: cómo vienen los leads de los anuncios. */
+  async function resumenLeads() {
+    const leads = await D.leads()
+    if (!leads.length && !esAdmin()) return ''
+    const hoy = leads.filter((l) => diaDe(l.creado) === 'Hoy')
+    return `<div class="tarjeta"><div class="fila"><h3>Leads de los anuncios</h3><a href="#leads">Ver todos →</a></div>
+      <div class="embudo cuatro">
+        <a href="#leads"><b>${hoy.filter((l) => l.estado !== 'incompleto').length}</b><span>Calificados hoy</span></a>
+        <a href="#leads"><b>${leads.filter((l) => ['nuevo', 'llamando'].includes(l.estado)).length}</b><span>Por llamar</span></a>
+        <a href="#prospectos"><b>${leads.filter((l) => l.estado === 'agendado' && semana(l.actualizado)).length}</b><span>Agendaron esta semana</span></a>
+        <a href="#cartera"><b>${leads.filter((l) => l.estado === 'cartera').length}</b><span>En cartera</span></a>
+      </div></div>`
+  }
+
+  async function vistaLeads(v) {
+    titulo('Leads')
+    const leads = await D.leads()
+    const todos = leads.filter((l) => !['cartera', 'no_llamar'].includes(l.estado))
+    const FILTROS = { activos: 'Por llamar', agendado: 'Agendaron', incompleto: 'No calificados', todos: 'Todos' }
+    const filtro = FILTROS[sessionStorage.getItem('hq-leads')] ? sessionStorage.getItem('hq-leads') : 'activos'
+    const lista = todos.filter((l) => (filtro === 'todos' ? true : filtro === 'activos' ? ['nuevo', 'llamando'].includes(l.estado) : l.estado === filtro))
+    const calificados = leads.filter((l) => l.estado !== 'incompleto') // también los que ya se fueron a la Cartera
+    v.innerHTML = `
+      <p class="nota">Aquí caen solos los que terminan el filtro de ManyChat (nombre, empresa, dirección, teléfono, correo y servicio). NEX les llama una vez: si agendan pasan a <a href="#prospectos">Prospectos</a>; si no, a la <a href="#cartera">Cartera</a>.</p>
+      <div class="acciones">
+        ${puedePros('trabajar') ? '<button class="btn" id="ld-nuevo">+ Apuntar a mano</button>' : ''}
+        <div class="segmento">${Object.entries(FILTROS).map(([k, t]) => `<button data-lf="${k}" class="${filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span>Calificados hoy</span><b>${calificados.filter((l) => diaDe(l.creado) === 'Hoy').length}</b><small>${calificados.filter((l) => semana(l.creado)).length} esta semana</small></div>
+        <div class="kpi"><span>Por llamar</span><b>${todos.filter((l) => l.estado === 'nuevo').length}</b><small>${todos.filter((l) => l.estado === 'llamando').length} en llamada ahora</small></div>
+        <div class="kpi"><span>Agendaron</span><b>${todos.filter((l) => l.estado === 'agendado' && semana(l.actualizado)).length}</b><small>esta semana · ${todos.filter((l) => l.estado === 'agendado').length} en total</small></div>
+        <div class="kpi"><span>No calificados</span><b>${todos.filter((l) => l.estado === 'incompleto').length}</b><small>no terminaron el filtro</small></div>
+      </div>
+      <div class="tarjeta">${lista.length ? porDia(lista) : `<p class="vacio">${filtro === 'activos' ? 'Nadie por llamar ahorita.' : 'Nada aquí todavía.'}</p>`}</div>`
+    $$('[data-lf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-leads', b.dataset.lf), mostrar())))
+    $('#ld-nuevo', v)?.addEventListener('click', () => editarLead(null))
+  }
+
+  async function vistaCartera(v) {
+    titulo('Cartera de prospectos')
+    const leads = await D.leads()
+    const cartera = leads.filter((l) => l.estado === 'cartera')
+    const bloqueados = leads.filter((l) => l.estado === 'no_llamar')
+    const filtro = MOTIVO[sessionStorage.getItem('hq-cartera')] ? sessionStorage.getItem('hq-cartera') : 'todos'
+    const lista = cartera.filter((l) => filtro === 'todos' || l.motivo === filtro)
+    const cuenta = (m) => cartera.filter((l) => l.motivo === m).length
+    v.innerHTML = `
+      <p class="nota">Los que NEX no pudo agendar. Por ahora nadie los vuelve a llamar solo: se quedan aquí, ordenados, para el call center.</p>
+      <div class="acciones"><div class="segmento"><button data-cf="todos" class="${filtro === 'todos' ? 'on' : ''}">Todos <small>${cartera.length}</small></button>${Object.entries(MOTIVO)
+        .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k)}</small></button>`)
+        .join('')}</div></div>
+      <div class="tarjeta">${lista.length ? `<div class="leads">${lista.map((l) => filaLead(l, { conHora: false })).join('')}</div>` : '<p class="vacio">La cartera está vacía.</p>'}</div>
+      ${bloqueados.length ? `<details class="tarjeta cerrados"><summary><b>Pidieron no ser llamados</b> <small>${bloqueados.length}</small></summary><p class="nota">Nadie les vuelve a llamar, ni NEX ni el call center.</p><div class="leads">${bloqueados.map((l) => filaLead(l, { conHora: false })).join('')}</div></details>` : ''}`
+    $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-cartera', b.dataset.cf), mostrar())))
+  }
+
+  async function vistaLead(v, lid) {
+    const [l, notas] = await Promise.all([D.lead(lid), D.notasLead(lid)])
+    if (!l) {
+      titulo('Lead')
+      v.innerHTML = '<a class="enlace" href="#leads">← Leads</a><p class="vacio">Ese lead no existe o no te toca verlo.</p>'
+      return
+    }
+    titulo(nombreLead(l))
+    const atras = ['cartera', 'no_llamar'].includes(l.estado) ? '<a class="enlace" href="#cartera">← Cartera de prospectos</a>' : '<a class="enlace" href="#leads">← Leads</a>'
+    const trabaja = puedePros('trabajar')
+    const p = l.puntos || {}
+    const llamada = l.llamada_inicio
+      ? `<p><b>${fechaHora(l.llamada_inicio)}</b>${l.llamada_seg != null ? ` · ${duracionLlamada(l.llamada_seg)}` : ' · en curso'}${l.grabacion ? ` · <a href="${h(l.grabacion)}" target="_blank" rel="noopener">Escuchar grabación ↗</a>` : ''}</p>
+         ${l.resumen ? `<blockquote>${h(l.resumen)}</blockquote>` : ''}
+         ${Object.keys(p).length ? `<dl class="puntos">${Object.entries(p).sort(([a], [b]) => (Object.keys(PUNTOS).indexOf(a) + 99) % 99 - (Object.keys(PUNTOS).indexOf(b) + 99) % 99).map(([k, t]) => `<dt>${h(PUNTOS[k] || k)}</dt><dd>${h(t)}</dd>`).join('')}</dl>` : ''}
+         ${l.transcripcion ? `<details><summary>Ver la conversación completa</summary><pre class="transcripcion">${h(l.transcripcion)}</pre></details>` : ''}`
+      : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' ? 'NEX todavía no le llama.' : 'Sin llamada de NEX.'}</p>`
+    v.innerHTML = `
+      ${atras}
+      <div class="ficha dos-cols">
+        <div class="tarjeta">
+          <div class="fila chips">${chipLead(l)}${l.canal ? `<span class="chip">${CANAL[l.canal]}</span>` : '<span class="chip">Apuntado a mano</span>'}${l.pais ? `<span class="chip ${l.pais === 'otro' ? '' : l.pais}">${PAIS[l.pais]}</span>` : ''}<span class="chip">${l.idioma === 'en' ? 'Inglés' : 'Español'}</span></div>
+          <h3>Contacto</h3>
+          <p><b>${h(l.nombre || '—')}</b>${l.empresa ? ` · ${h(l.empresa)}` : ''}</p>
+          <p>${[l.telefono && `<a href="tel:${h(l.telefono.replace(/[^\d+]/g, ''))}">${h(l.telefono)}</a>`, l.telefono && `<a href="https://wa.me/${h(l.telefono.replace(/\D/g, ''))}" target="_blank" rel="noopener">WhatsApp</a>`, l.correo && `<a href="mailto:${h(l.correo)}">${h(l.correo)}</a>`].filter(Boolean).join(' · ') || '<span class="vacio">Sin teléfono ni correo.</span>'}</p>
+          ${l.direccion || l.ciudad ? `<p><small>${h([l.direccion, l.ciudad].filter(Boolean).join(' · '))}</small></p>` : ''}
+          <h3>Lo que le interesa</h3>
+          <p>${l.servicio ? h(l.servicio) : '<span class="vacio">No lo dijo.</span>'}</p>
+          <p><small>Llegó ${fechaHora(l.creado)}${l.fuente ? ` · ${h(l.fuente)}` : ''}${l.anuncio_id ? ` · anuncio ${h(l.anuncio_id)}` : ''}${l.asignado ? ` · Lo trabaja: ${h(nombreDe(l.asignado))}` : ''}</small></p>
+          <h3>Permiso para que una IA le llame</h3>
+          ${l.permiso_llamada ? `<p class="verde">✓ Aceptó el ${fechaHora(l.permiso_fecha)}</p>${l.permiso_texto ? `<p><small>“${h(l.permiso_texto)}”</small></p>` : ''}` : '<p class="rojo">✗ No dio permiso. No se le puede llamar con IA.</p>'}
+          ${l.prospecto_id ? `<p><a class="btn" href="#prospecto/${l.prospecto_id}">Ver en Prospectos →</a></p>` : ''}
+          <div class="acciones">
+            ${trabaja && !l.prospecto_id && l.estado !== 'no_llamar' ? '<button class="btn primario" id="ld-agendo">✓ Agendó: pasar a Prospectos</button>' : ''}
+            ${trabaja && ['nuevo', 'llamando', 'incompleto'].includes(l.estado) ? '<button class="btn" id="ld-cartera">Mandar a Cartera</button>' : ''}
+            ${trabaja && (['cartera', 'incompleto'].includes(l.estado) || (l.estado === 'no_llamar' && esAdmin())) && l.permiso_llamada ? '<button class="btn" id="ld-regresar">Regresar a Por llamar</button>' : ''}
+            ${trabaja && l.estado !== 'no_llamar' && !l.prospecto_id ? '<button class="btn" id="ld-bloquear">🚫 No volver a llamar</button>' : ''}
+            ${esAdmin() ? `<label class="mini">Lo trabaja<select id="ld-asignar">${opcionesPersonas(l.asignado, 'Nadie')}</select></label>` : ''}
+            ${trabaja ? '<button class="btn" id="ld-editar">Editar datos</button>' : ''}
+            ${esAdmin() ? '<button class="btn peligro" id="ld-borrar">Borrar</button>' : ''}
+          </div>
+        </div>
+        <div class="tarjeta">
+          <h3>Llamada de NEX</h3>
+          ${llamada}
+        </div>
+        <div class="tarjeta ancho-total">
+          <h3>Notas <small>no se borran ni se cambian</small></h3>
+          ${notas.length ? `<ul class="lista notas">${notas.map((n) => `<li><b>${h(nombreDe(n.autor))}</b><small>${fechaCorta(n.creada)} ${hora(n.creada)}</small><p>${h(n.texto)}</p></li>`).join('')}</ul>` : '<p class="vacio">Sin notas todavía.</p>'}
+          ${trabaja ? `<form id="ld-nota"><textarea name="texto" rows="2" maxlength="2000" required placeholder="Qué pasó: le llamó el call center, pidió que lo busquen en enero…"></textarea><div class="acciones"><button class="btn">Agregar nota</button></div></form>` : ''}
+        </div>
+      </div>`
+    const guardar = async (cambio, bien) => (await intenta(() => D.guardarLead({ id: l.id, ...cambio }), bien)) && mostrar()
+    $('#ld-agendo', v)?.addEventListener('click', () => agendoLead(l))
+    $('#ld-cartera', v)?.addEventListener('click', () => mandarACartera(l))
+    $('#ld-regresar', v)?.addEventListener('click', () => guardar({ estado: 'nuevo' }, 'De vuelta en Por llamar'))
+    $('#ld-bloquear', v)?.addEventListener('click', () => {
+      if (confirm(`¿${nombreLead(l)} pidió no ser llamado? Nadie le vuelve a llamar, ni NEX ni el call center.`)) guardar({ estado: 'no_llamar' }, 'Marcado: no volver a llamar')
+    })
+    $('#ld-asignar', v)?.addEventListener('change', (e) => guardar({ asignado: e.target.value || null }, 'Asignado'))
+    $('#ld-editar', v)?.addEventListener('click', () => editarLead(l))
+    $('#ld-nota', v)?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const texto = e.target.texto.value.trim()
+      if (texto && (await intenta(() => D.agregarNotaLead(l.id, texto), 'Nota agregada'))) mostrar()
+    })
+    $('#ld-borrar', v)?.addEventListener('click', async () => {
+      if (!confirm(`¿Borrar a ${nombreLead(l)} con sus notas? No se puede deshacer.`)) return
+      if ((await intenta(() => D.borrarLead(l.id), 'Lead borrado')) !== undefined) location.hash = '#leads'
+    })
+  }
+
+  /** Agendó: pasa a Prospectos, con su cita si ya la tiene. */
+  function agendoLead(l) {
+    abrirModal(
+      `<form id="f-agendo"><h2>✓ ${h(nombreLead(l))} agendó</h2>
+        <p class="nota">Pasa a Prospectos con todo lo que se sabe de él. Si ya tiene fecha, ponla y queda en "Cita agendada"; si no, en "Dejó sus datos".</p>
+        <div class="campos">
+          <label>Fecha y hora del meeting<input name="cita" type="datetime-local"></label>
+          <label>Link de Google Meet<input name="meet" type="url" maxlength="300" placeholder="https://meet.google.com/…"></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Pasar a Prospectos</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-agendo', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const pid = await intenta(() => D.leadAProspecto(l.id, d.cita ? new Date(d.cita).toISOString() : null, d.meet.trim()), 'Ya está en Prospectos')
+          if (!pid) return
+          cerrarModal()
+          location.hash = `#prospecto/${pid}`
+        }
+      },
+    )
+  }
+
+  function mandarACartera(l) {
+    abrirModal(
+      `<form id="f-cartera"><h2>Mandar a la Cartera</h2>
+        <div class="campos">
+          <label class="ancho">Por qué<select name="motivo">${Object.entries(MOTIVO).map(([k, t]) => `<option value="${k}" ${k === (l.permiso_llamada ? 'no_contesto' : 'sin_permiso') ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label class="ancho">Nota (opcional)<textarea name="nota" rows="2" maxlength="2000" placeholder="Ej.: pidió que lo busquen en enero"></textarea></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Mandar a Cartera</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-cartera', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          if (!(await intenta(() => D.guardarLead({ id: l.id, estado: 'cartera', motivo: d.motivo }), 'En la Cartera'))) return
+          if (d.nota.trim()) await intenta(() => D.agregarNotaLead(l.id, d.nota.trim()))
+          cerrarModal()
+          mostrar()
+        }
+      },
+    )
+  }
+
+  function editarLead(l) {
+    const opciones = (obj, actual, vacio) => `${vacio ? `<option value="">${vacio}</option>` : ''}${Object.entries(obj).map(([k, t]) => `<option value="${k}" ${k === actual ? 'selected' : ''}>${t}</option>`).join('')}`
+    abrirModal(
+      `<form id="f-lead"><h2>${l ? 'Datos del lead' : 'Apuntar un lead'}</h2>
+        ${l ? '' : '<p class="nota">Para alguien que llegó por otro lado y quieres que NEX le llame. Sin su permiso por escrito no se le puede llamar con IA: queda en la Cartera.</p>'}
+        <div class="campos">
+          <label>Nombre<input name="nombre" maxlength="80" required value="${h(l?.nombre)}"></label>
+          <label>Empresa<input name="empresa" maxlength="120" value="${h(l?.empresa)}"></label>
+          <label>Teléfono (con lada del país)<input name="telefono" maxlength="30" placeholder="+1 973 555 0100" value="${h(l?.telefono)}"></label>
+          <label>Correo<input name="correo" type="email" maxlength="120" value="${h(l?.correo)}"></label>
+          <label class="ancho">Dirección de la empresa<input name="direccion" maxlength="200" value="${h(l?.direccion)}"></label>
+          <label>Ciudad<input name="ciudad" maxlength="80" value="${h(l?.ciudad)}"></label>
+          <label>País<select name="pais">${opciones(PAIS, l?.pais, '—')}</select></label>
+          <label>Idioma de la llamada<select name="idioma">${opciones({ es: 'Español', en: 'Inglés' }, l?.idioma ?? 'es')}</select></label>
+          <label class="ancho">Servicio que le interesa<input name="servicio" maxlength="200" value="${h(l?.servicio)}"></label>
+          ${
+            l?.permiso_llamada
+              ? ''
+              : `<label class="ancho check"><input type="checkbox" name="permiso_llamada"> Me dio permiso por escrito de que una IA le llame</label>
+                 <label class="ancho">Cómo lo dio<input name="permiso_texto" maxlength="500" placeholder="Ej.: por WhatsApp a Eduardo el 31 de octubre"></label>`
+          }
+        </div>
+        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-lead', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const fila = { nombre: d.nombre.trim(), empresa: d.empresa.trim(), telefono: d.telefono.trim(), correo: d.correo.trim().toLowerCase(), direccion: d.direccion.trim(), ciudad: d.ciudad.trim(), pais: d.pais, idioma: d.idioma, servicio: d.servicio.trim() }
+          if (!l?.permiso_llamada && d.permiso_llamada) {
+            if (!d.permiso_texto.trim()) return aviso('Escribe cómo te dio el permiso', 'mal')
+            Object.assign(fila, { permiso_llamada: true, permiso_texto: d.permiso_texto.trim() })
+          }
+          if (!l) Object.assign(fila, fila.permiso_llamada ? { estado: 'nuevo' } : { estado: 'cartera', motivo: 'sin_permiso' })
+          const r = await intenta(() => D.guardarLead(l ? { id: l.id, ...fila } : fila), 'Guardado')
+          if (!r) return
+          cerrarModal()
+          if (l) mostrar()
+          else location.hash = `#lead/${r.id}`
+        }
       },
     )
   }

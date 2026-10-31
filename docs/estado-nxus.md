@@ -22,18 +22,22 @@
 - **Ana Sofi**: llama a los leads de Mi Semago desde Google Sheets (no tocar).
 - Conectores en Claude: **Bloom** (marca NXUS AI lista, ~10 créditos por imagen) y **Higgsfield**.
 
-## Lo que sigue: el ecosistema autónomo de leads
-Objetivo: que los leads de los anuncios se procesen solos y a Eduardo le lleguen casi cerrados, listos para una reunión de contrato. **Primero el ecosistema, los anuncios al final.**
+## El ecosistema autónomo de leads (luz verde el 31 de octubre de 2026)
+Objetivo: que los leads de los anuncios se procesen solos y a Eduardo le lleguen casi cerrados, listos para un meeting de contrato. **Primero el ecosistema, los anuncios al final.** Esquema de Eduardo: AI (Claude) → videos y contenido con Bloom → NEX → redes y Meta Ads → ManyChat AI → leads filtrados → NXUS HQ → llamada de NEX → videollamada con Eduardo, o Cartera de leads → call center.
 
-Lo platicado hasta ahora (Eduardo va a explicar su versión y hay que opinar, recomendar y esperar su luz verde):
-1. ManyChat contesta con IA y califica.
-2. El lead calificado entra **directo a HQ** (no Google Sheets).
-3. NEX le llama con el agente de voz (como Ana Sofi).
-4. La IA acomoda el resultado: interesado → portal y cita; no contestó o "ahora no" → **Cartera de prospectos** (sección nueva en HQ) con reintentos automáticos y un call center que la trabaja hasta cerrar o descartar.
-5. NEX conectado a HQ: antes de la cita, resumen del prospecto y propuesta en borrador.
-6. Medir en Dinero: gasto en anuncios contra clientes cerrados.
-7. Al final, anuncios: Claude hace el contenido cada semana (3 imágenes con Bloom y videos), Eduardo aprueba al principio, NEX publica en Meta dentro de un tope, y cada semana se analiza y se anota lo aprendido.
+Lo decidido:
+- **México y USA**, todo en **español e inglés**.
+- **ManyChat (plan Pro, ya lo tiene)** en **Facebook e Instagram**. En los posts, comentar una palabra (INFO) abre el chat; en los anuncios, botón al chat.
+- Filtro: nombre, empresa, dirección de la empresa, teléfono, correo, ciudad/país, servicio y **permiso por escrito** de que una IA le llame. Solo los que terminan son calificados. Al final se le avisa que un asistente de IA le llamará pronto, desde qué número, y que no tenga bloqueadas las llamadas.
+- La parte urgente (recibir el lead y llamar) corre **en la nube** (HQ en Netlify + Supabase), no en la Mac. Las llamadas salen de un **número nuevo solo para NXUS**.
+- NEX llama **una sola vez**, en cuanto llega el lead (fuera de horario, a la mañana siguiente). Dice que es IA y que se graba. No da precios: NXUS AI "hace trajes a la medida". Pregunta por la empresa, lo que necesita, quién decide y la urgencia; aconseja y agenda un **Google Meet de 30 minutos** con Eduardo, **lunes a sábado de 9 am a 4 pm hora de NJ**. Anota todo en HQ.
+- No contestó, no le interesa, colgó o "ahora no" → **Cartera de prospectos**. **NEX no vuelve a llamar** a los de la Cartera; ahí esperan al call center (personas, todavía no existe). Quien pide no ser llamado queda bloqueado para siempre.
+- La cuenta de anuncios de NXUS en Meta **ya existe**. El tope de gasto se define antes de la fase 6.
 
-Cuidados: para llamar con voz de IA en USA hace falta permiso previo por escrito (pedirlo en ManyChat y guardarlo en HQ); respetar a quien pida no ser llamado.
-
-Preguntas abiertas: canales de ManyChat (plan Pro para mandar datos a HQ); qué es un lead calificado; call center de personas, NEX o ambos; reglas de reintento; tope de gasto en anuncios; México, USA o ambos y qué servicios; si ya hay cuenta de anuncios de NXUS en Meta.
+Fases:
+1. ✅ **HQ: secciones Leads y Cartera** (`leads`, `leads_notas`, `lead_a_prospecto` en `hq/supabase/esquema.sql`; pantallas en `hq/public/app.js`). Falta que Eduardo corra el esquema en Supabase (guía HQ, paso 6).
+2. ManyChat → HQ: la puerta para que entren solos (función en Netlify con clave, como la del portal) y el flujo de ManyChat en los dos idiomas.
+3. La llamada de NEX desde la nube (ElevenLabs + número nuevo), con resumen, puntos y grabación en HQ.
+4. Google Calendar y Meet (también sirve al portal), recordatorios 24 h y 1 h antes, y propuestas en borrador antes del meeting.
+5. Medir en Dinero: gasto en anuncios contra clientes cerrados.
+6. Contenido y anuncios: Claude hace el contenido cada semana, Eduardo lo aprueba en HQ, NEX publica y aprende (con las señales de leads y clientes de vuelta a Meta).

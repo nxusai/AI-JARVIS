@@ -457,6 +457,9 @@ create table if not exists public.prospectos (
   actualizado timestamptz not null default now()
 );
 create index if not exists prospectos_etapa on public.prospectos (etapa, actualizado desc);
+-- 'anuncio': llegó por los anuncios (ManyChat → Leads) y agendó.
+alter table public.prospectos drop constraint if exists prospectos_origen_check;
+alter table public.prospectos add constraint prospectos_origen_check check (origen in ('portal', 'manual', 'anuncio'));
 
 create table if not exists public.prospectos_notas (
   id uuid primary key default gen_random_uuid(),
@@ -506,11 +509,18 @@ $$;
 
 create or replace function public.antes_prospecto() returns trigger
 language plpgsql as $$
-declare convirtiendo boolean := coalesce(current_setting('hq.convirtiendo', true), '') = 'si';
+declare
+  convirtiendo boolean := coalesce(current_setting('hq.convirtiendo', true), '') = 'si';
+  desde_lead boolean := coalesce(current_setting('hq.desde_lead', true), '') = 'si';
 begin
   if tg_op = 'INSERT' then
     new.creado := now();
-    if not es_sistema() then
+    if desde_lead then
+      -- Lo pasa lead_a_prospecto: un lead de los anuncios que agendó.
+      new.origen := 'anuncio';
+      new.portal_id := null;
+      new.cliente_id := null;
+    elsif not es_sistema() then
       -- A mano: nace de quien lo apunta (el admin puede ponerlo a nombre de alguien).
       new.origen := 'manual';
       new.portal_id := null;
@@ -624,7 +634,7 @@ begin
     case when d ->> 'pais' = 'USA' then 'usa' else 'mexico' end,
     p.lineas,
     left(concat_ws(E'\n',
-      case when p.origen = 'portal' then 'Llegó por el portal.' end,
+      case p.origen when 'portal' then 'Llegó por el portal.' when 'anuncio' then 'Llegó por los anuncios y agendó con NEX.' end,
       nullif(concat_ws(' · ', d ->> 'giro', nullif(d ->> 'tamano', '') || ' personas', d ->> 'pais'), ''),
       case when coalesce(d ->> 'quiere', '') <> '' then 'Quiere: ' || (d ->> 'quiere') end,
       case when p.direccion <> '' then 'Dirección: ' || p.direccion end), 5000),
@@ -679,3 +689,180 @@ create policy pros_notas_borrar on public.prospectos_notas for delete to authent
 create policy pros_pagos_ver on public.prospectos_pagos for select to authenticated
   using (pros_puede('pagos') and exists (select 1 from prospectos p where p.id = prospecto_id));
 create policy pros_pagos_admin on public.prospectos_pagos for all to authenticated using (es_admin()) with check (es_admin());
+
+
+-- ---------------------------------------------------------------------------
+-- Leads: los que llegan de los anuncios y las redes por ManyChat. Solo los que
+-- terminan el filtro son "calificados" (estado nuevo) y NEX les llama una vez.
+-- Si agendan, pasan a Prospectos; si no, a la Cartera de prospectos, donde se
+-- quedan para el call center. Los que no terminan el filtro quedan como "no
+-- calificados" (incompleto). Los ve quien ve todos los prospectos.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  manychat_id text unique, -- su contacto en ManyChat; null si se apuntó a mano
+  origen text not null default 'manychat' check (origen in ('manychat', 'manual')),
+  canal text not null default '' check (canal in ('', 'instagram', 'facebook')),
+  fuente text not null default '' check (char_length(fuente) <= 200), -- la palabra (INFO), el post o el anuncio
+  anuncio_id text not null default '' check (char_length(anuncio_id) <= 60),
+  nombre text not null default '' check (char_length(nombre) <= 80),
+  empresa text not null default '' check (char_length(empresa) <= 120),
+  direccion text not null default '' check (char_length(direccion) <= 200),
+  telefono text not null default '' check (char_length(telefono) <= 30),
+  correo text not null default '' check (char_length(correo) <= 120),
+  ciudad text not null default '' check (char_length(ciudad) <= 80),
+  pais text not null default '' check (pais in ('', 'mexico', 'usa', 'otro')),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  servicio text not null default '' check (char_length(servicio) <= 200),
+  -- El permiso por escrito para que una IA le llame (en USA es ley). Es un
+  -- registro: una vez guardado, nadie lo cambia.
+  permiso_llamada boolean not null default false,
+  permiso_fecha timestamptz,
+  permiso_texto text not null default '' check (char_length(permiso_texto) <= 500),
+  estado text not null default 'nuevo' check (estado in ('incompleto', 'nuevo', 'llamando', 'agendado', 'cartera', 'no_llamar')),
+  motivo text not null default '' check (motivo in ('', 'no_contesto', 'no_interesa', 'colgo', 'ahora_no', 'numero_malo', 'sin_permiso')),
+  -- La llamada de NEX.
+  llamada_id text not null default '' check (char_length(llamada_id) <= 120),
+  llamada_inicio timestamptz,
+  llamada_seg int check (llamada_seg is null or llamada_seg >= 0),
+  grabacion text not null default '' check (char_length(grabacion) <= 500),
+  resumen text not null default '' check (char_length(resumen) <= 4000),
+  puntos jsonb not null default '{}', -- lo que NEX anotó: necesidad, quién decide, urgencia…
+  transcripcion text not null default '' check (char_length(transcripcion) <= 60000),
+  prospecto_id uuid references public.prospectos (id) on delete set null, -- en qué prospecto se convirtió
+  asignado uuid references public.perfiles (id) on delete set null, -- quién del call center lo trabaja
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists leads_estado on public.leads (estado, creado desc);
+
+create table if not exists public.leads_notas (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.leads (id) on delete cascade,
+  autor uuid references public.perfiles (id) on delete set null,
+  texto text not null check (char_length(texto) between 1 and 2000),
+  creada timestamptz not null default now()
+);
+create index if not exists leads_notas_de on public.leads_notas (lead_id, creada);
+
+create or replace function public.antes_lead() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    if not es_sistema() then
+      new.origen := 'manual';
+      new.manychat_id := null;
+      new.prospecto_id := null;
+    end if;
+    if new.permiso_llamada then new.permiso_fecha := coalesce(new.permiso_fecha, now()); else new.permiso_fecha := null; end if;
+  else
+    new.id := old.id;
+    new.manychat_id := old.manychat_id;
+    new.origen := old.origen;
+    new.creado := old.creado;
+    -- El permiso queda como se dio: nadie lo cambia después.
+    if old.permiso_llamada then
+      new.permiso_llamada := old.permiso_llamada;
+      new.permiso_fecha := old.permiso_fecha;
+      new.permiso_texto := old.permiso_texto;
+    elsif new.permiso_llamada then
+      new.permiso_fecha := now();
+    end if;
+    -- Quien pidió no ser llamado no regresa a la fila de llamadas (solo Eduardo puede).
+    if old.estado = 'no_llamar' and new.estado <> 'no_llamar' and not es_admin() then
+      raise exception 'Pidió no ser llamado: solo Eduardo lo puede cambiar';
+    end if;
+    if not es_sistema() and not es_admin() and coalesce(current_setting('hq.desde_lead', true), '') <> 'si' then
+      new.asignado := old.asignado;
+      new.prospecto_id := old.prospecto_id;
+    end if;
+  end if;
+  if new.estado <> 'cartera' then new.motivo := ''; end if;
+  new.correo := lower(new.correo);
+  new.actualizado := now();
+  return new;
+end $$;
+
+drop trigger if exists hq_antes_lead on public.leads;
+create trigger hq_antes_lead before insert or update on public.leads
+  for each row execute function public.antes_lead();
+
+create or replace function public.antes_nota_lead() returns trigger
+language plpgsql as $$
+begin
+  if not es_sistema() then new.autor := auth.uid(); end if;
+  new.creada := now();
+  return new;
+end $$;
+
+drop trigger if exists hq_antes_nota_lead on public.leads_notas;
+create trigger hq_antes_nota_lead before insert on public.leads_notas
+  for each row execute function public.antes_nota_lead();
+
+-- Agendó: el lead pasa a Prospectos con todo lo que se sabe de él (y su cita,
+-- si ya la tiene). Lo hace NEX (sistema), el admin o quien trabaja prospectos.
+create or replace function public.lead_a_prospecto(lid uuid, cita timestamptz default null, meet text default '') returns uuid
+language plpgsql security definer set search_path = public as $$
+declare l leads; nuevo uuid;
+begin
+  select * into l from leads where id = lid;
+  if not found or not (es_sistema() or pros_ve(l.asignado, null)) then raise exception 'Ese lead no existe'; end if;
+  if not (es_sistema() or pros_puede('trabajar')) then raise exception 'No tienes permiso para trabajar leads'; end if;
+  if l.prospecto_id is not null then return l.prospecto_id; end if;
+  perform set_config('hq.desde_lead', 'si', true);
+  insert into prospectos (nombre, empresa, direccion, whatsapp, correo, lineas, diagnostico, etapa, cita, meet, asignado)
+  values (
+    l.nombre, l.empresa, l.direccion, l.telefono, l.correo,
+    case when l.servicio <> '' then array[left('Pidió en el chat: ' || l.servicio, 80)] else '{}' end,
+    jsonb_strip_nulls(jsonb_build_object(
+      'pais', case l.pais when 'mexico' then 'México' when 'usa' then 'USA' end,
+      'ciudad', nullif(l.ciudad, ''),
+      'idioma', case l.idioma when 'en' then 'Inglés' else 'Español' end,
+      'quiere', nullif(l.resumen, ''))),
+    case when cita is null then 'datos' else 'cita' end,
+    -- Las reuniones son con Eduardo: si nadie más lo trabaja, queda a su nombre.
+    cita, left(coalesce(meet, ''), 300), coalesce(l.asignado, (select id from perfiles where rol = 'admin' and activo order by creado limit 1)))
+  returning id into nuevo;
+  update leads set estado = 'agendado', prospecto_id = nuevo where id = lid;
+  perform set_config('hq.desde_lead', '', true);
+  return nuevo;
+end $$;
+
+revoke all on function public.lead_a_prospecto(uuid, timestamptz, text) from public;
+grant execute on function public.lead_a_prospecto(uuid, timestamptz, text) to authenticated;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['leads', 'leads_notas'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+  end loop;
+end $$;
+
+alter table public.leads enable row level security;
+alter table public.leads_notas enable row level security;
+
+do $$
+declare r record;
+begin
+  for r in select policyname, tablename from pg_policies where schemaname = 'public'
+    and tablename in ('leads', 'leads_notas')
+  loop
+    execute format('drop policy if exists %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $$;
+
+create policy leads_ver on public.leads for select to authenticated using (pros_ve(asignado, null));
+create policy leads_crear on public.leads for insert to authenticated with check (pros_puede('trabajar'));
+create policy leads_cambiar on public.leads for update to authenticated
+  using (pros_ve(asignado, null) and pros_puede('trabajar')) with check (pros_ve(asignado, null));
+create policy leads_borrar on public.leads for delete to authenticated using (es_admin());
+
+create policy leads_notas_ver on public.leads_notas for select to authenticated
+  using (exists (select 1 from leads l where l.id = lead_id));
+create policy leads_notas_crear on public.leads_notas for insert to authenticated
+  with check (pros_puede('trabajar') and exists (select 1 from leads l where l.id = lead_id));
+create policy leads_notas_borrar on public.leads_notas for delete to authenticated using (es_admin());

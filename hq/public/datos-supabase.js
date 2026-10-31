@@ -19,6 +19,9 @@ const ok = ({ data, error }) => {
   return data
 }
 
+const LEAD_LISTA =
+  'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,creado,actualizado'
+
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
   const fotos = new Map()
@@ -126,6 +129,15 @@ export function crearSupabase({ url, anon }) {
     agregarNota: async (id, texto) => ok(await tabla('prospectos_notas').insert({ prospecto_id: id, texto }).select().single()),
     pagosProspectos: async () => ok(await tabla('prospectos_pagos').select('*').order('fecha', { ascending: false })),
     convertirProspecto: async (id) => ok(await sb.rpc('convertir_prospecto', { pid: id })),
+
+    // Leads de los anuncios (ManyChat). La lista sin la transcripción, que pesa; la ficha completa.
+    leads: async () => ok(await tabla('leads').select(LEAD_LISTA).order('creado', { ascending: false })),
+    lead: async (id) => ok(await tabla('leads').select('*').eq('id', id).maybeSingle()),
+    guardarLead: (l) => guardar('leads', l),
+    borrarLead: async (id) => ok(await tabla('leads').delete().eq('id', id)),
+    notasLead: async (id) => ok(await tabla('leads_notas').select('*').eq('lead_id', id).order('creada')),
+    agregarNotaLead: async (id, texto) => ok(await tabla('leads_notas').insert({ lead_id: id, texto }).select().single()),
+    leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 

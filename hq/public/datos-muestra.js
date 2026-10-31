@@ -47,6 +47,8 @@ const db = {
   prospectos: [],
   prospectos_notas: [],
   prospectos_pagos: [],
+  leads: [],
+  leads_notas: [],
 }
 
 const cliente = (c, dinero) => {
@@ -128,6 +130,40 @@ prospecto({
 })
 prospecto({ origen: 'manual', portal_id: null, nombre: 'Lic. Andrés Torres', empresa: 'Despacho Torres', whatsapp: '+52 81 9876 5432', etapa: 'reunion', traido_por: ED, asignado: ED, creado: dia(-3), actualizado: dia(-1), siguiente: 'Mandarle el portal para que llene su diagnóstico', siguiente_fecha: fecha(0) })
 
+// Leads de los anuncios: llegan de ManyChat, NEX les llama una vez y quedan
+// agendados (→ Prospectos), en la Cartera o como no calificados.
+const lead = (l) => {
+  const x = { id: id(), manychat_id: id(), origen: 'manychat', canal: 'instagram', fuente: 'Comentó INFO', anuncio_id: '', nombre: '', empresa: '', direccion: '', telefono: '', correo: '', ciudad: '', pais: '', idioma: 'es', servicio: '', permiso_llamada: true, permiso_fecha: null, permiso_texto: 'Sí, acepto que un asistente de IA de NXUS AI me llame a este número.', estado: 'nuevo', motivo: '', llamada_id: '', llamada_inicio: null, llamada_seg: null, grabacion: '', resumen: '', puntos: {}, transcripcion: '', prospecto_id: null, asignado: null, creado: dia(0, 9), actualizado: dia(0, 9), ...l }
+  if (x.idioma === 'en' && !l.permiso_texto) x.permiso_texto = 'Yes, I agree to receive a call from an NXUS AI assistant at this number.'
+  if (!x.permiso_llamada) x.permiso_texto = ''
+  x.permiso_fecha = x.permiso_llamada ? x.creado : null
+  db.leads.push(x)
+  return x
+}
+const carlos = prospecto({
+  origen: 'anuncio', portal_id: null, nombre: 'Carlos Medina', empresa: 'Medina Logistics', direccion: 'Elizabeth, NJ', whatsapp: '+1 908 555 0147', correo: 'carlos@medinalogistics.com',
+  lineas: ['Pidió en el chat: Automatización de despacho'], diagnostico: { pais: 'USA', ciudad: 'Elizabeth, NJ', idioma: 'Español', quiere: 'Empresa de transporte con 14 camiones. Coordina todo por WhatsApp y Excel; pierde viajes por no contestar a tiempo.' },
+  etapa: 'cita', cita: dia(1, 11), meet: 'https://meet.google.com/nxs-cmed-ina', asignado: ED, creado: dia(0, 8, 47), actualizado: dia(0, 9, 2),
+})
+lead({
+  nombre: 'Carlos Medina', empresa: 'Medina Logistics', direccion: '410 N Broad St, Elizabeth, NJ', telefono: '+1 908 555 0147', correo: 'carlos@medinalogistics.com', ciudad: 'Elizabeth, NJ', pais: 'usa', canal: 'facebook', fuente: 'Anuncio · "Tu negocio contesta solo"', anuncio_id: '120210000000001',
+  servicio: 'Automatización de despacho', estado: 'agendado', prospecto_id: carlos.id, creado: dia(0, 8, 47), actualizado: dia(0, 9, 2),
+  llamada_id: 'conv_muestra_1', llamada_inicio: dia(0, 8, 49), llamada_seg: 412, grabacion: 'https://elevenlabs.io',
+  resumen: 'Empresa de transporte con 14 camiones en NJ. Coordina viajes por WhatsApp y Excel, pierde viajes por no contestar a tiempo. Le interesa que los clientes coticen y agenden solos. Agendó meeting mañana a las 11:00.',
+  puntos: { empresa: 'Transporte de carga, 14 camiones, 22 empleados', necesidad: 'Que las cotizaciones y la agenda de viajes se hagan solas', usa_hoy: 'WhatsApp, Excel y llamadas', decide: 'Sí, es el dueño', urgencia: 'Alta: está perdiendo viajes cada semana', presupuesto: 'No dio cifra; dijo que lo que se pierde al mes es más que una solución', consejo: 'Un asistente que conteste WhatsApp y cotice con sus tarifas, conectado a su agenda' },
+  transcripcion: 'NEX: Hola Carlos, soy NEX, el asistente de inteligencia artificial de NXUS AI. Te llamo porque dejaste tus datos hace un momento en nuestro chat. Esta llamada se graba para darte un mejor servicio. ¿Tienes unos minutos?\nCarlos: Sí, claro.\nNEX: Perfecto. Cuéntame de tu empresa…',
+})
+db.leads_notas.push({ id: id(), lead_id: db.leads.at(-1).id, autor: ED, texto: 'Llevar ejemplo de cotizador por WhatsApp.', creada: dia(0, 9, 30) })
+lead({ nombre: 'Jessica Brown', empresa: 'Bright Smile Dental', telefono: '+1 201 555 0133', correo: 'jessica@brightsmile.com', ciudad: 'Jersey City, NJ', pais: 'usa', idioma: 'en', servicio: 'AI receptionist / appointment booking', canal: 'instagram', fuente: 'Commented INFO', creado: dia(0, 9, 41), actualizado: dia(0, 9, 41), estado: 'llamando', llamada_inicio: dia(0, 9, 42) })
+lead({ nombre: 'Rosa Elena Vázquez', empresa: 'Panadería La Espiga', direccion: 'Calle Morelos 55, Puebla', telefono: '+52 222 555 0190', correo: 'rosa@laespiga.mx', ciudad: 'Puebla', pais: 'mexico', servicio: 'Pedidos por WhatsApp', canal: 'facebook', fuente: 'Anuncio · "Pedidos que llegan solos"', creado: dia(0, 10, 5), actualizado: dia(0, 10, 5) })
+lead({ nombre: 'Tom Kowalski', empresa: 'TK Roofing', telefono: '+1 732 555 0111', ciudad: 'Edison, NJ', pais: 'usa', idioma: 'en', servicio: 'Lead follow-up', canal: 'instagram', fuente: 'Commented INFO', permiso_llamada: false, estado: 'cartera', motivo: 'sin_permiso', creado: dia(0, 7, 30), actualizado: dia(0, 7, 31) })
+lead({ nombre: 'Miguel Ángel Soto', empresa: 'Autolavado Soto', telefono: '+52 81 5555 0177', correo: 'miguel@autolavadosoto.mx', ciudad: 'Monterrey', pais: 'mexico', servicio: 'Página web y redes', canal: 'instagram', estado: 'cartera', motivo: 'no_contesto', creado: dia(-1, 17, 12), actualizado: dia(-1, 17, 15), llamada_inicio: dia(-1, 17, 13), llamada_seg: 0, resumen: 'No contestó. Se dejó mensaje en el buzón.' })
+lead({ nombre: 'Laura Peña', empresa: 'Inmobiliaria Peña', telefono: '+52 55 5555 0122', correo: 'laura@inmopena.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Chatbot para clientes', canal: 'facebook', fuente: 'Anuncio · "Tu negocio contesta solo"', estado: 'cartera', motivo: 'ahora_no', creado: dia(-2, 12), actualizado: dia(-2, 12, 20), llamada_inicio: dia(-2, 12, 2), llamada_seg: 148, resumen: 'Le interesa, pero está cerrando el trimestre. Pidió que la busquen en diciembre.', puntos: { necesidad: 'Contestar a los interesados en propiedades fuera de horario', decide: 'Sí, con su socio', urgencia: 'Baja: después de diciembre' } })
+lead({ nombre: 'Kevin Ortiz', empresa: 'Ortiz Cleaning', telefono: '+1 973 555 0166', ciudad: 'Paterson, NJ', pais: 'usa', idioma: 'en', servicio: 'Social media', canal: 'instagram', estado: 'cartera', motivo: 'colgo', creado: dia(-2, 15), actualizado: dia(-2, 15, 3), llamada_inicio: dia(-2, 15, 1), llamada_seg: 21, resumen: 'Colgó después de la presentación.' })
+lead({ nombre: 'Daniela Ríos', empresa: 'Estética Dany', telefono: '+52 33 5555 0155', ciudad: 'Guadalajara', pais: 'mexico', servicio: 'Agenda de citas', canal: 'instagram', estado: 'no_llamar', creado: dia(-3, 11), actualizado: dia(-3, 11, 6), llamada_inicio: dia(-3, 11, 2), llamada_seg: 35, resumen: 'Dijo que ya no le interesa y que no le vuelvan a llamar.' })
+lead({ nombre: 'Pedro', empresa: '', telefono: '', ciudad: '', pais: '', servicio: '', canal: 'instagram', permiso_llamada: false, estado: 'incompleto', creado: dia(0, 8, 15), actualizado: dia(0, 8, 16) })
+lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León', pais: 'mexico', servicio: 'Contenido para redes', canal: 'facebook', permiso_llamada: false, estado: 'incompleto', creado: dia(-1, 20, 40), actualizado: dia(-1, 20, 44) })
+
 let yo = null
 const copia = (x) => JSON.parse(JSON.stringify(x))
 const admin = () => yo?.rol === 'admin'
@@ -137,6 +173,7 @@ const nunca = () => {
 const anotar = (accion, tabla, fila) => db.bitacora.unshift({ id: db.bitacora.length + 1, quien: yo?.id ?? null, accion, tabla, fila: String(fila ?? ''), cuando: new Date().toISOString() })
 const yoPerfil = () => db.perfiles.find((p) => p.id === yo?.id)
 const puede = (que) => admin() || !!yoPerfil()?.[`pros_${que}`]
+const veLead = (l) => !!l && (admin() || yoPerfil()?.pros_ver === 'todos' || (yoPerfil()?.pros_ver === 'suyos' && l.asignado === yo?.id))
 const veProspecto = (p) => !!p && (admin() || yoPerfil()?.pros_ver === 'todos' || (yoPerfil()?.pros_ver === 'suyos' && [p.asignado, p.traido_por].includes(yo?.id)))
 const espera = (x) => new Promise((r) => setTimeout(() => r(copia(x)), 60))
 
@@ -277,6 +314,58 @@ export function crearMuestra() {
     async borrarComision(cid) {
       if (!admin()) nunca()
       db.comisiones = db.comisiones.filter((c) => c.id !== cid)
+    },
+
+    // Leads: las mismas reglas que la base de datos (supabase/esquema.sql).
+    leads: () => espera(db.leads.filter(veLead).map(({ transcripcion, ...l }) => l).sort((a, b) => b.creado.localeCompare(a.creado))),
+    lead: (lid) => espera(db.leads.find((l) => l.id === lid && veLead(l)) ?? null),
+    async guardarLead(l) {
+      const viejo = l.id && db.leads.find((x) => x.id === l.id && veLead(x))
+      if (l.id && !viejo) nunca()
+      if (!puede('trabajar')) nunca()
+      const ahora = new Date().toISOString()
+      if (!viejo) {
+        const nuevo = lead({ ...l, id: id(), manychat_id: null, origen: 'manual', canal: '', fuente: '', creado: ahora, actualizado: ahora })
+        anotar('insert', 'leads', nuevo.id)
+        return copia(nuevo)
+      }
+      if (viejo.estado === 'no_llamar' && l.estado && l.estado !== 'no_llamar' && !admin()) throw new Error('Pidió no ser llamado: solo Eduardo lo puede cambiar')
+      if (viejo.permiso_llamada) for (const k of ['permiso_llamada', 'permiso_fecha', 'permiso_texto']) delete l[k]
+      else if (l.permiso_llamada) l.permiso_fecha = ahora
+      if (!admin()) delete l.asignado
+      const estado = l.estado ?? viejo.estado
+      if (estado !== 'cartera') l.motivo = ''
+      anotar('update', 'leads', l.id)
+      return copia(upsert(db.leads, { ...l, actualizado: ahora }))
+    },
+    async borrarLead(lid) {
+      if (!admin()) nunca()
+      db.leads = db.leads.filter((l) => l.id !== lid)
+      db.leads_notas = db.leads_notas.filter((n) => n.lead_id !== lid)
+    },
+    notasLead: (lid) => espera(db.leads_notas.filter((n) => n.lead_id === lid && veLead(db.leads.find((l) => l.id === lid)))),
+    async agregarNotaLead(lid, texto) {
+      const l = db.leads.find((x) => x.id === lid)
+      if (!l || !veLead(l) || !puede('trabajar')) nunca()
+      const n = { id: id(), lead_id: lid, autor: yo.id, texto, creada: new Date().toISOString() }
+      db.leads_notas.push(n)
+      anotar('insert', 'leads_notas', n.id)
+      return copia(n)
+    },
+    async leadAProspecto(lid, cita = null, meet = '') {
+      const l = db.leads.find((x) => x.id === lid)
+      if (!l || !veLead(l)) throw new Error('Ese lead no existe')
+      if (!puede('trabajar')) throw new Error('No tienes permiso para trabajar leads')
+      if (l.prospecto_id) return l.prospecto_id
+      const p = prospecto({
+        origen: 'anuncio', portal_id: null, nombre: l.nombre, empresa: l.empresa, direccion: l.direccion, whatsapp: l.telefono, correo: l.correo,
+        lineas: l.servicio ? [`Pidió en el chat: ${l.servicio}`.slice(0, 80)] : [],
+        diagnostico: Object.fromEntries(Object.entries({ pais: { mexico: 'México', usa: 'USA' }[l.pais], ciudad: l.ciudad, idioma: l.idioma === 'en' ? 'Inglés' : 'Español', quiere: l.resumen }).filter(([, v]) => v)),
+        etapa: cita ? 'cita' : 'datos', cita, meet, asignado: l.asignado ?? ED, creado: new Date().toISOString(), actualizado: new Date().toISOString(),
+      })
+      Object.assign(l, { estado: 'agendado', motivo: '', prospecto_id: p.id, actualizado: new Date().toISOString() })
+      anotar('insert', 'prospectos', p.id)
+      return p.id
     },
 
     bitacora: () => espera(admin() ? db.bitacora : []),

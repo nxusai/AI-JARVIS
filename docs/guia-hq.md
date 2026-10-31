@@ -19,6 +19,14 @@ Las reglas viven en la base de datos: aunque alguien se brinque la página, no p
   - **✓ Convertir en cliente** crea su ficha en Clientes con todo lo que contestó.
   - **🔗 Link para un prospecto:** escribes su nombre y te da el link y un mensaje listo para WhatsApp. El link lleva el código de quien lo manda (`?de=barbara`): el prospecto queda a su nombre.
   - **+ Apuntar a mano:** para alguien que conociste por otro lado.
+- **Leads (anuncios):** los que llegan de Instagram y Facebook por ManyChat, ordenados por día y hora.
+  - Solo cuentan como **calificados** los que terminan el filtro: nombre, empresa, dirección, teléfono, correo y servicio. Los que no terminan quedan en **No calificados**.
+  - Cada lead guarda su **permiso por escrito** para que una IA le llame, con fecha y hora. Una vez guardado nadie lo cambia. Sin permiso, NEX no le llama y el lead va a la Cartera.
+  - NEX le llama **una sola vez**. En la ficha quedan la llamada, la grabación, el resumen, lo que NEX anotó (su empresa, lo que necesita, si decide, urgencia, presupuesto, lo que le aconsejó) y la conversación completa.
+  - **✓ Agendó: pasar a Prospectos** lo pasa a Prospectos con todo lo que se sabe y su cita. Queda a tu nombre.
+  - **+ Apuntar a mano:** para alguien que quieres que NEX llame. Necesitas su permiso por escrito.
+- **Cartera de prospectos:** los que NEX no pudo agendar, por motivo: no contestó, ya no le interesa, colgó, ahora no, número equivocado o sin permiso de llamada. Por ahora nadie los vuelve a llamar solo: se quedan ahí para el call center. Los que pidieron **no ser llamados** quedan aparte y nadie les vuelve a llamar (solo tú los puedes regresar).
+  - Los ve quien en **Personas** tenga "Qué prospectos ve: Todos", o a quien tú se los asignes en **Lo trabaja**.
 - **Tareas:** tablero Pendiente / En curso / Hecha. Cada quien mueve el estado de lo suyo.
 - **Equipo:** tarjeta de cada persona con su foto, su cargo y si es NXUS USA o NXUS MÉXICO.
 - **Mi reloj:** marcar entrada y salida. La hora la pone el sistema y nadie la cambia a mano.
@@ -94,6 +102,12 @@ Es una sola clave que comparten los dos sitios de Netlify, para que solo el port
    - `PORTAL_CLAVE` = la misma clave (secreta).
    - `HQ_URL` = `https://app.nxusai.org`
 4. **Trigger deploy** en los dos proyectos.
+
+### 6. Leads y Cartera (fase 1 del ecosistema de leads)
+Solo hay que volver a correr la base de datos; no se pierde nada.
+1. https://supabase.com/dashboard → proyecto **nxus-hq** → **SQL Editor** → **New query**.
+2. Pega todo `hq/supabase/esquema.sql` (en tu Mac: `pbcopy < ~/Desktop/nexy/hq/supabase/esquema.sql`) → **Run**. Debe decir **Success**.
+3. En Netlify, proyecto **nxus-hq** → **Deploys** → **Trigger deploy** → **Deploy project**.
 
 ## La muestra
 Para verla sin instalar nada: `node scripts/hq-muestra.mjs` arma `hq-muestra.html`. Ábrelo y entra como cualquier persona.
