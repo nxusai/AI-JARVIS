@@ -40,7 +40,7 @@ Lo decidido:
 
 Fases:
 1. ✅ **HQ: secciones Leads y Cartera** (`leads`, `leads_notas`, `lead_a_prospecto` en `hq/supabase/esquema.sql`; pantallas en `hq/public/app.js`). Falta que Eduardo corra el esquema en Supabase (guía HQ, paso 6).
-2. ManyChat → HQ: la puerta para que entren solos (función en Netlify con clave, como la del portal) y el flujo de ManyChat en los dos idiomas.
+2. ✅ **ManyChat → HQ**: `hq/netlify/functions/manychat.mjs` (clave `MANYCHAT_CLAVE` en Netlify y en el encabezado `x-manychat-clave` de ManyChat) y la guía clic por clic con los mensajes en español e inglés, el permiso de llamada y los disparadores: `docs/guia-manychat.md`. Falta que Eduardo ponga la clave en Netlify y arme el flujo en ManyChat.
 3. La llamada de NEX desde la nube (ElevenLabs + número nuevo), con resumen, puntos y grabación en HQ.
 4. Google Calendar y Meet (también sirve al portal), recordatorios 24 h y 1 h antes, y propuestas en borrador antes del meeting.
 5. Medir en Dinero: gasto en anuncios contra clientes cerrados.
