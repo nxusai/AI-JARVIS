@@ -29,7 +29,7 @@ export const Reel: React.FC<ReelProps> = (p) => {
         y={narrado ? '30%' : '46%'} tamano={narrado ? Math.min(104, Math.max(76, 150 - p.texto.length * 2)) : undefined} />
       {narrado && p.palabras?.length ? <Subtitulos palabras={p.palabras} acento={acento} /> : null}
       {!narrado && (p.remate || p.firma) && <Remate texto={p.remate} firma={p.firma} desde={remateDesde} acento={acento} />}
-      {narrado && p.firma && <Remate firma={p.firma} desde={remateDesde} acento={acento} />}
+      {narrado && p.firma && <Remate firma={p.firma} desde={remateDesde} acento={acento} y="76%" />}
       <Cine barras={p.cine ?? frase} color={acento} />
       {!frase && <Destello en={golpe} color={acento} fuerza={0.45} />}
       <Destello en={1} fuerza={0.5} />

@@ -69,13 +69,13 @@ export const Texto: React.FC<{
 };
 
 /** La línea chica del final (remate) y el usuario. */
-export const Remate: React.FC<{ texto?: string; firma?: string; desde: number; acento: string }> = ({ texto, firma, desde, acento }) => {
+export const Remate: React.FC<{ texto?: string; firma?: string; desde: number; acento: string; y?: string }> = ({ texto, firma, desde, acento, y = '66%' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const s = spring({ frame: frame - desde, fps, config: { damping: 14 } });
   const linea = interpolate(frame - desde, [0, 14], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   return (
-    <div style={{ position: 'absolute', left: 0, right: 0, top: '66%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
+    <div style={{ position: 'absolute', left: 0, right: 0, top: y, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
       {texto && (
         <div style={{ fontFamily: FUENTE, fontWeight: 900, fontSize: 54, color: '#0a0f1e', background: acento, padding: '14px 30px', borderRadius: 18,
           transform: `scale(${interpolate(s, [0, 1], [0.6, 1])})`, opacity: s, boxShadow: `0 0 40px ${acento}77` }}>{texto}</div>
