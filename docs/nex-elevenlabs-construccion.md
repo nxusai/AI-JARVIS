@@ -85,9 +85,10 @@ Save.
 3. Enable the events **transcription** and **call initiation failure** (no audio needed).
 4. If the workspace already has a post-call webhook used by other agents, **do not replace it**: instead, in the **NEX Ventas** agent's own settings use the **Post-call webhooks override** to point only this agent to the new webhook. Ask Eduardo first.
 
-## Part 5 — Phone number
-1. **Phone numbers:** if Eduardo already bought the new NXUS number in Twilio, use **Import number → Twilio**: the phone number and a label `NXUS Ventas`; Eduardo types the Twilio Account SID and Auth Token himself.
-2. Assign the number to the agent **NEX Ventas** (outbound).
+## Part 5 — Phone number (Eduardo already has Twilio numbers imported)
+1. Open **Phone numbers**. Eduardo already imported several Twilio numbers: NEX uses them to call him (NEXY_CALL_PHONE_ID), to call his contacts (NEXY_MESSENGER_PHONE_ID), for the receptionist, and Ana Sofi uses one for Mi Semago.
+2. **Do not change anything yet.** List every number for Eduardo, in Spanish: the number, its label, its **Phone number ID** and which agent is assigned (inbound/outbound). Ask him which one is for **NEX Ventas**. Never touch Ana Sofi's number (Mi Semago) or the one NEX uses to call Eduardo.
+3. Only when Eduardo picks one: assign **NEX Ventas** to it (outbound, and inbound too, so if a lead calls back NEX Ventas answers). If Eduardo says to import a new Twilio number instead, use **Import number → Twilio** and let him type the Account SID and Auth Token.
 
 ## Part 6 — Report
 Tell Eduardo, in Spanish: the **Agent ID** of NEX Ventas and the **Phone number ID** of the imported number (both are IDs, not secrets: show them so he can paste them in Netlify as `NEX_AGENT_ID` and `NEX_PHONE_NUMBER_ID`), and remind him to: (1) type `x-nex-clave` in the three tools, (2) copy the webhook secret to Netlify, (3) send screenshots of the agent to his other Claude chat for review before the first test call.

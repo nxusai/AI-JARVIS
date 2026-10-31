@@ -9,11 +9,9 @@ Cuando un lead termina el filtro de ManyChat y da permiso, **NEX le llama solo**
 
 ## Lo que necesitas (una sola vez)
 
-### 1. El número nuevo de NXUS (Twilio)
-1. https://console.twilio.com → crea cuenta o entra.
-2. **Phone Numbers → Manage → Buy a number**: país **United States**, con **Voice**; de preferencia lada de NJ (973, 201 o 862) → **Buy**.
-3. Para poder llamar a México: **Voice → Settings → Geo permissions** → marca **Mexico** → **Save**.
-4. Ten a la mano el **Account SID** y el **Auth Token** (en la página principal de la consola). No los pegues en ningún chat.
+### 1. El número de NXUS para NEX Ventas
+Ya tienes números de Twilio importados en ElevenLabs (NEX los usa para llamarte a ti, para llamar a tus contactos y para la recepcionista; Ana Sofi tiene el suyo para Mi Semago). Usa uno que esté libre para **NEX Ventas**, o compra uno nuevo solo para ventas en https://console.twilio.com (**Phone Numbers → Buy a number**, United States, Voice). No uses el de Ana Sofi ni el que NEX usa para llamarte.
+Para poder llamar a México: en Twilio, **Voice → Settings → Geo permissions** → marca **Mexico** → **Save**.
 
 ### 2. La agenda de Google (si no la has instalado)
 Es el programa `portal/google/agenda.gs`. Corre en la cuenta de Google de tu calendario.
