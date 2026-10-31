@@ -5,6 +5,7 @@
 ## Cómo trabajar con Eduardo
 - Contestar en español, con pasos clic por clic, nombres de botones en inglés tal como salen en pantalla, y **todos los links y comandos dentro de cada paso y repetidos al final**.
 - Nunca decir "el mensaje anterior": repetir lo necesario.
+- Cada vez que haya que actualizar nexy, dar **completo en ese paso**: el link del zip y el comando para actualizar (el de abajo), nunca "con tu comando de siempre".
 - Nunca pedir ni pegar llaves o contraseñas en el chat: van en Netlify, Supabase, Contraseñas de la Mac o prompts ocultos.
 - Preguntar antes de instalar algo en todo el sistema. No abrir PR si no lo pide.
 - Mostrar fotos (muestra) antes de que él suba algo.
