@@ -830,7 +830,9 @@ begin
   return nuevo;
 end $$;
 
-revoke all on function public.lead_a_prospecto(uuid, timestamptz, text) from public;
+-- Supabase deja usar las funciones nuevas a cualquiera sin sesión (anon), y
+-- sin sesión es_sistema() da verdadero: solo con sesión o con la llave de servicio.
+revoke all on function public.lead_a_prospecto(uuid, timestamptz, text) from public, anon;
 grant execute on function public.lead_a_prospecto(uuid, timestamptz, text) to authenticated;
 
 do $$
