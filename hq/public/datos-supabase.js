@@ -20,7 +20,7 @@ const ok = ({ data, error }) => {
 }
 
 const LEAD_LISTA =
-  'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,creado,actualizado'
+  'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,traduccion,creado,actualizado'
 
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -138,6 +138,7 @@ export function crearSupabase({ url, anon }) {
     notasLead: async (id) => ok(await tabla('leads_notas').select('*').eq('lead_id', id).order('creada')),
     agregarNotaLead: async (id, texto) => ok(await tabla('leads_notas').insert({ lead_id: id, texto }).select().single()),
     llamarLead: (id) => funcion('nex-llamar', { id }),
+    traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),

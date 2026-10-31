@@ -5,6 +5,7 @@
 // ELEVENLABS_WEBHOOK_SECRET (el que da ElevenLabs al crear el webhook).
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { json, sb } from '../lib/sb.mjs'
+import { traducir } from '../lib/traducir.mjs'
 
 /** La firma de ElevenLabs: "t=<segundos>,v0=<hmac sha256 de `${t}.${cuerpo}`>", de hace menos de 30 minutos. */
 export function firmaValida(cuerpo, encabezado, secreto) {
@@ -78,15 +79,26 @@ export default async (req) => {
     if (evento.type === 'call_initiation_failure') {
       // No contestó, estaba ocupado o la llamada no salió.
       if (lead.estado === 'agendado') return json({ ok: true })
-      cambio = { estado: 'cartera', motivo: 'no_contesto', llamada_id: String(d.conversation_id || '').slice(0, 120), llamada_seg: 0, resumen: `No contestó (${d.failure_reason || 'sin respuesta'}).` }
+      const razon = { busy: ['estaba ocupado', 'line was busy'], 'no-answer': ['no contestó', 'no answer'] }[d.failure_reason] ?? ['sin respuesta', 'no answer']
+      cambio = {
+        estado: 'cartera',
+        motivo: 'no_contesto',
+        llamada_id: String(d.conversation_id || '').slice(0, 120),
+        llamada_seg: 0,
+        resumen: `No contestó (${razon[0]}).`,
+        traduccion: { es: { resumen: `No contestó (${razon[0]}).`, puntos: {} }, en: { resumen: `Didn't answer (${razon[1]}).`, puntos: {} } },
+      }
     } else if (evento.type === 'post_call_transcription') {
       cambio = cierre(lead, d)
+      // En español y en inglés para el equipo; si la IA tarda, se traduce al abrir la ficha.
+      const t = await traducir(cambio.resumen, cambio.puntos).catch(() => null)
+      if (t) cambio.traduccion = t
     } else {
       return json({ ok: true, ignorado: evento.type })
     }
     await sb(`/rest/v1/leads?id=eq.${lead.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: cambio })
     if (lead.prospecto_id && cambio.resumen) {
-      await sb('/rest/v1/prospectos_notas', { servicio: true, method: 'POST', prefer: 'return=minimal', body: { prospecto_id: lead.prospecto_id, texto: `Llamada de NEX: ${cambio.resumen}`.slice(0, 2000) } })
+      await sb('/rest/v1/prospectos_notas', { servicio: true, method: 'POST', prefer: 'return=minimal', body: { prospecto_id: lead.prospecto_id, texto: `Llamada de NEX: ${cambio.traduccion?.es?.resumen || cambio.resumen}`.slice(0, 2000) } })
     }
     return json({ ok: true })
   } catch (err) {

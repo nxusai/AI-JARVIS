@@ -153,6 +153,17 @@ lead({
   puntos: { empresa: 'Transporte de carga, 14 camiones, 22 empleados', necesidad: 'Que las cotizaciones y la agenda de viajes se hagan solas', usa_hoy: 'WhatsApp, Excel y llamadas', decide: 'Sí, es el dueño', urgencia: 'Alta: está perdiendo viajes cada semana', presupuesto: 'No dio cifra; dijo que lo que se pierde al mes es más que una solución', consejo: 'Un asistente que conteste WhatsApp y cotice con sus tarifas, conectado a su agenda' },
   transcripcion: 'NEX: Hola Carlos, soy NEX, el asistente de inteligencia artificial de NXUS AI. Te llamo porque dejaste tus datos hace un momento en nuestro chat. Esta llamada se graba para darte un mejor servicio. ¿Tienes unos minutos?\nCarlos: Sí, claro.\nNEX: Perfecto. Cuéntame de tu empresa…',
 })
+// ElevenLabs escribe el resumen en inglés; HQ guarda las dos versiones.
+Object.assign(db.leads.at(-1), {
+  resumen: 'Trucking company with 14 trucks in NJ. Coordinates trips over WhatsApp and Excel and loses jobs by not answering in time. Wants customers to get quotes and book on their own. Booked a meeting for tomorrow at 11:00.',
+  traduccion: {
+    es: { resumen: db.leads.at(-1).resumen, puntos: db.leads.at(-1).puntos },
+    en: {
+      resumen: 'Trucking company with 14 trucks in NJ. Coordinates trips over WhatsApp and Excel and loses jobs by not answering in time. Wants customers to get quotes and book on their own. Booked a meeting for tomorrow at 11:00.',
+      puntos: { empresa: 'Freight trucking, 14 trucks, 22 employees', necesidad: 'Quotes and trip scheduling that run on their own', usa_hoy: 'WhatsApp, Excel and phone calls', decide: 'Yes, he is the owner', urgencia: 'High: losing jobs every week', presupuesto: "Didn't give a number; said what he loses each month is more than a solution", consejo: 'An assistant that answers WhatsApp and quotes with his rates, connected to his schedule' },
+    },
+  },
+})
 db.leads_notas.push({ id: id(), lead_id: db.leads.at(-1).id, autor: ED, texto: 'Llevar ejemplo de cotizador por WhatsApp.', creada: dia(0, 9, 30) })
 lead({ nombre: 'Jessica Brown', empresa: 'Bright Smile Dental', telefono: '+1 201 555 0133', correo: 'jessica@brightsmile.com', ciudad: 'Jersey City, NJ', pais: 'usa', idioma: 'en', servicio: 'AI receptionist / appointment booking', canal: 'instagram', fuente: 'Commented INFO', creado: dia(0, 9, 41), actualizado: dia(0, 9, 41), estado: 'llamando', llamada_inicio: dia(0, 9, 42) })
 lead({ nombre: 'Rosa Elena Vázquez', empresa: 'Panadería La Espiga', direccion: 'Calle Morelos 55, Puebla', telefono: '+52 222 555 0190', correo: 'rosa@laespiga.mx', ciudad: 'Puebla', pais: 'mexico', servicio: 'Pedidos por WhatsApp', canal: 'facebook', fuente: 'Anuncio · "Pedidos que llegan solos"', creado: dia(0, 10, 5), actualizado: dia(0, 10, 5) })
@@ -351,6 +362,10 @@ export function crearMuestra() {
       db.leads_notas.push(n)
       anotar('insert', 'leads_notas', n.id)
       return copia(n)
+    },
+    async traducirLead(lid) {
+      const l = db.leads.find((x) => x.id === lid)
+      return l?.traduccion?.es ? copia(l.traduccion) : null
     },
     async llamarLead(lid) {
       const l = db.leads.find((x) => x.id === lid)

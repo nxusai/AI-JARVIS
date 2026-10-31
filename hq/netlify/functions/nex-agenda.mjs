@@ -53,7 +53,7 @@ export default async (req) => {
     if (b.accion === 'horarios') {
       const { horarios } = await agenda({ accion: 'horarios' })
       const opciones = (horarios ?? []).slice(0, 8).map((inicio) => ({ inicio, texto: enPalabras(inicio, l) }))
-      if (!opciones.length) return json({ ok: true, horarios: [], mensaje: l.idioma === 'en' ? 'No free slots this week; tell them Eduardo will contact them to find a time.' : 'No hay horarios libres esta semana; dile que Eduardo le escribirá para buscar un horario.' })
+      if (!opciones.length) return json({ ok: true, horarios: [], mensaje: l.idioma === 'en' ? 'No free slots this week; tell them an NXUS AI specialist will contact them to find a time.' : 'No hay horarios libres esta semana; dile que un especialista de NXUS AI le escribirá para buscar un horario.' })
       return json({ ok: true, horarios: opciones, instrucciones: 'Offer two or three of these options using the "texto". When the person picks one, call agendar with its exact "inicio".' })
     }
 
@@ -69,7 +69,7 @@ export default async (req) => {
         l.servicio ? `Le interesa: ${l.servicio}` : '',
       ].filter(Boolean).join('\n')
       const r = await agenda({ accion: 'agendar', id: l.id, inicio: new Date(inicio).toISOString(), tipo: 'llamada', idioma: l.idioma, zona: zona(l), nombre: l.nombre, empresa: l.empresa, correo: l.correo, notas })
-      // A Prospectos, con la cita y el Meet: queda a nombre de Eduardo, en "Cita agendada".
+      // A Prospectos, con la cita y el Meet: queda a nombre del admin (o de quien lo trabaja), en "Cita agendada".
       const [admin] = await sb('/rest/v1/perfiles?rol=eq.admin&activo=is.true&select=id&order=creado.asc&limit=1', { servicio: true })
       const [p] = await sb('/rest/v1/prospectos', {
         servicio: true,
@@ -99,8 +99,8 @@ export default async (req) => {
         ok: true,
         mensaje:
           l.idioma === 'en'
-            ? `Booked: ${enPalabras(r.inicio, l)}, 30 minutes on Google Meet with Eduardo. The invitation with the link goes to ${l.correo}.`
-            : `Agendado: ${enPalabras(r.inicio, l)}, 30 minutos por Google Meet con Eduardo. La invitación con el link le llega a ${l.correo}.`,
+            ? `Booked: ${enPalabras(r.inicio, l)}, 30 minutes on Google Meet with an NXUS AI specialist. The invitation with the link goes to ${l.correo}.`
+            : `Agendado: ${enPalabras(r.inicio, l)}, 30 minutos por Google Meet con un especialista de NXUS AI. La invitación con el link le llega a ${l.correo}.`,
       })
     }
 

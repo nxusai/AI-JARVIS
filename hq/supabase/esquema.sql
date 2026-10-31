@@ -736,6 +736,8 @@ create table if not exists public.leads (
   actualizado timestamptz not null default now()
 );
 create index if not exists leads_estado on public.leads (estado, creado desc);
+-- El resumen y lo que anotó NEX, en español y en inglés: { es: { resumen, puntos }, en: { … } }.
+alter table public.leads add column if not exists traduccion jsonb not null default '{}';
 
 create table if not exists public.leads_notas (
   id uuid primary key default gen_random_uuid(),

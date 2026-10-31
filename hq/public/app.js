@@ -637,6 +637,11 @@ export function iniciar(D, { muestra = false } = {}) {
     const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte', p.pros_pagos && 've pagos'].filter(Boolean)
     return `<small>${p.pros_ver === 'todos' ? 'Todos' : 'Los suyos'}${puede.length ? ` · ${puede.join(', ')}` : ''}${p.codigo ? ` · link: ${h(p.codigo)}` : ''}</small>`
   }
+  /** El botón para entrar al Google Meet de la cita (desde 2 horas después de empezada ya no sale). */
+  const botonMeet = (x, clase = 'primario') =>
+    x?.meet && x.cita && new Date(x.cita).getTime() > Date.now() - 2 * 3600e3
+      ? `<a class="btn ${clase} meet" href="${h(x.meet)}" target="_blank" rel="noopener">🎥 Ir al meeting${Math.abs(new Date(x.cita) - Date.now()) < 15 * 60e3 ? ' · ¡ya es hora!' : ''}</a>`
+      : ''
   const nombrePros = (x) => x.empresa || x.nombre || (x.link ? x.link.replace(/-/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : 'Link sin nombre')
   const atrasado = (x) => x.siguiente_fecha && x.siguiente_fecha < hoyISO() && EN_CURSO.includes(x.etapa)
 
@@ -649,7 +654,7 @@ export function iniciar(D, { muestra = false } = {}) {
       return `<div class="tarjeta"><div class="fila"><h3>Prospectos</h3><a href="#prospectos">Ver todos →</a></div>
         <div class="embudo">${EN_CURSO.map((e) => `<a href="#prospectos"><b>${pros.filter((x) => x.etapa === e).length}</b><span>${ETAPAS[e]}</span></a>`).join('')}</div>
         <p><small>${semana} nuevos esta semana · ${pros.filter(atrasado).length} con seguimiento atrasado</small></p>
-        ${citas.length ? `<h3>Próximas citas</h3><ul class="lista">${citas.slice(0, 5).map((x) => `<li><a href="#prospecto/${x.id}"><b>${h(nombrePros(x))}</b></a><small>${fechaHora(x.cita)} · ${h(nombreDe(x.asignado))}</small></li>`).join('')}</ul>` : ''}
+        ${citas.length ? `<h3>Próximas citas</h3><ul class="lista">${citas.slice(0, 5).map((x) => `<li><a href="#prospecto/${x.id}"><b>${h(nombrePros(x))}</b></a><small>${fechaHora(x.cita)} · ${h(nombreDe(x.asignado))}</small>${botonMeet(x, 'chico')}</li>`).join('')}</ul>` : ''}
       </div>`
     }
     const mios = pros.filter((x) => EN_CURSO.includes(x.etapa) && (x.asignado === yo.id || x.traido_por === yo.id))
@@ -742,7 +747,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <p>${[x.whatsapp && `<a href="https://wa.me/${h(x.whatsapp.replace(/\D/g, ''))}" target="_blank" rel="noopener">WhatsApp ${h(x.whatsapp)}</a>`, x.correo && `<a href="mailto:${h(x.correo)}">${h(x.correo)}</a>`].filter(Boolean).join(' · ') || '<span class="vacio">Todavía no deja sus datos.</span>'}</p>
           ${x.direccion ? `<p><small>${h(x.direccion)}</small></p>` : ''}
           <p><small>Lo atiende: <b>${h(nombreDe(x.asignado))}</b>${x.traido_por ? ` · Link de: ${h(nombreDe(x.traido_por))}` : ''}${x.link ? ` · ${PORTAL.replace('https://', '')}/${h(x.link)}` : ''} · Llegó ${fechaCorta(x.creado)}</small></p>
-          ${x.cita ? `<p>📅 <b>${fechaHora(x.cita)}</b>${x.meet ? ` · <a href="${h(x.meet)}" target="_blank" rel="noopener">Entrar al Meet ↗</a>` : ''}</p>` : ''}
+          ${x.cita ? `<p>📅 <b>${fechaHora(x.cita)}</b></p>${botonMeet(x) ? `<p>${botonMeet(x)}</p>` : x.meet ? `<p><a href="${h(x.meet)}" target="_blank" rel="noopener">Link del Meet ↗</a></p>` : ''}</p>` : ''}
           ${x.etapa === 'perdido' && x.motivo_perdido ? `<p class="rojo">Perdido: ${h(x.motivo_perdido)}</p>` : ''}
           ${cliente ? `<p><a class="btn" href="#cliente/${cliente.id}">Ver su ficha de cliente →</a></p>` : ''}
           ${(() => {
@@ -913,7 +918,10 @@ export function iniciar(D, { muestra = false } = {}) {
   const filaLead = (l, { conHora = true } = {}) => `<a class="lead-fila" href="#lead/${l.id}">
       <span class="lead-hora">${conHora ? hora(l.creado) : fechaCorta(l.creado)}</span>
       <span class="lead-quien"><b>${h(nombreLead(l))}</b>${l.empresa && l.nombre ? `<small>${h(l.nombre)}</small>` : ''}</span>
-      <span class="lead-que">${l.servicio ? h(l.servicio) : '<span class="vacio">—</span>'}${l.resumen && ['cartera', 'no_llamar', 'agendado'].includes(l.estado) ? `<small>${h(l.resumen.length > 90 ? `${l.resumen.slice(0, 90)}…` : l.resumen)}</small>` : ''}</span>
+      <span class="lead-que">${l.servicio ? h(l.servicio) : '<span class="vacio">—</span>'}${(() => {
+        const r = l.traduccion?.es?.resumen || l.resumen
+        return r && ['cartera', 'no_llamar', 'agendado'].includes(l.estado) ? `<small>${h(r.length > 90 ? `${r.slice(0, 90)}…` : r)}</small>` : ''
+      })()}</span>
       <span class="lead-chips">${l.canal ? `<span class="chip">${CANAL[l.canal]}</span>` : '<span class="chip">A mano</span>'}${l.pais ? `<span class="chip ${l.pais === 'otro' ? '' : l.pais}">${PAIS[l.pais]}${l.idioma === 'en' ? ' · EN' : ''}</span>` : ''}${l.permiso_llamada || l.motivo === 'sin_permiso' ? '' : '<span class="chip rojo">Sin permiso</span>'}${chipLead(l)}</span>
     </a>`
   /** Los renglones agrupados por día (Hoy, Ayer, sábado 24 de octubre…). */
@@ -987,7 +995,7 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   async function vistaLead(v, lid) {
-    const [l, notas] = await Promise.all([D.lead(lid), D.notasLead(lid)])
+    const [l, notas, pros] = await Promise.all([D.lead(lid), D.notasLead(lid), D.prospectos()])
     if (!l) {
       titulo('Lead')
       v.innerHTML = '<a class="enlace" href="#leads">← Leads</a><p class="vacio">Ese lead no existe o no te toca verlo.</p>'
@@ -996,10 +1004,22 @@ export function iniciar(D, { muestra = false } = {}) {
     titulo(nombreLead(l))
     const atras = ['cartera', 'no_llamar'].includes(l.estado) ? '<a class="enlace" href="#cartera">← Cartera de prospectos</a>' : '<a class="enlace" href="#leads">← Leads</a>'
     const trabaja = puedePros('trabajar')
-    const p = l.puntos || {}
+    // El resumen y las notas de NEX en español o inglés (el equipo elige; se recuerda).
+    let lengua = 'es'
+    try {
+      lengua = localStorage.getItem('hq-lengua') === 'en' ? 'en' : 'es'
+    } catch {}
+    if (l.resumen && !l.traduccion?.[lengua]) {
+      const t = await D.traducirLead(l.id).catch(() => null)
+      if (t) l.traduccion = t
+    }
+    const version = l.traduccion?.[lengua]
+    const resumen = version?.resumen || l.resumen
+    const p = version?.puntos ?? l.puntos ?? {}
+    const cita = l.prospecto_id && pros.find((x) => x.id === l.prospecto_id)
     const llamada = l.llamada_inicio
       ? `<p><b>${fechaHora(l.llamada_inicio)}</b>${l.llamada_seg != null ? ` · ${duracionLlamada(l.llamada_seg)}` : ' · en curso'}${l.grabacion ? ` · <a href="${h(l.grabacion)}" target="_blank" rel="noopener">Escuchar grabación ↗</a>` : ''}</p>
-         ${l.resumen ? `<blockquote>${h(l.resumen)}</blockquote>` : ''}
+         ${l.resumen ? `<div class="segmento lengua"><button data-lengua="es" class="${lengua === 'es' ? 'on' : ''}">Español</button><button data-lengua="en" class="${lengua === 'en' ? 'on' : ''}">English</button></div>${version ? '' : `<p class="nota">${lengua === 'es' ? 'Todavía sin traducir: se ve como lo escribió NEX.' : 'Not translated yet: shown as NEX wrote it.'}</p>`}<blockquote>${h(resumen)}</blockquote>` : ''}
          ${Object.keys(p).length ? `<dl class="puntos">${Object.entries(p).sort(([a], [b]) => (Object.keys(PUNTOS).indexOf(a) + 99) % 99 - (Object.keys(PUNTOS).indexOf(b) + 99) % 99).map(([k, t]) => `<dt>${h(PUNTOS[k] || k)}</dt><dd>${h(t)}</dd>`).join('')}</dl>` : ''}
          ${l.transcripcion ? `<details><summary>Ver la conversación completa</summary><pre class="transcripcion">${h(l.transcripcion)}</pre></details>` : ''}`
       : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' ? 'NEX le llama en los próximos minutos (de lunes a sábado, de 9 de la mañana a 8 de la noche, hora del lead).' : 'Sin llamada de NEX.'}</p>`
@@ -1017,6 +1037,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <p><small>Llegó ${fechaHora(l.creado)}${l.fuente ? ` · ${h(l.fuente)}` : ''}${l.anuncio_id ? ` · anuncio ${h(l.anuncio_id)}` : ''}${l.asignado ? ` · Lo trabaja: ${h(nombreDe(l.asignado))}` : ''}</small></p>
           <h3>Permiso para que una IA le llame</h3>
           ${l.permiso_llamada ? `<p class="verde">✓ Aceptó el ${fechaHora(l.permiso_fecha)}</p>${l.permiso_texto ? `<p><small>“${h(l.permiso_texto)}”</small></p>` : ''}` : '<p class="rojo">✗ No dio permiso. No se le puede llamar con IA.</p>'}
+          ${cita?.cita ? `<h3>Meeting</h3><p>📅 <b>${fechaHora(cita.cita)}</b> · 30 minutos</p>${botonMeet(cita) ? `<p>${botonMeet(cita)}</p>` : ''}` : ''}
           ${l.prospecto_id ? `<p><a class="btn" href="#prospecto/${l.prospecto_id}">Ver en Prospectos →</a></p>` : ''}
           <div class="acciones">
             ${trabaja && l.permiso_llamada && ['nuevo', 'cartera'].includes(l.estado) ? '<button class="btn primario" id="ld-llamar">📞 Llamar ahora</button>' : ''}
@@ -1040,6 +1061,15 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
       </div>`
     const guardar = async (cambio, bien) => (await intenta(() => D.guardarLead({ id: l.id, ...cambio }), bien)) && mostrar()
+    $$('[data-lengua]', v).forEach(
+      (b) =>
+        (b.onclick = () => {
+          try {
+            localStorage.setItem('hq-lengua', b.dataset.lengua)
+          } catch {}
+          mostrar()
+        }),
+    )
     $('#ld-llamar', v)?.addEventListener('click', async () => {
       if (!confirm(`¿Que NEX le llame ahora a ${nombreLead(l)} (${l.telefono})?`)) return
       if (await intenta(() => D.llamarLead(l.id), 'NEX le está llamando. Al colgar, aquí aparece cómo le fue.')) mostrar()
