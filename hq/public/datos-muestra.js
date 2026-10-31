@@ -352,6 +352,14 @@ export function crearMuestra() {
       anotar('insert', 'leads_notas', n.id)
       return copia(n)
     },
+    async llamarLead(lid) {
+      const l = db.leads.find((x) => x.id === lid)
+      if (!l || !veLead(l) || !puede('trabajar')) nunca()
+      if (l.estado === 'no_llamar') throw new Error('Pidió no ser llamado')
+      if (!l.permiso_llamada) throw new Error('No dio permiso de que una IA le llame')
+      Object.assign(l, { estado: 'llamando', motivo: '', llamada_inicio: new Date().toISOString(), llamada_seg: null })
+      return { ok: true }
+    },
     async leadAProspecto(lid, cita = null, meet = '') {
       const l = db.leads.find((x) => x.id === lid)
       if (!l || !veLead(l)) throw new Error('Ese lead no existe')

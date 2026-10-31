@@ -15,15 +15,16 @@
 //   3. Correr "preparar": da la clave para el portal y activa los recordatorios.
 //   4. Implementar → Aplicación web → Ejecutar como: Yo · Acceso: Cualquier persona.
 
-// Tus horarios para citas (hora de Ciudad de México).
-const ZONA = 'America/Mexico_City'
-const DIAS = [1, 2, 3, 4, 5] // lunes a viernes
+// Tus horarios para citas (hora de Nueva York / New Jersey). Los usan el
+// portal y NEX (las llamadas a los leads, desde NXUS HQ).
+const ZONA = 'America/New_York'
+const DIAS = [1, 2, 3, 4, 5, 6] // lunes a sábado
 const DESDE = 9 // primera cita
-const HASTA = 18 // la última termina a esta hora
-const DURACION = 60 // minutos de cada cita
-const ESPACIO = 15 // minutos libres entre citas
-const DIAS_ADELANTE = 10 // cuántos días hábiles se ofrecen
-const AVISO_MINIMO = 12 // horas: no se ofrece nada antes de esto
+const HASTA = 16 // la última termina a esta hora
+const DURACION = 30 // minutos de cada cita
+const ESPACIO = 0 // minutos libres entre citas
+const DIAS_ADELANTE = 6 // cuántos días con citas se ofrecen
+const AVISO_MINIMO = 2 // horas: no se ofrece nada antes de esto
 const MARCA = 'Portal NXUS AI' // así se reconocen las citas del portal
 
 function preparar() {
@@ -98,7 +99,9 @@ function agendar_(d) {
   if (horarios_().indexOf(inicio.toISOString()) < 0) return { ok: false, error: 'ese horario ya no está libre' }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(d.correo || ''))) return { ok: false, error: 'correo inválido' }
   const fin = new Date(inicio.getTime() + DURACION * 60e3)
-  const titulo = (d.tipo === 'consulta' ? 'Consultoría NXUS AI' : 'Tu propuesta NXUS AI') + ' · ' + String(d.empresa || d.nombre || '').slice(0, 80)
+  const en = d.idioma === 'en'
+  const zonaLead = ZONAS_.indexOf(d.zona) >= 0 ? d.zona : ZONA
+  const titulo = (d.tipo === 'consulta' ? 'Consultoría NXUS AI' : d.tipo === 'llamada' ? (en ? 'NXUS AI meeting' : 'Reunión NXUS AI') : 'Tu propuesta NXUS AI') + ' · ' + String(d.empresa || d.nombre || '').slice(0, 80)
   const ev = Calendar.Events.insert(
     {
       summary: titulo,
@@ -115,28 +118,42 @@ function agendar_(d) {
   const meet = ev.hangoutLink || ''
   // El link de Meet también en la descripción, para los recordatorios.
   if (meet) Calendar.Events.patch({ description: MARCA + '\nMeet: ' + meet + '\n\n' + String(d.notas || '').slice(0, 3000) }, 'primary', ev.id)
-  correo_(d.correo, d.nombre, d.tipo, inicio, meet, '')
+  // El idioma y la zona del cliente, para sus recordatorios.
+  const evento = CalendarApp.getDefaultCalendar().getEventById(ev.iCalUID || ev.id)
+  if (evento) {
+    evento.setTag('idioma', en ? 'en' : 'es')
+    evento.setTag('zona', zonaLead)
+  }
+  correo_(d.correo, d.nombre, d.tipo, inicio, meet, '', en ? 'en' : 'es', zonaLead)
   return { ok: true, inicio: inicio.toISOString(), meet: meet, evento: ev.id }
 }
 
+const ZONAS_ = ['America/New_York', 'America/Mexico_City']
 const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-function cuando_(inicio) {
-  const [d, n, m, hm] = Utilities.formatDate(inicio, ZONA, 'u d M HH:mm').split(' ')
-  return DIAS_ES[Number(d) % 7] + ' ' + n + ' de ' + MESES_ES[Number(m) - 1] + ' a las ' + hm + ' (hora de Ciudad de México)'
+const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+/** La fecha y hora en la zona y el idioma del cliente. */
+function cuando_(inicio, idioma, zona) {
+  const z = ZONAS_.indexOf(zona) >= 0 ? zona : ZONA
+  const [d, n, m, hm] = Utilities.formatDate(inicio, z, 'u d M HH:mm').split(' ')
+  if (idioma === 'en') return DIAS_EN[Number(d) % 7] + ', ' + MESES_EN[Number(m) - 1] + ' ' + n + ' at ' + hm + (z === 'America/Mexico_City' ? ' (Mexico City time)' : ' (New York time)')
+  return DIAS_ES[Number(d) % 7] + ' ' + n + ' de ' + MESES_ES[Number(m) - 1] + ' a las ' + hm + (z === 'America/Mexico_City' ? ' (hora del centro de México)' : ' (hora de Nueva York)')
 }
 
-function correo_(para, nombre, tipo, inicio, meet, aviso) {
-  const que = tipo === 'consulta' ? 'tu consultoría' : 'tu reunión para tu propuesta'
+function correo_(para, nombre, tipo, inicio, meet, aviso, idioma, zona) {
+  const en = idioma === 'en'
+  const que = en ? 'your NXUS AI meeting' : tipo === 'consulta' ? 'tu consultoría' : tipo === 'llamada' ? 'tu reunión' : 'tu reunión para tu propuesta'
   const nom = String(nombre || '').split(' ')[0]
-  const titulo = aviso ? 'Recordatorio: ' + que + ' ' + aviso : 'Confirmado: ' + que
+  const avisoEn = { 'mañana': 'tomorrow', 'en 1 hora': 'in 1 hour' }[aviso] || ''
+  const titulo = en ? (aviso ? 'Reminder: ' + que + ' ' + avisoEn : 'Confirmed: ' + que) : aviso ? 'Recordatorio: ' + que + ' ' + aviso : 'Confirmado: ' + que
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#12161f">' +
-    '<h2 style="margin:0 0 12px">' + (aviso ? 'Te esperamos ' + aviso : '¡Listo' + (nom ? ', ' + nom : '') + '!') + '</h2>' +
-    '<p>' + (aviso ? 'Te recordamos ' : 'Quedó agendada ') + que + ' con NXUS AI:</p>' +
-    '<p style="font-size:17px"><b>' + cuando_(inicio) + '</b></p>' +
-    (meet ? '<p><a href="' + meet + '" style="background:#4fd8f7;color:#04101a;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold">Entrar a la reunión</a></p>' : '') +
-    '<p style="color:#555">También la tienes en tu calendario. Si necesitas cambiar el horario, contesta este correo.</p>' +
+    '<h2 style="margin:0 0 12px">' + (en ? (aviso ? 'See you ' + avisoEn : "You're all set" + (nom ? ', ' + nom : '') + '!') : aviso ? 'Te esperamos ' + aviso : '¡Listo' + (nom ? ', ' + nom : '') + '!') + '</h2>' +
+    '<p>' + (en ? (aviso ? 'A reminder of ' : 'Booked: ') + que + ' (30 minutes, Google Meet):' : (aviso ? 'Te recordamos ' : 'Quedó agendada ') + que + ' con NXUS AI:') + '</p>' +
+    '<p style="font-size:17px"><b>' + cuando_(inicio, idioma, zona) + '</b></p>' +
+    (meet ? '<p><a href="' + meet + '" style="background:#4fd8f7;color:#04101a;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold">' + (en ? 'Join the meeting' : 'Entrar a la reunión') + '</a></p>' : '') +
+    '<p style="color:#555">' + (en ? "It's also in your calendar. To change the time, just reply to this email." : 'También la tienes en tu calendario. Si necesitas cambiar el horario, contesta este correo.') + '</p>' +
     '<p style="color:#888;font-size:12px">NXUS AI · nxusai.org</p></div>'
   MailApp.sendEmail({ to: para, subject: titulo, htmlBody: html, name: 'NXUS AI' })
 }
@@ -150,14 +167,17 @@ function recordatorios() {
     const faltan = (ev.getStartTime().getTime() - ahora.getTime()) / 60e3
     const invitado = ev.getGuestList()[0]
     if (!invitado) return
-    const tipo = ev.getTitle().indexOf('Consultoría') === 0 ? 'consulta' : 'propuesta'
+    const t = ev.getTitle()
+    const tipo = t.indexOf('Consultoría') === 0 ? 'consulta' : t.indexOf('Reunión NXUS AI') === 0 || t.indexOf('NXUS AI meeting') === 0 ? 'llamada' : 'propuesta'
+    const idioma = ev.getTag('idioma') || 'es'
+    const zona = ev.getTag('zona') || ZONA
     const meet = (ev.getDescription().match(/https:\/\/meet\.google\.com\/\S+/) || [''])[0]
     if (faltan <= 24 * 60 && faltan > 23 * 60 && !ev.getTag('aviso24')) {
-      correo_(invitado.getEmail(), invitado.getName(), tipo, ev.getStartTime(), meet, 'mañana')
+      correo_(invitado.getEmail(), invitado.getName(), tipo, ev.getStartTime(), meet, 'mañana', idioma, zona)
       ev.setTag('aviso24', '1')
     }
     if (faltan <= 60 && faltan > 0 && !ev.getTag('aviso1')) {
-      correo_(invitado.getEmail(), invitado.getName(), tipo, ev.getStartTime(), meet, 'en 1 hora')
+      correo_(invitado.getEmail(), invitado.getName(), tipo, ev.getStartTime(), meet, 'en 1 hora', idioma, zona)
       ev.setTag('aviso1', '1')
     }
   })

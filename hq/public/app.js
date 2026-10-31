@@ -1002,7 +1002,7 @@ export function iniciar(D, { muestra = false } = {}) {
          ${l.resumen ? `<blockquote>${h(l.resumen)}</blockquote>` : ''}
          ${Object.keys(p).length ? `<dl class="puntos">${Object.entries(p).sort(([a], [b]) => (Object.keys(PUNTOS).indexOf(a) + 99) % 99 - (Object.keys(PUNTOS).indexOf(b) + 99) % 99).map(([k, t]) => `<dt>${h(PUNTOS[k] || k)}</dt><dd>${h(t)}</dd>`).join('')}</dl>` : ''}
          ${l.transcripcion ? `<details><summary>Ver la conversación completa</summary><pre class="transcripcion">${h(l.transcripcion)}</pre></details>` : ''}`
-      : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' ? 'NEX todavía no le llama.' : 'Sin llamada de NEX.'}</p>`
+      : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' ? 'NEX le llama en los próximos minutos (de lunes a sábado, de 9 de la mañana a 8 de la noche, hora del lead).' : 'Sin llamada de NEX.'}</p>`
     v.innerHTML = `
       ${atras}
       <div class="ficha dos-cols">
@@ -1019,7 +1019,8 @@ export function iniciar(D, { muestra = false } = {}) {
           ${l.permiso_llamada ? `<p class="verde">✓ Aceptó el ${fechaHora(l.permiso_fecha)}</p>${l.permiso_texto ? `<p><small>“${h(l.permiso_texto)}”</small></p>` : ''}` : '<p class="rojo">✗ No dio permiso. No se le puede llamar con IA.</p>'}
           ${l.prospecto_id ? `<p><a class="btn" href="#prospecto/${l.prospecto_id}">Ver en Prospectos →</a></p>` : ''}
           <div class="acciones">
-            ${trabaja && !l.prospecto_id && l.estado !== 'no_llamar' ? '<button class="btn primario" id="ld-agendo">✓ Agendó: pasar a Prospectos</button>' : ''}
+            ${trabaja && l.permiso_llamada && ['nuevo', 'cartera'].includes(l.estado) ? '<button class="btn primario" id="ld-llamar">📞 Llamar ahora</button>' : ''}
+            ${trabaja && !l.prospecto_id && l.estado !== 'no_llamar' ? '<button class="btn" id="ld-agendo">✓ Agendó: pasar a Prospectos</button>' : ''}
             ${trabaja && ['nuevo', 'llamando', 'incompleto'].includes(l.estado) ? '<button class="btn" id="ld-cartera">Mandar a Cartera</button>' : ''}
             ${trabaja && (['cartera', 'incompleto'].includes(l.estado) || (l.estado === 'no_llamar' && esAdmin())) && l.permiso_llamada ? '<button class="btn" id="ld-regresar">Regresar a Por llamar</button>' : ''}
             ${trabaja && l.estado !== 'no_llamar' && !l.prospecto_id ? '<button class="btn" id="ld-bloquear">🚫 No volver a llamar</button>' : ''}
@@ -1039,6 +1040,10 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
       </div>`
     const guardar = async (cambio, bien) => (await intenta(() => D.guardarLead({ id: l.id, ...cambio }), bien)) && mostrar()
+    $('#ld-llamar', v)?.addEventListener('click', async () => {
+      if (!confirm(`¿Que NEX le llame ahora a ${nombreLead(l)} (${l.telefono})?`)) return
+      if (await intenta(() => D.llamarLead(l.id), 'NEX le está llamando. Al colgar, aquí aparece cómo le fue.')) mostrar()
+    })
     $('#ld-agendo', v)?.addEventListener('click', () => agendoLead(l))
     $('#ld-cartera', v)?.addEventListener('click', () => mandarACartera(l))
     $('#ld-regresar', v)?.addEventListener('click', () => guardar({ estado: 'nuevo' }, 'De vuelta en Por llamar'))

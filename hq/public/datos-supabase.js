@@ -137,6 +137,7 @@ export function crearSupabase({ url, anon }) {
     borrarLead: async (id) => ok(await tabla('leads').delete().eq('id', id)),
     notasLead: async (id) => ok(await tabla('leads_notas').select('*').eq('lead_id', id).order('creada')),
     agregarNotaLead: async (id, texto) => ok(await tabla('leads_notas').insert({ lead_id: id, texto }).select().single()),
+    llamarLead: (id) => funcion('nex-llamar', { id }),
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
