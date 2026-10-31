@@ -1,0 +1,22 @@
+{
+  "name": "nxus-reels",
+  "private": true,
+  "type": "module",
+  "description": "La fábrica de reels de la marca personal: clips de Drive → reels de 10 s con gancho, efectos y voz.",
+  "scripts": {
+    "muestras": "node fabrica/muestras.mjs",
+    "semana": "node fabrica/semana.mjs",
+    "estudio": "remotion studio src/index.ts"
+  },
+  "dependencies": {
+    "remotion": "4.0.528",
+    "@remotion/cli": "4.0.528",
+    "@remotion/bundler": "4.0.528",
+    "@remotion/renderer": "4.0.528",
+    "@remotion/three": "4.0.528",
+    "three": "0.186.1",
+    "@react-three/fiber": "9.8.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

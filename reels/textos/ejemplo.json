@@ -1,0 +1,15 @@
+{
+  "firma": "@nxusai",
+  "ganchos": [
+    { "texto": "Esta empresa me paga cada mes por algo que hice en una tarde", "resaltar": ["cada", "mes"], "post": "No vendo horas, vendo sistemas. 🧠⚙️\n\n#ia #inteligenciaartificial #emprendimiento #negocios" }
+  ],
+  "frases": [
+    { "texto": "Nadie te va a dar permiso. Empieza.", "resaltar": ["empieza"], "post": "Guárdalo para cuando dudes. 🔥\n\n#mentalidad #emprendedores #ia" }
+  ],
+  "narrados": [
+    { "texto": "¿Quién se la va a vender?", "resaltar": ["vender"], "guion": "Tu competencia ya está usando inteligencia artificial. La pregunta es: ¿quién se la va a vender a tus clientes?", "voz": "n1.wav", "post": "Las empresas ya la quieren. Falta quien sepa venderla. 👀\n\n#ia #ventas #negocios" }
+  ],
+  "ctas": [
+    { "texto": "Así consigo clientes que pagan cada mes", "resaltar": ["cada", "mes"], "remate": "Comenta JARVIS", "post": "Comenta JARVIS y te mando el sistema por DM. 📩\n\n#ia #clientes #automatizacion" }
+  ]
+}
