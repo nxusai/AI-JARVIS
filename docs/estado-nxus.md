@@ -8,7 +8,11 @@
 - Nunca pedir ni pegar llaves o contraseñas en el chat: van en Netlify, Supabase, Contraseñas de la Mac o prompts ocultos.
 - Preguntar antes de instalar algo en todo el sistema. No abrir PR si no lo pide.
 - Mostrar fotos (muestra) antes de que él suba algo.
-- Rama: `claude/jarvis-project-setup-gs6uu2` del repo `nxusai/AI-JARVIS`. En su Mac vive en `~/Desktop/nexy`. Actualiza bajando el zip de la rama.
+- Rama: `claude/jarvis-project-setup-gs6uu2` del repo `nxusai/AI-JARVIS`. En su Mac vive en `~/Desktop/nexy`. Actualiza bajando el zip de la rama (https://github.com/nxusai/AI-JARVIS/archive/refs/heads/claude/jarvis-project-setup-gs6uu2.zip) y pegando en la Terminal este comando, que lo descomprime, copia lo nuevo encima de `nexy` sin tocar lo que solo vive en su Mac (`.env`, `node_modules`, memoria de NEX) y borra el zip; si la copia falla, no borra nada:
+  ```bash
+  S=""; D=~/Downloads; Z=$(ls -t "$D" | grep -E '^AI-JARVIS-claude-jarvis-project-setup-gs6uu2.*\.zip$' | head -1); F=$(ls -t "$D" | grep -E '^AI-JARVIS-claude-jarvis-project-setup-gs6uu2' | grep -v '\.zip$' | head -1); T=$(mktemp -d); if [ -n "$Z" ]; then unzip -q "$D/$Z" -d "$T" && S=$(ls -d "$T"/*/ | head -1); elif [ -n "$F" ]; then S="$D/$F/"; fi; if [ -z "$S" ]; then echo "No encontré el zip en Descargas"; elif cp -R "$S". ~/Desktop/nexy/; then echo "Listo: nexy actualizado"; grep -q "public.leads (" ~/Desktop/nexy/hq/supabase/esquema.sql && echo "✓ Ya trae Leads y Cartera" || echo "✗ Sigue el archivo viejo"; [ -n "$Z" ] && rm "${D:?}/${Z:?}"; [ -n "$F" ] && rm -rf "${D:?}/${F:?}"; else echo "No se pudo copiar: no borré nada"; fi; rm -rf "${T:?}"
+  ```
+- Netlify publica HQ y el portal desde `claude/jarvis-project-setup-gs6uu2`: si el trabajo se hace en otra rama, hay que pasarlo a esa (con su permiso) para que se vea.
 
 ## Lo que ya existe
 - **NXUS HQ** (`hq/`, guía `docs/guia-hq.md`): https://nxus-hq.netlify.app (app.nxusai.org todavía sin conectar). Supabase `zntjhkauoiodmmpxfucw`.
