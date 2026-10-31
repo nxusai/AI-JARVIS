@@ -1,5 +1,6 @@
 // Las 3 muestras de estilo: gancho, frase y narrado. Deja los MP4 en salida/muestras.
-//   node fabrica/muestras.mjs
+//   node fabrica/muestras.mjs          las tres
+//   node fabrica/muestras.mjs frase    solo una
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,7 +34,8 @@ const muestras = [
   }],
 ]
 
-for (const [nombre, props] of muestras) {
+const solo = process.argv[2]
+for (const [nombre, props] of muestras.filter(([n]) => !solo || n.includes(solo))) {
   const t = Date.now()
   await renderReel(props, join(SALIDA, `${nombre}.mp4`))
   console.log(`✅ ${nombre}.mp4 (${Math.round((Date.now() - t) / 1000)} s)`)

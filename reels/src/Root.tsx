@@ -3,20 +3,14 @@ import { Composition } from 'remotion';
 import { Reel } from './Reel';
 import type { ReelProps } from './tipos';
 
-const ejemplo: ReelProps = {
+// Solo lo indispensable: Remotion mezcla estos valores con los de cada reel,
+// así que nada opcional (remate, 3D, formas…) va aquí o se colaría en todos.
+const base: ReelProps = {
   tipo: 'gancho',
   clip: 'muestras/fondo-1.png',
   esImagen: true,
   duracion: 8,
   texto: 'Esta empresa me paga cada mes por algo que hice en una tarde',
-  resaltar: ['cada', 'mes'],
-  remate: 'Comenta JARVIS',
-  firma: '@nxusai',
-  camara: 'empuje',
-  letras: 'estirar',
-  formas: true,
-  pieza3D: 'cristal',
-  semilla: 0,
 };
 
 export const Root: React.FC = () => (
@@ -27,7 +21,7 @@ export const Root: React.FC = () => (
     width={1080}
     height={1920}
     durationInFrames={240}
-    defaultProps={ejemplo}
+    defaultProps={base}
     // Nunca más de 10 s.
     calculateMetadata={({ props }) => ({ durationInFrames: Math.round(Math.min(10, Math.max(4, props.duracion)) * 30) })}
   />
