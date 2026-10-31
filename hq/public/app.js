@@ -335,6 +335,8 @@ export function iniciar(D, { muestra = false } = {}) {
       else if (ruta === 'lead' && arg && vePros()) await vistaLead(vista, arg)
       else await VISTAS[sec](vista)
     } catch (err) {
+      if (/leads/.test(err.message) && /schema cache|does not exist|relation/i.test(err.message))
+        return (vista.innerHTML = `<div class="tarjeta"><h3>Falta un paso en Supabase</h3><p>Leads y Cartera ya están en la página, pero la base de datos todavía no tiene su lugar. En Supabase → <b>SQL Editor</b> → <b>New query</b>, pega todo <code>hq/supabase/esquema.sql</code> y dale <b>Run</b>.</p></div>`)
       vista.innerHTML = `<p class="error">${h(err.message)}</p>`
     }
   }
@@ -714,7 +716,7 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   async function vistaProspecto(v, pid) {
-    const [pros, notas, pagos, leads] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : [], D.leads()])
+    const [pros, notas, pagos, leads] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : [], D.leads().catch(() => [])])
     const x = pros.find((p) => p.id === pid)
     if (!x) {
       titulo('Prospecto')
@@ -928,7 +930,8 @@ export function iniciar(D, { muestra = false } = {}) {
 
   /** En Inicio: cómo vienen los leads de los anuncios. */
   async function resumenLeads() {
-    const leads = await D.leads()
+    const leads = await D.leads().catch(() => null)
+    if (!leads) return '' // Sin la tabla todavía (falta correr el esquema): Inicio sigue igual.
     if (!leads.length && !esAdmin()) return ''
     const hoy = leads.filter((l) => diaDe(l.creado) === 'Hoy')
     return `<div class="tarjeta"><div class="fila"><h3>Leads de los anuncios</h3><a href="#leads">Ver todos →</a></div>
