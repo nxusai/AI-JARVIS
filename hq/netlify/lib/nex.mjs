@@ -46,8 +46,8 @@ export function variables(l) {
     correo: l.correo || '',
     idioma: en ? 'English' : 'Español',
     saludo: en
-      ? `Hi${nombre ? ` ${nombre}` : ''}, this is NEX, the artificial intelligence assistant from NXUS AI. You left your details in our Instagram chat a moment ago and gave us permission to call. This call may be recorded. Do you have a couple of minutes?`
-      : `Hola${nombre ? ` ${nombre}` : ''}, habla NEX, el asistente de inteligencia artificial de NXUS AI. Dejaste tus datos hace un momento en nuestro chat de Instagram y nos diste permiso de llamarte. Esta llamada se puede grabar. ¿Tienes un par de minutos?`,
+      ? `Hi${nombre ? ` ${nombre}` : ''}, this is NEX, the artificial intelligence assistant from NXUS AI. You left your details in our Instagram chat a little while ago and gave us permission to call you. This call may be recorded. Do you have a couple of minutes?`
+      : `Hola${nombre ? ` ${nombre}` : ''}, habla NEX, el asistente de inteligencia artificial de NXUS AI. Hace un rato dejaste tus datos en nuestro chat de Instagram y nos diste permiso de llamarte. Esta llamada se puede grabar. ¿Tienes un par de minutos?`,
   }
 }
 

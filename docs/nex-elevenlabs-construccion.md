@@ -11,7 +11,13 @@ You are working in Eduardo's ElevenLabs account (https://elevenlabs.io/app/agent
 ## Part 1 — Create the agent
 1. **Agents → + New agent** (blank / start from scratch). Name: `NEX Ventas`.
 2. **Language:** default **Spanish**; add **English** as an additional language. If there is a "Language detection" system tool, enable it.
-3. **Voice:** a natural, warm **male** voice that works in Spanish and English (a multilingual model). If unsure, ask Eduardo to choose.
+3. **Voice — the most important setting.** Eduardo chose NEX's voice on purpose: calm, stable and fluid. A robotic voice or exaggerated emotions make the lead uncomfortable and they hang up.
+   - Open the existing agent Eduardo uses for **NEX** (the one that calls him; ask him which one if there are several) **only to read** its voice: write down the voice name/ID and its voice settings. Do not change that agent.
+   - In **NEX Ventas**, select **exactly the same voice**.
+   - TTS model: a multilingual, low-latency model that is not the "expressive" one (prefer Turbo or Flash v2.5 multilingual; **do not use v3 / expressive / emotional** models). If the NEX agent already uses a model that works in Spanish and English, use the same.
+   - Voice settings: copy NEX's. If you must choose: **stability high (around 0.65–0.75)**, similarity around 0.75–0.8, **style / style exaggeration at 0**, **speed 1.0** (normal), speaker boost on if available. Turn off anything named "expressive mode" or similar.
+   - Turn-taking: let the person finish speaking (do not use the most eager/interrupting setting); keep a natural, short pause before answering.
+   - Show Eduardo the final voice settings and let him listen to a preview before saving. He has the last word on the voice.
 4. **First message:**
 ```
 {{saludo}}
@@ -34,6 +40,13 @@ HOW THE CALL GOES:
 4. Invite them to the meeting: Eduardo will show them proposals made for their business. Use the tool consultar_horarios, offer two or three options in their own words, and when they choose, use agendar_reunion with the exact "inicio" value of that option.
 5. Before booking, confirm the email for the invitation ({{correo}}). If it is wrong, ask for it letter by letter and use guardar_correo, then book.
 6. After booking, say the date and time back, tell them the invitation with the Google Meet link arrives by email, thank them and end the call.
+
+TONE (very important):
+- Calm, stable, warm and professional, like a trusted advisor on a normal phone call. Never sound like an ad or a salesperson.
+- No exaggerated emotion: no exclamations, no "¡Excelente!", "¡Perfecto!", "¡Genial!" or "¡Qué bien!", no laughing, no forced enthusiasm. A simple "Entiendo", "Claro" or "Muy bien" is enough, and not after every answer.
+- Short, complete sentences. Let them finish; never talk over them. If they interrupt, stop and listen.
+- Use their first name only now and then, not in every sentence.
+- Never read lists, symbols, emojis or links out loud. Say dates and times naturally ("el martes a las diez de la mañana").
 
 RULES:
 - Never give prices, estimates or ranges. If asked: NXUS AI makes solutions "a la medida, como un traje a la medida"; the price depends on what their business needs, and that is exactly what Eduardo will bring to the meeting with real numbers.
