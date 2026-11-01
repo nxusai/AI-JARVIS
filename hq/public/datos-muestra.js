@@ -58,6 +58,7 @@ const db = {
   anuncios_gasto: [],
   contenido: [],
   anuncios_reportes: [],
+  solicitudes: [],
 }
 
 const cliente = (c, dinero) => {
@@ -193,16 +194,16 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
     return a
   }
   const a1 = ad('USA · "Tu negocio contesta solo" (video 1)', 'usa', '120210000000001', 'activo', 4.4, 'Funciona: 3 leads y 1 meeting a $9 por lead. Se le subió 20% el martes.', 4, 9, -9)
-  ad('USA · "Inventario que se pide solo" (video 2)', 'usa', '120210000000002', 'activo', 3.3, 'En aprendizaje: 1 lead en 5 días; se espera a juntar más datos.', 3.3, 5, -5)
+  ad('USA · "Inventario que se pide solo" (video 2)', 'usa', '120210000000002', 'activo', 3.3, 'Sin leads todavía: 9 días y 29.70 USD. Se decide al llegar a 40 USD.', 3.3, 9, -9)
   ad('USA · "Tu equipo checa entrada desde el celular" (video 3)', 'usa', '120210000000003', 'pausado', 0, 'Tumbado: $42 gastados y 0 leads; mucha gente vio el video pero nadie comentó INFO.', 3.5, 12, -16)
   ad('USA · "Cotiza y agenda sin contestar el teléfono" (video 4)', 'usa', '120210000000004', 'activo', 2.3, 'Nuevo: reemplaza al video 3 con lo aprendido (abrir con el problema, no con la solución).', 2.3, 3, -3)
   const m1 = ad('MX · "Pedidos por WhatsApp que llegan solos" (video 1)', 'mexico', '120210000000011', 'activo', 4, 'Funciona: 2 leads a $11 por lead.', 4, 8, -8)
   ad('MX · "Tu negocio en un solo sistema" (video 2)', 'mexico', '120210000000012', 'activo', 3, 'En aprendizaje.', 3, 6, -6)
   ad('MX · "Deja de perder ventas por no contestar" (video 3)', 'mexico', '120210000000013', 'activo', 3, 'En aprendizaje.', 3, 6, -6)
+  db.anuncios.forEach((a) => (a.recomendacion = a.estado !== 'activo' ? '' : /Funciona/.test(a.motivo) ? 'seguir' : /Sin leads/.test(a.motivo) ? 'cambiar' : 'esperar'))
   db.leads.find((l) => l.empresa === 'Panadería La Espiga').anuncio_id = '120210000000011'
   db.leads.find((l) => l.empresa === 'Inmobiliaria Peña').anuncio_id = '120210000000011'
-  db.leads.find((l) => l.empresa === 'Bright Smile Dental').anuncio_id = '120210000000002'
-  const pieza = (p) => db.contenido.push({ id: id(), tipo: 'foto', uso: 'feed', mercado: 'ambos', idioma: 'es', titulo: '', texto: '', idea: '', archivo: '', publicar_en: null, estado: 'por_aprobar', comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, creado: dia(0, 7), actualizado: dia(0, 7), ...p })
+    const pieza = (p) => db.contenido.push({ id: id(), tipo: 'foto', uso: 'feed', mercado: 'ambos', idioma: 'es', titulo: '', texto: '', idea: '', archivo: '', publicar_en: null, estado: 'por_aprobar', comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, creado: dia(0, 7), actualizado: dia(0, 7), ...p })
   pieza({ titulo: 'Lunes · El inventario que se pide solo', texto: '¿Cuántas veces se te acabó un producto y te enteraste tarde? 📦\nCon un sistema a la medida, tu inventario avisa solo y deja la orden lista para que la apruebes.\n\nComenta INFO y te contamos cómo lo haríamos en tu negocio.', idea: 'Las fotos con un problema concreto en la primera línea tuvieron 2 veces más comentarios la semana pasada.', publicar_en: dia(1, 10) })
   pieza({ titulo: 'Miércoles · Tu equipo checa entrada desde el celular', texto: 'Se acabaron las listas en papel ✅\nEntrada y salida con foto y ubicación, y la nómina se calcula sola.\n\nComenta INFO.', idea: 'Servicio que más preguntan los negocios de comida.', publicar_en: dia(3, 10) })
   pieza({ titulo: 'Viernes · Antes y después de automatizar', texto: 'Antes: 3 horas al día contestando mensajes.\nDespués: el sistema contesta, cotiza y agenda. 🤝\n\nComenta INFO y te enseñamos cómo.', idea: 'Formato antes/después: el que más guardados tuvo este mes.', publicar_en: dia(5, 10), estado: 'aprobado' })
@@ -488,6 +489,16 @@ export function crearMuestra() {
     async guardarTope(t) {
       if (!admin()) nunca()
       return copia(upsert(db.anuncios_topes, t, 'mercado'))
+    },
+    solicitudes: () => espera(admin() ? db.solicitudes.filter((x) => x.estado !== 'listo') : []),
+    async pedirVideo(fila) {
+      if (!admin()) nunca()
+      const x = { id: id(), estado: 'pendiente', nota: '', creado: new Date().toISOString(), ...fila }
+      db.solicitudes.unshift(x)
+      return copia(x)
+    },
+    async borrarSolicitud(sid) {
+      db.solicitudes = db.solicitudes.filter((x) => x.id !== sid)
     },
     reportesAnuncios: () => espera(admin() ? db.anuncios_reportes : []),
 

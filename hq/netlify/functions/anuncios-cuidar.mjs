@@ -41,15 +41,39 @@ async function cuidarMercado(t, lunes) {
     if (Math.abs(Number(c.daily_budget) / 100 - diario) / Math.max(diario, 1) > 0.1) await graph(t.campana_id, { method: 'POST', params: { daily_budget: Math.round(diario * 100) } })
   }
 
-  // 3. Borradores esperando el video.
+  // 3. Borradores esperando el video, y los anuncios nuevos que Eduardo aprobó para reemplazar a otro.
   for (const a of ads.filter((x) => x.estado === 'borrador' && !x.meta_ad_id)) {
     const [p] = await db(`/rest/v1/contenido?anuncio_id=eq.${a.id}&select=*`)
     if (p) await prepararAnuncio(p, t, t.conjunto_id).catch(() => null)
   }
+  if (t.conjunto_id) {
+    const cambios = await db(`/rest/v1/contenido?uso=eq.anuncio&tipo=eq.video&estado=in.(aprobado,publicado)&reemplaza=not.is.null&anuncio_id=is.null&mercado=in.(${m},ambos)&archivo=neq.&texto=neq.&select=*`)
+    for (const p of cambios) await prepararAnuncio(p, t, t.conjunto_id).catch(() => null)
+  }
   if (lanzado) {
     for (const a of await db(`/rest/v1/anuncios?mercado=eq.${m}&estado=eq.borrador&meta_ad_id=not.is.null&select=*`)) {
       await graph(a.meta_ad_id, { method: 'POST', params: { status: 'ACTIVE' } })
-      await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'activo', inicio: new Date().toISOString().slice(0, 10), motivo: 'Entró de reemplazo. Primeros 7 días: Meta aprende.' } })
+      const [p] = await db(`/rest/v1/contenido?anuncio_id=eq.${a.id}&select=reemplaza`)
+      const [viejo] = p?.reemplaza ? await db(`/rest/v1/anuncios?id=eq.${p.reemplaza}&estado=eq.activo&select=*`) : []
+      if (viejo?.meta_ad_id) {
+        await graph(viejo.meta_ad_id, { method: 'POST', params: { status: 'PAUSED' } })
+        await db(`/rest/v1/anuncios?id=eq.${viejo.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'pausado', fin: new Date().toISOString().slice(0, 10), recomendacion: '', motivo: `Reemplazado por ${a.codigo}. ${viejo.motivo}`.slice(0, 1000) } })
+      }
+      await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'activo', inicio: new Date().toISOString().slice(0, 10), recomendacion: 'esperar', motivo: `${viejo ? `Entró en lugar de ${viejo.codigo}.` : 'Entró de reemplazo.'} Primeros 7 días: Meta aprende.` } })
+    }
+  }
+
+  // Seguir / Cambiar en cada anuncio activo (cada hora, con lo que se sabe hasta ahora).
+  if (lanzado) {
+    const desde0 = `${new Date().toISOString().slice(0, 7)}-01`
+    const g0 = await db(`/rest/v1/anuncios_gasto?dia=gte.${desde0}&select=anuncio_id,gasto`)
+    const l0 = await db('/rest/v1/leads?anuncio_id=neq.&estado=neq.incompleto&select=anuncio_id')
+    for (const a of await db(`/rest/v1/anuncios?mercado=eq.${m}&estado=eq.activo&select=*`)) {
+      const g = g0.filter((x) => x.anuncio_id === a.id).reduce((s2, x) => s2 + Number(x.gasto), 0)
+      const n = l0.filter((l) => l.anuncio_id === a.meta_ad_id).length
+      const dias = a.inicio ? Math.floor((Date.now() - new Date(a.inicio)) / 864e5) : 0
+      const rec = n > 0 ? 'seguir' : dias >= 7 && g >= 20 ? 'cambiar' : 'esperar'
+      if (rec !== a.recomendacion) await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { recomendacion: rec } })
     }
   }
 
@@ -65,7 +89,7 @@ async function cuidarMercado(t, lunes) {
     const dias = a.inicio ? Math.floor((Date.now() - new Date(a.inicio)) / 864e5) : 0
     if (dias >= 7 && g >= 40 && !suyos.length) {
       await graph(a.meta_ad_id, { method: 'POST', params: { status: 'PAUSED' } })
-      await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'pausado', fin: new Date().toISOString().slice(0, 10), motivo: `Tumbado: ${dias} días, ${usd(g)} gastados y 0 leads calificados.` } })
+      await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'pausado', recomendacion: '', fin: new Date().toISOString().slice(0, 10), motivo: `Tumbado: ${dias} días, ${usd(g)} gastados y 0 leads calificados.` } })
       tumbados++
     } else if (suyos.length) {
       const meetings = suyos.filter((l) => l.estado === 'agendado' || l.prospecto_id).length

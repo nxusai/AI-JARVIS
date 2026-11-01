@@ -211,6 +211,9 @@ export function crearSupabase({ url, anon }) {
     gastoAnuncios: async (desde) => ok(await tabla('anuncios_gasto').select('*').gte('dia', desde)),
     topesAnuncios: async () => ok(await tabla('anuncios_topes').select('*').order('mercado', { ascending: false })),
     guardarTope: (t) => guardar('anuncios_topes', t, 'mercado'),
+    solicitudes: async () => ok(await tabla('solicitudes').select('*').in('estado', ['pendiente', 'en_proceso', 'error']).order('creado', { ascending: false })),
+    pedirVideo: (fila) => guardar('solicitudes', fila),
+    borrarSolicitud: async (id) => ok(await tabla('solicitudes').delete().eq('id', id)),
     reportesAnuncios: async () => ok(await tabla('anuncios_reportes').select('*').order('semana', { ascending: false }).limit(20)),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),

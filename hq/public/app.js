@@ -1275,6 +1275,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <div class="fila chips"><span class="chip">${c.tipo === 'video' ? '🎬 Video' : '🖼 Foto'}</span><span class="chip ${c.uso === 'anuncio' ? 'sistema' : ''}">${c.uso === 'anuncio' ? 'Anuncio + feed' : 'Feed'}</span><span class="chip">${MERCADO[c.mercado]}</span><span class="chip contenido-${c.estado}">${ESTADO_PIEZA[c.estado]}</span></div>
           ${c.titulo ? `<h3>${h(c.titulo)}</h3>` : ''}
           ${c.objetivo ? `<p class="nota">🎯 ${h(c.objetivo)}</p>` : ''}
+          ${c.reemplaza && !c.anuncio_id ? '<p class="nota">🔁 Al aprobarlo, reemplaza al anuncio que se recomendó cambiar.</p>' : ''}
           <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
@@ -1294,12 +1295,13 @@ export function iniciar(D, { muestra = false } = {}) {
       </div>`
     v.innerHTML = `
       <p class="nota">Cada semana se crean las fotos del feed y los videos de los anuncios. Tú los apruebas o pides cambios; lo aprobado se publica solo en su fecha. Los videos de anuncio también salen al feed.</p>
-      <div class="acciones"><button class="btn primario" id="ct-subir">⬆ Subir mi foto o video</button><div class="segmento">${Object.entries(FILTROS)
+      <div class="acciones"><button class="btn primario" id="ct-subir">⬆ Subir mi foto o video</button><button class="btn" id="ct-pedir">✦ Pedir un video para el feed</button><div class="segmento">${Object.entries(FILTROS)
         .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k === 'calendario' ? 'aprobado' : k)}</small></button>`)
         .join('')}</div></div>
       ${lista.length ? `<div class="piezas">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta"><p class="vacio">${filtro === 'por_aprobar' ? 'No hay nada por aprobar.' : 'Nada aquí.'}</p></div>`}`
     const de = (id) => piezas.find((c) => c.id === id)
-    $('#ct-subir', v).onclick = subirPropio
+    $('#ct-subir', v).onclick = () => subirPropio()
+    $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })
     $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
     $$('[data-aprobar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.aprobar, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')) && mostrar()))
     $$('[data-cambio]', v).forEach(
@@ -1350,14 +1352,15 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   /** Eduardo sube su propia foto o video: queda aprobado y entra al calendario o a los anuncios. */
-  function subirPropio() {
+  function subirPropio(pre = {}) {
     abrirModal(
       `<form id="f-propio"><h2>⬆ Subir mi foto o video</h2>
         <p class="nota">Queda aprobado. Si es anuncio, se pauta con las mismas reglas (3 activos por mercado, tope del mes) y también sale al feed.</p>
         <div class="campos">
           <label class="ancho">Archivo (foto JPG/PNG o video MP4/MOV, hasta 50 MB)<input name="archivo" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" required></label>
-          <label>Para<select name="uso"><option value="anuncio">Anuncio (y feed)</option><option value="feed">Solo feed</option></select></label>
-          <label>Mercado<select name="mercado"><option value="usa">USA</option><option value="mexico">México</option><option value="ambos">USA y México</option></select></label>
+          <label>Para<select name="uso"><option value="anuncio">Anuncio (y feed)</option><option value="feed" ${pre.uso === 'feed' ? 'selected' : ''}>Solo feed</option></select></label>
+          <label>Mercado<select name="mercado">${Object.entries(MERCADO).map(([k, t]) => `<option value="${k}" ${pre.mercado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          ${pre.reemplaza ? `<p class="nota ancho">Al aprobarlo, reemplaza al anuncio ${h(pre.codigo || '')}.</p>` : ''}
           <label class="ancho">Nombre (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: AD Restaurante 1"></label>
           <label class="ancho">¿Qué quieres lograr y con qué negocios?<textarea name="objetivo" rows="3" maxlength="1000" required placeholder="Ej.: Que dueños de restaurantes y taquerías nos escriban para que sus pedidos de WhatsApp lleguen solos."></textarea><small>La IA escribe el texto de la publicación con esto. Lo puedes revisar y pedir cambios.</small></label>
           <label>Publicar el (opcional)<input name="cuando" type="datetime-local"><small>Vacío: en cuanto esté listo.</small></label>
@@ -1382,6 +1385,7 @@ export function iniciar(D, { muestra = false } = {}) {
             idea: '',
             estado: 'aprobado',
             publicar_en: d.cuando ? new Date(d.cuando).toISOString() : null,
+            ...(pre.reemplaza ? { reemplaza: pre.reemplaza } : {}),
           }
           aviso('Subiendo…')
           const c = await intenta(() => D.subirContenido(file, fila))
@@ -1396,11 +1400,54 @@ export function iniciar(D, { muestra = false } = {}) {
     )
   }
 
+  /** "✦ Nuevo anuncio": ¿tienes video o lo genero yo? (y a cuál anuncio reemplaza). */
+  function nuevoAnuncio(m, activos, reemplaza = '') {
+    const sugerido = reemplaza || activos.find((a) => a.recomendacion === 'cambiar')?.id || ''
+    const opcionesAd = `<option value="">Ninguno (agregar)</option>${activos.map((a) => `<option value="${a.id}" ${a.id === sugerido ? 'selected' : ''}>${h(a.nombre)}${a.recomendacion === 'cambiar' ? ' · 🔁 recomendado cambiar' : ''}</option>`).join('')}`
+    abrirModal(
+      `<h2>✦ Nuevo anuncio · ${MERCADO[m]}</h2>
+       <p>¿Tienes tú el video o lo genero yo?</p>
+       <div class="acciones"><button class="btn" id="na-mio">⬆ Tengo video</button><button class="btn primario" id="na-ia">✦ Genéralo tú</button><button class="btn" data-cerrar>Cancelar</button></div>`,
+      (caja) => {
+        $('#na-mio', caja).onclick = () => {
+          const a = activos.find((x) => x.id === sugerido)
+          subirPropio({ uso: 'anuncio', mercado: m, reemplaza: sugerido, codigo: a?.codigo || a?.nombre })
+        }
+        $('#na-ia', caja).onclick = () => pedirVideo({ uso: 'anuncio', mercado: m }, opcionesAd)
+      },
+    )
+  }
+
+  /** Pedirme un video: la tarea programada lo genera y lo deja en Contenido por aprobar. */
+  function pedirVideo(pre, opcionesAd = '') {
+    abrirModal(
+      `<form id="f-pedir"><h2>✦ ${pre.uso === 'anuncio' ? `Video para anuncio · ${MERCADO[pre.mercado]}` : 'Video para el feed'}</h2>
+        <p class="nota">Lo genero con lo aprendido de los anuncios: animación cinematográfica, tipografía cinética y 3D, con escenas y personas cuando ayude. ${pre.uso === 'anuncio' ? 'Termina con el CTA "INFO".' : 'El CTA va en la descripción.'} Queda en Contenido por aprobar.</p>
+        <div class="campos">
+          <label class="ancho">¿Qué quieres lograr y con qué negocios? (opcional)<textarea name="objetivo" rows="3" maxlength="1000" placeholder="Vacío: yo elijo según lo que está funcionando."></textarea></label>
+          ${pre.uso !== 'anuncio' ? `<label>Mercado<select name="mercado">${Object.entries(MERCADO).map(([k, t]) => `<option value="${k}" ${k === pre.mercado ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
+          ${opcionesAd ? `<label class="ancho">¿Reemplaza a un anuncio?<select name="reemplaza">${opcionesAd}</select><small>Al aprobar el nuevo, el elegido se pausa y entra el nuevo.</small></label>` : ''}
+        </div>
+        <div class="acciones"><button class="btn primario">Pedir video</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-pedir', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const fila = { uso: pre.uso, mercado: d.mercado || pre.mercado, objetivo: d.objetivo.trim(), ...(d.reemplaza ? { reemplaza: d.reemplaza } : {}) }
+          if (await intenta(() => D.pedirVideo(fila), 'Pedido: lo verás en Contenido → Por aprobar')) {
+            cerrarModal()
+            mostrar()
+          }
+        }
+      },
+    )
+  }
+
   async function vistaAnuncios(v) {
     titulo('Anuncios')
     const ahora = new Date()
     const mes = `${ahora.toISOString().slice(0, 7)}-01`
-    const [anuncios, gasto, topes, reportes, piezas, leads, pros] = await Promise.all([D.anuncios(), D.gastoAnuncios(mes), D.topesAnuncios(), D.reportesAnuncios(), D.contenido(), D.leads(), D.prospectos()])
+    const [anuncios, gasto, topes, reportes, piezas, leads, pros, pedidos] = await Promise.all([D.anuncios(), D.gastoAnuncios(mes), D.topesAnuncios(), D.reportesAnuncios(), D.contenido(), D.leads(), D.prospectos(), D.solicitudes().catch(() => [])])
     const urls = await D.mediaUrls(piezas.filter((c) => c.anuncio_id).map((c) => c.archivo)).catch(() => ({}))
     const diasMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate()
     const gastadoDe = (aid) => gasto.filter((g) => g.anuncio_id === aid).reduce((s, g) => s + Number(g.gasto), 0)
@@ -1433,6 +1480,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="meta"><div class="fila"><small>Presupuesto del mes</small><small>${pct}% gastado · ${ritmo}% del mes</small></div><div class="barra"><i style="width:${pct}%"></i></div></div>
         ${t.aviso ? `<p class="aviso-ads">${h(t.aviso)}</p>` : ''}
         <div class="acciones">
+          <button class="btn primario" data-nuevo="${m}">✦ Nuevo anuncio</button>
           <button class="btn" data-ads="preparar" data-m="${m}">⚙ Preparar anuncios</button>
           ${suyos.some((f) => f.a.estado === 'borrador' && f.a.meta_ad_id) ? `<button class="btn primario" data-ads="lanzar" data-m="${m}">✓ Lanzar</button>` : ''}
           ${activos.length ? `<button class="btn peligro" data-ads="pausar" data-m="${m}">⏸ Pausar</button>` : ''}
@@ -1445,10 +1493,11 @@ export function iniciar(D, { muestra = false } = {}) {
     const tarjetaAd = (f) => `<div class="anuncio tarjeta ${f.a.estado}">
         ${media(f.pieza ?? { tipo: 'video' }, urls, 'chica')}
         <div class="pieza-cuerpo">
-          <div class="fila chips"><span class="chip anuncio-${f.a.estado}">${ESTADO_AD[f.a.estado]}</span><span class="chip">${MERCADO[f.a.mercado]}</span>${f.a.estado === 'activo' ? `<span class="chip">${usd(f.a.presupuesto_dia)}/día</span>` : ''}</div>
+          <div class="fila chips"><span class="chip anuncio-${f.a.estado}">${ESTADO_AD[f.a.estado]}</span>${{ seguir: '<span class="chip hecha">✅ Seguir</span>', cambiar: '<span class="chip rojo">🔁 Cambiar</span>', esperar: '<span class="chip">⏳ Aprendiendo</span>' }[f.a.recomendacion] ?? ''}<span class="chip">${MERCADO[f.a.mercado]}</span>${f.a.estado === 'activo' ? `<span class="chip">${usd(f.a.presupuesto_dia)}/día</span>` : ''}</div>
           <h3>${h(f.a.nombre)}</h3>
           <div class="numeros"><span><b>${usd(f.gastado)}</b><small>gastado este mes</small></span><span><b>${f.leads}</b><small>leads</small></span><span><b>${f.meetings}</b><small>meetings</small></span><span><b>${f.clientes}</b><small>clientes</small></span><span><b>${porLead(f.gastado, f.leads)}</b><small>por lead</small></span><span><b>${f.a.impresiones.toLocaleString('en-US')}</b><small>vistas</small></span></div>
           ${f.a.motivo ? `<p class="nota">🧠 ${h(f.a.motivo)}</p>` : ''}
+          ${f.a.recomendacion === 'cambiar' && f.a.estado === 'activo' ? `<button class="btn primario" data-reemplazar="${f.a.id}">✦ Nuevo anuncio para reemplazarlo</button>` : ''}
           ${f.pieza?.texto ? `<details><summary>Texto del anuncio</summary><p class="desc">${h(f.pieza.texto)}</p></details>` : ''}
         </div>
       </div>`
@@ -1456,6 +1505,13 @@ export function iniciar(D, { muestra = false } = {}) {
       <div class="acciones"><button class="btn" id="ad-probar">🔑 Probar la llave de Meta</button><span id="ad-prueba"></span></div>
       <p class="nota">Siempre 3 anuncios activos por mercado, dentro del tope del mes. Al que funciona se le pasa más presupuesto; el que no, se tumba y se reemplaza con lo aprendido. Leads, meetings y clientes salen de HQ, no de Meta.</p>
       <div class="dos">${bloque('usa')}${bloque('mexico')}</div>
+      ${
+        pedidos.length
+          ? `<div class="tarjeta"><h3>🎬 Videos que estoy generando</h3><ul class="lista tareas">${pedidos
+              .map((p) => `<li><span class="chip ${p.estado === 'error' ? 'rojo' : 'pendiente'}">${{ pendiente: 'En fila', en_proceso: 'Generando', error: 'Error' }[p.estado]}</span><b>${h(p.objetivo || 'Video')}</b><small>${MERCADO[p.mercado]} · ${p.uso === 'anuncio' ? 'anuncio' : 'feed'} · pedido ${fechaHora(p.creado)}${p.nota ? ` · ${h(p.nota)}` : ''}</small><button class="enlace rojo" data-cancelar="${p.id}">Cancelar</button></li>`)
+              .join('')}</ul><p class="nota">Se revisan cada 2 horas (9 a.m. a 9 p.m., hora de Nueva York). Cuando esté, aparece en Contenido → Por aprobar.</p></div>`
+          : ''
+      }
       <h2 class="grupo">Anuncios</h2>
       ${filas.length ? `<div class="anuncios">${filas.sort((x, y) => ordenAd[x.a.estado] - ordenAd[y.a.estado] || y.gastado - x.gastado).map(tarjetaAd).join('')}</div>` : '<div class="tarjeta"><p class="vacio">Todavía no hay anuncios.</p></div>'}
       <h2 class="grupo">Inteligencia <small>lo que funcionó, lo que no y qué se decidió, cada semana</small></h2>
@@ -1489,6 +1545,13 @@ export function iniciar(D, { muestra = false } = {}) {
          <div class="acciones"><button class="btn" data-cerrar>Cerrar</button></div>`,
       )
     }
+    const activosDe = (m) => anuncios.filter((a) => a.mercado === m && a.estado === 'activo')
+    $$('[data-nuevo]', v).forEach((b) => (b.onclick = () => nuevoAnuncio(b.dataset.nuevo, activosDe(b.dataset.nuevo))))
+    $$('[data-reemplazar]', v).forEach((b) => {
+      const a = anuncios.find((x) => x.id === b.dataset.reemplazar)
+      b.onclick = () => nuevoAnuncio(a.mercado, activosDe(a.mercado), a.id)
+    })
+    $$('[data-cancelar]', v).forEach((b) => (b.onclick = async () => confirm('¿Cancelar este pedido de video?') && (await intenta(() => D.borrarSolicitud(b.dataset.cancelar), 'Cancelado')) !== undefined && mostrar()))
     $$('[data-ads]', v).forEach(
       (b) =>
         (b.onclick = async () => {

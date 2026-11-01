@@ -4,7 +4,10 @@
 //       baja la foto o el video (de Bloom o Higgsfield), lo guarda en el
 //       almacenamiento privado "contenido" y deja la pieza "por aprobar".
 //   { accion: "reporte", reporte: { semana, mercado, resumen, funciono, no_funciono, decisiones, siguiente } }
-//   { accion: "resumen" }  lo que hay: piezas por aprobar o con cambios pedidos, anuncios y su gasto del mes.
+//   { accion: "resumen" }  lo que hay: piezas por aprobar o con cambios pedidos, anuncios y su gasto del mes,
+//       los topes (zonas y negocios) y los pedidos de video pendientes.
+//   { accion: "pedido", id, estado: "en_proceso" | "error", nota }  marca un pedido de video.
+//   En "crear", "solicitud_id" liga la pieza a su pedido (y hereda el anuncio que reemplaza).
 import { timingSafeEqual } from 'node:crypto'
 import { json, sb, URL_SB } from '../lib/sb.mjs'
 
@@ -62,7 +65,13 @@ export default async (req) => {
         archivo,
         publicar_en: p.publicar_en && !Number.isNaN(Date.parse(p.publicar_en)) ? new Date(p.publicar_en).toISOString() : null,
       }
+      const sid = /^[0-9a-f-]{36}$/i.test(String(b.solicitud_id ?? '')) ? b.solicitud_id : null
+      const [pedido] = sid ? await sb(`/rest/v1/solicitudes?id=eq.${sid}&select=*`, { servicio: true }) : []
+      if (pedido) Object.assign(fila, { reemplaza: pedido.reemplaza, objetivo: pedido.objetivo, uso: pedido.uso, mercado: pedido.mercado })
+      // Un anuncio nuevo del reporte de los lunes puede venir ya ligado al anuncio que conviene cambiar.
+      else if (/^[0-9a-f-]{36}$/i.test(String(p.reemplaza ?? ''))) fila.reemplaza = p.reemplaza
       const [pieza] = await sb('/rest/v1/contenido', { servicio: true, method: 'POST', prefer: 'return=representation', body: fila })
+      if (pedido) await sb(`/rest/v1/solicitudes?id=eq.${pedido.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: 'listo', contenido_id: pieza.id, nota: '' } })
       return json({ ok: true, id: pieza.id })
     }
 
@@ -75,18 +84,37 @@ export default async (req) => {
       return json({ ok: true, id: rep.id })
     }
 
+    if (b.accion === 'pedido') {
+      if (!/^[0-9a-f-]{36}$/i.test(String(b.id ?? ''))) return json({ ok: false, error: 'falta id' }, 400)
+      await sb(`/rest/v1/solicitudes?id=eq.${b.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: uno(b.estado, ['en_proceso', 'error', 'pendiente'], 'en_proceso'), nota: texto(b.nota, 1000) } })
+      return json({ ok: true })
+    }
+
     if (b.accion === 'resumen') {
       const mes = `${new Date().toISOString().slice(0, 7)}-01`
-      const [pendientes, anuncios, gasto, topes, reportes] = await Promise.all([
+      const [pendientes, anuncios, gasto, topes, reportes, pedidos, recientes] = await Promise.all([
         sb('/rest/v1/contenido?estado=in.(por_aprobar,rechazado)&select=id,tipo,uso,mercado,titulo,estado,comentario,creado&order=creado.desc&limit=50', { servicio: true }),
-        sb('/rest/v1/anuncios?select=id,nombre,mercado,meta_ad_id,estado,presupuesto_dia,impresiones,clics,inicio,motivo&order=creado.desc', { servicio: true }),
+        sb('/rest/v1/anuncios?select=id,codigo,nombre,mercado,meta_ad_id,estado,presupuesto_dia,impresiones,clics,inicio,fin,motivo,recomendacion&order=creado.desc', { servicio: true }),
         sb(`/rest/v1/anuncios_gasto?dia=gte.${mes}&select=anuncio_id,gasto`, { servicio: true }),
-        sb('/rest/v1/anuncios_topes?select=mercado,tope_mensual,zonas', { servicio: true }),
+        sb('/rest/v1/anuncios_topes?select=mercado,tope_mensual,zonas,negocios,aviso', { servicio: true }),
         sb('/rest/v1/anuncios_reportes?select=*&order=semana.desc&limit=4', { servicio: true }),
+        sb('/rest/v1/solicitudes?estado=in.(pendiente,en_proceso)&select=*&order=creado.asc', { servicio: true }),
+        sb('/rest/v1/contenido?select=id,tipo,uso,mercado,titulo,objetivo,texto,estado,publicar_en,anuncio_id,creado&order=creado.desc&limit=30', { servicio: true }),
       ])
+      // Lo que trajo cada anuncio (leads calificados y meetings), para aprender qué funciona.
+      const leads = await sb('/rest/v1/leads?anuncio_id=neq.&estado=neq.incompleto&select=anuncio_id,estado,prospecto_id,servicio,ciudad', { servicio: true })
       const delMes = {}
       for (const g of gasto) delMes[g.anuncio_id] = (delMes[g.anuncio_id] ?? 0) + Number(g.gasto)
-      return json({ ok: true, pendientes, anuncios: anuncios.map((a) => ({ ...a, gastado_mes: delMes[a.id] ?? 0 })), topes, reportes })
+      const de = (a) => leads.filter((l) => l.anuncio_id === a.meta_ad_id)
+      return json({
+        ok: true,
+        pedidos,
+        pendientes,
+        recientes,
+        anuncios: anuncios.map((a) => ({ ...a, gastado_mes: delMes[a.id] ?? 0, leads: de(a).length, meetings: de(a).filter((l) => l.estado === 'agendado' || l.prospecto_id).length, quienes: de(a).map((l) => [l.servicio, l.ciudad].filter(Boolean).join(' · ')).slice(0, 10) })),
+        topes,
+        reportes,
+      })
     }
 
     return json({ ok: false, error: 'acción desconocida' }, 400)

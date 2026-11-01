@@ -1068,3 +1068,27 @@ alter table public.anuncios add column if not exists meta_video_id text not null
 alter table public.anuncios add column if not exists meta_creative_id text not null default '';
 -- Lo último que pasó con los anuncios de cada mercado (o el error), para verlo en HQ → Anuncios.
 alter table public.anuncios_topes add column if not exists aviso text not null default '' check (char_length(aviso) <= 1000);
+
+-- Pedidos de video a Claude (botón "✦ Nuevo anuncio" → "Genéralo tú", y los de cada semana).
+-- La tarea programada de Claude los toma, genera el video y lo deja en Contenido por aprobar.
+create table if not exists public.solicitudes (
+  id uuid primary key default gen_random_uuid(),
+  uso text not null default 'anuncio' check (uso in ('feed', 'anuncio')),
+  mercado text not null default 'usa' check (mercado in ('usa', 'mexico', 'ambos')),
+  objetivo text not null default '' check (char_length(objetivo) <= 1000),
+  reemplaza uuid references public.anuncios (id) on delete set null, -- el anuncio que se cambia al aprobar el nuevo
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'en_proceso', 'listo', 'error')),
+  nota text not null default '' check (char_length(nota) <= 1000),
+  contenido_id uuid references public.contenido (id) on delete set null,
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+drop trigger if exists hq_actualizado on public.solicitudes;
+create trigger hq_actualizado before update on public.solicitudes for each row execute function public.al_cambiar_fila();
+alter table public.solicitudes enable row level security;
+drop policy if exists solo_admin on public.solicitudes;
+create policy solo_admin on public.solicitudes for all to authenticated using (es_admin()) with check (es_admin());
+
+-- El anuncio que se cambia por esta pieza cuando se aprueba (y Seguir/Cambiar en cada anuncio).
+alter table public.contenido add column if not exists reemplaza uuid references public.anuncios (id) on delete set null;
+alter table public.anuncios add column if not exists recomendacion text not null default '' check (recomendacion in ('', 'seguir', 'cambiar', 'esperar'));
