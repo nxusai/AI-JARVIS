@@ -939,3 +939,110 @@ create policy hq_documentos_subir on storage.objects for insert to authenticated
   with check (bucket_id = 'documentos' and ((name like 'propuestas/%' and pros_puede('trabajar')) or es_admin()));
 drop policy if exists hq_documentos_borrar on storage.objects;
 create policy hq_documentos_borrar on storage.objects for delete to authenticated using (bucket_id = 'documentos' and es_admin());
+
+-- ---------------------------------------------------------------------------
+-- Contenido y anuncios (solo el admin). Claude crea cada semana las fotos del
+-- feed y los videos de los anuncios; caen aquí "por aprobar"; Eduardo los
+-- aprueba; se publican solos. NEX lleva los anuncios de Meta: siempre 3
+-- activos por mercado dentro del tope del mes, sube presupuesto a lo que
+-- funciona y tumba lo que no, y deja aquí su reporte de cada semana.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.anuncios_topes (
+  mercado text primary key check (mercado in ('usa', 'mexico')),
+  tope_mensual numeric(10, 2) not null default 300 check (tope_mensual >= 0), -- en USD
+  zonas text not null default '' check (char_length(zonas) <= 1000), -- dónde se anuncia
+  actualizado timestamptz not null default now()
+);
+insert into public.anuncios_topes (mercado, tope_mensual) values ('usa', 300), ('mexico', 300) on conflict do nothing;
+
+create table if not exists public.anuncios (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null check (char_length(nombre) between 1 and 200),
+  mercado text not null check (mercado in ('usa', 'mexico')),
+  meta_ad_id text unique, -- el anuncio en Meta (también llega en leads.anuncio_id)
+  estado text not null default 'borrador' check (estado in ('borrador', 'activo', 'pausado', 'terminado')),
+  presupuesto_dia numeric(10, 2) not null default 0 check (presupuesto_dia >= 0),
+  impresiones int not null default 0,
+  clics int not null default 0,
+  inicio date,
+  fin date,
+  motivo text not null default '' check (char_length(motivo) <= 1000), -- por qué se subió, se bajó o se tumbó
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+
+-- Lo gastado por día de cada anuncio (de Meta), para saber lo del mes.
+create table if not exists public.anuncios_gasto (
+  anuncio_id uuid not null references public.anuncios (id) on delete cascade,
+  dia date not null,
+  gasto numeric(10, 2) not null default 0 check (gasto >= 0),
+  primary key (anuncio_id, dia)
+);
+
+create table if not exists public.contenido (
+  id uuid primary key default gen_random_uuid(),
+  tipo text not null check (tipo in ('foto', 'video')),
+  uso text not null check (uso in ('feed', 'anuncio')), -- los videos de anuncio también salen al feed
+  mercado text not null default 'ambos' check (mercado in ('usa', 'mexico', 'ambos')),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  titulo text not null default '' check (char_length(titulo) <= 200),
+  texto text not null default '' check (char_length(texto) <= 2200), -- el texto de la publicación
+  idea text not null default '' check (char_length(idea) <= 2000), -- por qué se hizo así (lo aprendido)
+  archivo text not null default '', -- ruta en el almacenamiento "contenido"
+  publicar_en timestamptz,
+  estado text not null default 'por_aprobar' check (estado in ('por_aprobar', 'aprobado', 'publicado', 'rechazado')),
+  comentario text not null default '' check (char_length(comentario) <= 2000), -- el cambio que pidió Eduardo
+  publicado_ig text not null default '',
+  publicado_fb text not null default '',
+  anuncio_id uuid references public.anuncios (id) on delete set null,
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists contenido_estado on public.contenido (estado, publicar_en);
+
+-- El reporte de cada semana: lo que funcionó, lo que no y qué se decidió.
+create table if not exists public.anuncios_reportes (
+  id uuid primary key default gen_random_uuid(),
+  semana date not null,
+  mercado text not null default 'ambos' check (mercado in ('usa', 'mexico', 'ambos')),
+  resumen text not null default '' check (char_length(resumen) <= 4000),
+  funciono text not null default '' check (char_length(funciono) <= 4000),
+  no_funciono text not null default '' check (char_length(no_funciono) <= 4000),
+  decisiones text not null default '' check (char_length(decisiones) <= 4000),
+  siguiente text not null default '' check (char_length(siguiente) <= 4000), -- qué se va a crear después
+  creado timestamptz not null default now()
+);
+
+create or replace function public.al_cambiar_fila() returns trigger
+language plpgsql as $$
+begin
+  new.actualizado := now();
+  return new;
+end $$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['anuncios_topes', 'anuncios', 'contenido'] loop
+    execute format('drop trigger if exists hq_actualizado on public.%I', t);
+    execute format('create trigger hq_actualizado before update on public.%I for each row execute function public.al_cambiar_fila()', t);
+  end loop;
+  foreach t in array array['anuncios_topes', 'anuncios', 'contenido', 'anuncios_reportes'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+  end loop;
+  foreach t in array array['anuncios_topes', 'anuncios', 'anuncios_gasto', 'contenido', 'anuncios_reportes'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists solo_admin on public.%I', t);
+    execute format('create policy solo_admin on public.%I for all to authenticated using (es_admin()) with check (es_admin())', t);
+  end loop;
+end $$;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('contenido', 'contenido', false, 52428800, array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists hq_contenido_admin on storage.objects;
+create policy hq_contenido_admin on storage.objects for all to authenticated
+  using (bucket_id = 'contenido' and es_admin()) with check (bucket_id = 'contenido' and es_admin());

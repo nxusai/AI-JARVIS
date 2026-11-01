@@ -20,7 +20,7 @@ const ok = ({ data, error }) => {
 }
 
 const LEAD_LISTA =
-  'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,traduccion,creado,actualizado'
+  'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,traduccion,anuncio_id,creado,actualizado'
 
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -167,6 +167,26 @@ export function crearSupabase({ url, anon }) {
       ok(await tabla('documentos').delete().eq('id', d.id))
       await sb.storage.from('documentos').remove([d.ruta])
     },
+
+    // Contenido y anuncios (solo el admin).
+    contenido: async () => ok(await tabla('contenido').select('*').order('publicar_en', { ascending: true, nullsFirst: false })),
+    guardarContenido: (c) => guardar('contenido', c),
+    async borrarContenido(c) {
+      ok(await tabla('contenido').delete().eq('id', c.id))
+      if (c.archivo) await sb.storage.from('contenido').remove([c.archivo])
+    },
+    /** Links temporales para ver las fotos y videos: { ruta: url }. */
+    async mediaUrls(rutas) {
+      const r = [...new Set(rutas.filter(Boolean))]
+      if (!r.length) return {}
+      const { data } = await sb.storage.from('contenido').createSignedUrls(r, 60 * 60)
+      return Object.fromEntries((data ?? []).filter((x) => x.signedUrl).map((x) => [x.path, x.signedUrl]))
+    },
+    anuncios: async () => ok(await tabla('anuncios').select('*').order('creado', { ascending: false })),
+    gastoAnuncios: async (desde) => ok(await tabla('anuncios_gasto').select('*').gte('dia', desde)),
+    topesAnuncios: async () => ok(await tabla('anuncios_topes').select('*').order('mercado', { ascending: false })),
+    guardarTope: (t) => guardar('anuncios_topes', t, 'mercado'),
+    reportesAnuncios: async () => ok(await tabla('anuncios_reportes').select('*').order('semana', { ascending: false }).limit(20)),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 

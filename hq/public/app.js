@@ -250,6 +250,8 @@ export function iniciar(D, { muestra = false } = {}) {
   const SECCIONES_ADMIN = [
     ['nomina', 'Nómina', '⧉'],
     ['dinero', 'Dinero', '$'],
+    ['contenido', 'Contenido', '▣'],
+    ['anuncios', 'Anuncios', '◭'],
     ['personas', 'Personas', '⚙'],
     ['bitacora', 'Bitácora', '≡'],
   ]
@@ -328,7 +330,7 @@ export function iniciar(D, { muestra = false } = {}) {
     $$('[data-ir]').forEach((a) => a.classList.toggle('activa', a.dataset.ir === sec))
     const vista = $('#vista')
     vista.innerHTML = '<div class="cargando">Cargando…</div>'
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, contenido: vistaContenido, anuncios: vistaAnuncios, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
@@ -1243,6 +1245,186 @@ export function iniciar(D, { muestra = false } = {}) {
           else location.hash = `#lead/${r.id}`
         }
       },
+    )
+  }
+
+  // ---------------------------------------------------- contenido y anuncios
+
+  const MERCADO = { usa: 'USA', mexico: 'México', ambos: 'USA y México' }
+  const ESTADO_PIEZA = { por_aprobar: 'Por aprobar', aprobado: 'Aprobado', publicado: 'Publicado', rechazado: 'Cambio pedido' }
+  const ESTADO_AD = { borrador: 'Borrador', activo: 'Activo', pausado: 'Tumbado', terminado: 'Terminado' }
+  const usd = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  /** La foto o el video de una pieza (o un recuadro si todavía no hay archivo). */
+  const media = (c, urls, clase = '') => {
+    const u = urls[c?.archivo]
+    if (!u) return `<div class="media vacia ${clase}">${c?.tipo === 'video' ? '🎬 Video' : '🖼 Foto'}</div>`
+    return c.tipo === 'video' ? `<video class="media ${clase}" src="${h(u)}" controls preload="metadata" playsinline></video>` : `<img class="media ${clase}" src="${h(u)}" alt="" loading="lazy">`
+  }
+
+  async function vistaContenido(v) {
+    titulo('Contenido')
+    const piezas = await D.contenido()
+    const urls = await D.mediaUrls(piezas.map((c) => c.archivo)).catch(() => ({}))
+    const FILTROS = { por_aprobar: 'Por aprobar', calendario: 'Calendario', publicado: 'Publicado', rechazado: 'Cambios pedidos' }
+    const filtro = FILTROS[sessionStorage.getItem('hq-contenido')] ? sessionStorage.getItem('hq-contenido') : 'por_aprobar'
+    const lista = piezas.filter((c) => (filtro === 'calendario' ? c.estado === 'aprobado' : c.estado === filtro))
+    const cuenta = (e) => piezas.filter((c) => c.estado === e).length
+    const tarjeta = (c) => `<div class="pieza tarjeta">
+        ${media(c, urls)}
+        <div class="pieza-cuerpo">
+          <div class="fila chips"><span class="chip">${c.tipo === 'video' ? '🎬 Video' : '🖼 Foto'}</span><span class="chip ${c.uso === 'anuncio' ? 'sistema' : ''}">${c.uso === 'anuncio' ? 'Anuncio + feed' : 'Feed'}</span><span class="chip">${MERCADO[c.mercado]}</span><span class="chip contenido-${c.estado}">${ESTADO_PIEZA[c.estado]}</span></div>
+          ${c.titulo ? `<h3>${h(c.titulo)}</h3>` : ''}
+          <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto.</span>'}</p>
+          ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
+          ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
+          <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
+          <div class="acciones">
+            ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
+            ${c.estado === 'por_aprobar' || c.estado === 'aprobado' ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
+            ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
+            ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
+          </div>
+        </div>
+      </div>`
+    v.innerHTML = `
+      <p class="nota">Cada semana se crean las fotos del feed y los videos de los anuncios. Tú los apruebas o pides cambios; lo aprobado se publica solo en su fecha. Los videos de anuncio también salen al feed.</p>
+      <div class="acciones"><div class="segmento">${Object.entries(FILTROS)
+        .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k === 'calendario' ? 'aprobado' : k)}</small></button>`)
+        .join('')}</div></div>
+      ${lista.length ? `<div class="piezas">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta"><p class="vacio">${filtro === 'por_aprobar' ? 'No hay nada por aprobar.' : 'Nada aquí.'}</p></div>`}`
+    const de = (id) => piezas.find((c) => c.id === id)
+    $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
+    $$('[data-aprobar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.aprobar, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')) && mostrar()))
+    $$('[data-cambio]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const c = de(b.dataset.cambio)
+          const t = prompt('¿Qué le cambio? (texto, imagen, fecha…)', c.comentario || '')
+          if (t?.trim() && (await intenta(() => D.guardarContenido({ id: c.id, estado: 'rechazado', comentario: t.trim().slice(0, 2000) }), 'Listo: lo rehago con tu cambio'))) mostrar()
+        }),
+    )
+    $$('[data-fecha]', v).forEach(
+      (b) =>
+        (b.onclick = () => {
+          const c = de(b.dataset.fecha)
+          const local = c.publicar_en ? new Date(new Date(c.publicar_en).getTime() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16) : ''
+          abrirModal(
+            `<form id="f-fecha"><h2>📅 ¿Cuándo se publica?</h2><div class="campos"><label class="ancho">Fecha y hora<input name="cuando" type="datetime-local" required value="${local}"></label></div>
+              <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+            (caja) => {
+              $('#f-fecha', caja).onsubmit = async (e) => {
+                e.preventDefault()
+                if (await intenta(() => D.guardarContenido({ id: c.id, publicar_en: new Date(e.target.cuando.value).toISOString() }), 'Fecha cambiada')) {
+                  cerrarModal()
+                  mostrar()
+                }
+              }
+            },
+          )
+        }),
+    )
+    $$('[data-borrar-pieza]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const c = de(b.dataset.borrarPieza)
+          if (confirm(`¿Borrar "${c.titulo || 'esta pieza'}"? No se puede deshacer.`) && (await intenta(() => D.borrarContenido(c), 'Borrado')) !== undefined) mostrar()
+        }),
+    )
+  }
+
+  async function vistaAnuncios(v) {
+    titulo('Anuncios')
+    const ahora = new Date()
+    const mes = `${ahora.toISOString().slice(0, 7)}-01`
+    const [anuncios, gasto, topes, reportes, piezas, leads, pros] = await Promise.all([D.anuncios(), D.gastoAnuncios(mes), D.topesAnuncios(), D.reportesAnuncios(), D.contenido(), D.leads(), D.prospectos()])
+    const urls = await D.mediaUrls(piezas.filter((c) => c.anuncio_id).map((c) => c.archivo)).catch(() => ({}))
+    const diasMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate()
+    const gastadoDe = (aid) => gasto.filter((g) => g.anuncio_id === aid).reduce((s, g) => s + Number(g.gasto), 0)
+    // Lo que trajo cada anuncio, según HQ: leads (calificados), meetings agendados y clientes.
+    const resultados = (a) => {
+      const suyos = leads.filter((l) => a.meta_ad_id && l.anuncio_id === a.meta_ad_id)
+      const calificados = suyos.filter((l) => l.estado !== 'incompleto')
+      const meetings = suyos.filter((l) => l.estado === 'agendado' || l.prospecto_id)
+      const clientes = suyos.filter((l) => l.prospecto_id && pros.find((p) => p.id === l.prospecto_id)?.etapa === 'cliente')
+      return { leads: calificados.length, meetings: meetings.length, clientes: clientes.length }
+    }
+    const filas = anuncios.map((a) => ({ a, gastado: gastadoDe(a.id), ...resultados(a), pieza: piezas.find((c) => c.anuncio_id === a.id) }))
+    const porLead = (g, n) => (n ? usd(g / n) : '—')
+    const bloque = (m) => {
+      const t = topes.find((x) => x.mercado === m) ?? { tope_mensual: 0 }
+      const suyos = filas.filter((f) => f.a.mercado === m)
+      const gastado = suyos.reduce((s, f) => s + f.gastado, 0)
+      const sum = (k) => suyos.reduce((s, f) => s + f[k], 0)
+      const pct = t.tope_mensual ? Math.min(100, Math.round((gastado / t.tope_mensual) * 100)) : 0
+      const ritmo = Math.round((ahora.getDate() / diasMes) * 100)
+      const activos = suyos.filter((f) => f.a.estado === 'activo')
+      return `<div class="tarjeta mercado">
+        <div class="fila"><h3>${MERCADO[m]} <small>${activos.length} anuncios activos · ${usd(activos.reduce((s, f) => s + Number(f.a.presupuesto_dia), 0))}/día</small></h3><button class="btn chico" data-tope="${m}">Cambiar tope y zonas</button></div>
+        <div class="kpis">
+          <div class="kpi"><span>Gastado este mes</span><b>${usd(gastado)}</b><small>de ${usd(t.tope_mensual)} · quedan ${usd(Math.max(0, t.tope_mensual - gastado))}</small></div>
+          <div class="kpi"><span>Leads calificados</span><b>${sum('leads')}</b><small>${porLead(gastado, sum('leads'))} por lead</small></div>
+          <div class="kpi"><span>Meetings</span><b>${sum('meetings')}</b><small>${porLead(gastado, sum('meetings'))} por meeting</small></div>
+          <div class="kpi"><span>Clientes</span><b>${sum('clientes')}</b><small>${porLead(gastado, sum('clientes'))} por cliente</small></div>
+        </div>
+        <div class="meta"><div class="fila"><small>Presupuesto del mes</small><small>${pct}% gastado · ${ritmo}% del mes</small></div><div class="barra"><i style="width:${pct}%"></i></div></div>
+        ${t.zonas ? `<p><small>📍 Zonas: ${h(t.zonas)}</small></p>` : ''}
+      </div>`
+    }
+    const ordenAd = { activo: 0, borrador: 1, pausado: 2, terminado: 3 }
+    const tarjetaAd = (f) => `<div class="anuncio tarjeta ${f.a.estado}">
+        ${media(f.pieza ?? { tipo: 'video' }, urls, 'chica')}
+        <div class="pieza-cuerpo">
+          <div class="fila chips"><span class="chip anuncio-${f.a.estado}">${ESTADO_AD[f.a.estado]}</span><span class="chip">${MERCADO[f.a.mercado]}</span>${f.a.estado === 'activo' ? `<span class="chip">${usd(f.a.presupuesto_dia)}/día</span>` : ''}</div>
+          <h3>${h(f.a.nombre)}</h3>
+          <div class="numeros"><span><b>${usd(f.gastado)}</b><small>gastado este mes</small></span><span><b>${f.leads}</b><small>leads</small></span><span><b>${f.meetings}</b><small>meetings</small></span><span><b>${f.clientes}</b><small>clientes</small></span><span><b>${porLead(f.gastado, f.leads)}</b><small>por lead</small></span><span><b>${f.a.impresiones.toLocaleString('en-US')}</b><small>vistas</small></span></div>
+          ${f.a.motivo ? `<p class="nota">🧠 ${h(f.a.motivo)}</p>` : ''}
+          ${f.pieza?.texto ? `<details><summary>Texto del anuncio</summary><p class="desc">${h(f.pieza.texto)}</p></details>` : ''}
+        </div>
+      </div>`
+    v.innerHTML = `
+      <p class="nota">Siempre 3 anuncios activos por mercado, dentro del tope del mes. Al que funciona se le pasa más presupuesto; el que no, se tumba y se reemplaza con lo aprendido. Leads, meetings y clientes salen de HQ, no de Meta.</p>
+      <div class="dos">${bloque('usa')}${bloque('mexico')}</div>
+      <h2 class="grupo">Anuncios</h2>
+      ${filas.length ? `<div class="anuncios">${filas.sort((x, y) => ordenAd[x.a.estado] - ordenAd[y.a.estado] || y.gastado - x.gastado).map(tarjetaAd).join('')}</div>` : '<div class="tarjeta"><p class="vacio">Todavía no hay anuncios.</p></div>'}
+      <h2 class="grupo">Inteligencia <small>lo que funcionó, lo que no y qué se decidió, cada semana</small></h2>
+      ${
+        reportes.length
+          ? reportes
+              .map(
+                (r) => `<div class="tarjeta reporte"><div class="fila"><h3>Semana del ${fechaCorta(r.semana)}</h3><span class="chip">${MERCADO[r.mercado]}</span></div>
+                  ${r.resumen ? `<p>${h(r.resumen)}</p>` : ''}
+                  <dl class="puntos">
+                    ${r.funciono ? `<dt>✅ Funcionó</dt><dd>${h(r.funciono)}</dd>` : ''}
+                    ${r.no_funciono ? `<dt>❌ No funcionó</dt><dd>${h(r.no_funciono)}</dd>` : ''}
+                    ${r.decisiones ? `<dt>⚙ Decisiones</dt><dd>${h(r.decisiones)}</dd>` : ''}
+                    ${r.siguiente ? `<dt>➡ Lo siguiente</dt><dd>${h(r.siguiente)}</dd>` : ''}
+                  </dl></div>`,
+              )
+              .join('')
+          : '<div class="tarjeta"><p class="vacio">El primer reporte llega al cumplirse la primera semana de anuncios.</p></div>'
+      }`
+    $$('[data-tope]', v).forEach(
+      (b) =>
+        (b.onclick = () => {
+          const t = topes.find((x) => x.mercado === b.dataset.tope) ?? { mercado: b.dataset.tope, tope_mensual: 300, zonas: '' }
+          abrirModal(
+            `<form id="f-tope"><h2>Anuncios en ${MERCADO[t.mercado]}</h2>
+              <p class="nota">NEX nunca gasta más de este tope en el mes. Para cuidarlo doble, pon también un límite de gasto en tu cuenta de anuncios de Meta.</p>
+              <div class="campos"><label>Tope del mes (USD)<input name="tope" type="number" min="0" step="1" required value="${Number(t.tope_mensual)}"></label>
+              <label class="ancho">Zonas donde se anuncia<textarea name="zonas" rows="3" maxlength="1000">${h(t.zonas)}</textarea></label></div>
+              <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+            (caja) => {
+              $('#f-tope', caja).onsubmit = async (e) => {
+                e.preventDefault()
+                const d = Object.fromEntries(new FormData(e.target))
+                if (await intenta(() => D.guardarTope({ mercado: t.mercado, tope_mensual: Number(d.tope), zonas: d.zonas.trim() }), 'Guardado')) {
+                  cerrarModal()
+                  mostrar()
+                }
+              }
+            },
+          )
+        }),
     )
   }
 

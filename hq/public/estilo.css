@@ -256,6 +256,27 @@ pre.transcripcion { white-space: pre-wrap; font: 13px/1.5 inherit; font-family: 
 .documentos .lista li { align-items: center; }
 .documentos .enlace.rojo { margin-left: auto; }
 label.btn.subir { cursor: pointer; }
+/* Contenido y anuncios. */
+.piezas, .anuncios { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.pieza, .anuncio { padding: 0; overflow: hidden; display: grid; align-content: start; }
+.pieza-cuerpo { padding: 14px 16px 16px; display: grid; gap: 6px; }
+.pieza-cuerpo h3 { margin: 4px 0 0; }
+.pieza-cuerpo p { margin: 0; }
+.media { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; background: var(--panel2); display: block; }
+.media.chica { aspect-ratio: 16 / 9; }
+.media.vacia { display: grid; place-items: center; color: var(--suave); font-size: 15px; }
+.anuncio.pausado, .anuncio.terminado { opacity: 0.72; }
+.numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0; }
+.numeros span { display: grid; background: var(--panel2); border-radius: 10px; padding: 8px 10px; }
+.numeros b { font-size: 17px; }
+.numeros small { font-size: 11px; }
+.chip.contenido-por_aprobar { color: var(--ambar); }
+.chip.contenido-aprobado { color: var(--cian); }
+.chip.contenido-publicado, .chip.anuncio-activo { color: var(--verde); }
+.chip.contenido-rechazado, .chip.anuncio-pausado { color: var(--rojo); }
+.mercado .meta { margin-top: 6px; }
+.reporte dl.puntos { grid-template-columns: max-content 1fr; }
+h2.grupo small { text-transform: none; letter-spacing: 0; }
 .btn.meet { display: inline-flex; gap: 6px; align-items: center; }
 .lista li .btn.meet { margin-left: auto; }
 @media (max-width: 860px) {
