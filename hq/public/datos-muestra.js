@@ -462,6 +462,11 @@ export function crearMuestra() {
       if (!admin()) nunca()
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
     },
+    async redactarContenido(cid) {
+      const c = db.contenido.find((x) => x.id === cid)
+      Object.assign(c, { texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos INFO 👇`, idea: 'Muestra: aquí la IA escribe el texto real.', comentario: '' })
+      return { ok: true }
+    },
     async subirContenido(file, fila) {
       if (!admin()) nunca()
       const ruta = URL.createObjectURL(file)

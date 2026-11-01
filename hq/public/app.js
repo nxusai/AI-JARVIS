@@ -1274,7 +1274,8 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="pieza-cuerpo">
           <div class="fila chips"><span class="chip">${c.tipo === 'video' ? '🎬 Video' : '🖼 Foto'}</span><span class="chip ${c.uso === 'anuncio' ? 'sistema' : ''}">${c.uso === 'anuncio' ? 'Anuncio + feed' : 'Feed'}</span><span class="chip">${MERCADO[c.mercado]}</span><span class="chip contenido-${c.estado}">${ESTADO_PIEZA[c.estado]}</span></div>
           ${c.titulo ? `<h3>${h(c.titulo)}</h3>` : ''}
-          <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto.</span>'}</p>
+          ${c.objetivo ? `<p class="nota">🎯 ${h(c.objetivo)}</p>` : ''}
+          <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
@@ -1282,6 +1283,7 @@ export function iniciar(D, { muestra = false } = {}) {
             ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
             ${c.estado === 'por_aprobar' || c.estado === 'aprobado' ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
+            ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
           </div>
         </div>
@@ -1324,6 +1326,15 @@ export function iniciar(D, { muestra = false } = {}) {
           )
         }),
     )
+    $$('[data-redactar]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          b.disabled = true
+          b.textContent = 'Escribiendo…'
+          if (await intenta(() => D.redactarContenido(b.dataset.redactar), 'Texto listo')) mostrar()
+          else b.disabled = false
+        }),
+    )
     $$('[data-borrar-pieza]', v).forEach(
       (b) =>
         (b.onclick = async () => {
@@ -1342,9 +1353,9 @@ export function iniciar(D, { muestra = false } = {}) {
           <label class="ancho">Archivo (foto JPG/PNG o video MP4/MOV, hasta 50 MB)<input name="archivo" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" required></label>
           <label>Para<select name="uso"><option value="anuncio">Anuncio (y feed)</option><option value="feed">Solo feed</option></select></label>
           <label>Mercado<select name="mercado"><option value="usa">USA</option><option value="mexico">México</option><option value="ambos">USA y México</option></select></label>
-          <label class="ancho">Título (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: Video inventarios"></label>
-          <label class="ancho">Texto de la publicación<textarea name="texto" rows="4" maxlength="2200" placeholder="Termina con: Comenta INFO 👇"></textarea></label>
-          <label>Publicar el (opcional)<input name="cuando" type="datetime-local"></label>
+          <label class="ancho">Nombre (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: AD Restaurante 1"></label>
+          <label class="ancho">¿Qué quieres lograr y con qué negocios?<textarea name="objetivo" rows="3" maxlength="1000" required placeholder="Ej.: Que dueños de restaurantes y taquerías nos escriban para que sus pedidos de WhatsApp lleguen solos."></textarea><small>La IA escribe el texto de la publicación con esto. Lo puedes revisar y pedir cambios.</small></label>
+          <label>Publicar el (opcional)<input name="cuando" type="datetime-local"><small>Vacío: en cuanto esté listo.</small></label>
         </div>
         <div class="acciones"><button class="btn primario">Subir</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
       (caja) => {
@@ -1361,17 +1372,20 @@ export function iniciar(D, { muestra = false } = {}) {
             mercado: d.mercado,
             idioma: 'es',
             titulo: d.titulo.trim() || file.name.slice(0, 200),
-            texto: d.texto.trim(),
-            idea: 'Lo subió Eduardo.',
+            objetivo: d.objetivo.trim(),
+            texto: '',
+            idea: '',
             estado: 'aprobado',
             publicar_en: d.cuando ? new Date(d.cuando).toISOString() : null,
           }
           aviso('Subiendo…')
-          if (await intenta(() => D.subirContenido(file, fila), tipo === 'video' ? 'Video guardado' : 'Foto guardada')) {
-            cerrarModal()
-            sessionStorage.setItem('hq-contenido', 'calendario')
-            mostrar()
-          }
+          const c = await intenta(() => D.subirContenido(file, fila))
+          if (!c) return
+          cerrarModal()
+          sessionStorage.setItem('hq-contenido', 'calendario')
+          aviso('Guardado. La IA está escribiendo el texto…')
+          await intenta(() => D.redactarContenido(c.id), 'Texto listo')
+          mostrar()
         }
       },
     )

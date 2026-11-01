@@ -1046,3 +1046,6 @@ on conflict (id) do update set file_size_limit = excluded.file_size_limit, allow
 drop policy if exists hq_contenido_admin on storage.objects;
 create policy hq_contenido_admin on storage.objects for all to authenticated
   using (bucket_id = 'contenido' and es_admin()) with check (bucket_id = 'contenido' and es_admin());
+
+-- Lo que Eduardo quiere lograr con una foto o video que sube él (la IA escribe el texto con esto).
+alter table public.contenido add column if not exists objetivo text not null default '' check (char_length(objetivo) <= 1000);
