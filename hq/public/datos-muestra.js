@@ -50,15 +50,6 @@ const db = {
   leads: [],
   leads_notas: [],
   documentos: [],
-  anuncios_topes: [
-    { mercado: 'usa', tope_mensual: 300, zonas: 'Por definir', campana_id: '1202', pausado_manual: false },
-    { mercado: 'mexico', tope_mensual: 300, zonas: 'Por definir', campana_id: '1203', pausado_manual: false },
-  ],
-  anuncios: [],
-  anuncios_gasto: [],
-  contenido: [],
-  anuncios_reportes: [],
-  solicitudes: [],
 }
 
 const cliente = (c, dinero) => {
@@ -184,63 +175,6 @@ lead({ nombre: 'Kevin Ortiz', empresa: 'Ortiz Cleaning', telefono: '+1 973 555 0
 lead({ nombre: 'Daniela Ríos', empresa: 'Estética Dany', telefono: '+52 33 5555 0155', ciudad: 'Guadalajara', pais: 'mexico', servicio: 'Agenda de citas', canal: 'instagram', estado: 'no_llamar', creado: dia(-3, 11), actualizado: dia(-3, 11, 6), llamada_inicio: dia(-3, 11, 2), llamada_seg: 35, resumen: 'Dijo que ya no le interesa y que no le vuelvan a llamar.' })
 lead({ nombre: 'Pedro', empresa: '', telefono: '', ciudad: '', pais: '', servicio: '', canal: 'instagram', permiso_llamada: false, estado: 'incompleto', creado: dia(0, 8, 15), actualizado: dia(0, 8, 16) })
 lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León', pais: 'mexico', servicio: 'Contenido para redes', canal: 'facebook', permiso_llamada: false, estado: 'incompleto', creado: dia(-1, 20, 40), actualizado: dia(-1, 20, 44) })
-
-// Anuncios y contenido de muestra: 3 anuncios por mercado, su gasto del mes, piezas por aprobar y el reporte de la semana.
-{
-  const ad = (nombre, mercado, meta, estado, presupuesto, motivo, gastoDia, dias, inicio) => {
-    const a = { id: id(), contenido_id: null, codigo: `${mercado === 'usa' ? 'U' : 'M'}${db.anuncios.filter((x) => x.mercado === mercado).length + 1}`, nombre, mercado, meta_ad_id: meta, meta_creative_id: 'cr', estado, presupuesto_dia: presupuesto, impresiones: Math.round(gastoDia * dias * 180), clics: Math.round(gastoDia * dias * 4), inicio: fecha(inicio), fin: null, motivo, creado: dia(inicio, 9), actualizado: dia(-1, 8) }
-    db.anuncios.push(a)
-    for (let d = 0; d < dias; d++) db.anuncios_gasto.push({ anuncio_id: a.id, dia: fecha(-d), gasto: gastoDia })
-    return a
-  }
-  const a1 = ad('USA · "Tu negocio contesta solo" (video 1)', 'usa', '120210000000001', 'activo', 4.4, 'Funciona: 3 leads y 1 meeting a $9 por lead. Se le subió 20% el martes.', 4, 9, -9)
-  ad('USA · "Inventario que se pide solo" (video 2)', 'usa', '120210000000002', 'activo', 3.3, 'Sin leads todavía: 9 días y 29.70 USD. Se decide al llegar a 40 USD.', 3.3, 9, -9)
-  ad('USA · "Tu equipo checa entrada desde el celular" (video 3)', 'usa', '120210000000003', 'pausado', 0, 'Tumbado: $42 gastados y 0 leads; mucha gente vio el video pero nadie comentó INFO.', 3.5, 12, -16)
-  ad('USA · "Cotiza y agenda sin contestar el teléfono" (video 4)', 'usa', '120210000000004', 'activo', 2.3, 'Nuevo: reemplaza al video 3 con lo aprendido (abrir con el problema, no con la solución).', 2.3, 3, -3)
-  const m1 = ad('MX · "Pedidos por WhatsApp que llegan solos" (video 1)', 'mexico', '120210000000011', 'activo', 4, 'Funciona: 2 leads a $11 por lead.', 4, 8, -8)
-  ad('MX · "Tu negocio en un solo sistema" (video 2)', 'mexico', '120210000000012', 'activo', 3, 'En aprendizaje.', 3, 6, -6)
-  ad('MX · "Deja de perder ventas por no contestar" (video 3)', 'mexico', '120210000000013', 'activo', 3, 'En aprendizaje.', 3, 6, -6)
-  db.anuncios.forEach((a) => (a.recomendacion = a.estado !== 'activo' ? '' : /Funciona/.test(a.motivo) ? 'seguir' : /Sin leads/.test(a.motivo) ? 'cambiar' : 'esperar'))
-  db.leads.find((l) => l.empresa === 'Panadería La Espiga').anuncio_id = '120210000000011'
-  db.leads.find((l) => l.empresa === 'Inmobiliaria Peña').anuncio_id = '120210000000011'
-    const pieza = (p) => db.contenido.push({ id: id(), tipo: 'foto', uso: 'feed', mercado: 'ambos', idioma: 'es', titulo: '', texto: '', idea: '', archivo: '', publicar_en: null, estado: 'por_aprobar', comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, creado: dia(0, 7), actualizado: dia(0, 7), ...p })
-  pieza({ titulo: 'Lunes · El inventario que se pide solo', texto: '¿Cuántas veces se te acabó un producto y te enteraste tarde? 📦\nCon un sistema a la medida, tu inventario avisa solo y deja la orden lista para que la apruebes.\n\nComenta INFO y te contamos cómo lo haríamos en tu negocio.', idea: 'Las fotos con un problema concreto en la primera línea tuvieron 2 veces más comentarios la semana pasada.', publicar_en: dia(1, 10) })
-  pieza({ titulo: 'Miércoles · Tu equipo checa entrada desde el celular', texto: 'Se acabaron las listas en papel ✅\nEntrada y salida con foto y ubicación, y la nómina se calcula sola.\n\nComenta INFO.', idea: 'Servicio que más preguntan los negocios de comida.', publicar_en: dia(3, 10) })
-  pieza({ titulo: 'Viernes · Antes y después de automatizar', texto: 'Antes: 3 horas al día contestando mensajes.\nDespués: el sistema contesta, cotiza y agenda. 🤝\n\nComenta INFO y te enseñamos cómo.', idea: 'Formato antes/después: el que más guardados tuvo este mes.', publicar_en: dia(5, 10), estado: 'aprobado' })
-  pieza({ tipo: 'video', uso: 'anuncio', mercado: 'usa', titulo: 'Anuncio USA · "Cotiza y agenda sin contestar el teléfono"', texto: '¿Pierdes clientes porque no alcanzas a contestar? Hacemos sistemas a la medida que contestan, cotizan y agendan por ti, 24/7.\n\nEscríbenos INFO 👇', idea: 'Reemplazo del video 3 (tumbado). Abre con el problema en los primeros 2 segundos, que es lo que funcionó en el video 1.', publicar_en: dia(-3, 9), estado: 'publicado', anuncio_id: db.anuncios[3].id })
-  pieza({ tipo: 'video', uso: 'anuncio', mercado: 'usa', titulo: 'Anuncio USA · "Tu negocio contesta solo"', texto: 'Tu negocio contesta solo, aunque estés ocupado. Sistemas a la medida para negocios en crecimiento.\n\nEscríbenos INFO 👇', publicar_en: dia(-9, 9), estado: 'publicado', anuncio_id: a1.id })
-  pieza({ tipo: 'video', uso: 'anuncio', mercado: 'mexico', titulo: 'Anuncio MX · "Pedidos por WhatsApp que llegan solos"', texto: 'Tus clientes piden por WhatsApp y el pedido llega solo a tu sistema. Hecho a la medida de tu negocio.\n\nEscríbenos INFO 👇', publicar_en: dia(-8, 9), estado: 'publicado', anuncio_id: m1.id })
-  for (const c of db.contenido) {
-    const a = db.anuncios.find((x) => x.id === c.anuncio_id)
-    if (a) a.contenido_id = c.id
-    if (c.estado === 'publicado') Object.assign(c, { publicado_ig: '1790000000', publicado_fb: '5540000000' })
-  }
-  pieza({ tipo: 'video', uso: 'anuncio', mercado: 'mexico', titulo: 'Restaurante AD 1', objetivo: 'Dueños de restaurantes en CDMX', archivo: 'muestra.mp4', texto: '', estado: 'aprobado' })
-  pieza({ tipo: 'foto', titulo: 'Sábado · "Tu negocio, en un solo lugar"', texto: 'Ventas, inventario, equipo y clientes en un solo sistema hecho para ti.\n\nComenta INFO.', estado: 'rechazado', comentario: 'Que se vea más el celular y menos la computadora.', publicar_en: dia(6, 10) })
-  db.anuncios_reportes.push({ id: id(), semana: fecha(-1), mercado: 'ambos', creado: dia(-1, 8),
-    resumen: 'Semana 2. USA: $68 de $300 (23%), 4 leads, 1 meeting. México: $59 de $300 (20%), 2 leads. Vamos por debajo del ritmo del mes a propósito mientras Meta aprende.',
-    funciono: 'Videos que abren con el problema ("¿pierdes clientes porque no contestas?") en los primeros 2 segundos: el video 1 de USA lleva 3 leads a $9. Hablar de "a la medida" y de resultados, no de tecnología.',
-    no_funciono: 'El video 3 de USA (entrada y salida del personal): $42 y 0 leads. Mucha gente lo vio completo, pero no es un dolor urgente para el dueño: lo ve como algo "para después".',
-    decisiones: 'Tumbé el video 3 de USA y lo reemplacé por "Cotiza y agenda sin contestar el teléfono" ($2.30/día). Le subí 20% al video 1 de USA ($3.70 → $4.40/día). México sin cambios: los 3 siguen aprendiendo.',
-    siguiente: 'Esta semana creo 2 videos nuevos de reserva con el formato que funcionó (problema → solución en 15 segundos) para tener listo el reemplazo si el video 2 de USA no despega.' })
-}
-
-/** Lo que hace el motor de verdad (publicar en el feed y poner al aire), en pequeño. */
-function motorMuestra() {
-  const ahora = Date.now()
-  for (const a of db.anuncios) if (a.estado === 'borrador' && a.meta_ad_id && !db.anuncios_topes.find((t) => t.mercado === a.mercado)?.pausado_manual) Object.assign(a, { estado: 'activo', inicio: fecha(0), motivo: 'Al aire. Primeros 7 días: Meta aprende.' })
-  for (const c of db.contenido) {
-    if (!['aprobado', 'publicado'].includes(c.estado) || !c.texto || !c.archivo || (c.publicar_en && new Date(c.publicar_en) > ahora)) continue
-    if (c.estado === 'aprobado') Object.assign(c, { estado: 'publicado', publicado_fb: '5540000001', publicado_ig: '1790000001', publicar_en: c.publicar_en ?? new Date().toISOString() })
-    if (c.uso !== 'anuncio' || c.tipo !== 'video') continue
-    for (const m of c.mercado === 'ambos' ? ['usa', 'mexico'] : [c.mercado]) {
-      if (db.anuncios.some((a) => a.contenido_id === c.id && a.mercado === m)) continue
-      const t = db.anuncios_topes.find((x) => x.mercado === m)
-      const codigo = `${m === 'usa' ? 'U' : 'M'}${db.anuncios.filter((x) => x.mercado === m).length + 1}`
-      db.anuncios.unshift({ id: id(), contenido_id: c.id, codigo, nombre: `${m === 'usa' ? 'USA' : 'México'} · ${c.titulo || 'Video'} (${codigo})`, mercado: m, meta_ad_id: `1202${Date.now()}`, meta_creative_id: 'cr', estado: t?.pausado_manual ? 'borrador' : 'activo', presupuesto_dia: 9.68, impresiones: 0, clics: 0, inicio: t?.pausado_manual ? null : fecha(0), fin: null, recomendacion: 'esperar', motivo: t?.pausado_manual ? 'Listo en Meta. No sale porque pausaste este mercado: dale "▶ Reanudar" en Anuncios.' : 'Al aire. Primeros 7 días: Meta aprende.', creado: new Date().toISOString(), actualizado: new Date().toISOString() })
-    }
-  }
-}
 
 let yo = null
 const copia = (x) => JSON.parse(JSON.stringify(x))
@@ -477,80 +411,6 @@ export function crearMuestra() {
       db.documentos = db.documentos.filter((x) => x.id !== d.id)
       return true
     },
-
-    contenido: () => espera(admin() ? db.contenido : []),
-    async guardarContenido(c) {
-      if (!admin()) nunca()
-      const r = copia(upsert(db.contenido, { ...c, actualizado: new Date().toISOString() }))
-      setTimeout(motorMuestra, 2500)
-      return r
-    },
-    async borrarContenido(c) {
-      if (!admin()) nunca()
-      db.contenido = db.contenido.filter((x) => x.id !== c.id)
-      return true
-    },
-    async accionAnuncios(accion, mercado, aid) {
-      if (!admin()) nunca()
-      if (accion === 'borrar') {
-        const a = db.anuncios.find((x) => x.id === aid)
-        if (a) Object.assign(a, { estado: 'terminado', motivo: '🗑 Borrado por Eduardo antes de salir al aire.' })
-        return true
-      }
-      const t = db.anuncios_topes.find((x) => x.mercado === mercado)
-      t.pausado_manual = accion === 'pausar'
-      t.aviso = { reanudar: '▶ Reanudado · 9.68 USD al día.', pausar: '⏸ Pausado por Eduardo: no se gasta nada hasta "▶ Reanudar".' }[accion]
-      setTimeout(motorMuestra, 1500)
-      return true
-    },
-    async revisarAhora() {
-      setTimeout(motorMuestra, 1500)
-      return true
-    },
-    probarMeta: async () => ({ ok: true, resultados: [{ nombre: 'Llave', ok: true, detalle: 'NXUS HQ · 9 permisos' }, { nombre: 'Cuenta de anuncios', ok: true, detalle: "Eduardo's · USD · America/New_York · activa · con método de pago" }, { nombre: 'Página de Facebook', ok: true, detalle: 'Nxus.AI' }, { nombre: 'Instagram', ok: true, detalle: '@nxusai' }, { nombre: 'Conjunto de datos (leads y clientes)', ok: true, detalle: 'Nxus AI Event Data' }] }),
-    async redactarContenido(cid) {
-      const c = db.contenido.find((x) => x.id === cid)
-      const palabra = /operaciones/i.test(c.objetivo || '') ? 'OPERACIONES' : /automatiz/i.test(c.objetivo || '') ? 'AUTOMATIZACIÓN' : ''
-      Object.assign(c, {
-        analisis: c.analisis || `Muestra: aquí la IA describe lo que se ve y se dice en ${c.tipo === 'video' ? 'el video' : 'la foto'}${palabra ? ` y lee al final "Escríbenos ${palabra}"` : ''}.`,
-        palabra: c.analisis ? c.palabra : palabra,
-        error: '',
-        texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos ${(c.analisis ? c.palabra : palabra) || 'INFO'} 👇`,
-        idea: 'Muestra: aquí la IA escribe el texto real.',
-        comentario: '',
-      })
-      if (c.palabra && !['INFO', 'OPERACIONES'].includes(c.palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) c.estado = 'por_aprobar'
-      setTimeout(motorMuestra, 2500)
-      return { ok: true }
-    },
-    async subirContenido(file, fila) {
-      if (!admin()) nunca()
-      const ruta = URL.createObjectURL(file)
-      const c = { id: id(), titulo: '', texto: '', idea: '', publicar_en: null, comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, ...fila, archivo: ruta, creado: new Date().toISOString(), actualizado: new Date().toISOString() }
-      db.contenido.unshift(c)
-      setTimeout(motorMuestra, 2500)
-      return copia(c)
-    },
-    mediaUrls: async (rutas) => Object.fromEntries(rutas.filter((r) => String(r).startsWith('blob:')).map((r) => [r, r])),
-    anuncios: () => espera(admin() ? db.anuncios : []),
-    gastoAnuncios: (desde) => espera(admin() ? db.anuncios_gasto.filter((g) => g.dia >= desde) : []),
-    topesAnuncios: () => espera(admin() ? db.anuncios_topes : []),
-    async guardarTope(t) {
-      if (!admin()) nunca()
-      return copia(upsert(db.anuncios_topes, t, 'mercado'))
-    },
-    solicitudes: () => espera(admin() ? db.solicitudes.filter((x) => x.estado !== 'listo') : []),
-    async pedirVideo(fila) {
-      if (!admin()) nunca()
-      const x = { id: id(), estado: 'pendiente', nota: '', creado: new Date().toISOString(), ...fila }
-      db.solicitudes.unshift(x)
-      return copia(x)
-    },
-    async borrarSolicitud(sid) {
-      db.solicitudes = db.solicitudes.filter((x) => x.id !== sid)
-      return true
-    },
-    reportesAnuncios: () => espera(admin() ? db.anuncios_reportes : []),
 
     bitacora: () => espera(admin() ? db.bitacora : []),
 

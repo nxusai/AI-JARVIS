@@ -3,11 +3,6 @@
   publish = "public"
   functions = "netlify/functions"
 
-# La IA ve los videos: ffmpeg saca los cuadros en el servidor (functions/analizar-background.mjs).
-[functions."analizar-background"]
-  external_node_modules = ["ffmpeg-static"]
-  included_files = ["node_modules/ffmpeg-static/ffmpeg"]
-
 [[headers]]
   for = "/*"
   [headers.values]

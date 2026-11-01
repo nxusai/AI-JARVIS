@@ -11,7 +11,6 @@ function claro(error) {
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
   if (/duplicate key.*perfiles_codigo/i.test(m)) return new Error('Ese código de link ya lo tiene otra persona')
-  if (/column .* does not exist|Could not find the .* column|function .* does not exist/i.test(m)) return new Error('Falta correr el SQL nuevo en Supabase (esquema.sql). Sin eso no funciona esta parte.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -26,7 +25,6 @@ const LEAD_LISTA =
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
   const fotos = new Map()
-  const medios = new Map()
 
   async function funcion(nombre, body) {
     const { data } = await sb.auth.getSession()
@@ -38,74 +36,6 @@ export function crearSupabase({ url, anon }) {
     const out = await res.json().catch(() => ({}))
     if (!out.ok) throw new Error(out.error || `Error ${res.status}`)
     return out
-  }
-
-  /** El motor (functions/motor-background.mjs): publica en el feed y pone los anuncios al aire, una cosa a la vez. */
-  async function motor(body) {
-    const { data } = await sb.auth.getSession()
-    const res = await fetch('/.netlify/functions/motor-background', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
-      body: JSON.stringify(body),
-    })
-    if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
-    return true
-  }
-  // Sin esperar: si falla, la revisión de cada 5 minutos lo hace.
-  const empujar = () => motor({}).catch(() => null)
-
-  /** Una función de Netlify en segundo plano (responde 202 al momento). */
-  async function fondo(nombre, body) {
-    const { data } = await sb.auth.getSession()
-    const res = await fetch(`/.netlify/functions/${nombre}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
-      body: JSON.stringify(body),
-    })
-    if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
-  }
-
-  /**
-   * Cuadros JPEG de un video para que la IA lo vea: 8 a lo largo del video y 4 del
-   * final, donde va la llamada a la acción. De una foto, la foto misma (más chica).
-   */
-  async function cuadrosDe(src, tipo) {
-    const lienzo = document.createElement('canvas')
-    const dibujar = (el, w, h) => {
-      const escala = Math.min(1, 768 / Math.max(w, h))
-      lienzo.width = Math.round(w * escala)
-      lienzo.height = Math.round(h * escala)
-      lienzo.getContext('2d').drawImage(el, 0, 0, lienzo.width, lienzo.height)
-      return new Promise((ok) => lienzo.toBlob(ok, 'image/jpeg', 0.72))
-    }
-    const espera = (el, evento, ms = 15000) =>
-      new Promise((ok, mal) => {
-        const t = setTimeout(() => mal(new Error('tardó demasiado')), ms)
-        el.addEventListener(evento, () => (clearTimeout(t), ok()), { once: true })
-        el.addEventListener('error', () => (clearTimeout(t), mal(new Error('no se pudo abrir'))), { once: true })
-      })
-    if (tipo !== 'video') {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.src = src
-      await espera(img, 'load')
-      return [await dibujar(img, img.naturalWidth, img.naturalHeight)]
-    }
-    const v = document.createElement('video')
-    Object.assign(v, { crossOrigin: 'anonymous', muted: true, playsInline: true, preload: 'auto', src })
-    await espera(v, 'loadeddata', 30000)
-    const d = v.duration
-    if (!Number.isFinite(d) || d <= 0) return []
-    const momentos = [...Array.from({ length: 8 }, (_, i) => (d * (i + 0.5)) / 9), ...[3, 2, 1, 0.3].map((x) => Math.max(0, d - x))]
-    const cuadros = []
-    for (const t of [...new Set(momentos.map((x) => Math.round(x * 10) / 10))].sort((a, b) => a - b)) {
-      v.currentTime = Math.min(t, Math.max(0, d - 0.05))
-      await espera(v, 'seeked', 10000)
-      cuadros.push(await dibujar(v, v.videoWidth, v.videoHeight))
-    }
-    v.removeAttribute('src')
-    v.load()
-    return cuadros.filter(Boolean)
   }
 
   const tabla = (t) => sb.from(t)
@@ -238,85 +168,6 @@ export function crearSupabase({ url, anon }) {
       await sb.storage.from('documentos').remove([d.ruta])
       return true
     },
-
-    // Contenido y anuncios (solo el admin).
-    contenido: async () => ok(await tabla('contenido').select('*').order('publicar_en', { ascending: true, nullsFirst: false })),
-    /** Guardar una pieza y despertar al motor: lo aprobado sin fecha sale al feed y a Meta al momento. */
-    async guardarContenido(c) {
-      const r = await guardar('contenido', c)
-      empujar()
-      return r
-    },
-    /**
-     * El texto de una pieza. Si la IA todavía no la ha visto, primero la ve (cuadros del video
-     * y su audio, en segundo plano, 1 o 2 minutos) y devuelve { enFondo: true }; si ya la vio, solo
-     * reescribe (al momento). archivo: el archivo recién subido (para no volver a bajarlo).
-     */
-    async redactarContenido(id, { aprobar = false, archivo = null } = {}) {
-      const c = ok(await tabla('contenido').select('id,tipo,archivo,analisis').eq('id', id).single())
-      if (c.archivo && !c.analisis) {
-        let src = archivo ? URL.createObjectURL(archivo) : null
-        if (!src) {
-          const { data } = await sb.storage.from('contenido').createSignedUrl(c.archivo, 600)
-          src = data?.signedUrl
-        }
-        const fotos = src ? await cuadrosDe(src, c.tipo).catch(() => []) : []
-        if (archivo) URL.revokeObjectURL(src)
-        // Los cuadros van al almacenamiento (la función en segundo plano solo recibe mensajes chicos).
-        const cuadros = []
-        for (const [i, blob] of fotos.entries()) {
-          const ruta = `cuadros/${id}/${String(i).padStart(2, '0')}.jpg`
-          const { error } = await sb.storage.from('contenido').upload(ruta, blob, { contentType: 'image/jpeg', upsert: true })
-          if (!error) cuadros.push(ruta)
-        }
-        await fondo('analizar-background', { id, cuadros, aprobar })
-        return { ok: true, enFondo: true }
-      }
-      const r = await funcion('redactar', { id })
-      empujar()
-      return r
-    },
-    /** ⏸ Pausar / ▶ Reanudar un mercado o 🗑 Borrar un anuncio que no está al aire (en segundo plano en Netlify). */
-    accionAnuncios: (accion, mercado, id) => motor({ accion, mercado, id }),
-    /** "↻ Revisar ahora": el motor da una vuelta (publica y pone al aire lo que ya toca). */
-    revisarAhora: () => motor({}),
-    probarMeta: () => funcion('meta-prueba', {}).catch((err) => ({ ok: false, resultados: [{ nombre: 'Llave', ok: false, error: err.message }] })),
-    async subirContenido(file, fila) {
-      const ext = (file.name.split('.').pop() || '').toLowerCase().replace('jpeg', 'jpg')
-      const ruta = `propios/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
-      ok(await sb.storage.from('contenido').upload(ruta, file, { contentType: file.type, upsert: false }))
-      try {
-        const c = ok(await tabla('contenido').insert({ ...fila, archivo: ruta }).select().single())
-        empujar()
-        return c
-      } catch (err) {
-        await sb.storage.from('contenido').remove([ruta])
-        throw err
-      }
-    },
-    async borrarContenido(c) {
-      ok(await tabla('contenido').delete().eq('id', c.id))
-      if (c.archivo) await sb.storage.from('contenido').remove([c.archivo])
-      return true
-    },
-    /** Links temporales para ver las fotos y videos: { ruta: url }. Se guardan 50 minutos (el link dura 1 hora): sin volver a pedirlos ni a bajar el video. */
-    async mediaUrls(rutas) {
-      const r = [...new Set(rutas.filter(Boolean))]
-      const faltan = r.filter((x) => !(medios.get(x)?.hasta > Date.now()))
-      if (faltan.length) {
-        const { data } = await sb.storage.from('contenido').createSignedUrls(faltan, 60 * 60)
-        for (const x of data ?? []) if (x.signedUrl) medios.set(x.path, { url: x.signedUrl, hasta: Date.now() + 50 * 60e3 })
-      }
-      return Object.fromEntries(r.filter((x) => medios.has(x)).map((x) => [x, medios.get(x).url]))
-    },
-    anuncios: async () => ok(await tabla('anuncios').select('*').order('creado', { ascending: false })),
-    gastoAnuncios: async (desde) => ok(await tabla('anuncios_gasto').select('*').gte('dia', desde)),
-    topesAnuncios: async () => ok(await tabla('anuncios_topes').select('*').order('mercado', { ascending: false })),
-    guardarTope: (t) => guardar('anuncios_topes', t, 'mercado'),
-    solicitudes: async () => ok(await tabla('solicitudes').select('*').in('estado', ['pendiente', 'en_proceso', 'error']).order('creado', { ascending: false })),
-    pedirVideo: (fila) => guardar('solicitudes', fila),
-    borrarSolicitud: async (id) => ok(await tabla('solicitudes').delete().eq('id', id)),
-    reportesAnuncios: async () => ok(await tabla('anuncios_reportes').select('*').order('semana', { ascending: false }).limit(20)),
 
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 
