@@ -12,6 +12,11 @@
     "crudos": "1mwqKazJVCkF0TIwjxYXm1U5udPu4HuQj",
     "listos": "1lHxnxg--JLpqZVFZiWIvwbOKlsr1Sc-_",
     "archivo": "1QV0Z6ZjRhkrijhF3Atcc7wK_Vlgn0bVe",
-    "nota": "registro.json (rotación) vive en 3-Archivo para que no se pierda entre sesiones."
+    "nota": "registro.json (rotación) vive en 3-Archivo para que no se pierda entre sesiones.",
+    "archivos": {
+      "seleccion.json": "1wsTdgBdlTh6sKuOYhvB2tIkbo0rRwQu4",
+      "clips.json": "1oiWMFDiB0upZbJK0_l0fpoQ-JSYHODdR"
+    },
+    "descarga": "1-Crudos tiene 'Anyone with the link: Viewer' (lo activó Lalo el 1 nov 2026): los clips se bajan con curl https://drive.usercontent.google.com/download?id=<id>&export=download&confirm=t"
   }
 }
