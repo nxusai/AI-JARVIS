@@ -1320,7 +1320,8 @@ export function iniciar(D, { muestra = false } = {}) {
       else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Instagram y Facebook' }
       else if (programado) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
       else if (!c.texto && /^👀/.test(c.idea)) f = { pct: 10, texto: 'La IA está viendo la pieza y escribiendo el texto…' }
-      else if (!c.texto) f = { pct: 0, texto: 'Sin texto: dale "✦ Escribir texto" (la IA ve la pieza y lo escribe)', mal: true }
+      else if (!c.texto && /^⚠/.test(c.idea)) f = { pct: 0, texto: 'La IA no pudo escribir el texto (abajo dice por qué): dale "✦ Escribir texto"', mal: true }
+      else if (!c.texto) f = { pct: 10, texto: 'La IA está viendo la pieza y escribiendo el texto…' }
       else if (c.ig_contenedor) f = { pct: 70, texto: 'Ya en Facebook · Instagram está preparando el video…' }
       else if (c.publicado_fb) f = { pct: 50, texto: 'Ya en Facebook · subiendo a Instagram…' }
       else f = { pct: 20, texto: 'Publicando…' }
@@ -1378,12 +1379,32 @@ export function iniciar(D, { muestra = false } = {}) {
           if (!(await intenta(() => D.guardarContenido({ id: c.id, comentario: cambio })))) return
           cerrarModal()
           aviso('Rehaciendo el texto…')
-          const r = await intenta(() => D.redactarContenido(c.id))
+          const r = await intenta(() => pedirTexto(c.id))
           if (r) aviso(r.enFondo ? 'La IA está viendo la pieza y rehaciendo el texto (1 o 2 minutos)…' : 'Texto actualizado')
           mostrar()
         }
       },
     )
+  }
+
+  /**
+   * Las piezas sin texto se escriben solas (sin botón): la IA ve la pieza y escribe. Una vez por
+   * sesión cada una; si ya se está viendo (👀) y lleva más de 10 minutos, se vuelve a intentar.
+   */
+  const yaPedidas = new Set()
+  const pedirTexto = (id, opts) => (yaPedidas.add(id), D.redactarContenido(id, opts))
+  function escribirSolos(piezas) {
+    const atorada = (c) => /^👀/.test(c.idea) && Date.now() - new Date(c.actualizado) > 10 * 60e3
+    const faltan = piezas.filter(
+      (c) => ['por_aprobar', 'aprobado'].includes(c.estado) && c.archivo && (c.objetivo || c.titulo) && !c.texto && (!/^(👀|⚠)/.test(c.idea) || atorada(c)) && !yaPedidas.has(c.id),
+    )
+    if (!faltan.length) return
+    faltan.forEach((c) => yaPedidas.add(c.id))
+    aviso(`La IA está viendo ${faltan.length === 1 ? 'la pieza sin texto' : `${faltan.length} piezas sin texto`} y escribiendo (1 o 2 minutos)…`)
+    ;(async () => {
+      for (const c of faltan) await D.redactarContenido(c.id).catch((err) => aviso(err.message, 'mal'))
+      if (location.hash === '#contenido') setTimeout(() => !document.querySelector('#modal:not([hidden])') && mostrar(), 4000)
+    })()
   }
 
   let refresco = null
@@ -1416,7 +1437,7 @@ export function iniciar(D, { muestra = false } = {}) {
             ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor && !adsDe(c, ads).some((a) => a.meta_creative_id) ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
-            ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn ${c.texto ? '' : 'primario'}" data-redactar="${c.id}" title="La IA ve ${c.tipo === 'video' ? 'el video' : 'la foto'} y escribe la descripción">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
+            ${c.estado !== 'publicado' && c.objetivo && (c.texto || /^⚠/.test(c.idea)) ? `<button class="btn ${c.texto ? '' : 'primario'}" data-redactar="${c.id}" title="La IA ve ${c.tipo === 'video' ? 'el video' : 'la foto'} y escribe la descripción">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo && c.analisis ? `<button class="btn" data-rever="${c.id}">👀 Volver a ver ${c.tipo === 'video' ? 'el video' : 'la foto'}</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
           </div>
@@ -1433,6 +1454,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const trabajando = piezas.some((c) => avance(c, ads).some((b) => b.pct > 5 && b.pct < 100 && !b.mal && !b.espera))
     if (trabajando) refresco = setTimeout(() => location.hash === '#contenido' && !document.querySelector('#modal:not([hidden])') && mostrar(), 15000)
     const de = (id) => piezas.find((c) => c.id === id)
+    escribirSolos(piezas)
     $('#ct-subir', v).onclick = () => subirPropio()
     $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })
     $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
@@ -1444,7 +1466,7 @@ export function iniciar(D, { muestra = false } = {}) {
           // Si tiene un cambio de texto pendiente, primero se aplica (la IA lo rehace) y queda aprobado.
           if (c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]')) {
             b.textContent = 'Aplicando tu cambio…'
-            const r = await intenta(() => D.redactarContenido(c.id, { aprobar: true }))
+            const r = await intenta(() => pedirTexto(c.id, { aprobar: true }))
             if (r?.enFondo) aviso('La IA está viendo la pieza y aplicando tu cambio; queda aprobada en 1 o 2 minutos')
             else if (r) await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Cambio aplicado y aprobado')
           } else await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), c.publicar_en && new Date(c.publicar_en) > Date.now() ? 'Aprobado: sale en su fecha' : 'Aprobado: saliendo ya')
@@ -1480,7 +1502,7 @@ export function iniciar(D, { muestra = false } = {}) {
           // Se olvida lo que vio y la IA lo vuelve a ver (por si el video cambió o leyó mal la palabra).
           // (el "error" frena la publicación mientras la vuelve a ver; se quita solo al empezar)
           if (!(await intenta(() => D.guardarContenido({ id: b.dataset.rever, analisis: '', palabra: '', error: '👀 La IA está volviendo a ver la pieza…' })))) return (b.disabled = false)
-          if (await intenta(() => D.redactarContenido(b.dataset.rever), 'La IA está viendo la pieza otra vez (1 o 2 minutos)…')) mostrar()
+          if (await intenta(() => pedirTexto(b.dataset.rever), 'La IA está viendo la pieza otra vez (1 o 2 minutos)…')) mostrar()
         }),
     )
     $$('[data-redactar]', v).forEach(
@@ -1488,7 +1510,7 @@ export function iniciar(D, { muestra = false } = {}) {
         (b.onclick = async () => {
           b.disabled = true
           b.textContent = 'Escribiendo…'
-          const r = await intenta(() => D.redactarContenido(b.dataset.redactar))
+          const r = await intenta(() => pedirTexto(b.dataset.redactar))
           if (r) {
             aviso(r.enFondo ? 'La IA está viendo la pieza y escribiendo el texto (1 o 2 minutos)…' : 'Texto listo')
             mostrar()
@@ -1546,7 +1568,7 @@ export function iniciar(D, { muestra = false } = {}) {
           cerrarModal()
           sessionStorage.setItem('hq-contenido', 'calendario')
           aviso(tipo === 'video' ? 'Guardado. La IA está viendo el video…' : 'Guardado. La IA está viendo la foto…')
-          const r = await intenta(() => D.redactarContenido(c.id, { archivo: file }))
+          const r = await intenta(() => pedirTexto(c.id, { archivo: file }))
           if (r) aviso(r.enFondo ? `La IA está viendo ${tipo === 'video' ? 'el video (cuadros y audio)' : 'la foto'} y escribiendo el texto. En 1 o 2 minutos aparece aquí y se publica.` : 'Texto listo')
           mostrar()
         }

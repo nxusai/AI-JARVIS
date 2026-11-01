@@ -215,6 +215,7 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
     if (a) a.contenido_id = c.id
     if (c.estado === 'publicado') Object.assign(c, { publicado_ig: '1790000000', publicado_fb: '5540000000' })
   }
+  pieza({ tipo: 'video', uso: 'anuncio', mercado: 'mexico', titulo: 'Restaurante AD 1', objetivo: 'Dueños de restaurantes en CDMX', archivo: 'muestra.mp4', texto: '', estado: 'aprobado' })
   pieza({ tipo: 'foto', titulo: 'Sábado · "Tu negocio, en un solo lugar"', texto: 'Ventas, inventario, equipo y clientes en un solo sistema hecho para ti.\n\nComenta INFO.', estado: 'rechazado', comentario: 'Que se vea más el celular y menos la computadora.', publicar_en: dia(6, 10) })
   db.anuncios_reportes.push({ id: id(), semana: fecha(-1), mercado: 'ambos', creado: dia(-1, 8),
     resumen: 'Semana 2. USA: $68 de $300 (23%), 4 leads, 1 meeting. México: $59 de $300 (20%), 2 leads. Vamos por debajo del ritmo del mes a propósito mientras Meta aprende.',
