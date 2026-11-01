@@ -1441,6 +1441,7 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
       </div>`
     v.innerHTML = `
+      <div class="acciones"><button class="btn" id="ad-probar">🔑 Probar la llave de Meta</button><span id="ad-prueba"></span></div>
       <p class="nota">Siempre 3 anuncios activos por mercado, dentro del tope del mes. Al que funciona se le pasa más presupuesto; el que no, se tumba y se reemplaza con lo aprendido. Leads, meetings y clientes salen de HQ, no de Meta.</p>
       <div class="dos">${bloque('usa')}${bloque('mexico')}</div>
       <h2 class="grupo">Anuncios</h2>
@@ -1462,6 +1463,20 @@ export function iniciar(D, { muestra = false } = {}) {
               .join('')
           : '<div class="tarjeta"><p class="vacio">El primer reporte llega al cumplirse la primera semana de anuncios.</p></div>'
       }`
+    $('#ad-probar', v).onclick = async () => {
+      const b = $('#ad-probar', v)
+      b.disabled = true
+      b.textContent = 'Probando…'
+      const r = await D.probarMeta()
+      b.disabled = false
+      b.textContent = '🔑 Probar la llave de Meta'
+      abrirModal(
+        `<h2>${r.ok ? '✅ La llave de Meta funciona' : '⚠ Algo falta en la llave de Meta'}</h2>
+         <p class="nota">Solo se leyó; no se publicó ni se gastó nada.</p>
+         <ul class="lista tareas">${r.resultados.map((x) => `<li><span class="chip ${x.ok && !x.aviso ? 'hecha' : 'pendiente'}">${x.ok ? (x.aviso ? '⚠' : '✓') : '✗'}</span><b>${h(x.nombre)}</b><small>${h(x.ok ? x.detalle : x.error)}</small></li>`).join('')}</ul>
+         <div class="acciones"><button class="btn" data-cerrar>Cerrar</button></div>`,
+      )
+    }
     $$('[data-tope]', v).forEach(
       (b) =>
         (b.onclick = () => {

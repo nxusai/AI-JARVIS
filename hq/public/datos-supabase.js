@@ -173,6 +173,7 @@ export function crearSupabase({ url, anon }) {
     guardarContenido: (c) => guardar('contenido', c),
     /** Una foto o video de Eduardo: se guarda en "contenido" y queda aprobado. */
     redactarContenido: (id) => funcion('redactar', { id }),
+    probarMeta: () => funcion('meta-prueba', {}).catch((err) => ({ ok: false, resultados: [{ nombre: 'Llave', ok: false, error: err.message }] })),
     async subirContenido(file, fila) {
       const ext = (file.name.split('.').pop() || '').toLowerCase().replace('jpeg', 'jpg')
       const ruta = `propios/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`

@@ -462,6 +462,7 @@ export function crearMuestra() {
       if (!admin()) nunca()
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
     },
+    probarMeta: async () => ({ ok: true, resultados: [{ nombre: 'Llave', ok: true, detalle: 'NXUS HQ · 9 permisos' }, { nombre: 'Cuenta de anuncios', ok: true, detalle: "Eduardo's · USD · America/New_York · activa · con método de pago" }, { nombre: 'Página de Facebook', ok: true, detalle: 'Nxus.AI' }, { nombre: 'Instagram', ok: true, detalle: '@nxusai' }, { nombre: 'Conjunto de datos (leads y clientes)', ok: true, detalle: 'Nxus AI Event Data' }] }),
     async redactarContenido(cid) {
       const c = db.contenido.find((x) => x.id === cid)
       Object.assign(c, { texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos INFO 👇`, idea: 'Muestra: aquí la IA escribe el texto real.', comentario: '' })
