@@ -11,6 +11,7 @@ function claro(error) {
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
   if (/duplicate key.*perfiles_codigo/i.test(m)) return new Error('Ese código de link ya lo tiene otra persona')
+  if (/column .* does not exist|Could not find the .* column|function .* does not exist/i.test(m)) return new Error('Falta correr el SQL nuevo en Supabase (esquema.sql). Sin eso no funciona esta parte.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
