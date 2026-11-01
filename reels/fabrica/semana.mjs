@@ -40,7 +40,7 @@ export function planDeSemana(semana) {
   const registro = leer(REGISTRO, [])
   const { orden, aviso } = repartirClips(clips, registro.map((r) => r.clip), DIAS.length * HORAS.length)
   const cola = { gancho: [...textos.ganchos], frase: [...textos.frases], narrado: [...textos.narrados], cta: [...textos.ctas] }
-  const firma = textos.firma || '@nxusai'
+  const firma = textos.firma || '@nextlevelbylalo'
 
   const reels = []
   for (let d = 0; d < DIAS.length; d++) {

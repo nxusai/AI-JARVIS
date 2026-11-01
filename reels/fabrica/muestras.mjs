@@ -12,7 +12,7 @@ const SALIDA = join(RAIZ, 'salida', 'muestras')
 mkdirSync(SALIDA, { recursive: true })
 
 const sonidos = { whoosh: 'sonidos/whoosh.wav', impacto: 'sonidos/impacto.wav' }
-const firma = process.env.REELS_FIRMA || '@nxusai'
+const firma = process.env.REELS_FIRMA || '@nextlevelbylalo'
 const guion = 'Tu competencia ya está usando inteligencia artificial. La pregunta es: ¿quién se la va a vender a tus clientes?'
 
 const muestras = [
