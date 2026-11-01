@@ -20,8 +20,8 @@ export const instagram = () => env('META_IG_ID')
 export const dataset = () => env('META_DATASET_ID')
 
 /** Una llamada a la Graph API con la llave de HQ. GET con params en la URL; POST con params en el cuerpo. */
-export async function graph(path, { method = 'GET', params = {}, token = env('META_TOKEN') } = {}) {
-  const url = new URL(`https://graph.facebook.com/${VERSION}/${String(path).replace(/^\//, '')}`)
+export async function graph(path, { method = 'GET', params = {}, token = env('META_TOKEN'), host = 'graph.facebook.com' } = {}) {
+  const url = new URL(`https://${host}/${VERSION}/${String(path).replace(/^\//, '')}`)
   const cuerpo = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null) continue
@@ -38,4 +38,11 @@ export async function graph(path, { method = 'GET', params = {}, token = env('ME
     throw Object.assign(new Error(e.error_user_msg || e.message || `Meta respondió ${res.status}`), { status: res.status, codigo: e.code, sub: e.error_subcode })
   }
   return data
+}
+
+/** La llave de la página (para publicar en ella), a partir de la llave de HQ. */
+export async function llaveDePagina() {
+  const p = await graph(pagina(), { params: { fields: 'access_token' } })
+  if (!p.access_token) throw new Error('La llave de HQ no puede publicar en la página (falta pages_manage_posts o acceso a la página)')
+  return p.access_token
 }

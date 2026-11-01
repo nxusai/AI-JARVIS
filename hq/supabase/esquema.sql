@@ -1049,3 +1049,10 @@ create policy hq_contenido_admin on storage.objects for all to authenticated
 
 -- Lo que Eduardo quiere lograr con una foto o video que sube él (la IA escribe el texto con esto).
 alter table public.contenido add column if not exists objetivo text not null default '' check (char_length(objetivo) <= 1000);
+
+-- El publicador: si algo falla al publicar, aquí queda el porqué (y no se reintenta hasta que Eduardo da "Reintentar").
+alter table public.contenido add column if not exists error text not null default '' check (char_length(error) <= 1000);
+-- El video de Instagram se prepara en Meta antes de publicarse: aquí queda su "contenedor" mientras tanto.
+alter table public.contenido add column if not exists ig_contenedor text not null default '';
+-- A qué negocios les hablan los anuncios de cada mercado (lo escribe Eduardo).
+alter table public.anuncios_topes add column if not exists negocios text not null default '' check (char_length(negocios) <= 2000);

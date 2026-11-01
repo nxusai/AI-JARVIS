@@ -1278,11 +1278,15 @@ export function iniciar(D, { muestra = false } = {}) {
           <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
+          ${c.error ? `<p class="rojo">⚠ ${h(c.error)}</p>` : ''}
+          ${c.estado === 'aprobado' && !c.error && (c.publicado_fb || c.ig_contenedor) ? '<p class="nota">⏳ Publicándose (Instagram está preparando el video).</p>' : ''}
+          ${c.estado === 'publicado' ? `<p><small>${c.publicado_fb ? '✓ Facebook' : ''}${c.publicado_ig ? ' · ✓ Instagram' : ''}</small></p>` : ''}
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
           <div class="acciones">
             ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
             ${c.estado === 'por_aprobar' || c.estado === 'aprobado' ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
+            ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
           </div>
@@ -1326,6 +1330,7 @@ export function iniciar(D, { muestra = false } = {}) {
           )
         }),
     )
+    $$('[data-reintentar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.reintentar, error: '' }), 'Se vuelve a intentar en los próximos 10 minutos')) && mostrar()))
     $$('[data-redactar]', v).forEach(
       (b) =>
         (b.onclick = async () => {
@@ -1418,7 +1423,7 @@ export function iniciar(D, { muestra = false } = {}) {
       const ritmo = Math.round((ahora.getDate() / diasMes) * 100)
       const activos = suyos.filter((f) => f.a.estado === 'activo')
       return `<div class="tarjeta mercado">
-        <div class="fila"><h3>${MERCADO[m]} <small>${activos.length} anuncios activos · ${usd(activos.reduce((s, f) => s + Number(f.a.presupuesto_dia), 0))}/día</small></h3><button class="btn chico" data-tope="${m}">Cambiar tope y zonas</button></div>
+        <div class="fila"><h3>${MERCADO[m]} <small>${activos.length} anuncios activos · ${usd(activos.reduce((s, f) => s + Number(f.a.presupuesto_dia), 0))}/día</small></h3><button class="btn chico" data-tope="${m}">Cambiar tope, zonas y negocios</button></div>
         <div class="kpis">
           <div class="kpi"><span>Gastado este mes</span><b>${usd(gastado)}</b><small>de ${usd(t.tope_mensual)} · quedan ${usd(Math.max(0, t.tope_mensual - gastado))}</small></div>
           <div class="kpi"><span>Leads calificados</span><b>${sum('leads')}</b><small>${porLead(gastado, sum('leads'))} por lead</small></div>
@@ -1427,6 +1432,7 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
         <div class="meta"><div class="fila"><small>Presupuesto del mes</small><small>${pct}% gastado · ${ritmo}% del mes</small></div><div class="barra"><i style="width:${pct}%"></i></div></div>
         ${t.zonas ? `<p><small>📍 Zonas: ${h(t.zonas)}</small></p>` : ''}
+        <p><small>🎯 Negocios: ${t.negocios ? h(t.negocios) : '<span class="rojo">sin definir: dale "Cambiar tope y zonas"</span>'}</small></p>
       </div>`
     }
     const ordenAd = { activo: 0, borrador: 1, pausado: 2, terminado: 3 }
@@ -1485,13 +1491,14 @@ export function iniciar(D, { muestra = false } = {}) {
             `<form id="f-tope"><h2>Anuncios en ${MERCADO[t.mercado]}</h2>
               <p class="nota">NEX nunca gasta más de este tope en el mes. Para cuidarlo doble, pon también un límite de gasto en tu cuenta de anuncios de Meta.</p>
               <div class="campos"><label>Tope del mes (USD)<input name="tope" type="number" min="0" step="1" required value="${Number(t.tope_mensual)}"></label>
-              <label class="ancho">Zonas donde se anuncia<textarea name="zonas" rows="3" maxlength="1000">${h(t.zonas)}</textarea></label></div>
+              <label class="ancho">Zonas donde se anuncia<textarea name="zonas" rows="3" maxlength="1000">${h(t.zonas)}</textarea></label>
+              <label class="ancho">Negocios que buscamos<textarea name="negocios" rows="4" maxlength="2000" placeholder="Ej.: Restaurantes, distribuidoras, transporte, clínicas. Dueños de 5 a 50 empleados. No: freelancers ni gente buscando trabajo.">${h(t.negocios ?? '')}</textarea><small>Con esto se crean los videos, los textos y el público de los anuncios. La IA te dirá en Inteligencia qué negocios sí contratan.</small></label></div>
               <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
             (caja) => {
               $('#f-tope', caja).onsubmit = async (e) => {
                 e.preventDefault()
                 const d = Object.fromEntries(new FormData(e.target))
-                if (await intenta(() => D.guardarTope({ mercado: t.mercado, tope_mensual: Number(d.tope), zonas: d.zonas.trim() }), 'Guardado')) {
+                if (await intenta(() => D.guardarTope({ mercado: t.mercado, tope_mensual: Number(d.tope), zonas: d.zonas.trim(), negocios: d.negocios.trim() }), 'Guardado')) {
                   cerrarModal()
                   mostrar()
                 }
