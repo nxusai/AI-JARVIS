@@ -1431,6 +1431,12 @@ export function iniciar(D, { muestra = false } = {}) {
           <div class="kpi"><span>Clientes</span><b>${sum('clientes')}</b><small>${porLead(gastado, sum('clientes'))} por cliente</small></div>
         </div>
         <div class="meta"><div class="fila"><small>Presupuesto del mes</small><small>${pct}% gastado · ${ritmo}% del mes</small></div><div class="barra"><i style="width:${pct}%"></i></div></div>
+        ${t.aviso ? `<p class="aviso-ads">${h(t.aviso)}</p>` : ''}
+        <div class="acciones">
+          <button class="btn" data-ads="preparar" data-m="${m}">⚙ Preparar anuncios</button>
+          ${suyos.some((f) => f.a.estado === 'borrador' && f.a.meta_ad_id) ? `<button class="btn primario" data-ads="lanzar" data-m="${m}">✓ Lanzar</button>` : ''}
+          ${activos.length ? `<button class="btn peligro" data-ads="pausar" data-m="${m}">⏸ Pausar</button>` : ''}
+        </div>
         ${t.zonas ? `<p><small>📍 Zonas: ${h(t.zonas)}</small></p>` : ''}
         <p><small>🎯 Negocios: ${t.negocios ? h(t.negocios) : '<span class="rojo">sin definir: dale "Cambiar tope y zonas"</span>'}</small></p>
       </div>`
@@ -1483,6 +1489,25 @@ export function iniciar(D, { muestra = false } = {}) {
          <div class="acciones"><button class="btn" data-cerrar>Cerrar</button></div>`,
       )
     }
+    $$('[data-ads]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const m = b.dataset.m
+          const accion = b.dataset.ads
+          const t = topes.find((x) => x.mercado === m) ?? { tope_mensual: 0 }
+          const gastado = filas.filter((f) => f.a.mercado === m).reduce((s, f) => s + f.gastado, 0)
+          const quedan = Math.max(1, diasMes - ahora.getDate() + 1)
+          const diario = Math.max(0, (Number(t.tope_mensual) - gastado) / quedan)
+          const listos = filas.filter((f) => f.a.mercado === m && f.a.estado === 'borrador' && f.a.meta_ad_id).length
+          const pregunta = {
+            preparar: `¿Preparar los anuncios de ${MERCADO[m]}? Se crean en Meta EN PAUSA con tus videos de anuncio aprobados (hasta 3). No se gasta nada.`,
+            lanzar: `¿LANZAR ${listos} anuncio(s) en ${MERCADO[m]}?\n\nSe empieza a gastar: unos ${usd(diario)} al día, sin pasar de ${usd(t.tope_mensual)} en el mes (llevas ${usd(gastado)}).\nZonas: ${t.zonas || '—'}\nNegocios: ${t.negocios || '—'}`,
+            pausar: `¿Pausar todos los anuncios de ${MERCADO[m]}? Dejan de gastar al momento.`,
+          }[accion]
+          if (!confirm(pregunta)) return
+          if (await intenta(() => D.accionAnuncios(accion, m), 'En proceso: el estado se actualiza aquí en unos segundos')) setTimeout(() => location.hash === '#anuncios' && mostrar(), 8000)
+        }),
+    )
     $$('[data-tope]', v).forEach(
       (b) =>
         (b.onclick = () => {

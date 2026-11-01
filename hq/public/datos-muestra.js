@@ -462,6 +462,12 @@ export function crearMuestra() {
       if (!admin()) nunca()
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
     },
+    async accionAnuncios(accion, mercado) {
+      if (!admin()) nunca()
+      const t = db.anuncios_topes.find((x) => x.mercado === mercado)
+      t.aviso = { preparar: '✓ 1 anuncio listo en Meta, en pausa. Revisa y da "✓ Lanzar".', lanzar: '🚀 Lanzado: 3 anuncios activos · 9.68 USD al día (para no pasar de 300 USD en el mes).', pausar: '⏸ Pausado por Eduardo: no se gasta nada hasta "✓ Lanzar".' }[accion]
+      return true
+    },
     probarMeta: async () => ({ ok: true, resultados: [{ nombre: 'Llave', ok: true, detalle: 'NXUS HQ · 9 permisos' }, { nombre: 'Cuenta de anuncios', ok: true, detalle: "Eduardo's · USD · America/New_York · activa · con método de pago" }, { nombre: 'Página de Facebook', ok: true, detalle: 'Nxus.AI' }, { nombre: 'Instagram', ok: true, detalle: '@nxusai' }, { nombre: 'Conjunto de datos (leads y clientes)', ok: true, detalle: 'Nxus AI Event Data' }] }),
     async redactarContenido(cid) {
       const c = db.contenido.find((x) => x.id === cid)

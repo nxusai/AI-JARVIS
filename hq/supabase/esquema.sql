@@ -1056,3 +1056,15 @@ alter table public.contenido add column if not exists error text not null defaul
 alter table public.contenido add column if not exists ig_contenedor text not null default '';
 -- A qué negocios les hablan los anuncios de cada mercado (lo escribe Eduardo).
 alter table public.anuncios_topes add column if not exists negocios text not null default '' check (char_length(negocios) <= 2000);
+
+-- El administrador de anuncios: la campaña y el conjunto de cada mercado en Meta,
+-- y el código corto de cada anuncio (viaja en el mensaje del chat para saber qué anuncio trajo a cada lead).
+alter table public.anuncios_topes add column if not exists campana_id text not null default '';
+alter table public.anuncios_topes add column if not exists conjunto_id text not null default '';
+alter table public.anuncios_topes add column if not exists pausado_por_tope boolean not null default false;
+alter table public.anuncios add column if not exists codigo text;
+create unique index if not exists anuncios_codigo on public.anuncios (codigo) where codigo is not null;
+alter table public.anuncios add column if not exists meta_video_id text not null default '';
+alter table public.anuncios add column if not exists meta_creative_id text not null default '';
+-- Lo último que pasó con los anuncios de cada mercado (o el error), para verlo en HQ → Anuncios.
+alter table public.anuncios_topes add column if not exists aviso text not null default '' check (char_length(aviso) <= 1000);

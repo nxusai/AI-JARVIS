@@ -173,6 +173,17 @@ export function crearSupabase({ url, anon }) {
     guardarContenido: (c) => guardar('contenido', c),
     /** Una foto o video de Eduardo: se guarda en "contenido" y queda aprobado. */
     redactarContenido: (id) => funcion('redactar', { id }),
+    /** Preparar, lanzar o pausar los anuncios de un mercado (corre en segundo plano en Netlify). */
+    async accionAnuncios(accion, mercado) {
+      const { data } = await sb.auth.getSession()
+      const res = await fetch('/.netlify/functions/anuncios-background', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
+        body: JSON.stringify({ accion, mercado }),
+      })
+      if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
+      return true
+    },
     probarMeta: () => funcion('meta-prueba', {}).catch((err) => ({ ok: false, resultados: [{ nombre: 'Llave', ok: false, error: err.message }] })),
     async subirContenido(file, fila) {
       const ext = (file.name.split('.').pop() || '').toLowerCase().replace('jpeg', 'jpg')

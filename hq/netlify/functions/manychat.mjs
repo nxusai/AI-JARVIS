@@ -105,13 +105,19 @@ export default async (req) => {
 
   try {
     const buscar = async () =>
-      (await sb(`/rest/v1/leads?manychat_id=eq.${f.manychat_id}&select=id,estado,motivo,idioma,permiso_llamada,nombre,empresa,telefono,correo,servicio`, { servicio: true }))[0]
+      (await sb(`/rest/v1/leads?manychat_id=eq.${f.manychat_id}&select=id,estado,motivo,idioma,anuncio_id,permiso_llamada,nombre,empresa,telefono,correo,servicio`, { servicio: true }))[0]
     let viejo = await buscar()
     if (!abierto(viejo)) return json({ ok: true, id: viejo.id, estado: viejo.estado, faltan: '' })
     const completo = si(b.completo)
     const permiso = completo && si(b.permiso)
     const e = estado(viejo, f, completo, permiso)
     const cambio = { ...f, estado: e.estado, ...(e.motivo ? { motivo: e.motivo } : {}) }
+    // Qué anuncio lo trajo: el botón del anuncio dice "Quiero información (U3)" y ManyChat lo manda en fuente.
+    const codigo = /\(([UM]\d{1,4})\)/.exec(f.fuente ?? '')?.[1]
+    if (codigo && !viejo?.anuncio_id) {
+      const [ad] = await sb(`/rest/v1/anuncios?codigo=eq.${codigo}&select=meta_ad_id,nombre`, { servicio: true }).catch(() => [])
+      if (ad?.meta_ad_id) Object.assign(cambio, { anuncio_id: ad.meta_ad_id, fuente: `Anuncio · ${ad.nombre}`.slice(0, 200) })
+    }
     if (permiso && !viejo?.permiso_llamada) Object.assign(cambio, { permiso_llamada: true, permiso_texto: PERMISO[f.idioma ?? viejo?.idioma ?? 'es'] })
     const parchar = (id) => sb(`/rest/v1/leads?id=eq.${id}`, { servicio: true, method: 'PATCH', prefer: 'return=representation', body: cambio })
     let l
