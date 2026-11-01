@@ -1,7 +1,7 @@
 // "Probar la llave de Meta" (HQ → Anuncios): solo lee. Confirma que la llave
 // ve la cuenta de anuncios, la página, el Instagram y el conjunto de datos de
 // NXUS AI, y qué permisos tiene. No publica ni gasta nada. Solo el admin.
-import { cuenta, dataset, graph, instagram, metaListo, pagina } from '../lib/meta.mjs'
+import { cuenta, dataset, graph, instagram, metaListo, pagina, VERSION } from '../lib/meta.mjs'
 import { json, quien } from '../lib/sb.mjs'
 
 const NECESARIOS = ['ads_management', 'pages_manage_posts', 'instagram_content_publish']
@@ -48,6 +48,27 @@ export default async (req) => {
       if (!mias.length) return { detalle: 'Todavía ninguna (HQ no ha creado nada en Meta).' }
       const txt = mias.map((x) => `${x.name}: ${x.effective_status}${x.ads?.data?.length ? ` · ${x.ads.data.map((a) => `${a.name} (${a.effective_status})`).join(', ')}` : ' · sin anuncios'}`).join(' | ')
       return { detalle: txt.slice(0, 900) }
+    }),
+    // Cuánto del límite de uso de Meta gasta la llave de HQ en la cuenta de anuncios.
+    // Si HQ estuviera saturando la cuenta, aquí saldría un porcentaje alto.
+    prueba('Uso de la API de Meta (HQ)', async () => {
+      const url = new URL(`https://graph.facebook.com/${VERSION}/${cuenta()}`)
+      url.searchParams.set('fields', 'name')
+      url.searchParams.set('access_token', (process.env.META_TOKEN || '').trim())
+      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+      const leer = (h) => {
+        try {
+          return JSON.parse(res.headers.get(h) || 'null')
+        } catch {
+          return null
+        }
+      }
+      const cuentaUso = leer('x-ad-account-usage')
+      const negocio = leer('x-business-use-case-usage')
+      const usos = Object.values(negocio ?? {}).flat()
+      const max = Math.max(0, Number(cuentaUso?.acc_id_util_pct ?? 0), ...usos.map((u) => Math.max(u.call_count ?? 0, u.total_cputime ?? 0, u.total_time ?? 0)))
+      const bloqueo = usos.some((u) => Number(u.estimated_time_to_regain_access) > 0)
+      return { detalle: `${max}% del límite usado${bloqueo ? ' · Meta frenó a HQ por un rato' : ' · sin bloqueos'}`, aviso: max >= 75 || bloqueo }
     }),
     dataset()
       ? prueba('Conjunto de datos (leads y clientes)', async () => {
