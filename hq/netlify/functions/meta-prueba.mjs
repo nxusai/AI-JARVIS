@@ -29,6 +29,16 @@ export default async (req) => {
       const faltan = dados.length ? NECESARIOS.filter((p) => !dados.includes(p)) : []
       return { detalle: `${yoMeta.name}${dados.length ? ` · ${dados.length} permisos` : ''}${faltan.length ? ` · faltan: ${faltan.join(', ')}` : ''}`, aviso: faltan.length > 0 }
     }),
+    // ¿La llave caduca? (si caduca, HQ deja de publicar ese día sin avisar)
+    prueba('La llave no caduca', async () => {
+      const t = (process.env.META_TOKEN || '').trim()
+      const d = (await graph('debug_token', { params: { input_token: t } })).data ?? {}
+      if (!d.is_valid) throw new Error('Meta dice que la llave ya no es válida: hay que generar otra')
+      const vence = Number(d.expires_at) || 0
+      if (!vence) return { detalle: `nunca caduca · app ${d.application ?? d.app_id ?? ''}` }
+      const dias = Math.floor((vence * 1000 - Date.now()) / 864e5)
+      return { detalle: `caduca en ${dias} días (${new Date(vence * 1000).toISOString().slice(0, 10)}): hay que generar una que no caduque`, aviso: true }
+    }),
     prueba('Cuenta de anuncios', async () => {
       const a = await graph(cuenta(), { params: { fields: 'name,currency,timezone_name,account_status,amount_spent,spend_cap,funding_source_details' } })
       const estado = { 1: 'activa', 2: 'deshabilitada', 3: 'con saldo pendiente', 7: 'en revisión', 9: 'en periodo de gracia', 101: 'cerrada' }[a.account_status] ?? `estado ${a.account_status}`
