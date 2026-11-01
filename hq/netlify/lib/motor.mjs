@@ -25,9 +25,9 @@ const NOMBRE = { usa: 'USA', mexico: 'México' }
 export const claveMotor = () => createHash('sha256').update(`nxus-motor:${process.env.SUPABASE_SERVICE_KEY || ''}`).digest('hex')
 
 /** Despierta al motor en segundo plano (desde una revisión programada). */
-export async function despertarMotor(body = {}) {
+export async function despertarMotor(body = {}, funcion = 'motor-background') {
   const base = (process.env.URL || 'https://nxus-hq.netlify.app').replace(/\/$/, '')
-  const res = await fetch(`${base}/.netlify/functions/motor-background`, {
+  const res = await fetch(`${base}/.netlify/functions/${funcion}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-motor': claveMotor() },
     body: JSON.stringify(body),
@@ -74,7 +74,22 @@ export async function correrMotor() {
   return corrio
 }
 
+/**
+ * Las piezas sin texto (el video que subió Eduardo): la IA las ve y escribe en el servidor,
+ * aunque nadie tenga HQ abierto. Si un intento se atoró más de 12 minutos, otra vez.
+ * Las que fallaron (⚠) esperan a que Eduardo dé "✦ Escribir texto", para no gastar en ciclo.
+ */
+async function escribirFaltantes() {
+  const piezas = await db('/rest/v1/contenido?estado=in.(aprobado,por_aprobar)&texto=eq.&archivo=neq.&select=id,idea,actualizado&order=creado.asc&limit=5')
+  for (const c of piezas) {
+    if (/^⚠/.test(c.idea)) continue
+    if (/^👀/.test(c.idea) && Date.now() - new Date(c.actualizado) < 12 * 60e3) continue
+    await despertarMotor({ id: c.id }, 'analizar-background').catch((err) => console.log('analizar:', err.message))
+  }
+}
+
 async function vueltaCompleta() {
+  await escribirFaltantes().catch((err) => console.log('faltantes:', err.message))
   await publicarFeed().catch((err) => console.log('feed:', err.message))
   if (!metaListo()) return
   // Cada 15 minutos (el candado "cuidar" dura 14): lo gastado, el tope y el presupuesto diario.

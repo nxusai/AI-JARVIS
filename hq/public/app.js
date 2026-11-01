@@ -1319,9 +1319,9 @@ export function iniciar(D, { muestra = false } = {}) {
       if (c.error) f = { pct: 0, texto: 'No se pudo publicar (abajo dice por qué)', mal: true }
       else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Instagram y Facebook' }
       else if (programado) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
-      else if (!c.texto && /^👀/.test(c.idea)) f = { pct: 10, texto: 'La IA está viendo la pieza y escribiendo el texto…' }
+      else if (!c.texto && /^👀/.test(c.idea)) f = { pct: { '1/3': 10, '2/3': 25, '3/3': 40 }[(/(\d\/3)/.exec(c.idea) ?? [])[1]] ?? 10, texto: c.idea.replace(/^👀\s*/, 'La IA: ') }
       else if (!c.texto && /^⚠/.test(c.idea)) f = { pct: 0, texto: 'La IA no pudo escribir el texto (abajo dice por qué): dale "✦ Escribir texto"', mal: true }
-      else if (!c.texto) f = { pct: 10, texto: 'La IA está viendo la pieza y escribiendo el texto…' }
+      else if (!c.texto) f = { pct: 5, texto: 'En fila: la IA va a ver la pieza y escribir el texto (máx. 5 min)…' }
       else if (c.ig_contenedor) f = { pct: 70, texto: 'Ya en Facebook · Instagram está preparando el video…' }
       else if (c.publicado_fb) f = { pct: 50, texto: 'Ya en Facebook · subiendo a Instagram…' }
       else f = { pct: 20, texto: 'Publicando…' }
