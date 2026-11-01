@@ -22,11 +22,11 @@ export const Reel: React.FC<ReelProps> = (p) => {
 
   return (
     <AbsoluteFill style={{ background: COLORES.fondo }}>
-      <Camara clip={p.clip} esImagen={p.esImagen} modo={p.camara ?? 'empuje'} desdeSegundo={p.desdeSegundo} velocidad={p.velocidad} golpeEn={frase ? undefined : golpe} />
-      {p.formas && <Formas acento={acento} segundo={segundo} semilla={p.semilla} y={narrado ? 0.3 : 0.46} desde={frase ? 6 : 0} />}
+      <Camara clip={p.clip} esImagen={p.esImagen} modo={p.camara ?? 'empuje'} desdeSegundo={p.desdeSegundo} velocidad={p.velocidad} encuadre={p.encuadre} golpeEn={frase ? undefined : golpe} />
+      {p.formas && <Formas acento={acento} segundo={segundo} semilla={p.semilla} y={narrado || p.textoArriba ? 0.27 : 0.46} desde={frase ? 6 : 0} />}
       {p.pieza3D && p.pieza3D !== 'ninguna' && <Pieza3D tipo={p.pieza3D} acento={acento} desde={frase ? 20 : 8} arriba />}
       <Texto texto={p.texto} resaltar={p.resaltar} modo={p.letras ?? 'cinetico'} acento={acento} desde={textoDesde} cada={frase ? 7 : 3}
-        y={narrado ? '30%' : '46%'} tamano={narrado ? Math.min(104, Math.max(76, 150 - p.texto.length * 2)) : undefined} />
+        y={narrado ? '30%' : p.textoArriba ? '25%' : '46%'} tamano={narrado ? Math.min(104, Math.max(76, 150 - p.texto.length * 2)) : undefined} />
       {narrado && p.palabras?.length ? <Subtitulos palabras={p.palabras} acento={acento} /> : null}
       {!narrado && (p.remate || p.firma) && <Remate texto={p.remate} firma={p.firma} desde={remateDesde} acento={acento} />}
       {narrado && p.firma && <Remate firma={p.firma} desde={remateDesde} acento={acento} y="76%" />}

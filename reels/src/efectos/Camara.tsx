@@ -7,8 +7,8 @@ import React from 'react';
 import { Easing, Img, OffthreadVideo, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { Camara as Modo } from '../tipos';
 
-export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; desdeSegundo?: number; velocidad?: number; golpeEn?: number }> = ({
-  clip, esImagen, modo, desdeSegundo = 0, velocidad = 1, golpeEn,
+export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; desdeSegundo?: number; velocidad?: number; encuadre?: number; golpeEn?: number }> = ({
+  clip, esImagen, modo, desdeSegundo = 0, velocidad = 1, encuadre = 50, golpeEn,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: d } = useVideoConfig();
@@ -16,7 +16,7 @@ export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; de
 
   // Entrada: zoom rápido con desenfoque de movimiento, en todas.
   const entra = interpolate(frame, [0, 9], [1, 0], { extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic) });
-  let escala = 1.12 + entra * 0.45;
+  let escala = 1.06 + entra * 0.45;
   let x = 0;
   let y = 0;
   let giro = 0;
@@ -48,7 +48,9 @@ export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; de
 
   const desenfoque = entra * 14;
   const estilo: React.CSSProperties = {
-    width: '100%', height: '100%', objectFit: 'cover',
+    width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${encuadre}% 50%`,
+    // El zoom crece desde lo importante, para no sacarlo de cuadro.
+    transformOrigin: `${encuadre}% 55%`,
     transform: `perspective(1600px) translate(${x}%, ${y}px) rotate(${giro}deg) rotateY(${giroY}deg) scale(${escala})`,
     filter: `contrast(1.12) saturate(1.08) brightness(0.86) blur(${desenfoque}px)`,
   };

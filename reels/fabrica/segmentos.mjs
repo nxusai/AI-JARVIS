@@ -1,11 +1,11 @@
 // Las tomas de cada clip: solo los tramos que Claude marcó como buenos en seleccion.json
 // (ver revisar.mjs). Un tramo largo se parte en tomas de hasta 10 s, cortando donde cambia
-// la escena para que una toma no brinque a mitad del reel. Lo que dura menos de 4 s no se usa.
+// la escena para que una toma no brinque a mitad del reel. Lo que dura menos de 3 s no se usa (de 3 a 5 s va en cámara lenta).
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 
 export const LARGO = 10
-const MINIMO = 4
+const MINIMO = 3
 const IMAGEN = /\.(jpe?g|png|webp)$/i
 
 const duracion = (archivo) => Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', archivo], { encoding: 'utf8' }).stdout.trim()) || 0
@@ -22,7 +22,7 @@ function cortes(archivo) {
  */
 export function tomasDe(carpeta, clip, tramos) {
   if (!tramos) return []
-  if (IMAGEN.test(clip)) return tramos.length ? [{ id: `${clip}@0`, clip, desde: 0, largo: LARGO, nota: tramos[0].nota }] : []
+  if (IMAGEN.test(clip)) return tramos.length ? [{ id: `${clip}@0`, clip, desde: 0, largo: LARGO, nota: tramos[0].nota, encuadre: tramos[0].encuadre, textoArriba: tramos[0].textoArriba }] : []
   const total = duracion(join(carpeta, clip))
   const escenas = tramos.length ? cortes(join(carpeta, clip)) : []
   const tomas = []
@@ -37,7 +37,7 @@ export function tomasDe(carpeta, clip, tramos) {
         // Si sobra un pedazo chico al final, se reparte para que ninguna toma quede corta.
         const resto = hasta - desde
         const largo = resto > LARGO && resto < LARGO + MINIMO ? resto / 2 : Math.min(LARGO, resto)
-        tomas.push({ id: `${clip}@${Math.round(desde)}`, clip, desde: +desde.toFixed(2), largo: +largo.toFixed(2), nota: tramo.nota })
+        tomas.push({ id: `${clip}@${Math.round(desde)}`, clip, desde: +desde.toFixed(2), largo: +largo.toFixed(2), nota: tramo.nota, encuadre: tramo.encuadre, textoArriba: tramo.textoArriba })
         desde += largo
       }
     }

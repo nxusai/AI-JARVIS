@@ -14,6 +14,10 @@ export type ReelProps = {
   esImagen?: boolean;
   /** Desde qué segundo del clip empieza, para que una repetición no se vea igual. */
   desdeSegundo?: number;
+  /** Dónde está lo importante de la toma, de 0 (izquierda) a 100 (derecha): ahí se centran el zoom y el recorte. */
+  encuadre?: number;
+  /** Texto arriba en vez de al centro, para no tapar lo importante. */
+  textoArriba?: boolean;
   /** 1 = normal; menos de 1 = cámara lenta (para tomas cortas). */
   velocidad?: number;
   /** Segundos, máximo 10. */

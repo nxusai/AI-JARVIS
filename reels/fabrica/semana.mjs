@@ -39,7 +39,7 @@ const leer = (archivo, siNo) => (existsSync(archivo) ? JSON.parse(readFileSync(a
 export function planDeSemana(semana) {
   const textos = leer(join(RAIZ, 'textos', `${semana}.json`), null)
   if (!textos) throw new Error(`Faltan los textos de la semana: textos/${semana}.json`)
-  const clips = existsSync(CRUDOS) ? readdirSync(CRUDOS).filter((f) => /^\d+\./.test(f) && (IMAGEN.test(f) || VIDEO.test(f))).sort((a, b) => Number.parseInt(a) - Number.parseInt(b)) : []
+  const clips = existsSync(CRUDOS) ? readdirSync(CRUDOS).filter((f) => /^\d+\./.test(f) && !f.includes('.original.') && (IMAGEN.test(f) || VIDEO.test(f))).sort((a, b) => Number.parseInt(a) - Number.parseInt(b)) : []
   const registro = leer(REGISTRO, [])
   const seleccion = leerSeleccion()
   const sinRevisar = clips.filter((c) => !(c in seleccion))
@@ -69,7 +69,7 @@ export function planDeSemana(semana) {
         post: texto.post ?? '',
         props: {
           tipo: tipo === 'cta' ? 'gancho' : tipo,
-          clip: `crudos/${clip}`, esImagen, desdeSegundo: toma.desde, velocidad, duracion,
+          clip: `crudos/${clip}`, esImagen, desdeSegundo: toma.desde, velocidad, duracion, encuadre: toma.encuadre, textoArriba: toma.textoArriba,
           texto: texto.texto, resaltar: texto.resaltar ?? [], remate: tipo === 'cta' ? texto.remate ?? 'Comenta JARVIS' : texto.remate,
           firma, camara: CAMARAS[n % CAMARAS.length], letras: n % 3 === 1 ? 'cinetico' : 'estirar',
           formas: tipo !== 'narrado' || n % 2 === 0, pieza3D: tipo === 'frase' ? 'ninguna' : PIEZAS[n % PIEZAS.length], cine: tipo === 'frase',
