@@ -171,6 +171,18 @@ export function crearSupabase({ url, anon }) {
     // Contenido y anuncios (solo el admin).
     contenido: async () => ok(await tabla('contenido').select('*').order('publicar_en', { ascending: true, nullsFirst: false })),
     guardarContenido: (c) => guardar('contenido', c),
+    /** Una foto o video de Eduardo: se guarda en "contenido" y queda aprobado. */
+    async subirContenido(file, fila) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase().replace('jpeg', 'jpg')
+      const ruta = `propios/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
+      ok(await sb.storage.from('contenido').upload(ruta, file, { contentType: file.type, upsert: false }))
+      try {
+        return ok(await tabla('contenido').insert({ ...fila, archivo: ruta }).select().single())
+      } catch (err) {
+        await sb.storage.from('contenido').remove([ruta])
+        throw err
+      }
+    },
     async borrarContenido(c) {
       ok(await tabla('contenido').delete().eq('id', c.id))
       if (c.archivo) await sb.storage.from('contenido').remove([c.archivo])

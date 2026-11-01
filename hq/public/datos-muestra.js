@@ -462,7 +462,14 @@ export function crearMuestra() {
       if (!admin()) nunca()
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
     },
-    mediaUrls: async () => ({}),
+    async subirContenido(file, fila) {
+      if (!admin()) nunca()
+      const ruta = URL.createObjectURL(file)
+      const c = { id: id(), titulo: '', texto: '', idea: '', publicar_en: null, comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, ...fila, archivo: ruta, creado: new Date().toISOString(), actualizado: new Date().toISOString() }
+      db.contenido.unshift(c)
+      return copia(c)
+    },
+    mediaUrls: async (rutas) => Object.fromEntries(rutas.filter((r) => String(r).startsWith('blob:')).map((r) => [r, r])),
     anuncios: () => espera(admin() ? db.anuncios : []),
     gastoAnuncios: (desde) => espera(admin() ? db.anuncios_gasto.filter((g) => g.dia >= desde) : []),
     topesAnuncios: () => espera(admin() ? db.anuncios_topes : []),

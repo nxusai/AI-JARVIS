@@ -1288,11 +1288,12 @@ export function iniciar(D, { muestra = false } = {}) {
       </div>`
     v.innerHTML = `
       <p class="nota">Cada semana se crean las fotos del feed y los videos de los anuncios. Tú los apruebas o pides cambios; lo aprobado se publica solo en su fecha. Los videos de anuncio también salen al feed.</p>
-      <div class="acciones"><div class="segmento">${Object.entries(FILTROS)
+      <div class="acciones"><button class="btn primario" id="ct-subir">⬆ Subir mi foto o video</button><div class="segmento">${Object.entries(FILTROS)
         .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k === 'calendario' ? 'aprobado' : k)}</small></button>`)
         .join('')}</div></div>
       ${lista.length ? `<div class="piezas">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta"><p class="vacio">${filtro === 'por_aprobar' ? 'No hay nada por aprobar.' : 'Nada aquí.'}</p></div>`}`
     const de = (id) => piezas.find((c) => c.id === id)
+    $('#ct-subir', v).onclick = subirPropio
     $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
     $$('[data-aprobar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.aprobar, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')) && mostrar()))
     $$('[data-cambio]', v).forEach(
@@ -1329,6 +1330,50 @@ export function iniciar(D, { muestra = false } = {}) {
           const c = de(b.dataset.borrarPieza)
           if (confirm(`¿Borrar "${c.titulo || 'esta pieza'}"? No se puede deshacer.`) && (await intenta(() => D.borrarContenido(c), 'Borrado')) !== undefined) mostrar()
         }),
+    )
+  }
+
+  /** Eduardo sube su propia foto o video: queda aprobado y entra al calendario o a los anuncios. */
+  function subirPropio() {
+    abrirModal(
+      `<form id="f-propio"><h2>⬆ Subir mi foto o video</h2>
+        <p class="nota">Queda aprobado. Si es anuncio, se pauta con las mismas reglas (3 activos por mercado, tope del mes) y también sale al feed.</p>
+        <div class="campos">
+          <label class="ancho">Archivo (foto JPG/PNG o video MP4/MOV, hasta 50 MB)<input name="archivo" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" required></label>
+          <label>Para<select name="uso"><option value="anuncio">Anuncio (y feed)</option><option value="feed">Solo feed</option></select></label>
+          <label>Mercado<select name="mercado"><option value="usa">USA</option><option value="mexico">México</option><option value="ambos">USA y México</option></select></label>
+          <label class="ancho">Título (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: Video inventarios"></label>
+          <label class="ancho">Texto de la publicación<textarea name="texto" rows="4" maxlength="2200" placeholder="Termina con: Comenta INFO 👇"></textarea></label>
+          <label>Publicar el (opcional)<input name="cuando" type="datetime-local"></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Subir</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-propio', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const file = d.archivo
+          if (!file?.size) return aviso('Elige el archivo', 'mal')
+          if (file.size > 50 * 1048576) return aviso('El archivo pesa más de 50 MB', 'mal')
+          const tipo = file.type.startsWith('video/') ? 'video' : 'foto'
+          const fila = {
+            tipo,
+            uso: d.uso,
+            mercado: d.mercado,
+            idioma: 'es',
+            titulo: d.titulo.trim() || file.name.slice(0, 200),
+            texto: d.texto.trim(),
+            idea: 'Lo subió Eduardo.',
+            estado: 'aprobado',
+            publicar_en: d.cuando ? new Date(d.cuando).toISOString() : null,
+          }
+          aviso('Subiendo…')
+          if (await intenta(() => D.subirContenido(file, fila), tipo === 'video' ? 'Video guardado' : 'Foto guardada')) {
+            cerrarModal()
+            sessionStorage.setItem('hq-contenido', 'calendario')
+            mostrar()
+          }
+        }
+      },
     )
   }
 
