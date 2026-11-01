@@ -14,6 +14,8 @@ export type ReelProps = {
   esImagen?: boolean;
   /** Desde qué segundo del clip empieza, para que una repetición no se vea igual. */
   desdeSegundo?: number;
+  /** 1 = normal; menos de 1 = cámara lenta (para tomas cortas). */
+  velocidad?: number;
   /** Segundos, máximo 10. */
   duracion: number;
   /** El gancho o la frase. */

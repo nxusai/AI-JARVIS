@@ -22,7 +22,7 @@ export const Reel: React.FC<ReelProps> = (p) => {
 
   return (
     <AbsoluteFill style={{ background: COLORES.fondo }}>
-      <Camara clip={p.clip} esImagen={p.esImagen} modo={p.camara ?? 'empuje'} desdeSegundo={p.desdeSegundo} golpeEn={frase ? undefined : golpe} />
+      <Camara clip={p.clip} esImagen={p.esImagen} modo={p.camara ?? 'empuje'} desdeSegundo={p.desdeSegundo} velocidad={p.velocidad} golpeEn={frase ? undefined : golpe} />
       {p.formas && <Formas acento={acento} segundo={segundo} semilla={p.semilla} y={narrado ? 0.3 : 0.46} desde={frase ? 6 : 0} />}
       {p.pieza3D && p.pieza3D !== 'ninguna' && <Pieza3D tipo={p.pieza3D} acento={acento} desde={frase ? 20 : 8} arriba />}
       <Texto texto={p.texto} resaltar={p.resaltar} modo={p.letras ?? 'cinetico'} acento={acento} desde={textoDesde} cada={frase ? 7 : 3}

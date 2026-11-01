@@ -1,18 +1,21 @@
-// Arma la semana: 35 reels (5 al día), cada uno con su clip, su texto, sus efectos y su post.
+// Arma la semana: 35 reels (5 al día), cada uno con su toma, su texto, sus efectos y su post.
+// Un clip largo (hasta 3 min o más) se parte en varias tomas de 10 s: cada toma es un reel distinto.
 //
 //   node fabrica/semana.mjs 2026-11-02            solo el plan (salida/<semana>/plan.json), para revisarlo
 //   node fabrica/semana.mjs 2026-11-02 --render   el plan y los videos
 //
 // Lee:
 //   crudos/          los clips de Drive (1-Crudos), con número: 1.mp4, 2.mov, 3.jpg…
+//   seleccion.json   los tramos de cada clip que sí sirven (los marca Claude al revisar, ver revisar.mjs)
 //   textos/<semana>.json   los ganchos, frases y narraciones de la semana (los escribe Claude)
 //   public/voces/    las narraciones ya generadas (Higgsfield), con el nombre que diga el texto
-//   registro.json    qué clip salió en cada reel anterior (para la rotación)
+//   registro.json    qué toma salió en cada reel anterior (para la rotación)
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { repartirClips } from './rotacion.mjs'
+import { repartirTomas } from './rotacion.mjs'
+import { leerSeleccion } from './revisar.mjs'
+import { tomasDe } from './segmentos.mjs'
 import { tiemposDePalabras } from './tiempos.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -29,8 +32,8 @@ const CAMARAS = ['empuje', 'seguir', 'paneo', 'orbita']
 const PIEZAS = ['cristal', 'ninguna', 'anillo', 'ninguna']
 const IMAGEN = /\.(jpe?g|png|webp)$/i
 const VIDEO = /\.(mp4|mov|m4v|webm)$/i
-
-const duracionDe = (archivo) => Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', archivo], { encoding: 'utf8' }).stdout.trim()) || 0
+/** Lo más lento que se pone una toma corta para llenar el reel (cámara lenta). */
+const LENTO = 0.6
 const leer = (archivo, siNo) => (existsSync(archivo) ? JSON.parse(readFileSync(archivo, 'utf8')) : siNo)
 
 export function planDeSemana(semana) {
@@ -38,7 +41,12 @@ export function planDeSemana(semana) {
   if (!textos) throw new Error(`Faltan los textos de la semana: textos/${semana}.json`)
   const clips = existsSync(CRUDOS) ? readdirSync(CRUDOS).filter((f) => /^\d+\./.test(f) && (IMAGEN.test(f) || VIDEO.test(f))).sort((a, b) => Number.parseInt(a) - Number.parseInt(b)) : []
   const registro = leer(REGISTRO, [])
-  const { orden, aviso } = repartirClips(clips, registro.map((r) => r.clip), DIAS.length * HORAS.length)
+  const seleccion = leerSeleccion()
+  const sinRevisar = clips.filter((c) => !(c in seleccion))
+  const tomas = clips.flatMap((c) => tomasDe(CRUDOS, c, seleccion[c]))
+  // Los reels viejos (antes de partir en tomas) cuentan como la toma del segundo 0.
+  const { orden, aviso } = repartirTomas(tomas, registro.map((r) => r.toma ?? `${r.clip}@0`), DIAS.length * HORAS.length)
+  if (!tomas.length) throw new Error(sinRevisar.length ? `Ningún clip revisado todavía (${sinRevisar.join(', ')}): corre node fabrica/revisar.mjs y marca los tramos buenos en seleccion.json.` : 'No hay tomas que sirvan: sube más clips a 1-Crudos.')
   const cola = { gancho: [...textos.ganchos], frase: [...textos.frases], narrado: [...textos.narrados], cta: [...textos.ctas] }
   const firma = textos.firma || '@nextlevelbylalo'
 
@@ -49,18 +57,19 @@ export function planDeSemana(semana) {
       const tipo = tipoDe(d, h)
       const texto = cola[tipo].shift() ?? cola.gancho.shift() ?? cola.frase.shift()
       if (!texto) throw new Error(`Se acabaron los textos en el reel ${n + 1}: hacen falta 35 en total (${tipo}).`)
-      const clip = orden[n]
+      const toma = orden[n]
+      const clip = toma.clip
       const esImagen = IMAGEN.test(clip)
-      const largo = esImagen ? 0 : duracionDe(join(CRUDOS, clip))
-      const duracion = tipo === 'narrado' ? 10 : tipo === 'frase' ? 9 : 8
-      // Arranca en otro punto del clip cada vez que se repite.
-      const desdeSegundo = largo > duracion + 0.5 ? +(((n * 2.7) % (largo - duracion))).toFixed(2) : 0
+      const meta = tipo === 'narrado' ? 10 : tipo === 'frase' ? 9 : 8
+      // Si la toma es más corta que el reel, va en cámara lenta; si ni así alcanza, el reel se acorta.
+      const velocidad = esImagen ? 1 : Math.max(LENTO, Math.min(1, toma.largo / meta))
+      const duracion = esImagen ? meta : +Math.min(meta, toma.largo / velocidad).toFixed(2)
       reels.push({
-        n: n + 1, dia: DIAS[d], hora: HORAS[h], tipo, clip,
+        n: n + 1, dia: DIAS[d], hora: HORAS[h], tipo, clip, toma: toma.id,
         post: texto.post ?? '',
         props: {
           tipo: tipo === 'cta' ? 'gancho' : tipo,
-          clip: `crudos/${clip}`, esImagen, desdeSegundo, duracion,
+          clip: `crudos/${clip}`, esImagen, desdeSegundo: toma.desde, velocidad, duracion,
           texto: texto.texto, resaltar: texto.resaltar ?? [], remate: tipo === 'cta' ? texto.remate ?? 'Comenta JARVIS' : texto.remate,
           firma, camara: CAMARAS[n % CAMARAS.length], letras: n % 3 === 1 ? 'cinetico' : 'estirar',
           formas: tipo !== 'narrado' || n % 2 === 0, pieza3D: tipo === 'frase' ? 'ninguna' : PIEZAS[n % PIEZAS.length], cine: tipo === 'frase',
@@ -70,7 +79,7 @@ export function planDeSemana(semana) {
       })
     }
   }
-  return { semana, aviso, clips: clips.length, reels }
+  return { semana, aviso, sinRevisar, clips: clips.length, tomas: tomas.length, reels }
 }
 
 async function main() {
@@ -84,7 +93,8 @@ async function main() {
   mkdirSync(carpeta, { recursive: true })
   writeFileSync(join(carpeta, 'plan.json'), JSON.stringify(plan, null, 2))
   if (plan.aviso) console.log(`⚠️  ${plan.aviso}`)
-  console.log(`Plan: ${plan.reels.length} reels con ${plan.clips} clips → ${join(carpeta, 'plan.json')}`)
+  if (plan.sinRevisar.length) console.log(`⚠️  Sin revisar (no se usan): ${plan.sinRevisar.join(', ')}. Corre node fabrica/revisar.mjs`)
+  console.log(`Plan: ${plan.reels.length} reels con ${plan.tomas} tomas de ${plan.clips} clips → ${join(carpeta, 'plan.json')}`)
   if (bandera !== '--render') return
 
   // Los clips tienen que estar en public/ para que Remotion los vea.
@@ -103,9 +113,9 @@ async function main() {
     const t = Date.now()
     await renderReel(props, join(dir, `${base}.mp4`))
     writeFileSync(join(dir, `${base}.txt`), `${r.dia} ${r.hora} · ${r.tipo}\n\n${r.post}\n`)
-    registro.push({ clip: r.clip, semana, reel: r.n, tipo: r.tipo })
+    registro.push({ toma: r.toma, clip: r.clip, semana, reel: r.n, tipo: r.tipo })
     writeFileSync(REGISTRO, JSON.stringify(registro, null, 2))
-    console.log(`✅ ${r.dia} ${r.hora} ${r.tipo} (clip ${r.clip}, ${Math.round((Date.now() - t) / 1000)} s)`)
+    console.log(`✅ ${r.dia} ${r.hora} ${r.tipo} (toma ${r.toma}, ${Math.round((Date.now() - t) / 1000)} s)`)
   }
 }
 

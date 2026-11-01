@@ -11,6 +11,7 @@ Tus clips de Drive → 35 reels a la semana (5 al día), de máximo 10 segundos,
 1. Tú subes clips **sin hablar** a Drive, carpeta `1-Crudos`, con número: `1.mp4`, `2.mp4`, `3.mp4`… (nunca repitas un número).
 2. Cada semana Claude:
    - baja los clips nuevos,
+   - **los revisa** (`node fabrica/revisar.mjs`): hojas de contacto con un cuadro por segundo y una lista de lo oscuro o borroso. Mira cada hoja y anota en `seleccion.json` solo los tramos que sirven (buena luz, nítido, buen encuadre, un gesto o una acción clara). De un clip de 3 minutos pueden salir 4 o 5 reels, o ninguno. Un clip sin revisar no se usa,
    - escribe los textos de la semana (`reels/textos/AAAA-MM-DD.json`): ganchos, frases motivacionales, narraciones y llamados a la acción, cada uno con su post,
    - genera las narraciones con Higgsfield (voz de narrador confiable),
    - corre `node fabrica/semana.mjs AAAA-MM-DD --render`,
@@ -18,7 +19,9 @@ Tus clips de Drive → 35 reels a la semana (5 al día), de máximo 10 segundos,
 3. Tú publicas en el orden de los números, con la canción en tendencia (al 10–15 % en los narrados).
 
 ## Reglas
-- **Rotación:** un clip puede repetirse, pero solo después de al menos 4 reels con clips diferentes (`fabrica/rotacion.mjs`). Si hay menos de 5 clips, se separan lo más posible y se avisa.
+- **Solo lo bueno:** cada reel sale de un tramo que Claude revisó y aprobó. Los tramos largos se parten en tomas de hasta 10 s, cortando donde cambia la escena; si una toma es corta, va en cámara lenta.
+- `seleccion.json` y `registro.json` se guardan en `3-Archivo` de Drive para no perderlos entre semanas.
+- **Rotación:** una toma puede repetirse, pero solo después de al menos 4 reels con otras tomas, y dos reels seguidos nunca salen del mismo clip si hay de dónde escoger (`fabrica/rotacion.mjs`). Si hay menos de 5 tomas, se separan lo más posible y se avisa.
 - Cuando un clip se repite, empieza en otro segundo y lleva otro texto, otra cámara y otros efectos.
 - Nunca más de 10 segundos. Sin música (la pones tú); solo whoosh e impactos suaves.
 

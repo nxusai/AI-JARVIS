@@ -7,8 +7,8 @@ import React from 'react';
 import { Easing, Img, OffthreadVideo, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { Camara as Modo } from '../tipos';
 
-export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; desdeSegundo?: number; golpeEn?: number }> = ({
-  clip, esImagen, modo, desdeSegundo = 0, golpeEn,
+export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; desdeSegundo?: number; velocidad?: number; golpeEn?: number }> = ({
+  clip, esImagen, modo, desdeSegundo = 0, velocidad = 1, golpeEn,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: d } = useVideoConfig();
@@ -54,7 +54,7 @@ export const Camara: React.FC<{ clip: string; esImagen?: boolean; modo: Modo; de
   };
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#000' }}>
-      {esImagen ? <Img src={staticFile(clip)} style={estilo} /> : <OffthreadVideo src={staticFile(clip)} startFrom={Math.round(desdeSegundo * fps)} muted style={estilo} />}
+      {esImagen ? <Img src={staticFile(clip)} style={estilo} /> : <OffthreadVideo src={staticFile(clip)} startFrom={Math.round(desdeSegundo * fps)} playbackRate={velocidad} muted style={estilo} />}
       {/* Tinte frío en las sombras, como la marca. */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(5,9,20,.55) 0%, rgba(5,9,20,.05) 35%, rgba(5,9,20,.1) 60%, rgba(5,9,20,.75) 100%)' }} />
     </div>
