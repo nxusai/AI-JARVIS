@@ -7,7 +7,7 @@ Esta tarea corre en la nube cada 2 horas (de 9 a.m. a 9 p.m., hora de Nueva York
 3. Si no hay nada que hacer, termina sin gastar créditos.
 
 ## Cómo hablar con HQ
-`POST https://nxus-hq.netlify.app/.netlify/functions/contenido-entrada` con el encabezado `x-contenido-clave: $CONTENIDO_CLAVE` (variable de entorno; nunca la imprimas).
+`POST https://nxus-hq.netlify.app/.netlify/functions/contenido-entrada` (JSON). El encabezado `x-contenido-clave` lo agrega solo el entorno de Claude (secreto de red para nxus-hq.netlify.app); no lo pongas ni lo busques. Si HQ responde 401, falta ese secreto.
 - `{"accion":"resumen"}` → `pedidos` (pendientes), `pendientes` (por aprobar o con cambio pedido), `recientes`, `anuncios` (con `leads`, `meetings`, `gastado_mes`, `recomendacion`, `motivo`, `quienes`), `topes` (zonas y **negocios** de cada mercado), `reportes` (los últimos 4).
 - `{"accion":"pedido","id":"…","estado":"en_proceso"}` antes de empezar un pedido; `"error"` con `nota` si no se pudo.
 - `{"accion":"crear","solicitud_id":"…","archivo_url":"https://…","pieza":{tipo,uso,mercado,idioma:"es",titulo,texto,idea,publicar_en}}` — `archivo_url` debe ser un link https que HQ pueda bajar (el de Higgsfield, o súbelo a Higgsfield con `media_upload` si lo renderizaste aquí). Para lo de la semana, sin `solicitud_id`.
