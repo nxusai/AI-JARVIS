@@ -1261,9 +1261,45 @@ export function iniciar(D, { muestra = false } = {}) {
     return c.tipo === 'video' ? `<video class="media ${clase}" src="${h(u)}" controls preload="metadata" playsinline></video>` : `<img class="media ${clase}" src="${h(u)}" alt="" loading="lazy">`
   }
 
+  /** Cuánto le falta a una pieza para estar en el feed y, si es anuncio, al aire. */
+  function avance(c, ad) {
+    const barras = []
+    const ahora = Date.now()
+    if (c.estado === 'aprobado' || c.estado === 'publicado') {
+      let f
+      if (c.error) f = { pct: 0, texto: 'No se pudo publicar (abajo dice por qué)', mal: true }
+      else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Facebook e Instagram' }
+      else if (c.publicar_en && new Date(c.publicar_en) > ahora) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
+      else if (!c.texto) f = { pct: 10, texto: 'Escribiendo el texto…' }
+      else if (c.ig_contenedor) f = { pct: 70, texto: 'Instagram está preparando el video…' }
+      else if (c.publicado_fb) f = { pct: 45, texto: 'Ya en Facebook · subiendo a Instagram…' }
+      else f = { pct: 20, texto: 'En fila para publicar (se revisa cada 10 min)…' }
+      barras.push({ nombre: 'Feed', ...f })
+    }
+    if (c.uso === 'anuncio' && c.tipo === 'video' && (c.estado === 'aprobado' || c.estado === 'publicado')) {
+      let a
+      if (!ad) a = { pct: 10, texto: c.reemplaza ? 'Se prepara en Meta para reemplazar al anuncio elegido (cada 15 min)…' : 'En fila para prepararse en Meta (cada 15 min)…' }
+      else if (ad.estado === 'activo') a = { pct: 100, texto: `Al aire en ${MERCADO[ad.mercado]} (${ad.codigo ?? ''})` }
+      else if (ad.estado === 'pausado' || ad.estado === 'terminado') a = { pct: 100, texto: `Ya no está al aire: ${ad.motivo}`, apagado: true }
+      else if (!ad.meta_ad_id) a = { pct: 40, texto: 'Meta está procesando el video…' }
+      else a = { pct: 80, texto: 'Listo en Meta, en pausa: falta "✓ Lanzar" en Anuncios', espera: true }
+      barras.push({ nombre: 'Anuncio', ...a })
+    }
+    return barras
+  }
+  const barrasHtml = (barras) =>
+    barras
+      .map(
+        (b) => `<div class="avance ${b.mal ? 'mal' : ''} ${b.pct === 100 && !b.apagado ? 'listo' : ''} ${b.espera ? 'espera' : ''}">
+          <div class="fila"><small><b>${b.nombre}</b> · ${h(b.texto)}</small><small>${b.pct}%</small></div>
+          <div class="barra"><i style="width:${b.pct}%"></i></div></div>`,
+      )
+      .join('')
+
+  let refresco = null
   async function vistaContenido(v) {
     titulo('Contenido')
-    const piezas = await D.contenido()
+    const [piezas, ads] = await Promise.all([D.contenido(), D.anuncios().catch(() => [])])
     const urls = await D.mediaUrls(piezas.map((c) => c.archivo)).catch(() => ({}))
     const FILTROS = { por_aprobar: 'Por aprobar', calendario: 'Calendario', publicado: 'Publicado', rechazado: 'Cambios pedidos' }
     const filtro = FILTROS[sessionStorage.getItem('hq-contenido')] ? sessionStorage.getItem('hq-contenido') : 'por_aprobar'
@@ -1280,8 +1316,7 @@ export function iniciar(D, { muestra = false } = {}) {
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
           ${c.error ? `<p class="rojo">⚠ ${h(c.error)}</p>` : ''}
-          ${c.estado === 'aprobado' && !c.error && (c.publicado_fb || c.ig_contenedor) ? '<p class="nota">⏳ Publicándose (Instagram está preparando el video).</p>' : ''}
-          ${c.estado === 'publicado' ? `<p><small>${c.publicado_fb ? '✓ Facebook' : ''}${c.publicado_ig ? ' · ✓ Instagram' : ''}</small></p>` : ''}
+          ${barrasHtml(avance(c, ads.find((a) => a.id === c.anuncio_id)))}
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
           <div class="acciones">
             ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
@@ -1299,6 +1334,10 @@ export function iniciar(D, { muestra = false } = {}) {
         .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k === 'calendario' ? 'aprobado' : k)}</small></button>`)
         .join('')}</div></div>
       ${lista.length ? `<div class="piezas">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta"><p class="vacio">${filtro === 'por_aprobar' ? 'No hay nada por aprobar.' : 'Nada aquí.'}</p></div>`}`
+    // Mientras algo se esté publicando o preparando, la pantalla se actualiza sola cada 30 segundos.
+    clearTimeout(refresco)
+    const trabajando = piezas.some((c) => avance(c, ads.find((a) => a.id === c.anuncio_id)).some((b) => b.pct > 5 && b.pct < 100 && !b.mal && !b.espera))
+    if (trabajando) refresco = setTimeout(() => location.hash === '#contenido' && !document.querySelector('#modal:not([hidden])') && mostrar(), 30000)
     const de = (id) => piezas.find((c) => c.id === id)
     $('#ct-subir', v).onclick = () => subirPropio()
     $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })

@@ -1,4 +1,4 @@
-// Cada hora: cuida los anuncios de HQ en Meta.
+// Cada 15 minutos: cuida los anuncios de HQ en Meta (y prepara solos, en pausa, los videos de anuncio aprobados).
 //  1. Trae lo gastado de cada anuncio (día por día) → HQ → Anuncios.
 //  2. El tope del mes es duro: si ya se gastó, pausa la campaña hasta el mes
 //     siguiente; si no, ajusta el presupuesto diario a lo que cabe.
@@ -8,11 +8,11 @@
 //     USD y 0 leads calificados) y lo reemplaza con el siguiente video
 //     aprobado; anota en cada anuncio el porqué. Al que funciona, Meta le pasa
 //     más presupuesto (presupuesto de campaña) y aquí se anota.
-import { ACTIVOS, gastadoMes, prepararAnuncio, presupuestoDiario, traerGasto } from '../lib/anuncios.mjs'
+import { ACTIVOS, asegurarCampana, gastadoMes, prepararAnuncio, presupuestoDiario, traerGasto } from '../lib/anuncios.mjs'
 import { graph, metaListo } from '../lib/meta.mjs'
 import { sb } from '../lib/sb.mjs'
 
-export const config = { schedule: '0 * * * *' }
+export const config = { schedule: '*/15 * * * *' }
 
 const db = (path, opts = {}) => sb(path, { servicio: true, ...opts })
 const usd = (n) => `${Number(n).toFixed(2)} USD`
@@ -109,13 +109,31 @@ async function cuidarMercado(t, lunes) {
   }
 }
 
+/** Los videos de anuncio aprobados que todavía no están en Meta se preparan solos (en pausa: no gastan hasta "✓ Lanzar"). */
+async function prepararNuevos() {
+  for (const t of await db('/rest/v1/anuncios_topes?select=*')) {
+    const m = t.mercado
+    const ads = await db(`/rest/v1/anuncios?mercado=eq.${m}&estado=in.(activo,borrador)&select=id`)
+    if (ads.length >= ACTIVOS) continue
+    const piezas = await db(`/rest/v1/contenido?uso=eq.anuncio&tipo=eq.video&estado=in.(aprobado,publicado)&mercado=in.(${m},ambos)&archivo=neq.&texto=neq.&anuncio_id=is.null&reemplaza=is.null&select=*&order=creado.asc`)
+    if (!piezas.length) continue
+    try {
+      const { conjunto } = await asegurarCampana(t)
+      for (const p of piezas.slice(0, ACTIVOS - ads.length)) await prepararAnuncio(p, { ...t }, conjunto)
+    } catch (err) {
+      await db(`/rest/v1/anuncios_topes?mercado=eq.${m}`, { method: 'PATCH', prefer: 'return=minimal', body: { aviso: `⚠ ${err.message}`.slice(0, 1000) } })
+    }
+  }
+}
+
 export default async () => {
   if (!process.env.SUPABASE_SERVICE_KEY || !metaListo()) return new Response('Meta sin conectar')
+  await prepararNuevos()
   const topes = await db('/rest/v1/anuncios_topes?campana_id=neq.&select=*')
   if (!topes.length) return new Response('sin campañas')
   await traerGasto(topes).catch((err) => console.log('gasto:', err.message))
   const ny = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date())
-  const lunes = ny.find((p) => p.type === 'weekday')?.value === 'Mon' && Number(ny.find((p) => p.type === 'hour')?.value) === 7
+  const lunes = ny.find((p) => p.type === 'weekday')?.value === 'Mon' && Number(ny.find((p) => p.type === 'hour')?.value) === 7 && new Date().getMinutes() < 15
   for (const t of topes) {
     try {
       await cuidarMercado(t, lunes)
