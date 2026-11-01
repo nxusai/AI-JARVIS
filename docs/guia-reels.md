@@ -23,7 +23,8 @@ Tus clips de Drive → 35 reels a la semana (5 al día), de máximo 10 segundos,
 - `seleccion.json` y `registro.json` se guardan en `3-Archivo` de Drive para no perderlos entre semanas.
 - **Rotación:** una toma puede repetirse, pero solo después de al menos 4 reels con otras tomas, y dos reels seguidos nunca salen del mismo clip si hay de dónde escoger (`fabrica/rotacion.mjs`). Si hay menos de 5 tomas, se separan lo más posible y se avisa.
 - Cuando un clip se repite, empieza en otro segundo y lleva otro texto, otra cámara y otros efectos.
-- Nunca más de 10 segundos. Sin música (la pones tú); solo whoosh e impactos suaves.
+- Nunca más de 10 segundos.
+- **El audio original del clip siempre va en silencio.** Sin música (la pones tú, siempre una canción en tendencia); solo narración cuando toca y whoosh e impactos suaves.
 
 ## El día
 | Hora | Tipo |
