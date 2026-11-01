@@ -141,6 +141,33 @@ export function crearSupabase({ url, anon }) {
     traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
+    // Propuestas (del prospecto) y contratos (del cliente) en PDF, en el almacenamiento privado "documentos".
+    documentos: async ({ prospecto_id, cliente_id }) => {
+      let q = tabla('documentos').select('*').order('creado', { ascending: false })
+      q = prospecto_id ? q.eq('prospecto_id', prospecto_id) : q.eq('cliente_id', cliente_id)
+      return ok(await q)
+    },
+    async subirDocumento({ tipo, prospecto_id, cliente_id }, file) {
+      const ruta = `${tipo === 'propuesta' ? 'propuestas' : 'contratos'}/${prospecto_id || cliente_id}/${crypto.randomUUID()}.pdf`
+      ok(await sb.storage.from('documentos').upload(ruta, file, { contentType: 'application/pdf', upsert: false }))
+      const fila = { tipo, nombre: file.name.slice(0, 200), ruta, tamano: file.size, ...(prospecto_id ? { prospecto_id } : { cliente_id }) }
+      try {
+        return ok(await tabla('documentos').insert(fila).select().single())
+      } catch (err) {
+        await sb.storage.from('documentos').remove([ruta])
+        throw err
+      }
+    },
+    async abrirDocumento(d) {
+      const { data, error } = await sb.storage.from('documentos').createSignedUrl(d.ruta, 60 * 10)
+      if (error) throw claro(error)
+      return data.signedUrl
+    },
+    async borrarDocumento(d) {
+      ok(await tabla('documentos').delete().eq('id', d.id))
+      await sb.storage.from('documentos').remove([d.ruta])
+    },
+
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 
     ordenar: async (texto) => (await funcion('ordenar', { texto })).ficha,

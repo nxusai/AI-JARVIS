@@ -435,6 +435,13 @@ export function iniciar(D, { muestra = false } = {}) {
     const d = din.find((x) => x.cliente_id === c.id)
     const vino = pros.find((x) => x.cliente_id === c.id)
     const suyas = tareas.filter((t) => t.cliente_id === c.id)
+    const sinDocs = { html: '', conectar() {} }
+    const [contrato, propuestas] = await Promise.all([
+      esAdmin()
+        ? seccionDocumentos({ tipo: 'contrato', cliente_id: c.id, titulo: 'Contrato <small>PDF · solo tú lo ves</small>', puedeSubir: true }).catch(() => sinDocs)
+        : sinDocs,
+      vino ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: vino.id, titulo: 'Propuestas que se le presentaron <small>PDF</small>', puedeSubir: false }).catch(() => sinDocs) : sinDocs,
+    ])
     v.innerHTML = `
       <a class="enlace" href="#clientes">← Clientes</a>
       <div class="ficha">
@@ -458,10 +465,14 @@ export function iniciar(D, { muestra = false } = {}) {
                 ${d?.notas ? `<p>${h(d.notas)}</p>` : ''}<button class="btn" id="cl-dinero">Cambiar</button></div>`
             : ''
         }
+        ${contrato.html}
+        ${propuestas.html}
         <div class="tarjeta"><div class="fila"><h3>Tareas</h3><button class="btn chico" id="cl-tarea">+ Tarea</button></div>
           ${suyas.length ? `<ul class="lista tareas">${suyas.map((t) => `<li><span class="chip ${t.estado}">${TAREA[t.estado]}</span><b>${h(t.titulo)}</b><small>${h(nombreDe(t.asignado))}${t.vence ? ` · vence ${fechaCorta(t.vence)}` : ''}</small></li>`).join('')}</ul>` : '<p class="vacio">Sin tareas que puedas ver.</p>'}
         </div>
       </div>`
+    contrato.conectar(v)
+    propuestas.conectar(v)
     $('#cl-editar', v)?.addEventListener('click', () => editarCliente(c))
     $('#cl-dinero', v)?.addEventListener('click', () => editarDinero(c, d))
     $('#cl-tarea', v).onclick = () => editarTarea({ cliente_id: c.id })
@@ -637,6 +648,53 @@ export function iniciar(D, { muestra = false } = {}) {
     const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte', p.pros_pagos && 've pagos'].filter(Boolean)
     return `<small>${p.pros_ver === 'todos' ? 'Todos' : 'Los suyos'}${puede.length ? ` · ${puede.join(', ')}` : ''}${p.codigo ? ` · link: ${h(p.codigo)}` : ''}</small>`
   }
+  /**
+   * Los PDF de un prospecto (propuestas) o de un cliente (contrato): lista, subir, abrir y, solo el admin, borrar.
+   * Devuelve el HTML y una función para conectarlo cuando ya esté en la página.
+   */
+  async function seccionDocumentos({ tipo, prospecto_id, cliente_id, titulo: t, puedeSubir, nota }) {
+    const docs = await D.documentos({ prospecto_id, cliente_id })
+    const peso = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`)
+    const clave = `doc-${tipo}`
+    const html = `<div class="tarjeta ancho-total documentos"><div class="fila"><h3>${t}</h3>${puedeSubir ? `<label class="btn chico primario subir">⬆ Subir PDF<input type="file" accept="application/pdf" id="${clave}" hidden></label>` : ''}</div>
+      ${nota ? `<p class="nota">${nota}</p>` : ''}
+      ${
+        docs.length
+          ? `<ul class="lista tareas">${docs
+              .map((d) => `<li><span class="chip">📄 PDF</span><button class="enlace" data-abrir="${d.id}">${h(d.nombre)}</button><small>${fechaCorta(d.creado)} · ${h(nombreDe(d.subido_por))} · ${peso(d.tamano)}</small>${esAdmin() ? `<button class="enlace rojo" data-borrar-doc="${d.id}">Borrar</button>` : ''}</li>`)
+              .join('')}</ul>`
+          : `<p class="vacio">Todavía no hay ${tipo === 'contrato' ? 'contrato' : 'propuestas'}.</p>`
+      }</div>`
+    const conectar = (v) => {
+      $(`#${clave}`, v)?.addEventListener('change', async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        if (file.type !== 'application/pdf') return aviso('Solo PDF', 'mal')
+        if (file.size > 20 * 1048576) return aviso('El PDF pesa más de 20 MB', 'mal')
+        aviso('Subiendo…')
+        if (await intenta(() => D.subirDocumento({ tipo, prospecto_id, cliente_id }, file), 'PDF guardado')) mostrar()
+      })
+      $$('[data-abrir]', v).forEach(
+        (b) =>
+          (b.onclick = async () => {
+            // La ventana se abre antes de pedir el link para que el navegador no la bloquee.
+            const w = open('', '_blank')
+            const url = await intenta(() => D.abrirDocumento(docs.find((d) => d.id === b.dataset.abrir)))
+            if (url && w) w.location = url
+            else w?.close()
+          }),
+      )
+      $$('[data-borrar-doc]', v).forEach(
+        (b) =>
+          (b.onclick = async () => {
+            const d = docs.find((x) => x.id === b.dataset.borrarDoc)
+            if (confirm(`¿Borrar "${d.nombre}"? No se puede deshacer.`) && (await intenta(() => D.borrarDocumento(d), 'PDF borrado')) !== undefined) mostrar()
+          }),
+      )
+    }
+    return { html, conectar }
+  }
+
   /** El botón para entrar al Google Meet de la cita (desde 2 horas después de empezada ya no sale). */
   const botonMeet = (x, clase = 'primario') =>
     x?.meet && x.cita && new Date(x.cita).getTime() > Date.now() - 2 * 3600e3
@@ -721,7 +779,13 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   async function vistaProspecto(v, pid) {
-    const [pros, notas, pagos, leads] = await Promise.all([D.prospectos(), D.notasProspecto(pid), puedePros('pagos') ? D.pagosProspectos() : [], D.leads().catch(() => [])])
+    const [pros, notas, pagos, leads, propuestas] = await Promise.all([
+      D.prospectos(),
+      D.notasProspecto(pid),
+      puedePros('pagos') ? D.pagosProspectos() : [],
+      D.leads().catch(() => []),
+      seccionDocumentos({ tipo: 'propuesta', prospecto_id: pid, titulo: 'Propuestas <small>PDF</small>', puedeSubir: puedePros('trabajar'), nota: 'Las propuestas que se le presentan en el meeting.' }).catch(() => ({ html: '', conectar() {} })),
+    ])
     const x = pros.find((p) => p.id === pid)
     if (!x) {
       titulo('Prospecto')
@@ -781,12 +845,14 @@ export function iniciar(D, { muestra = false } = {}) {
           }
           ${puedePros('pagos') ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
         </div>
+        ${propuestas.html}
         <div class="tarjeta ancho-total">
           <h3>Notas <small>no se borran ni se cambian</small></h3>
           ${notas.length ? `<ul class="lista notas">${notas.map((n) => `<li><b>${h(nombreDe(n.autor))}</b><small>${fechaCorta(n.creada)} ${hora(n.creada)}</small><p>${h(n.texto)}</p></li>`).join('')}</ul>` : '<p class="vacio">Sin notas todavía.</p>'}
           ${puedePros('trabajar') ? `<form id="px-nota"><textarea name="texto" rows="2" maxlength="2000" required placeholder="Qué pasó: le llamé, le mandé un caso, pidió precio…"></textarea><div class="acciones"><button class="btn">Agregar nota</button></div></form>` : ''}
         </div>
       </div>`
+    propuestas.conectar(v)
     const guardar = async (cambio, bien) => (await intenta(() => D.guardarProspecto({ id: x.id, ...cambio }), bien)) && mostrar()
     $('#px-etapa', v)?.addEventListener('change', async (e) => {
       if (e.target.value === 'perdido') {

@@ -49,6 +49,7 @@ const db = {
   prospectos_pagos: [],
   leads: [],
   leads_notas: [],
+  documentos: [],
 }
 
 const cliente = (c, dinero) => {
@@ -389,6 +390,25 @@ export function crearMuestra() {
       Object.assign(l, { estado: 'agendado', motivo: '', prospecto_id: p.id, actualizado: new Date().toISOString() })
       anotar('insert', 'prospectos', p.id)
       return p.id
+    },
+
+    // Documentos en PDF: las mismas reglas que la base de datos.
+    documentos: ({ prospecto_id, cliente_id }) =>
+      espera(
+        db.documentos.filter((d) =>
+          prospecto_id ? d.prospecto_id === prospecto_id && veProspecto(db.prospectos.find((p) => p.id === prospecto_id)) : d.cliente_id === cliente_id && admin(),
+        ),
+      ),
+    async subirDocumento({ tipo, prospecto_id, cliente_id }, file) {
+      if (tipo === 'contrato' ? !admin() : !puede('trabajar')) nunca()
+      const d = { id: id(), tipo, prospecto_id: prospecto_id ?? null, cliente_id: cliente_id ?? null, nombre: file.name, ruta: URL.createObjectURL(file), tamano: file.size, subido_por: yo.id, creado: new Date().toISOString() }
+      db.documentos.unshift(d)
+      return copia(d)
+    },
+    abrirDocumento: async (d) => d.ruta,
+    async borrarDocumento(d) {
+      if (!admin()) nunca()
+      db.documentos = db.documentos.filter((x) => x.id !== d.id)
     },
 
     bitacora: () => espera(admin() ? db.bitacora : []),

@@ -870,3 +870,72 @@ create policy leads_notas_ver on public.leads_notas for select to authenticated
 create policy leads_notas_crear on public.leads_notas for insert to authenticated
   with check (pros_puede('trabajar') and exists (select 1 from leads l where l.id = lead_id));
 create policy leads_notas_borrar on public.leads_notas for delete to authenticated using (es_admin());
+
+-- ---------------------------------------------------------------------------
+-- Documentos en PDF: las propuestas de cada prospecto (las sube quien lo
+-- trabaja y las ve quien ve ese prospecto) y el contrato de cada cliente (lo
+-- sube y lo ve solo el admin, como el dinero). Los archivos viven en el
+-- almacenamiento privado "documentos"; solo se abren con un link temporal.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.documentos (
+  id uuid primary key default gen_random_uuid(),
+  tipo text not null check (tipo in ('propuesta', 'contrato')),
+  prospecto_id uuid references public.prospectos (id) on delete cascade,
+  cliente_id uuid references public.clientes (id) on delete cascade,
+  nombre text not null check (char_length(nombre) between 1 and 200),
+  ruta text not null unique, -- en el almacenamiento "documentos"
+  tamano int not null default 0 check (tamano >= 0),
+  subido_por uuid references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now(),
+  check ((tipo = 'propuesta' and prospecto_id is not null) or (tipo = 'contrato' and cliente_id is not null))
+);
+create index if not exists documentos_prospecto on public.documentos (prospecto_id, creado desc);
+create index if not exists documentos_cliente on public.documentos (cliente_id, creado desc);
+
+create or replace function public.antes_documento() returns trigger
+language plpgsql as $$
+begin
+  if not es_sistema() then new.subido_por := auth.uid(); end if;
+  new.creado := now();
+  return new;
+end $$;
+
+drop trigger if exists hq_antes_documento on public.documentos;
+create trigger hq_antes_documento before insert on public.documentos
+  for each row execute function public.antes_documento();
+
+drop trigger if exists hq_bitacora on public.documentos;
+create trigger hq_bitacora after insert or update or delete on public.documentos
+  for each row execute function public.anotar_cambio();
+
+alter table public.documentos enable row level security;
+
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'documentos' loop
+    execute format('drop policy if exists %I on public.documentos', r.policyname);
+  end loop;
+end $$;
+
+create policy documentos_ver on public.documentos for select to authenticated using (
+  (tipo = 'propuesta' and exists (select 1 from prospectos p where p.id = prospecto_id))
+  or (tipo = 'contrato' and es_admin()));
+create policy documentos_subir on public.documentos for insert to authenticated with check (
+  (tipo = 'propuesta' and pros_puede('trabajar') and exists (select 1 from prospectos p where p.id = prospecto_id))
+  or (tipo = 'contrato' and es_admin()));
+create policy documentos_borrar on public.documentos for delete to authenticated using (es_admin());
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('documentos', 'documentos', false, 20971520, array['application/pdf'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists hq_documentos_ver on storage.objects;
+create policy hq_documentos_ver on storage.objects for select to authenticated
+  using (bucket_id = 'documentos' and exists (select 1 from documentos d where d.ruta = name));
+drop policy if exists hq_documentos_subir on storage.objects;
+create policy hq_documentos_subir on storage.objects for insert to authenticated
+  with check (bucket_id = 'documentos' and ((name like 'propuestas/%' and pros_puede('trabajar')) or es_admin()));
+drop policy if exists hq_documentos_borrar on storage.objects;
+create policy hq_documentos_borrar on storage.objects for delete to authenticated using (bucket_id = 'documentos' and es_admin());

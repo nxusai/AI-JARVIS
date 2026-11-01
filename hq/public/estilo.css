@@ -253,6 +253,9 @@ pre.transcripcion { white-space: pre-wrap; font: 13px/1.5 inherit; font-family: 
 #ld-nota textarea { width: 100%; margin-top: 10px; }
 .segmento.lengua { margin: 4px 0 6px; }
 .segmento.lengua button { padding: 5px 12px; font-size: 13px; }
+.documentos .lista li { align-items: center; }
+.documentos .enlace.rojo { margin-left: auto; }
+label.btn.subir { cursor: pointer; }
 .btn.meet { display: inline-flex; gap: 6px; align-items: center; }
 .lista li .btn.meet { margin-left: auto; }
 @media (max-width: 860px) {
