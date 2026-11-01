@@ -452,6 +452,7 @@ export function crearMuestra() {
     async borrarDocumento(d) {
       if (!admin()) nunca()
       db.documentos = db.documentos.filter((x) => x.id !== d.id)
+      return true
     },
 
     contenido: () => espera(admin() ? db.contenido : []),
@@ -462,6 +463,7 @@ export function crearMuestra() {
     async borrarContenido(c) {
       if (!admin()) nunca()
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
+      return true
     },
     async accionAnuncios(accion, mercado) {
       if (!admin()) nunca()
@@ -499,6 +501,7 @@ export function crearMuestra() {
     },
     async borrarSolicitud(sid) {
       db.solicitudes = db.solicitudes.filter((x) => x.id !== sid)
+      return true
     },
     reportesAnuncios: () => espera(admin() ? db.anuncios_reportes : []),
 

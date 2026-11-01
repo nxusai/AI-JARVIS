@@ -277,6 +277,7 @@ label.btn.subir { cursor: pointer; }
 .mercado .meta { margin-top: 6px; }
 .reporte dl.puntos { grid-template-columns: max-content 1fr; }
 h2.grupo small { text-transform: none; letter-spacing: 0; }
+#vista.actualizando { opacity: 0.75; transition: opacity 0.15s; pointer-events: none; }
 .avance { margin: 4px 0; }
 .avance .barra { height: 8px; background: var(--panel2); border-radius: 999px; overflow: hidden; margin-top: 3px; }
 .avance .barra i { display: block; height: 100%; background: var(--grad); border-radius: 999px; transition: width 0.6s; }

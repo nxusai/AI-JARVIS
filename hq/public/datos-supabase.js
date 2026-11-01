@@ -25,6 +25,7 @@ const LEAD_LISTA =
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
   const fotos = new Map()
+  const medios = new Map()
 
   async function funcion(nombre, body) {
     const { data } = await sb.auth.getSession()
@@ -166,6 +167,7 @@ export function crearSupabase({ url, anon }) {
     async borrarDocumento(d) {
       ok(await tabla('documentos').delete().eq('id', d.id))
       await sb.storage.from('documentos').remove([d.ruta])
+      return true
     },
 
     // Contenido y anuncios (solo el admin).
@@ -199,13 +201,17 @@ export function crearSupabase({ url, anon }) {
     async borrarContenido(c) {
       ok(await tabla('contenido').delete().eq('id', c.id))
       if (c.archivo) await sb.storage.from('contenido').remove([c.archivo])
+      return true
     },
-    /** Links temporales para ver las fotos y videos: { ruta: url }. */
+    /** Links temporales para ver las fotos y videos: { ruta: url }. Se guardan 50 minutos (el link dura 1 hora): sin volver a pedirlos ni a bajar el video. */
     async mediaUrls(rutas) {
       const r = [...new Set(rutas.filter(Boolean))]
-      if (!r.length) return {}
-      const { data } = await sb.storage.from('contenido').createSignedUrls(r, 60 * 60)
-      return Object.fromEntries((data ?? []).filter((x) => x.signedUrl).map((x) => [x.path, x.signedUrl]))
+      const faltan = r.filter((x) => !(medios.get(x)?.hasta > Date.now()))
+      if (faltan.length) {
+        const { data } = await sb.storage.from('contenido').createSignedUrls(faltan, 60 * 60)
+        for (const x of data ?? []) if (x.signedUrl) medios.set(x.path, { url: x.signedUrl, hasta: Date.now() + 50 * 60e3 })
+      }
+      return Object.fromEntries(r.filter((x) => medios.has(x)).map((x) => [x, medios.get(x).url]))
     },
     anuncios: async () => ok(await tabla('anuncios').select('*').order('creado', { ascending: false })),
     gastoAnuncios: async (desde) => ok(await tabla('anuncios_gasto').select('*').gte('dia', desde)),

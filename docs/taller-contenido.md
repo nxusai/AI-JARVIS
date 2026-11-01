@@ -13,6 +13,8 @@ Esta tarea corre en la nube cada 2 horas (de 9 a.m. a 9 p.m., hora de Nueva York
 - `{"accion":"crear","solicitud_id":"…","archivo_url":"https://…","pieza":{tipo,uso,mercado,idioma:"es",titulo,texto,idea,publicar_en}}` — `archivo_url` debe ser un link https que HQ pueda bajar (el de Higgsfield, o súbelo a Higgsfield con `media_upload` si lo renderizaste aquí). Para lo de la semana, sin `solicitud_id`.
 - `{"accion":"reporte","reporte":{semana,mercado,resumen,funciono,no_funciono,decisiones,siguiente}}` — en español.
 
+- `{"accion":"rehacer","id":"…","archivo_url":"https://…","texto":"…","idea":"…"}` — para las piezas de `pendientes` con estado `rechazado` y `comentario` que empieza con `[video]`: rehaz el video con ese cambio (el texto también si hace falta) y vuelve a quedar por aprobar. Las de solo texto ya las rehace HQ al momento.
+
 ## El estilo (lo que Eduardo pidió)
 - **Cinematic animation, kinetic type, morphing shapes, 3D elements, fluid camera moves**: las letras se estiran, la cámara sigue el texto, formas que se transforman. Colores y logo de NXUS AI (marca en Bloom).
 - **Mixto**: tomas de **Higgsfield** (escenas de negocios; con y sin personas generadas por IA: dueño, empleado, cliente) como fondo, y encima la animación cinética con el texto, hecha en **Remotion + Three.js** con el kit de `bridge/efectos/kit` (TextoCinetico, Titulo3D, Logo3D, Destello, VideoZoom, Contador, Subtitulos). El texto en pantalla siempre lo pone Remotion (la IA de video deforma las letras).

@@ -179,6 +179,21 @@ export function iniciar(D, { muestra = false } = {}) {
     $('.fondo', modal).onclick = cerrarModal
     $$('[data-cerrar]', modal).forEach((b) => (b.onclick = cerrarModal))
     alMontar?.($('.caja', modal))
+    // Un solo envío a la vez: el botón se bloquea mientras trabaja (evita guardar o subir dos veces).
+    $$('form', modal).forEach((f) =>
+      f.addEventListener('submit', () => {
+        const b = $('button:not([type=button])', f)
+        if (!b) return
+        const antes = b.textContent
+        b.disabled = true
+        b.textContent = 'Un momento…'
+        setTimeout(() => {
+          if (!b.isConnected) return
+          b.disabled = false
+          b.textContent = antes
+        }, 6000)
+      }),
+    )
     $('input, textarea, select', modal)?.focus()
   }
   function cerrarModal() {
@@ -329,14 +344,20 @@ export function iniciar(D, { muestra = false } = {}) {
     const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : ruta === 'prospecto' && vePros() ? 'prospectos' : ruta === 'lead' && vePros() ? 'leads' : 'inicio'
     $$('[data-ir]').forEach((a) => a.classList.toggle('activa', a.dataset.ir === sec))
     const vista = $('#vista')
-    vista.innerHTML = '<div class="cargando">Cargando…</div>'
+    // Si sigues en la misma pantalla (guardar, aprobar, borrar), no se borra: se cambia cuando llega lo nuevo.
+    const misma = vista.dataset.ruta === location.hash && vista.children.length
+    vista.dataset.ruta = location.hash
+    if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
+    else vista.classList.add('actualizando')
     const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, contenido: vistaContenido, anuncios: vistaAnuncios, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
       else if (ruta === 'lead' && arg && vePros()) await vistaLead(vista, arg)
       else await VISTAS[sec](vista)
+      vista.classList.remove('actualizando')
     } catch (err) {
+      vista.classList.remove('actualizando')
       if (/leads/.test(err.message) && /schema cache|does not exist|relation/i.test(err.message))
         return (vista.innerHTML = `<div class="tarjeta"><h3>Falta un paso en Supabase</h3><p>Leads y Cartera ya están en la página, pero la base de datos todavía no tiene su lugar. En Supabase → <b>SQL Editor</b> → <b>New query</b>, pega todo <code>hq/supabase/esquema.sql</code> y dale <b>Run</b>.</p></div>`)
       vista.innerHTML = `<p class="error">${h(err.message)}</p>`
@@ -1296,6 +1317,39 @@ export function iniciar(D, { muestra = false } = {}) {
       )
       .join('')
 
+  /** ✎ Pedir cambio: el texto se rehace al momento; el video (solo los que hizo el taller) se rehace en la siguiente vuelta. */
+  function pedirCambio(c) {
+    const propio = /subió Eduardo/i.test(c.idea) || String(c.archivo).startsWith('propios/')
+    const puedeVideo = c.tipo === 'video' && !propio
+    abrirModal(
+      `<form id="f-cambio"><h2>✎ ¿Qué le cambio?</h2>
+        <div class="campos">
+          ${puedeVideo ? `<label class="ancho">Qué cambiar<select name="que"><option value="texto">Solo el texto (al momento)</option><option value="video">El video (lo rehago en el taller, unas horas)</option></select></label>` : ''}
+          <label class="ancho">Tu cambio<textarea name="cambio" rows="3" maxlength="1000" required placeholder="Ej.: que el CTA diga OPERACIONES, más corto, que hable de franquicias…"></textarea></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Hacer el cambio</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-cambio', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const cambio = d.cambio.trim().slice(0, 1000)
+          if (d.que === 'video') {
+            if (await intenta(() => D.guardarContenido({ id: c.id, estado: 'rechazado', comentario: `[video] ${cambio}` }), 'Listo: rehago el video en el taller (pestaña "Cambios pedidos")')) {
+              cerrarModal()
+              mostrar()
+            }
+            return
+          }
+          if (!(await intenta(() => D.guardarContenido({ id: c.id, comentario: cambio })))) return
+          cerrarModal()
+          aviso('Rehaciendo el texto…')
+          await intenta(() => D.redactarContenido(c.id), 'Texto actualizado')
+          mostrar()
+        }
+      },
+    )
+  }
+
   let refresco = null
   async function vistaContenido(v) {
     titulo('Contenido')
@@ -1320,7 +1374,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
           <div class="acciones">
             ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
-            ${c.estado === 'por_aprobar' || c.estado === 'aprobado' ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
+            ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
@@ -1343,14 +1397,7 @@ export function iniciar(D, { muestra = false } = {}) {
     $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })
     $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
     $$('[data-aprobar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.aprobar, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')) && mostrar()))
-    $$('[data-cambio]', v).forEach(
-      (b) =>
-        (b.onclick = async () => {
-          const c = de(b.dataset.cambio)
-          const t = prompt('¿Qué le cambio? (texto, imagen, fecha…)', c.comentario || '')
-          if (t?.trim() && (await intenta(() => D.guardarContenido({ id: c.id, estado: 'rechazado', comentario: t.trim().slice(0, 2000) }), 'Listo: lo rehago con tu cambio'))) mostrar()
-        }),
-    )
+    $$('[data-cambio]', v).forEach((b) => (b.onclick = () => pedirCambio(de(b.dataset.cambio))))
     $$('[data-fecha]', v).forEach(
       (b) =>
         (b.onclick = () => {

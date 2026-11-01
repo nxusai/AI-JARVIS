@@ -84,6 +84,19 @@ export default async (req) => {
       return json({ ok: true, id: rep.id })
     }
 
+    if (b.accion === 'rehacer') {
+      // Una pieza con cambio pedido en el video: nuevo archivo (y texto), y vuelve a "por aprobar".
+      if (!/^[0-9a-f-]{36}$/i.test(String(b.id ?? ''))) return json({ ok: false, error: 'falta id' }, 400)
+      const [c] = await sb(`/rest/v1/contenido?id=eq.${b.id}&select=id,tipo,archivo`, { servicio: true })
+      if (!c) return json({ ok: false, error: 'no existe' }, 404)
+      const cambio = { estado: 'por_aprobar', comentario: '', error: '' }
+      if (b.archivo_url) cambio.archivo = await guardarArchivo(b.archivo_url, c.tipo)
+      if (b.texto) cambio.texto = texto(b.texto, 2200)
+      if (b.idea) cambio.idea = texto(b.idea, 2000)
+      await sb(`/rest/v1/contenido?id=eq.${c.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: cambio })
+      return json({ ok: true })
+    }
+
     if (b.accion === 'pedido') {
       if (!/^[0-9a-f-]{36}$/i.test(String(b.id ?? ''))) return json({ ok: false, error: 'falta id' }, 400)
       await sb(`/rest/v1/solicitudes?id=eq.${b.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: uno(b.estado, ['en_proceso', 'error', 'pendiente'], 'en_proceso'), nota: texto(b.nota, 1000) } })
