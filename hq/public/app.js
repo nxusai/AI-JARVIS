@@ -1273,7 +1273,7 @@ export function iniciar(D, { muestra = false } = {}) {
 
   const MERCADO = { usa: 'USA', mexico: 'México', ambos: 'USA y México' }
   const ESTADO_PIEZA = { por_aprobar: 'Por aprobar', aprobado: 'Aprobado', publicado: 'Publicado', rechazado: 'Cambio pedido' }
-  const ESTADO_AD = { borrador: 'Borrador', activo: 'Activo', pausado: 'Tumbado', terminado: 'Terminado' }
+  const ESTADO_AD = { borrador: 'Preparando', activo: 'Al aire', pausado: 'Apagado', terminado: 'Terminado' }
   const usd = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   /** La foto o el video de una pieza (o un recuadro si todavía no hay archivo). */
   const media = (c, urls, clase = '') => {
@@ -1282,29 +1282,53 @@ export function iniciar(D, { muestra = false } = {}) {
     return c.tipo === 'video' ? `<video class="media ${clase}" src="${h(u)}" controls preload="metadata" playsinline></video>` : `<img class="media ${clase}" src="${h(u)}" alt="" loading="lazy">`
   }
 
+  /** Los anuncios de una pieza (uno por mercado). */
+  const adsDe = (c, ads) => ads.filter((a) => a.contenido_id === c.id || (!a.contenido_id && a.id === c.anuncio_id))
+  /** Dónde ya salió: ✓ Feed IG · ✓ Feed FB · ✓ Ad Meta (y en gris lo que falta). */
+  function dondeSalio(c, ads) {
+    if (!['aprobado', 'publicado'].includes(c.estado)) return ''
+    const chip = (hecho, texto) => `<span class="chip ${hecho ? 'hecha' : 'pendiente'}">${hecho ? '✓' : '◌'} ${texto}</span>`
+    const out = [chip(!!c.publicado_ig, 'Feed IG'), chip(!!c.publicado_fb, 'Feed FB')]
+    if (c.uso === 'anuncio' && c.tipo === 'video') {
+      const mercados = c.mercado === 'ambos' ? ['usa', 'mexico'] : [c.mercado]
+      for (const m of mercados) {
+        const ad = adsDe(c, ads).find((a) => a.mercado === m)
+        out.push(chip(ad?.estado === 'activo', `Ad Meta ${MERCADO[m]}${ad?.codigo ? ` (${ad.codigo})` : ''}${ad && ['pausado', 'terminado'].includes(ad.estado) ? ' · ya no' : ''}`))
+      }
+    }
+    return `<div class="fila chips donde">${out.join('')}</div>`
+  }
+
   /** Cuánto le falta a una pieza para estar en el feed y, si es anuncio, al aire. */
-  function avance(c, ad) {
+  function avance(c, ads) {
     const barras = []
     const ahora = Date.now()
+    const programado = c.publicar_en && new Date(c.publicar_en) > ahora
     if (c.estado === 'aprobado' || c.estado === 'publicado') {
       let f
       if (c.error) f = { pct: 0, texto: 'No se pudo publicar (abajo dice por qué)', mal: true }
-      else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Facebook e Instagram' }
-      else if (c.publicar_en && new Date(c.publicar_en) > ahora) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
+      else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Instagram y Facebook' }
+      else if (programado) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
       else if (!c.texto) f = { pct: 10, texto: 'Escribiendo el texto…' }
-      else if (c.ig_contenedor) f = { pct: 70, texto: 'Instagram está preparando el video…' }
-      else if (c.publicado_fb) f = { pct: 45, texto: 'Ya en Facebook · subiendo a Instagram…' }
-      else f = { pct: 20, texto: 'En fila para publicar (se revisa cada 10 min)…' }
+      else if (c.ig_contenedor) f = { pct: 70, texto: 'Ya en Facebook · Instagram está preparando el video…' }
+      else if (c.publicado_fb) f = { pct: 50, texto: 'Ya en Facebook · subiendo a Instagram…' }
+      else f = { pct: 20, texto: 'Publicando…' }
       barras.push({ nombre: 'Feed', ...f })
     }
     if (c.uso === 'anuncio' && c.tipo === 'video' && (c.estado === 'aprobado' || c.estado === 'publicado')) {
-      let a
-      if (!ad) a = { pct: 10, texto: c.reemplaza ? 'Se prepara en Meta para reemplazar al anuncio elegido (cada 15 min)…' : 'En fila para prepararse en Meta (cada 15 min)…' }
-      else if (ad.estado === 'activo') a = { pct: 100, texto: `Al aire en ${MERCADO[ad.mercado]} (${ad.codigo ?? ''})` }
-      else if (ad.estado === 'pausado' || ad.estado === 'terminado') a = { pct: 100, texto: `Ya no está al aire: ${ad.motivo}`, apagado: true }
-      else if (!ad.meta_ad_id) a = { pct: 40, texto: 'Meta está procesando el video…' }
-      else a = { pct: 80, texto: 'Listo en Meta, en pausa: falta "✓ Lanzar" en Anuncios', espera: true }
-      barras.push({ nombre: 'Anuncio', ...a })
+      const mercados = c.mercado === 'ambos' ? ['usa', 'mexico'] : [c.mercado]
+      for (const m of mercados) {
+        const ad = adsDe(c, ads).find((x) => x.mercado === m)
+        let a
+        if (!ad) a = { pct: 10, texto: c.texto ? 'Subiendo el video a Meta…' : 'Esperando el texto…' }
+        else if (ad.estado === 'activo') a = { pct: 100, texto: `Al aire (${ad.codigo ?? ''})` }
+        else if (ad.estado === 'pausado' || ad.estado === 'terminado') a = { pct: 100, texto: `Ya no está al aire: ${ad.motivo}`, apagado: true }
+        else if (/^⚠/.test(ad.motivo)) a = { pct: 30, texto: ad.motivo, mal: true }
+        else if (!ad.meta_ad_id) a = { pct: 40, texto: 'Meta está procesando el video…' }
+        else if (programado) a = { pct: 80, texto: `Listo en Meta · sale al aire el ${fechaHora(c.publicar_en)}`, espera: true }
+        else a = { pct: 90, texto: ad.motivo || 'Saliendo al aire…', espera: /pausaste|tope/.test(ad.motivo) }
+        barras.push({ nombre: `Anuncio ${MERCADO[m]}`, ...a })
+      }
     }
     return barras
   }
@@ -1365,16 +1389,17 @@ export function iniciar(D, { muestra = false } = {}) {
           <div class="fila chips"><span class="chip">${c.tipo === 'video' ? '🎬 Video' : '🖼 Foto'}</span><span class="chip ${c.uso === 'anuncio' ? 'sistema' : ''}">${c.uso === 'anuncio' ? 'Anuncio + feed' : 'Feed'}</span><span class="chip">${MERCADO[c.mercado]}</span><span class="chip contenido-${c.estado}">${ESTADO_PIEZA[c.estado]}</span></div>
           ${c.titulo ? `<h3>${h(c.titulo)}</h3>` : ''}
           ${c.objetivo ? `<p class="nota">🎯 ${h(c.objetivo)}</p>` : ''}
-          ${c.reemplaza && !c.anuncio_id ? '<p class="nota">🔁 Al aprobarlo, reemplaza al anuncio que se recomendó cambiar.</p>' : ''}
+          ${c.reemplaza && !adsDe(c, ads).length ? '<p class="nota">🔁 Al aprobarlo, reemplaza al anuncio que se recomendó cambiar.</p>' : ''}
           <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario.replace(/^\[video\] /, ''))}${c.comentario.startsWith('[video]') ? ' · lo rehago en el taller (próximas horas)' : ''}</p>` : ''}
           ${c.error ? `<p class="rojo">⚠ ${h(c.error)}</p>` : ''}
-          ${barrasHtml(avance(c, ads.find((a) => a.id === c.anuncio_id)))}
+          ${dondeSalio(c, ads)}
+          ${barrasHtml(avance(c, ads))}
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
           <div class="acciones">
             ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">${c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]') ? '✦ Aplicar cambio y aprobar' : '✓ Aprobar'}</button>` : ''}
-            ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
+            ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor && !adsDe(c, ads).some((a) => a.meta_creative_id) ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
@@ -1383,15 +1408,15 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
       </div>`
     v.innerHTML = `
-      <p class="nota">Cada semana se crean las fotos del feed y los videos de los anuncios. Tú los apruebas o pides cambios; lo aprobado se publica solo en su fecha. Los videos de anuncio también salen al feed.</p>
+      <p class="nota">Cada semana se crean las fotos del feed y los videos de los anuncios. Tú los apruebas o pides cambios. Lo aprobado sin fecha sale al momento; con fecha, en su fecha. Los videos de anuncio salen al feed (Instagram y Facebook) y como anuncio en Meta, una sola vez cada uno.</p>
       <div class="acciones"><button class="btn primario" id="ct-subir">⬆ Subir mi foto o video</button><button class="btn" id="ct-pedir">✦ Pedir un video para el feed</button><div class="segmento">${Object.entries(FILTROS)
         .map(([k, t]) => `<button data-cf="${k}" class="${filtro === k ? 'on' : ''}">${t} <small>${cuenta(k === 'calendario' ? 'aprobado' : k)}</small></button>`)
         .join('')}</div></div>
       ${lista.length ? `<div class="piezas">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta"><p class="vacio">${filtro === 'por_aprobar' ? 'No hay nada por aprobar.' : 'Nada aquí.'}</p></div>`}`
     // Mientras algo se esté publicando o preparando, la pantalla se actualiza sola cada 30 segundos.
     clearTimeout(refresco)
-    const trabajando = piezas.some((c) => avance(c, ads.find((a) => a.id === c.anuncio_id)).some((b) => b.pct > 5 && b.pct < 100 && !b.mal && !b.espera))
-    if (trabajando) refresco = setTimeout(() => location.hash === '#contenido' && !document.querySelector('#modal:not([hidden])') && mostrar(), 30000)
+    const trabajando = piezas.some((c) => avance(c, ads).some((b) => b.pct > 5 && b.pct < 100 && !b.mal && !b.espera))
+    if (trabajando) refresco = setTimeout(() => location.hash === '#contenido' && !document.querySelector('#modal:not([hidden])') && mostrar(), 15000)
     const de = (id) => piezas.find((c) => c.id === id)
     $('#ct-subir', v).onclick = () => subirPropio()
     $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })
@@ -1405,7 +1430,7 @@ export function iniciar(D, { muestra = false } = {}) {
           if (c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]')) {
             b.textContent = 'Aplicando tu cambio…'
             if (await intenta(() => D.redactarContenido(c.id))) await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Cambio aplicado y aprobado')
-          } else await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')
+          } else await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), c.publicar_en && new Date(c.publicar_en) > Date.now() ? 'Aprobado: sale en su fecha' : 'Aprobado: saliendo ya')
           mostrar()
         }),
     )
@@ -1430,7 +1455,7 @@ export function iniciar(D, { muestra = false } = {}) {
           )
         }),
     )
-    $$('[data-reintentar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.reintentar, error: '' }), 'Se vuelve a intentar en los próximos 10 minutos')) && mostrar()))
+    $$('[data-reintentar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.reintentar, error: '' }), 'Reintentando ahora')) && mostrar()))
     $$('[data-redactar]', v).forEach(
       (b) =>
         (b.onclick = async () => {
@@ -1453,7 +1478,7 @@ export function iniciar(D, { muestra = false } = {}) {
   function subirPropio(pre = {}) {
     abrirModal(
       `<form id="f-propio"><h2>⬆ Subir mi foto o video</h2>
-        <p class="nota">Queda aprobado. Si es anuncio, se pauta con las mismas reglas (3 activos por mercado, tope del mes) y también sale al feed.</p>
+        <p class="nota">Queda aprobado. Sin fecha, sale al momento: al feed (Instagram y Facebook) y, si es anuncio, al aire en Meta dentro del tope del mes.</p>
         <div class="campos">
           <label class="ancho">Archivo (foto JPG/PNG o video MP4/MOV, hasta 50 MB)<input name="archivo" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" required></label>
           <label>Para<select name="uso"><option value="anuncio">Anuncio (y feed)</option><option value="feed" ${pre.uso === 'feed' ? 'selected' : ''}>Solo feed</option></select></label>
@@ -1461,7 +1486,7 @@ export function iniciar(D, { muestra = false } = {}) {
           ${pre.reemplaza ? `<p class="nota ancho">Al aprobarlo, reemplaza al anuncio ${h(pre.codigo || '')}.</p>` : ''}
           <label class="ancho">Nombre (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: AD Restaurante 1"></label>
           <label class="ancho">¿Qué quieres lograr y con qué negocios?<textarea name="objetivo" rows="3" maxlength="1000" required placeholder="Ej.: Que dueños de restaurantes y taquerías nos escriban para que sus pedidos de WhatsApp lleguen solos."></textarea><small>La IA escribe el texto de la publicación con esto. Lo puedes revisar y pedir cambios.</small></label>
-          <label>Publicar el (opcional)<input name="cuando" type="datetime-local"><small>Vacío: en cuanto esté listo.</small></label>
+          <label>Publicar el (opcional)<input name="cuando" type="datetime-local"><small>Vacío: sale en cuanto esté listo (unos minutos).</small></label>
         </div>
         <div class="acciones"><button class="btn primario">Subir</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
       (caja) => {
@@ -1546,7 +1571,8 @@ export function iniciar(D, { muestra = false } = {}) {
     const ahora = new Date()
     const mes = `${ahora.toISOString().slice(0, 7)}-01`
     const [anuncios, gasto, topes, reportes, piezas, leads, pros, pedidos] = await Promise.all([D.anuncios(), D.gastoAnuncios(mes), D.topesAnuncios(), D.reportesAnuncios(), D.contenido(), D.leads(), D.prospectos(), D.solicitudes().catch(() => [])])
-    const urls = await D.mediaUrls(piezas.filter((c) => c.anuncio_id).map((c) => c.archivo)).catch(() => ({}))
+    const piezaDe = (a) => piezas.find((c) => c.id === a.contenido_id) ?? piezas.find((c) => !a.contenido_id && c.anuncio_id === a.id)
+    const urls = await D.mediaUrls(anuncios.map((a) => piezaDe(a)?.archivo)).catch(() => ({}))
     const diasMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate()
     const gastadoDe = (aid) => gasto.filter((g) => g.anuncio_id === aid).reduce((s, g) => s + Number(g.gasto), 0)
     // Lo que trajo cada anuncio, según HQ: leads (calificados), meetings agendados y clientes.
@@ -1557,7 +1583,7 @@ export function iniciar(D, { muestra = false } = {}) {
       const clientes = suyos.filter((l) => l.prospecto_id && pros.find((p) => p.id === l.prospecto_id)?.etapa === 'cliente')
       return { leads: calificados.length, meetings: meetings.length, clientes: clientes.length }
     }
-    const filas = anuncios.map((a) => ({ a, gastado: gastadoDe(a.id), ...resultados(a), pieza: piezas.find((c) => c.anuncio_id === a.id) }))
+    const filas = anuncios.map((a) => ({ a, gastado: gastadoDe(a.id), ...resultados(a), pieza: piezaDe(a) }))
     const porLead = (g, n) => (n ? usd(g / n) : '—')
     const bloque = (m) => {
       const t = topes.find((x) => x.mercado === m) ?? { tope_mensual: 0 }
@@ -1567,8 +1593,10 @@ export function iniciar(D, { muestra = false } = {}) {
       const pct = t.tope_mensual ? Math.min(100, Math.round((gastado / t.tope_mensual) * 100)) : 0
       const ritmo = Math.round((ahora.getDate() / diasMes) * 100)
       const activos = suyos.filter((f) => f.a.estado === 'activo')
+      const diario = Math.max(0, (Number(t.tope_mensual) - gastado) / Math.max(1, diasMes - ahora.getDate() + 1))
+      const pausa = t.pausado_manual ? ' · ⏸ pausado por ti' : t.pausado_por_tope ? ' · ⏸ tope del mes' : ''
       return `<div class="tarjeta mercado">
-        <div class="fila"><h3>${MERCADO[m]} <small>${activos.length} anuncios activos · ${usd(activos.reduce((s, f) => s + Number(f.a.presupuesto_dia), 0))}/día</small></h3><button class="btn chico" data-tope="${m}">Cambiar tope, zonas y negocios</button></div>
+        <div class="fila"><h3>${MERCADO[m]} <small>${activos.length} al aire · ${usd(diario)}/día${pausa}</small></h3><button class="btn chico" data-tope="${m}">Cambiar tope, zonas y negocios</button></div>
         <div class="kpis">
           <div class="kpi"><span>Gastado este mes</span><b>${usd(gastado)}</b><small>de ${usd(t.tope_mensual)} · quedan ${usd(Math.max(0, t.tope_mensual - gastado))}</small></div>
           <div class="kpi"><span>Leads calificados</span><b>${sum('leads')}</b><small>${porLead(gastado, sum('leads'))} por lead</small></div>
@@ -1579,9 +1607,8 @@ export function iniciar(D, { muestra = false } = {}) {
         ${t.aviso ? `<p class="aviso-ads">${h(t.aviso)}</p>` : ''}
         <div class="acciones">
           <button class="btn primario" data-nuevo="${m}">✦ Nuevo anuncio</button>
-          <button class="btn" data-ads="preparar" data-m="${m}">⚙ Preparar anuncios</button>
-          ${suyos.some((f) => f.a.estado === 'borrador' && f.a.meta_ad_id) ? `<button class="btn primario" data-ads="lanzar" data-m="${m}">✓ Lanzar</button>` : ''}
-          ${activos.length ? `<button class="btn peligro" data-ads="pausar" data-m="${m}">⏸ Pausar</button>` : ''}
+          <button class="btn" data-ads="revisar" data-m="${m}">↻ Revisar ahora</button>
+          ${t.pausado_manual ? `<button class="btn primario" data-ads="reanudar" data-m="${m}">▶ Reanudar</button>` : t.campana_id ? `<button class="btn peligro" data-ads="pausar" data-m="${m}">⏸ Pausar</button>` : ''}
         </div>
         ${t.zonas ? `<p><small>📍 Zonas: ${h(t.zonas)}</small></p>` : ''}
         <p><small>🎯 Negocios: ${t.negocios ? h(t.negocios) : '<span class="rojo">sin definir: dale "Cambiar tope y zonas"</span>'}</small></p>
@@ -1591,7 +1618,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const tarjetaAd = (f) => `<div class="anuncio tarjeta ${f.a.estado}">
         ${media(f.pieza ?? { tipo: 'video' }, urls, 'chica')}
         <div class="pieza-cuerpo">
-          <div class="fila chips"><span class="chip anuncio-${f.a.estado}">${ESTADO_AD[f.a.estado]}</span>${{ seguir: '<span class="chip hecha">✅ Seguir</span>', cambiar: '<span class="chip rojo">🔁 Cambiar</span>', esperar: '<span class="chip">⏳ Aprendiendo</span>' }[f.a.recomendacion] ?? ''}<span class="chip">${MERCADO[f.a.mercado]}</span>${f.a.estado === 'activo' ? `<span class="chip">${usd(f.a.presupuesto_dia)}/día</span>` : ''}</div>
+          <div class="fila chips"><span class="chip anuncio-${f.a.estado}">${ESTADO_AD[f.a.estado]}</span>${{ seguir: '<span class="chip hecha">✅ Seguir</span>', cambiar: '<span class="chip rojo">🔁 Cambiar</span>', esperar: '<span class="chip">⏳ Aprendiendo</span>' }[f.a.recomendacion] ?? ''}<span class="chip">${MERCADO[f.a.mercado]}</span>${f.a.codigo ? `<span class="chip">${h(f.a.codigo)}</span>` : ''}${f.pieza?.publicado_ig ? '<span class="chip hecha">✓ Feed IG</span>' : ''}${f.pieza?.publicado_fb ? '<span class="chip hecha">✓ Feed FB</span>' : ''}</div>
           <h3>${h(f.a.nombre)}</h3>
           <div class="numeros"><span><b>${usd(f.gastado)}</b><small>gastado este mes</small></span><span><b>${f.leads}</b><small>leads</small></span><span><b>${f.meetings}</b><small>meetings</small></span><span><b>${f.clientes}</b><small>clientes</small></span><span><b>${porLead(f.gastado, f.leads)}</b><small>por lead</small></span><span><b>${f.a.impresiones.toLocaleString('en-US')}</b><small>vistas</small></span></div>
           ${f.a.motivo ? `<p class="nota">🧠 ${h(f.a.motivo)}</p>` : ''}
@@ -1602,7 +1629,7 @@ export function iniciar(D, { muestra = false } = {}) {
       </div>`
     v.innerHTML = `
       <div class="acciones"><button class="btn" id="ad-probar">🔑 Probar la llave de Meta</button><span id="ad-prueba"></span></div>
-      <p class="nota">Siempre 3 anuncios activos por mercado, dentro del tope del mes. Al que funciona se le pasa más presupuesto; el que no, se tumba y se reemplaza con lo aprendido. Leads, meetings y clientes salen de HQ, no de Meta.</p>
+      <p class="nota">Cada video de anuncio aprobado sale al aire solo (sin fecha: al momento; con fecha: en su fecha), uno por mercado y una sola vez. La campaña reparte el presupuesto del día entre los anuncios y nunca pasa del tope del mes. Al que funciona Meta le pasa más; el que no, se tumba los lunes. Leads, meetings y clientes salen de HQ, no de Meta.</p>
       <div class="dos">${bloque('usa')}${bloque('mexico')}</div>
       ${
         pedidos.length
@@ -1612,7 +1639,7 @@ export function iniciar(D, { muestra = false } = {}) {
           : ''
       }
       <h2 class="grupo">Anuncios</h2>
-      ${filas.length ? `<div class="anuncios">${filas.sort((x, y) => ordenAd[x.a.estado] - ordenAd[y.a.estado] || y.gastado - x.gastado).map(tarjetaAd).join('')}</div>` : '<div class="tarjeta"><p class="vacio">Todavía no hay anuncios.</p></div>'}
+      ${filas.length ? `<div class="anuncios">${filas.filter((f) => !(f.a.estado === 'terminado' && !f.a.inicio)).sort((x, y) => ordenAd[x.a.estado] - ordenAd[y.a.estado] || y.gastado - x.gastado).map(tarjetaAd).join('')}</div>` : '<div class="tarjeta"><p class="vacio">Todavía no hay anuncios.</p></div>'}
       <h2 class="grupo">Inteligencia <small>lo que funcionó, lo que no y qué se decidió, cada semana</small></h2>
       ${
         reportes.length
@@ -1665,18 +1692,18 @@ export function iniciar(D, { muestra = false } = {}) {
         (b.onclick = async () => {
           const m = b.dataset.m
           const accion = b.dataset.ads
-          const t = topes.find((x) => x.mercado === m) ?? { tope_mensual: 0 }
-          const gastado = filas.filter((f) => f.a.mercado === m).reduce((s, f) => s + f.gastado, 0)
-          const quedan = Math.max(1, diasMes - ahora.getDate() + 1)
-          const diario = Math.max(0, (Number(t.tope_mensual) - gastado) / quedan)
-          const listos = filas.filter((f) => f.a.mercado === m && f.a.estado === 'borrador' && f.a.meta_ad_id).length
+          if (accion === 'revisar') {
+            b.disabled = true
+            if (await intenta(() => D.revisarAhora(), 'Revisando: lo que ya toca sale en unos minutos')) setTimeout(() => location.hash === '#anuncios' && mostrar(), 8000)
+            return
+          }
           const pregunta = {
-            preparar: `¿Preparar los anuncios de ${MERCADO[m]}? Se crean en Meta EN PAUSA con tus videos de anuncio aprobados (hasta 3). No se gasta nada.`,
-            lanzar: `¿LANZAR ${listos} anuncio(s) en ${MERCADO[m]}?\n\nSe empieza a gastar: unos ${usd(diario)} al día, sin pasar de ${usd(t.tope_mensual)} en el mes (llevas ${usd(gastado)}).\nZonas: ${t.zonas || '—'}\nNegocios: ${t.negocios || '—'}`,
-            pausar: `¿Pausar todos los anuncios de ${MERCADO[m]}? Dejan de gastar al momento.`,
+            pausar: `¿Pausar todos los anuncios de ${MERCADO[m]}? Dejan de gastar al momento y no sale ninguno nuevo hasta "▶ Reanudar".`,
+            reanudar: `¿Reanudar los anuncios de ${MERCADO[m]}? Vuelven a gastar, sin pasar del tope del mes.`,
           }[accion]
           if (!confirm(pregunta)) return
-          if (await intenta(() => D.accionAnuncios(accion, m), 'En proceso: el estado se actualiza aquí en unos segundos')) setTimeout(() => location.hash === '#anuncios' && mostrar(), 8000)
+          b.disabled = true
+          if (await intenta(() => D.accionAnuncios(accion, m), 'En proceso: se actualiza aquí en unos segundos')) setTimeout(() => location.hash === '#anuncios' && mostrar(), 8000)
         }),
     )
     $$('[data-tope]', v).forEach(

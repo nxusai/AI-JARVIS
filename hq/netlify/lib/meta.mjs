@@ -20,7 +20,7 @@ export const instagram = () => env('META_IG_ID')
 export const dataset = () => env('META_DATASET_ID')
 
 /** Una llamada a la Graph API con la llave de HQ. GET con params en la URL; POST con params en el cuerpo. */
-export async function graph(path, { method = 'GET', params = {}, token = env('META_TOKEN'), host = 'graph.facebook.com' } = {}) {
+export async function graph(path, { method = 'GET', params = {}, token = env('META_TOKEN'), host = 'graph.facebook.com', timeout = 25_000 } = {}) {
   const url = new URL(`https://${host}/${VERSION}/${String(path).replace(/^\//, '')}`)
   const cuerpo = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
@@ -31,7 +31,7 @@ export async function graph(path, { method = 'GET', params = {}, token = env('ME
   }
   if (method === 'GET') url.searchParams.set('access_token', token)
   else cuerpo.set('access_token', token)
-  const res = await fetch(url, { method, body: method === 'GET' ? undefined : cuerpo, signal: AbortSignal.timeout(25_000) })
+  const res = await fetch(url, { method, body: method === 'GET' ? undefined : cuerpo, signal: AbortSignal.timeout(timeout) })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || data.error) {
     const e = data.error ?? {}

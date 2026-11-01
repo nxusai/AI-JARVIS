@@ -62,13 +62,22 @@ export default async (req) => {
       const inicio = String(b.inicio ?? '')
       if (Number.isNaN(Date.parse(inicio))) return json({ ok: false, error: 'inicio inválido: usa el "inicio" exacto de horarios' }, 400)
       if (!l.correo) return json({ ok: false, error: 'el lead no tiene correo: pídeselo y usa guardar_correo' }, 400)
+      // Se aparta el lead antes de agendar: si NEX pide "agendar" dos veces seguidas, la segunda no crea otra cita.
+      const [apartado] = await sb(`/rest/v1/leads?id=eq.${l.id}&prospecto_id=is.null&estado=neq.agendado`, { servicio: true, method: 'PATCH', prefer: 'return=representation', body: { estado: 'agendado' } })
+      if (!apartado) return json({ ok: true, mensaje: l.idioma === 'en' ? 'The meeting is already being booked.' : 'La reunión ya se está agendando.' })
       const notas = [
         'Lead de los anuncios (Instagram) · agendado por NEX en la llamada',
         `${l.nombre} · ${l.empresa} · ${l.telefono}`,
         [l.ciudad, { mexico: 'México', usa: 'USA' }[l.pais]].filter(Boolean).join(', '),
         l.servicio ? `Le interesa: ${l.servicio}` : '',
       ].filter(Boolean).join('\n')
-      const r = await agenda({ accion: 'agendar', id: l.id, inicio: new Date(inicio).toISOString(), tipo: 'llamada', idioma: l.idioma, zona: zona(l), nombre: l.nombre, empresa: l.empresa, correo: l.correo, notas })
+      let r
+      try {
+        r = await agenda({ accion: 'agendar', id: l.id, inicio: new Date(inicio).toISOString(), tipo: 'llamada', idioma: l.idioma, zona: zona(l), nombre: l.nombre, empresa: l.empresa, correo: l.correo, notas })
+      } catch (err) {
+        await sb(`/rest/v1/leads?id=eq.${l.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: l.estado } }) // no se agendó: como estaba
+        throw err
+      }
       // A Prospectos, con la cita y el Meet: queda a nombre del admin (o de quien lo trabaja), en "Cita agendada".
       const [admin] = await sb('/rest/v1/perfiles?rol=eq.admin&activo=is.true&select=id&order=creado.asc&limit=1', { servicio: true })
       const [p] = await sb('/rest/v1/prospectos', {

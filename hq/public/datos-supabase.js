@@ -39,6 +39,20 @@ export function crearSupabase({ url, anon }) {
     return out
   }
 
+  /** El motor (functions/motor-background.mjs): publica en el feed y pone los anuncios al aire, una cosa a la vez. */
+  async function motor(body) {
+    const { data } = await sb.auth.getSession()
+    const res = await fetch('/.netlify/functions/motor-background', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
+    return true
+  }
+  // Sin esperar: si falla, la revisión de cada 5 minutos lo hace.
+  const empujar = () => motor({}).catch(() => null)
+
   const tabla = (t) => sb.from(t)
   const guardar = async (t, fila, llave = 'id') => {
     if (fila[llave]) {
@@ -172,27 +186,30 @@ export function crearSupabase({ url, anon }) {
 
     // Contenido y anuncios (solo el admin).
     contenido: async () => ok(await tabla('contenido').select('*').order('publicar_en', { ascending: true, nullsFirst: false })),
-    guardarContenido: (c) => guardar('contenido', c),
-    /** Una foto o video de Eduardo: se guarda en "contenido" y queda aprobado. */
-    redactarContenido: (id) => funcion('redactar', { id }),
-    /** Preparar, lanzar o pausar los anuncios de un mercado (corre en segundo plano en Netlify). */
-    async accionAnuncios(accion, mercado, id) {
-      const { data } = await sb.auth.getSession()
-      const res = await fetch('/.netlify/functions/anuncios-background', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
-        body: JSON.stringify({ accion, mercado, id }),
-      })
-      if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
-      return true
+    /** Guardar una pieza y despertar al motor: lo aprobado sin fecha sale al feed y a Meta al momento. */
+    async guardarContenido(c) {
+      const r = await guardar('contenido', c)
+      empujar()
+      return r
     },
+    async redactarContenido(id) {
+      const r = await funcion('redactar', { id })
+      empujar()
+      return r
+    },
+    /** ⏸ Pausar / ▶ Reanudar un mercado o 🗑 Borrar un anuncio que no está al aire (en segundo plano en Netlify). */
+    accionAnuncios: (accion, mercado, id) => motor({ accion, mercado, id }),
+    /** "↻ Revisar ahora": el motor da una vuelta (publica y pone al aire lo que ya toca). */
+    revisarAhora: () => motor({}),
     probarMeta: () => funcion('meta-prueba', {}).catch((err) => ({ ok: false, resultados: [{ nombre: 'Llave', ok: false, error: err.message }] })),
     async subirContenido(file, fila) {
       const ext = (file.name.split('.').pop() || '').toLowerCase().replace('jpeg', 'jpg')
       const ruta = `propios/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
       ok(await sb.storage.from('contenido').upload(ruta, file, { contentType: file.type, upsert: false }))
       try {
-        return ok(await tabla('contenido').insert({ ...fila, archivo: ruta }).select().single())
+        const c = ok(await tabla('contenido').insert({ ...fila, archivo: ruta }).select().single())
+        empujar()
+        return c
       } catch (err) {
         await sb.storage.from('contenido').remove([ruta])
         throw err

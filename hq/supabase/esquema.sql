@@ -1092,3 +1092,49 @@ create policy solo_admin on public.solicitudes for all to authenticated using (e
 -- El anuncio que se cambia por esta pieza cuando se aprueba (y Seguir/Cambiar en cada anuncio).
 alter table public.contenido add column if not exists reemplaza uuid references public.anuncios (id) on delete set null;
 alter table public.anuncios add column if not exists recomendacion text not null default '' check (recomendacion in ('', 'seguir', 'cambiar', 'esperar'));
+
+-- El motor de publicación (1 de noviembre de 2026): una sola cosa a la vez publica en el feed y pone
+-- anuncios en Meta, así nada se duplica aunque Eduardo apruebe mientras corre la revisión automática.
+-- Cada anuncio sale de una pieza de Contenido y de un mercado: nunca dos anuncios de la misma pieza en el mismo mercado.
+alter table public.anuncios add column if not exists contenido_id uuid references public.contenido (id) on delete set null;
+update public.anuncios a set contenido_id = c.id from public.contenido c where c.anuncio_id = a.id and a.contenido_id is null;
+create unique index if not exists anuncios_pieza_mercado on public.anuncios (contenido_id, mercado) where contenido_id is not null;
+-- Pausado a mano por Eduardo (⏸): nada sale al aire en ese mercado hasta que le dé ▶ Reanudar.
+alter table public.anuncios_topes add column if not exists pausado_manual boolean not null default false;
+-- El día (hora de Nueva York) de la última revisión de los lunes, para no repetirla.
+alter table public.anuncios_topes add column if not exists ultima_revision date;
+-- Cuándo se intentó publicar en Facebook / Instagram: si la llamada se cortó, antes de reintentar se busca la publicación en Meta.
+alter table public.contenido add column if not exists fb_intento timestamptz;
+alter table public.contenido add column if not exists ig_intento timestamptz;
+
+create table if not exists public.candados (
+  nombre text primary key,
+  hasta timestamptz not null default now(),
+  pedido timestamptz
+);
+alter table public.candados enable row level security; -- sin políticas: solo el sistema (Netlify) lo usa
+
+-- Toma el candado si está libre (o si quien lo tenía se quedó colgado más de "segundos").
+create or replace function public.tomar_candado(n text, segundos int) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into candados (nombre, hasta) values (n, now() + make_interval(secs => segundos))
+  on conflict (nombre) do update set hasta = excluded.hasta where candados.hasta < now();
+  return found;
+end $$;
+create or replace function public.soltar_candado(n text) returns void
+language sql security definer set search_path = public as $$
+  update candados set hasta = now() - interval '1 second' where nombre = n;
+$$;
+-- "Hay algo nuevo": si el motor está corriendo, da otra vuelta al terminar.
+create or replace function public.pedir_candado(n text) returns void
+language sql security definer set search_path = public as $$
+  insert into candados (nombre, hasta, pedido) values (n, now() - interval '1 second', now())
+  on conflict (nombre) do update set pedido = now();
+$$;
+revoke all on function public.tomar_candado(text, int) from public, anon, authenticated;
+revoke all on function public.soltar_candado(text) from public, anon, authenticated;
+revoke all on function public.pedir_candado(text) from public, anon, authenticated;
+grant execute on function public.tomar_candado(text, int) to service_role;
+grant execute on function public.soltar_candado(text) to service_role;
+grant execute on function public.pedir_candado(text) to service_role;

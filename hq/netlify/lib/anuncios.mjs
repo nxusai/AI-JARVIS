@@ -1,8 +1,9 @@
 // El administrador de los anuncios de NXUS en Meta. Una campaña por mercado
 // ("[NXUS HQ] USA", "[NXUS HQ] México") con presupuesto de campaña (Meta lo
-// reparte entre los anuncios), un conjunto con el público (ciudades, español,
-// dueños de negocio) y hasta 3 anuncios activos, cada uno un video aprobado en
-// HQ → Contenido que abre el chat de Messenger (ManyChat lo atiende).
+// reparte entre los anuncios, así más anuncios no gastan más), un conjunto con
+// el público (ciudades, español, dueños de negocio) y un anuncio por cada video
+// de anuncio aprobado en HQ → Contenido, que abre el chat de Messenger
+// (ManyChat lo atiende). Lo usa el motor (lib/motor.mjs), una cosa a la vez.
 // La cuenta de anuncios también la usan otros negocios: aquí solo se tocan las
 // campañas que HQ creó (guardadas en anuncios_topes) y sus anuncios.
 import { cuenta, graph, instagram, MARCA, pagina } from './meta.mjs'
@@ -35,6 +36,8 @@ export async function publico(mercado) {
   const idiomas = await graph('search', { params: { type: 'adlocale', q: 'Spanish' } })
   const es = (idiomas.data ?? []).filter((l) => /spanish/i.test(l.name)).map((l) => l.key)
   if (es.length) t.locales = es
+  // Meta pide decir si usa "Advantage+ audience": no, el público es este (ciudades, español, edad).
+  t.targeting_automation = { advantage_audience: 0 }
   return t
 }
 
@@ -50,6 +53,7 @@ export async function asegurarCampana(tope) {
     })
     campana = c.id
     await db(`/rest/v1/anuncios_topes?mercado=eq.${m}`, { method: 'PATCH', prefer: 'return=minimal', body: { campana_id: campana } })
+    tope.campana_id = campana
   }
   if (!conjunto) {
     const a = await graph(`${cuenta()}/adsets`, {
@@ -67,6 +71,7 @@ export async function asegurarCampana(tope) {
     })
     conjunto = a.id
     await db(`/rest/v1/anuncios_topes?mercado=eq.${m}`, { method: 'PATCH', prefer: 'return=minimal', body: { conjunto_id: conjunto } })
+    tope.conjunto_id = conjunto
   }
   return { campana, conjunto }
 }
@@ -85,7 +90,7 @@ async function linkTemporal(ruta) {
 }
 
 /** El siguiente código libre del mercado: U1, U2… / M1, M2… */
-async function siguienteCodigo(mercado) {
+export async function siguienteCodigo(mercado) {
   const letra = mercado === 'usa' ? 'U' : 'M'
   const hay = await db(`/rest/v1/anuncios?codigo=like.${letra}*&select=codigo`)
   const n = hay.reduce((max, a) => Math.max(max, Number(String(a.codigo).slice(1)) || 0), 0)
@@ -93,27 +98,23 @@ async function siguienteCodigo(mercado) {
 }
 
 /**
- * Prepara (en pausa) un anuncio a partir de un video aprobado de Contenido. Si
- * Meta todavía procesa el video, queda en borrador y se termina en otra vuelta.
+ * Termina en Meta (en pausa) el anuncio "ad" de la pieza: video, creativo y anuncio.
+ * Cada paso se guarda en cuanto Meta responde, y antes de crear el anuncio se
+ * busca si ya existe uno con su nombre: así nunca queda repetido. Si Meta
+ * todavía procesa el video, devuelve listo: false y se termina en otra vuelta.
  */
-export async function prepararAnuncio(pieza, tope, conjunto) {
-  let [ad] = await db(`/rest/v1/anuncios?id=eq.${pieza.anuncio_id ?? '00000000-0000-0000-0000-000000000000'}&select=*`)
-  if (!ad) {
-    const codigo = await siguienteCodigo(tope.mercado)
-    ;[ad] = await db('/rest/v1/anuncios', {
-      method: 'POST',
-      prefer: 'return=representation',
-      body: { nombre: `${NOMBRE[tope.mercado]} · ${pieza.titulo || 'Video'} (${codigo})`.slice(0, 200), mercado: tope.mercado, estado: 'borrador', codigo, motivo: 'Preparándose en Meta (en pausa).' },
-    })
-    await db(`/rest/v1/contenido?id=eq.${pieza.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { anuncio_id: ad.id } })
-  }
+export async function prepararAnuncio(pieza, tope, conjunto, ad) {
   const guardar = (cambio) => db(`/rest/v1/anuncios?id=eq.${ad.id}`, { method: 'PATCH', prefer: 'return=minimal', body: cambio }).then(() => Object.assign(ad, cambio))
   if (!ad.meta_video_id) {
-    const v = await graph(`${cuenta()}/advideos`, { method: 'POST', host: 'graph-video.facebook.com', params: { file_url: await linkTemporal(pieza.archivo), name: ad.nombre } })
+    const v = await graph(`${cuenta()}/advideos`, { method: 'POST', host: 'graph-video.facebook.com', timeout: 180_000, params: { file_url: await linkTemporal(pieza.archivo), name: ad.nombre } })
     await guardar({ meta_video_id: v.id })
   }
   if (!ad.meta_creative_id) {
     const v = await graph(ad.meta_video_id, { params: { fields: 'status,picture' } })
+    if (v.status?.video_status === 'error') {
+      await guardar({ meta_video_id: '' }) // en la siguiente vuelta se vuelve a subir
+      throw new Error('Meta no pudo procesar el video (debe ser MP4 o MOV vertical). Se vuelve a intentar.')
+    }
     if (v.status?.video_status !== 'ready' || !v.picture) return { ad, listo: false } // Meta sigue procesando el video
     const cr = await graph(`${cuenta()}/adcreatives`, {
       method: 'POST',
@@ -151,23 +152,12 @@ export async function prepararAnuncio(pieza, tope, conjunto) {
     await guardar({ meta_creative_id: cr.id })
   }
   if (!ad.meta_ad_id) {
-    const a = await graph(`${cuenta()}/ads`, { method: 'POST', params: { name: ad.nombre, adset_id: conjunto, creative: { creative_id: ad.meta_creative_id }, status: 'PAUSED' } })
-    await guardar({ meta_ad_id: a.id, motivo: 'Listo en Meta, en pausa: falta "✓ Lanzar".' })
+    const hay = await graph(`${conjunto}/ads`, { params: { fields: 'id,name,effective_status', limit: 100 } }).catch(() => ({ data: [] }))
+    const ya = (hay.data ?? []).find((x) => x.name === ad.nombre && x.effective_status !== 'DELETED')
+    const a = ya ?? (await graph(`${cuenta()}/ads`, { method: 'POST', params: { name: ad.nombre, adset_id: conjunto, creative: { creative_id: ad.meta_creative_id }, status: 'PAUSED' } }))
+    await guardar({ meta_ad_id: a.id, motivo: 'Listo en Meta.' })
   }
   return { ad, listo: true }
-}
-
-/** Activa en Meta la campaña, el conjunto y los anuncios listos del mercado. */
-export async function lanzar(tope, presupuestoDia) {
-  const listos = await db(`/rest/v1/anuncios?mercado=eq.${tope.mercado}&estado=eq.borrador&meta_ad_id=not.is.null&select=*`)
-  for (const a of listos) {
-    await graph(a.meta_ad_id, { method: 'POST', params: { status: 'ACTIVE' } })
-    await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { estado: 'activo', inicio: new Date().toISOString().slice(0, 10), motivo: 'Lanzado. Primeros 7 días: Meta aprende; no se juzga antes.' } })
-  }
-  await graph(tope.conjunto_id, { method: 'POST', params: { status: 'ACTIVE' } })
-  await graph(tope.campana_id, { method: 'POST', params: { status: 'ACTIVE', daily_budget: Math.round(presupuestoDia * 100) } })
-  await db(`/rest/v1/anuncios_topes?mercado=eq.${tope.mercado}`, { method: 'PATCH', prefer: 'return=minimal', body: { pausado_por_tope: false } })
-  return listos.length
 }
 
 /** Lo gastado este mes por cada anuncio de HQ, día por día, desde Meta → anuncios_gasto. */

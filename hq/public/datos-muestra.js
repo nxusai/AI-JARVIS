@@ -51,8 +51,8 @@ const db = {
   leads_notas: [],
   documentos: [],
   anuncios_topes: [
-    { mercado: 'usa', tope_mensual: 300, zonas: 'Por definir' },
-    { mercado: 'mexico', tope_mensual: 300, zonas: 'Por definir' },
+    { mercado: 'usa', tope_mensual: 300, zonas: 'Por definir', campana_id: '1202', pausado_manual: false },
+    { mercado: 'mexico', tope_mensual: 300, zonas: 'Por definir', campana_id: '1203', pausado_manual: false },
   ],
   anuncios: [],
   anuncios_gasto: [],
@@ -188,7 +188,7 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
 // Anuncios y contenido de muestra: 3 anuncios por mercado, su gasto del mes, piezas por aprobar y el reporte de la semana.
 {
   const ad = (nombre, mercado, meta, estado, presupuesto, motivo, gastoDia, dias, inicio) => {
-    const a = { id: id(), nombre, mercado, meta_ad_id: meta, estado, presupuesto_dia: presupuesto, impresiones: Math.round(gastoDia * dias * 180), clics: Math.round(gastoDia * dias * 4), inicio: fecha(inicio), fin: null, motivo, creado: dia(inicio, 9), actualizado: dia(-1, 8) }
+    const a = { id: id(), contenido_id: null, codigo: `${mercado === 'usa' ? 'U' : 'M'}${db.anuncios.filter((x) => x.mercado === mercado).length + 1}`, nombre, mercado, meta_ad_id: meta, meta_creative_id: 'cr', estado, presupuesto_dia: presupuesto, impresiones: Math.round(gastoDia * dias * 180), clics: Math.round(gastoDia * dias * 4), inicio: fecha(inicio), fin: null, motivo, creado: dia(inicio, 9), actualizado: dia(-1, 8) }
     db.anuncios.push(a)
     for (let d = 0; d < dias; d++) db.anuncios_gasto.push({ anuncio_id: a.id, dia: fecha(-d), gasto: gastoDia })
     return a
@@ -210,6 +210,11 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
   pieza({ tipo: 'video', uso: 'anuncio', mercado: 'usa', titulo: 'Anuncio USA · "Cotiza y agenda sin contestar el teléfono"', texto: '¿Pierdes clientes porque no alcanzas a contestar? Hacemos sistemas a la medida que contestan, cotizan y agendan por ti, 24/7.\n\nEscríbenos INFO 👇', idea: 'Reemplazo del video 3 (tumbado). Abre con el problema en los primeros 2 segundos, que es lo que funcionó en el video 1.', publicar_en: dia(-3, 9), estado: 'publicado', anuncio_id: db.anuncios[3].id })
   pieza({ tipo: 'video', uso: 'anuncio', mercado: 'usa', titulo: 'Anuncio USA · "Tu negocio contesta solo"', texto: 'Tu negocio contesta solo, aunque estés ocupado. Sistemas a la medida para negocios en crecimiento.\n\nEscríbenos INFO 👇', publicar_en: dia(-9, 9), estado: 'publicado', anuncio_id: a1.id })
   pieza({ tipo: 'video', uso: 'anuncio', mercado: 'mexico', titulo: 'Anuncio MX · "Pedidos por WhatsApp que llegan solos"', texto: 'Tus clientes piden por WhatsApp y el pedido llega solo a tu sistema. Hecho a la medida de tu negocio.\n\nEscríbenos INFO 👇', publicar_en: dia(-8, 9), estado: 'publicado', anuncio_id: m1.id })
+  for (const c of db.contenido) {
+    const a = db.anuncios.find((x) => x.id === c.anuncio_id)
+    if (a) a.contenido_id = c.id
+    if (c.estado === 'publicado') Object.assign(c, { publicado_ig: '1790000000', publicado_fb: '5540000000' })
+  }
   pieza({ tipo: 'foto', titulo: 'Sábado · "Tu negocio, en un solo lugar"', texto: 'Ventas, inventario, equipo y clientes en un solo sistema hecho para ti.\n\nComenta INFO.', estado: 'rechazado', comentario: 'Que se vea más el celular y menos la computadora.', publicar_en: dia(6, 10) })
   db.anuncios_reportes.push({ id: id(), semana: fecha(-1), mercado: 'ambos', creado: dia(-1, 8),
     resumen: 'Semana 2. USA: $68 de $300 (23%), 4 leads, 1 meeting. México: $59 de $300 (20%), 2 leads. Vamos por debajo del ritmo del mes a propósito mientras Meta aprende.',
@@ -217,6 +222,23 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
     no_funciono: 'El video 3 de USA (entrada y salida del personal): $42 y 0 leads. Mucha gente lo vio completo, pero no es un dolor urgente para el dueño: lo ve como algo "para después".',
     decisiones: 'Tumbé el video 3 de USA y lo reemplacé por "Cotiza y agenda sin contestar el teléfono" ($2.30/día). Le subí 20% al video 1 de USA ($3.70 → $4.40/día). México sin cambios: los 3 siguen aprendiendo.',
     siguiente: 'Esta semana creo 2 videos nuevos de reserva con el formato que funcionó (problema → solución en 15 segundos) para tener listo el reemplazo si el video 2 de USA no despega.' })
+}
+
+/** Lo que hace el motor de verdad (publicar en el feed y poner al aire), en pequeño. */
+function motorMuestra() {
+  const ahora = Date.now()
+  for (const a of db.anuncios) if (a.estado === 'borrador' && a.meta_ad_id && !db.anuncios_topes.find((t) => t.mercado === a.mercado)?.pausado_manual) Object.assign(a, { estado: 'activo', inicio: fecha(0), motivo: 'Al aire. Primeros 7 días: Meta aprende.' })
+  for (const c of db.contenido) {
+    if (!['aprobado', 'publicado'].includes(c.estado) || !c.texto || !c.archivo || (c.publicar_en && new Date(c.publicar_en) > ahora)) continue
+    if (c.estado === 'aprobado') Object.assign(c, { estado: 'publicado', publicado_fb: '5540000001', publicado_ig: '1790000001', publicar_en: c.publicar_en ?? new Date().toISOString() })
+    if (c.uso !== 'anuncio' || c.tipo !== 'video') continue
+    for (const m of c.mercado === 'ambos' ? ['usa', 'mexico'] : [c.mercado]) {
+      if (db.anuncios.some((a) => a.contenido_id === c.id && a.mercado === m)) continue
+      const t = db.anuncios_topes.find((x) => x.mercado === m)
+      const codigo = `${m === 'usa' ? 'U' : 'M'}${db.anuncios.filter((x) => x.mercado === m).length + 1}`
+      db.anuncios.unshift({ id: id(), contenido_id: c.id, codigo, nombre: `${m === 'usa' ? 'USA' : 'México'} · ${c.titulo || 'Video'} (${codigo})`, mercado: m, meta_ad_id: `1202${Date.now()}`, meta_creative_id: 'cr', estado: t?.pausado_manual ? 'borrador' : 'activo', presupuesto_dia: 9.68, impresiones: 0, clics: 0, inicio: t?.pausado_manual ? null : fecha(0), fin: null, recomendacion: 'esperar', motivo: t?.pausado_manual ? 'Listo en Meta. No sale porque pausaste este mercado: dale "▶ Reanudar" en Anuncios.' : 'Al aire. Primeros 7 días: Meta aprende.', creado: new Date().toISOString(), actualizado: new Date().toISOString() })
+    }
+  }
 }
 
 let yo = null
@@ -458,7 +480,9 @@ export function crearMuestra() {
     contenido: () => espera(admin() ? db.contenido : []),
     async guardarContenido(c) {
       if (!admin()) nunca()
-      return copia(upsert(db.contenido, { ...c, actualizado: new Date().toISOString() }))
+      const r = copia(upsert(db.contenido, { ...c, actualizado: new Date().toISOString() }))
+      setTimeout(motorMuestra, 2500)
+      return r
     },
     async borrarContenido(c) {
       if (!admin()) nunca()
@@ -468,17 +492,25 @@ export function crearMuestra() {
     async accionAnuncios(accion, mercado, aid) {
       if (!admin()) nunca()
       if (accion === 'borrar') {
-        db.anuncios = db.anuncios.filter((a) => a.id !== aid)
+        const a = db.anuncios.find((x) => x.id === aid)
+        if (a) Object.assign(a, { estado: 'terminado', motivo: '🗑 Borrado por Eduardo antes de salir al aire.' })
         return true
       }
       const t = db.anuncios_topes.find((x) => x.mercado === mercado)
-      t.aviso = { preparar: '✓ 1 anuncio listo en Meta, en pausa. Revisa y da "✓ Lanzar".', lanzar: '🚀 Lanzado: 3 anuncios activos · 9.68 USD al día (para no pasar de 300 USD en el mes).', pausar: '⏸ Pausado por Eduardo: no se gasta nada hasta "✓ Lanzar".' }[accion]
+      t.pausado_manual = accion === 'pausar'
+      t.aviso = { reanudar: '▶ Reanudado · 9.68 USD al día.', pausar: '⏸ Pausado por Eduardo: no se gasta nada hasta "▶ Reanudar".' }[accion]
+      setTimeout(motorMuestra, 1500)
+      return true
+    },
+    async revisarAhora() {
+      setTimeout(motorMuestra, 1500)
       return true
     },
     probarMeta: async () => ({ ok: true, resultados: [{ nombre: 'Llave', ok: true, detalle: 'NXUS HQ · 9 permisos' }, { nombre: 'Cuenta de anuncios', ok: true, detalle: "Eduardo's · USD · America/New_York · activa · con método de pago" }, { nombre: 'Página de Facebook', ok: true, detalle: 'Nxus.AI' }, { nombre: 'Instagram', ok: true, detalle: '@nxusai' }, { nombre: 'Conjunto de datos (leads y clientes)', ok: true, detalle: 'Nxus AI Event Data' }] }),
     async redactarContenido(cid) {
       const c = db.contenido.find((x) => x.id === cid)
       Object.assign(c, { texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos INFO 👇`, idea: 'Muestra: aquí la IA escribe el texto real.', comentario: '' })
+      setTimeout(motorMuestra, 2500)
       return { ok: true }
     },
     async subirContenido(file, fila) {
@@ -486,6 +518,7 @@ export function crearMuestra() {
       const ruta = URL.createObjectURL(file)
       const c = { id: id(), titulo: '', texto: '', idea: '', publicar_en: null, comentario: '', publicado_ig: '', publicado_fb: '', anuncio_id: null, ...fila, archivo: ruta, creado: new Date().toISOString(), actualizado: new Date().toISOString() }
       db.contenido.unshift(c)
+      setTimeout(motorMuestra, 2500)
       return copia(c)
     },
     mediaUrls: async (rutas) => Object.fromEntries(rutas.filter((r) => String(r).startsWith('blob:')).map((r) => [r, r])),

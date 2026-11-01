@@ -53,6 +53,10 @@ export default async (req) => {
       const p = b.pieza ?? {}
       const tipo = uno(p.tipo, ['foto', 'video'], '')
       if (!tipo) return json({ ok: false, error: 'pieza.tipo: foto o video' }, 400)
+      const sid = /^[0-9a-f-]{36}$/i.test(String(b.solicitud_id ?? '')) ? b.solicitud_id : null
+      const [pedido] = sid ? await sb(`/rest/v1/solicitudes?id=eq.${sid}&select=*`, { servicio: true }) : []
+      // Si el pedido ya se entregó (el taller lo mandó dos veces), no se crea otra pieza.
+      if (pedido?.estado === 'listo' && pedido.contenido_id) return json({ ok: true, id: pedido.contenido_id, repetido: true })
       const archivo = await guardarArchivo(b.archivo_url, tipo)
       const fila = {
         tipo,
@@ -65,8 +69,6 @@ export default async (req) => {
         archivo,
         publicar_en: p.publicar_en && !Number.isNaN(Date.parse(p.publicar_en)) ? new Date(p.publicar_en).toISOString() : null,
       }
-      const sid = /^[0-9a-f-]{36}$/i.test(String(b.solicitud_id ?? '')) ? b.solicitud_id : null
-      const [pedido] = sid ? await sb(`/rest/v1/solicitudes?id=eq.${sid}&select=*`, { servicio: true }) : []
       if (pedido) Object.assign(fila, { reemplaza: pedido.reemplaza, objetivo: pedido.objetivo, uso: pedido.uso, mercado: pedido.mercado })
       // Un anuncio nuevo del reporte de los lunes puede venir ya ligado al anuncio que conviene cambiar.
       else if (/^[0-9a-f-]{36}$/i.test(String(p.reemplaza ?? ''))) fila.reemplaza = p.reemplaza
@@ -107,7 +109,7 @@ export default async (req) => {
       const mes = `${new Date().toISOString().slice(0, 7)}-01`
       const [pendientes, anuncios, gasto, topes, reportes, pedidos, recientes] = await Promise.all([
         sb('/rest/v1/contenido?estado=in.(por_aprobar,rechazado)&select=id,tipo,uso,mercado,titulo,estado,comentario,creado&order=creado.desc&limit=50', { servicio: true }),
-        sb('/rest/v1/anuncios?select=id,codigo,nombre,mercado,meta_ad_id,estado,presupuesto_dia,impresiones,clics,inicio,fin,motivo,recomendacion&order=creado.desc', { servicio: true }),
+        sb('/rest/v1/anuncios?select=id,contenido_id,codigo,nombre,mercado,meta_ad_id,estado,presupuesto_dia,impresiones,clics,inicio,fin,motivo,recomendacion&order=creado.desc', { servicio: true }),
         sb(`/rest/v1/anuncios_gasto?dia=gte.${mes}&select=anuncio_id,gasto`, { servicio: true }),
         sb('/rest/v1/anuncios_topes?select=mercado,tope_mensual,zonas,negocios,aviso', { servicio: true }),
         sb('/rest/v1/anuncios_reportes?select=*&order=semana.desc&limit=4', { servicio: true }),
