@@ -509,7 +509,16 @@ export function crearMuestra() {
     probarMeta: async () => ({ ok: true, resultados: [{ nombre: 'Llave', ok: true, detalle: 'NXUS HQ · 9 permisos' }, { nombre: 'Cuenta de anuncios', ok: true, detalle: "Eduardo's · USD · America/New_York · activa · con método de pago" }, { nombre: 'Página de Facebook', ok: true, detalle: 'Nxus.AI' }, { nombre: 'Instagram', ok: true, detalle: '@nxusai' }, { nombre: 'Conjunto de datos (leads y clientes)', ok: true, detalle: 'Nxus AI Event Data' }] }),
     async redactarContenido(cid) {
       const c = db.contenido.find((x) => x.id === cid)
-      Object.assign(c, { texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos INFO 👇`, idea: 'Muestra: aquí la IA escribe el texto real.', comentario: '' })
+      const palabra = /operaciones/i.test(c.objetivo || '') ? 'OPERACIONES' : /automatiz/i.test(c.objetivo || '') ? 'AUTOMATIZACIÓN' : ''
+      Object.assign(c, {
+        analisis: c.analisis || `Muestra: aquí la IA describe lo que se ve y se dice en ${c.tipo === 'video' ? 'el video' : 'la foto'}${palabra ? ` y lee al final "Escríbenos ${palabra}"` : ''}.`,
+        palabra: c.analisis ? c.palabra : palabra,
+        error: '',
+        texto: `¿${c.objetivo || c.titulo}? 🤔\nEn NXUS AI hacemos sistemas a la medida que trabajan por ti mientras atiendes tu negocio.\n\nEscríbenos ${(c.analisis ? c.palabra : palabra) || 'INFO'} 👇`,
+        idea: 'Muestra: aquí la IA escribe el texto real.',
+        comentario: '',
+      })
+      if (c.palabra && !['INFO', 'OPERACIONES'].includes(c.palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) c.estado = 'por_aprobar'
       setTimeout(motorMuestra, 2500)
       return { ok: true }
     },

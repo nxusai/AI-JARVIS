@@ -53,6 +53,60 @@ export function crearSupabase({ url, anon }) {
   // Sin esperar: si falla, la revisión de cada 5 minutos lo hace.
   const empujar = () => motor({}).catch(() => null)
 
+  /** Una función de Netlify en segundo plano (responde 202 al momento). */
+  async function fondo(nombre, body) {
+    const { data } = await sb.auth.getSession()
+    const res = await fetch(`/.netlify/functions/${nombre}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok && res.status !== 202) throw new Error(`No se pudo iniciar (${res.status})`)
+  }
+
+  /**
+   * Cuadros JPEG de un video para que la IA lo vea: 8 a lo largo del video y 4 del
+   * final, donde va la llamada a la acción. De una foto, la foto misma (más chica).
+   */
+  async function cuadrosDe(src, tipo) {
+    const lienzo = document.createElement('canvas')
+    const dibujar = (el, w, h) => {
+      const escala = Math.min(1, 768 / Math.max(w, h))
+      lienzo.width = Math.round(w * escala)
+      lienzo.height = Math.round(h * escala)
+      lienzo.getContext('2d').drawImage(el, 0, 0, lienzo.width, lienzo.height)
+      return new Promise((ok) => lienzo.toBlob(ok, 'image/jpeg', 0.72))
+    }
+    const espera = (el, evento, ms = 15000) =>
+      new Promise((ok, mal) => {
+        const t = setTimeout(() => mal(new Error('tardó demasiado')), ms)
+        el.addEventListener(evento, () => (clearTimeout(t), ok()), { once: true })
+        el.addEventListener('error', () => (clearTimeout(t), mal(new Error('no se pudo abrir'))), { once: true })
+      })
+    if (tipo !== 'video') {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.src = src
+      await espera(img, 'load')
+      return [await dibujar(img, img.naturalWidth, img.naturalHeight)]
+    }
+    const v = document.createElement('video')
+    Object.assign(v, { crossOrigin: 'anonymous', muted: true, playsInline: true, preload: 'auto', src })
+    await espera(v, 'loadeddata', 30000)
+    const d = v.duration
+    if (!Number.isFinite(d) || d <= 0) return []
+    const momentos = [...Array.from({ length: 8 }, (_, i) => (d * (i + 0.5)) / 9), ...[3, 2, 1, 0.3].map((x) => Math.max(0, d - x))]
+    const cuadros = []
+    for (const t of [...new Set(momentos.map((x) => Math.round(x * 10) / 10))].sort((a, b) => a - b)) {
+      v.currentTime = Math.min(t, Math.max(0, d - 0.05))
+      await espera(v, 'seeked', 10000)
+      cuadros.push(await dibujar(v, v.videoWidth, v.videoHeight))
+    }
+    v.removeAttribute('src')
+    v.load()
+    return cuadros.filter(Boolean)
+  }
+
   const tabla = (t) => sb.from(t)
   const guardar = async (t, fila, llave = 'id') => {
     if (fila[llave]) {
@@ -192,7 +246,31 @@ export function crearSupabase({ url, anon }) {
       empujar()
       return r
     },
-    async redactarContenido(id) {
+    /**
+     * El texto de una pieza. Si la IA todavía no la ha visto, primero la ve (cuadros del video
+     * y su audio, en segundo plano, 1 o 2 minutos) y devuelve { enFondo: true }; si ya la vio, solo
+     * reescribe (al momento). archivo: el archivo recién subido (para no volver a bajarlo).
+     */
+    async redactarContenido(id, { aprobar = false, archivo = null } = {}) {
+      const c = ok(await tabla('contenido').select('id,tipo,archivo,analisis').eq('id', id).single())
+      if (c.archivo && !c.analisis) {
+        let src = archivo ? URL.createObjectURL(archivo) : null
+        if (!src) {
+          const { data } = await sb.storage.from('contenido').createSignedUrl(c.archivo, 600)
+          src = data?.signedUrl
+        }
+        const fotos = src ? await cuadrosDe(src, c.tipo).catch(() => []) : []
+        if (archivo) URL.revokeObjectURL(src)
+        // Los cuadros van al almacenamiento (la función en segundo plano solo recibe mensajes chicos).
+        const cuadros = []
+        for (const [i, blob] of fotos.entries()) {
+          const ruta = `cuadros/${id}/${String(i).padStart(2, '0')}.jpg`
+          const { error } = await sb.storage.from('contenido').upload(ruta, blob, { contentType: 'image/jpeg', upsert: true })
+          if (!error) cuadros.push(ruta)
+        }
+        await fondo('analizar-background', { id, cuadros, aprobar })
+        return { ok: true, enFondo: true }
+      }
       const r = await funcion('redactar', { id })
       empujar()
       return r

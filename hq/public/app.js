@@ -1282,6 +1282,16 @@ export function iniciar(D, { muestra = false } = {}) {
     return c.tipo === 'video' ? `<video class="media ${clase}" src="${h(u)}" controls preload="metadata" playsinline></video>` : `<img class="media ${clase}" src="${h(u)}" alt="" loading="lazy">`
   }
 
+  // Las palabras que ManyChat ya contesta (la misma lista está en netlify/lib/textos.mjs).
+  const PALABRAS_MANYCHAT = ['INFO', 'OPERACIONES']
+  const sinAcentos = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
+  function palabraHtml(c) {
+    if (!c.analisis) return ''
+    const p = c.palabra || 'INFO'
+    const conocida = PALABRAS_MANYCHAT.includes(sinAcentos(p))
+    return `<p class="${conocida ? 'nota' : 'rojo'}">🗣 ${c.palabra ? `El ${c.tipo === 'video' ? 'video' : 'foto'} pide escribir <b>${h(p)}</b>; el texto pide lo mismo.` : 'No pide ninguna palabra: el texto pide <b>INFO</b>.'}${conocida ? '' : ` ⚠ ManyChat todavía no contesta "${h(p)}": por eso no se publicó sola. Agrégala a los disparadores de ManyChat (comentarios y mensajes, Instagram y Facebook) y luego dale "✓ Aprobar".`}</p>`
+  }
+
   /** Los anuncios de una pieza (uno por mercado). */
   const adsDe = (c, ads) => ads.filter((a) => a.contenido_id === c.id || (!a.contenido_id && a.id === c.anuncio_id))
   /** Dónde ya salió: ✓ Feed IG · ✓ Feed FB · ✓ Ad Meta (y en gris lo que falta). */
@@ -1309,7 +1319,7 @@ export function iniciar(D, { muestra = false } = {}) {
       if (c.error) f = { pct: 0, texto: 'No se pudo publicar (abajo dice por qué)', mal: true }
       else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Instagram y Facebook' }
       else if (programado) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
-      else if (!c.texto) f = { pct: 10, texto: 'Escribiendo el texto…' }
+      else if (!c.texto) f = { pct: 10, texto: c.archivo && !c.analisis ? 'La IA está viendo la pieza y escribiendo el texto…' : 'Escribiendo el texto…' }
       else if (c.ig_contenedor) f = { pct: 70, texto: 'Ya en Facebook · Instagram está preparando el video…' }
       else if (c.publicado_fb) f = { pct: 50, texto: 'Ya en Facebook · subiendo a Instagram…' }
       else f = { pct: 20, texto: 'Publicando…' }
@@ -1367,7 +1377,8 @@ export function iniciar(D, { muestra = false } = {}) {
           if (!(await intenta(() => D.guardarContenido({ id: c.id, comentario: cambio })))) return
           cerrarModal()
           aviso('Rehaciendo el texto…')
-          await intenta(() => D.redactarContenido(c.id), 'Texto actualizado')
+          const r = await intenta(() => D.redactarContenido(c.id))
+          if (r) aviso(r.enFondo ? 'La IA está viendo la pieza y rehaciendo el texto (1 o 2 minutos)…' : 'Texto actualizado')
           mostrar()
         }
       },
@@ -1392,6 +1403,8 @@ export function iniciar(D, { muestra = false } = {}) {
           ${c.reemplaza && !adsDe(c, ads).length ? '<p class="nota">🔁 Al aprobarlo, reemplaza al anuncio que se recomendó cambiar.</p>' : ''}
           <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
+          ${palabraHtml(c)}
+          ${c.analisis ? `<details><summary>👀 Lo que vio la IA en ${c.tipo === 'video' ? 'el video' : 'la foto'}</summary><p class="desc">${h(c.analisis)}</p></details>` : ''}
           ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario.replace(/^\[video\] /, ''))}${c.comentario.startsWith('[video]') ? ' · lo rehago en el taller (próximas horas)' : ''}</p>` : ''}
           ${c.error ? `<p class="rojo">⚠ ${h(c.error)}</p>` : ''}
           ${dondeSalio(c, ads)}
@@ -1403,6 +1416,7 @@ export function iniciar(D, { muestra = false } = {}) {
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
+            ${c.estado !== 'publicado' && c.objetivo && c.analisis ? `<button class="btn" data-rever="${c.id}">👀 Volver a ver ${c.tipo === 'video' ? 'el video' : 'la foto'}</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
           </div>
         </div>
@@ -1429,7 +1443,9 @@ export function iniciar(D, { muestra = false } = {}) {
           // Si tiene un cambio de texto pendiente, primero se aplica (la IA lo rehace) y queda aprobado.
           if (c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]')) {
             b.textContent = 'Aplicando tu cambio…'
-            if (await intenta(() => D.redactarContenido(c.id))) await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Cambio aplicado y aprobado')
+            const r = await intenta(() => D.redactarContenido(c.id, { aprobar: true }))
+            if (r?.enFondo) aviso('La IA está viendo la pieza y aplicando tu cambio; queda aprobada en 1 o 2 minutos')
+            else if (r) await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Cambio aplicado y aprobado')
           } else await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), c.publicar_en && new Date(c.publicar_en) > Date.now() ? 'Aprobado: sale en su fecha' : 'Aprobado: saliendo ya')
           mostrar()
         }),
@@ -1456,13 +1472,26 @@ export function iniciar(D, { muestra = false } = {}) {
         }),
     )
     $$('[data-reintentar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.reintentar, error: '' }), 'Reintentando ahora')) && mostrar()))
+    $$('[data-rever]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          b.disabled = true
+          // Se olvida lo que vio y la IA lo vuelve a ver (por si el video cambió o leyó mal la palabra).
+          // (el "error" frena la publicación mientras la vuelve a ver; se quita solo al empezar)
+          if (!(await intenta(() => D.guardarContenido({ id: b.dataset.rever, analisis: '', palabra: '', error: '👀 La IA está volviendo a ver la pieza…' })))) return (b.disabled = false)
+          if (await intenta(() => D.redactarContenido(b.dataset.rever), 'La IA está viendo la pieza otra vez (1 o 2 minutos)…')) mostrar()
+        }),
+    )
     $$('[data-redactar]', v).forEach(
       (b) =>
         (b.onclick = async () => {
           b.disabled = true
           b.textContent = 'Escribiendo…'
-          if (await intenta(() => D.redactarContenido(b.dataset.redactar), 'Texto listo')) mostrar()
-          else b.disabled = false
+          const r = await intenta(() => D.redactarContenido(b.dataset.redactar))
+          if (r) {
+            aviso(r.enFondo ? 'La IA está viendo la pieza y escribiendo el texto (1 o 2 minutos)…' : 'Texto listo')
+            mostrar()
+          } else b.disabled = false
         }),
     )
     $$('[data-borrar-pieza]', v).forEach(
@@ -1485,7 +1514,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Mercado<select name="mercado">${Object.entries(MERCADO).map(([k, t]) => `<option value="${k}" ${pre.mercado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           ${pre.reemplaza ? `<p class="nota ancho">Al aprobarlo, reemplaza al anuncio ${h(pre.codigo || '')}.</p>` : ''}
           <label class="ancho">Nombre (para ti)<input name="titulo" maxlength="200" placeholder="Ej.: AD Restaurante 1"></label>
-          <label class="ancho">¿Qué quieres lograr y con qué negocios?<textarea name="objetivo" rows="3" maxlength="1000" required placeholder="Ej.: Que dueños de restaurantes y taquerías nos escriban para que sus pedidos de WhatsApp lleguen solos."></textarea><small>La IA escribe el texto de la publicación con esto. Lo puedes revisar y pedir cambios.</small></label>
+          <label class="ancho">¿Qué quieres lograr y con qué negocios?<textarea name="objetivo" rows="3" maxlength="1000" required placeholder="Ej.: Que dueños de restaurantes y taquerías nos escriban para que sus pedidos de WhatsApp lleguen solos."></textarea><small>La IA ve tu video (lo que se ve, lo que se lee y lo que se dice) y escribe el texto con esto. Si el video dice "escribe AUTOMATIZACIÓN", el texto pide esa misma palabra.</small></label>
           <label>Publicar el (opcional)<input name="cuando" type="datetime-local"><small>Vacío: sale en cuanto esté listo (unos minutos).</small></label>
         </div>
         <div class="acciones"><button class="btn primario">Subir</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
@@ -1515,8 +1544,9 @@ export function iniciar(D, { muestra = false } = {}) {
           if (!c) return
           cerrarModal()
           sessionStorage.setItem('hq-contenido', 'calendario')
-          aviso('Guardado. La IA está escribiendo el texto…')
-          await intenta(() => D.redactarContenido(c.id), 'Texto listo')
+          aviso(tipo === 'video' ? 'Guardado. La IA está viendo el video…' : 'Guardado. La IA está viendo la foto…')
+          const r = await intenta(() => D.redactarContenido(c.id, { archivo: file }))
+          if (r) aviso(r.enFondo ? `La IA está viendo ${tipo === 'video' ? 'el video (cuadros y audio)' : 'la foto'} y escribiendo el texto. En 1 o 2 minutos aparece aquí y se publica.` : 'Texto listo')
           mostrar()
         }
       },

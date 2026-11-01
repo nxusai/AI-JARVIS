@@ -1138,3 +1138,8 @@ revoke all on function public.pedir_candado(text) from public, anon, authenticat
 grant execute on function public.tomar_candado(text, int) to service_role;
 grant execute on function public.soltar_candado(text) to service_role;
 grant execute on function public.pedir_candado(text) to service_role;
+
+-- La IA ve cada foto o video antes de escribir su texto (1 de noviembre de 2026): qué muestra y
+-- dice la pieza, y la palabra que pide escribir ("AUTOMATIZACIÓN", "OPERACIONES"…), para que el texto coincida.
+alter table public.contenido add column if not exists analisis text not null default '' check (char_length(analisis) <= 4000);
+alter table public.contenido add column if not exists palabra text not null default '' check (char_length(palabra) <= 40);

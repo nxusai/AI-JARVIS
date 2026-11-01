@@ -66,6 +66,7 @@ export default async (req) => {
         titulo: texto(p.titulo, 200),
         texto: texto(p.texto, 2200),
         idea: texto(p.idea, 2000),
+        palabra: texto(p.palabra, 40).toUpperCase(), // la palabra que pide el video (si no, INFO)
         archivo,
         publicar_en: p.publicar_en && !Number.isNaN(Date.parse(p.publicar_en)) ? new Date(p.publicar_en).toISOString() : null,
       }
@@ -92,7 +93,8 @@ export default async (req) => {
       const [c] = await sb(`/rest/v1/contenido?id=eq.${b.id}&select=id,tipo,archivo`, { servicio: true })
       if (!c) return json({ ok: false, error: 'no existe' }, 404)
       const cambio = { estado: 'por_aprobar', comentario: '', error: '' }
-      if (b.archivo_url) cambio.archivo = await guardarArchivo(b.archivo_url, c.tipo)
+      if (b.archivo_url) Object.assign(cambio, { archivo: await guardarArchivo(b.archivo_url, c.tipo), analisis: '', palabra: '' })
+      if (b.palabra !== undefined) cambio.palabra = texto(b.palabra, 40).toUpperCase()
       if (b.texto) cambio.texto = texto(b.texto, 2200)
       if (b.idea) cambio.idea = texto(b.idea, 2000)
       await sb(`/rest/v1/contenido?id=eq.${c.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: cambio })
