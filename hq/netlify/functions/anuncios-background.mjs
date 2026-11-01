@@ -13,7 +13,21 @@ const avisar = (mercado, aviso) => db(`/rest/v1/anuncios_topes?mercado=eq.${merc
 export default async (req) => {
   const yo = await quien(req)
   if (!yo || yo.perfil.rol !== 'admin' || !metaListo()) return
-  const { accion, mercado } = await req.json().catch(() => ({}))
+  const { accion, mercado, id } = await req.json().catch(() => ({}))
+  if (accion === 'borrar' && /^[0-9a-f-]{36}$/i.test(String(id ?? ''))) {
+    // Borra un anuncio que NO está al aire (borrador): en Meta y en HQ; su video queda en Contenido sin anuncio.
+    const [a] = await db(`/rest/v1/anuncios?id=eq.${id}&estado=eq.borrador&select=*`)
+    if (!a) return
+    try {
+      if (a.meta_ad_id) await graph(a.meta_ad_id, { method: 'DELETE' }).catch(() => graph(a.meta_ad_id, { method: 'POST', params: { status: 'DELETED' } }))
+      await db(`/rest/v1/contenido?anuncio_id=eq.${a.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { anuncio_id: null, uso: 'feed' } })
+      await db(`/rest/v1/anuncios?id=eq.${a.id}`, { method: 'DELETE', prefer: 'return=minimal' })
+      await avisar(a.mercado, `🗑 Anuncio ${a.codigo ?? ''} borrado de Meta y de HQ.`)
+    } catch (err) {
+      await avisar(a.mercado, `⚠ No se pudo borrar ${a.codigo ?? ''}: ${err.message}`)
+    }
+    return
+  }
   if (!['usa', 'mexico'].includes(mercado)) return
   const [tope] = await db(`/rest/v1/anuncios_topes?mercado=eq.${mercado}&select=*`)
   if (!tope) return

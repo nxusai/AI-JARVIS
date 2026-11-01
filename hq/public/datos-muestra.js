@@ -465,8 +465,12 @@ export function crearMuestra() {
       db.contenido = db.contenido.filter((x) => x.id !== c.id)
       return true
     },
-    async accionAnuncios(accion, mercado) {
+    async accionAnuncios(accion, mercado, aid) {
       if (!admin()) nunca()
+      if (accion === 'borrar') {
+        db.anuncios = db.anuncios.filter((a) => a.id !== aid)
+        return true
+      }
       const t = db.anuncios_topes.find((x) => x.mercado === mercado)
       t.aviso = { preparar: '✓ 1 anuncio listo en Meta, en pausa. Revisa y da "✓ Lanzar".', lanzar: '🚀 Lanzado: 3 anuncios activos · 9.68 USD al día (para no pasar de 300 USD en el mes).', pausar: '⏸ Pausado por Eduardo: no se gasta nada hasta "✓ Lanzar".' }[accion]
       return true

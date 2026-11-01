@@ -1595,6 +1595,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <h3>${h(f.a.nombre)}</h3>
           <div class="numeros"><span><b>${usd(f.gastado)}</b><small>gastado este mes</small></span><span><b>${f.leads}</b><small>leads</small></span><span><b>${f.meetings}</b><small>meetings</small></span><span><b>${f.clientes}</b><small>clientes</small></span><span><b>${porLead(f.gastado, f.leads)}</b><small>por lead</small></span><span><b>${f.a.impresiones.toLocaleString('en-US')}</b><small>vistas</small></span></div>
           ${f.a.motivo ? `<p class="nota">🧠 ${h(f.a.motivo)}</p>` : ''}
+          ${f.a.estado === 'borrador' ? `<button class="btn peligro" data-borrar-ad="${f.a.id}">🗑 Borrar este anuncio (no está al aire)</button>` : ''}
           ${f.a.recomendacion === 'cambiar' && f.a.estado === 'activo' ? `<button class="btn primario" data-reemplazar="${f.a.id}">✦ Nuevo anuncio para reemplazarlo</button>` : ''}
           ${f.pieza?.texto ? `<details><summary>Texto del anuncio</summary><p class="desc">${h(f.pieza.texto)}</p></details>` : ''}
         </div>
@@ -1649,6 +1650,15 @@ export function iniciar(D, { muestra = false } = {}) {
       const a = anuncios.find((x) => x.id === b.dataset.reemplazar)
       b.onclick = () => nuevoAnuncio(a.mercado, activosDe(a.mercado), a.id)
     })
+    $$('[data-borrar-ad]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const a = anuncios.find((x) => x.id === b.dataset.borrarAd)
+          if (!confirm(`¿Borrar el anuncio "${a.nombre}"? Se quita de Meta y de HQ. Su video se queda en Contenido como publicación normal.`)) return
+          b.disabled = true
+          if (await intenta(() => D.accionAnuncios('borrar', a.mercado, a.id), 'Borrando…')) setTimeout(() => location.hash === '#anuncios' && mostrar(), 4000)
+        }),
+    )
     $$('[data-cancelar]', v).forEach((b) => (b.onclick = async () => confirm('¿Cancelar este pedido de video?') && (await intenta(() => D.borrarSolicitud(b.dataset.cancelar), 'Cancelado')) !== undefined && mostrar()))
     $$('[data-ads]', v).forEach(
       (b) =>
