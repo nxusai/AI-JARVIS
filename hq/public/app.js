@@ -1319,7 +1319,8 @@ export function iniciar(D, { muestra = false } = {}) {
       if (c.error) f = { pct: 0, texto: 'No se pudo publicar (abajo dice por qué)', mal: true }
       else if (c.estado === 'publicado') f = { pct: 100, texto: 'Publicado en Instagram y Facebook' }
       else if (programado) f = { pct: 5, texto: `Programado para ${fechaHora(c.publicar_en)}` }
-      else if (!c.texto) f = { pct: 10, texto: c.archivo && !c.analisis ? 'La IA está viendo la pieza y escribiendo el texto…' : 'Escribiendo el texto…' }
+      else if (!c.texto && /^👀/.test(c.idea)) f = { pct: 10, texto: 'La IA está viendo la pieza y escribiendo el texto…' }
+      else if (!c.texto) f = { pct: 0, texto: 'Sin texto: dale "✦ Escribir texto" (la IA ve la pieza y lo escribe)', mal: true }
       else if (c.ig_contenedor) f = { pct: 70, texto: 'Ya en Facebook · Instagram está preparando el video…' }
       else if (c.publicado_fb) f = { pct: 50, texto: 'Ya en Facebook · subiendo a Instagram…' }
       else f = { pct: 20, texto: 'Publicando…' }
@@ -1330,7 +1331,7 @@ export function iniciar(D, { muestra = false } = {}) {
       for (const m of mercados) {
         const ad = adsDe(c, ads).find((x) => x.mercado === m)
         let a
-        if (!ad) a = { pct: 10, texto: c.texto ? 'Subiendo el video a Meta…' : 'Esperando el texto…' }
+        if (!ad) a = c.texto ? { pct: 10, texto: 'Subiendo el video a Meta…' } : { pct: 0, texto: 'Esperando el texto…', espera: true }
         else if (ad.estado === 'activo') a = { pct: 100, texto: `Al aire (${ad.codigo ?? ''})` }
         else if (ad.estado === 'pausado' || ad.estado === 'terminado') a = { pct: 100, texto: `Ya no está al aire: ${ad.motivo}`, apagado: true }
         else if (/^⚠/.test(ad.motivo)) a = { pct: 30, texto: ad.motivo, mal: true }
@@ -1415,7 +1416,7 @@ export function iniciar(D, { muestra = false } = {}) {
             ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor && !adsDe(c, ads).some((a) => a.meta_creative_id) ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
-            ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn" data-redactar="${c.id}">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
+            ${c.estado !== 'publicado' && c.objetivo ? `<button class="btn ${c.texto ? '' : 'primario'}" data-redactar="${c.id}" title="La IA ve ${c.tipo === 'video' ? 'el video' : 'la foto'} y escribe la descripción">✦ ${c.texto ? 'Rehacer texto' : 'Escribir texto'}</button>` : ''}
             ${c.estado !== 'publicado' && c.objetivo && c.analisis ? `<button class="btn" data-rever="${c.id}">👀 Volver a ver ${c.tipo === 'video' ? 'el video' : 'la foto'}</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn peligro" data-borrar-pieza="${c.id}">Borrar</button>` : ''}
           </div>
