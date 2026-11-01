@@ -1368,12 +1368,12 @@ export function iniciar(D, { muestra = false } = {}) {
           ${c.reemplaza && !c.anuncio_id ? '<p class="nota">🔁 Al aprobarlo, reemplaza al anuncio que se recomendó cambiar.</p>' : ''}
           <p class="desc">${h(c.texto) || '<span class="vacio">Sin texto todavía.</span>'}</p>
           ${c.idea ? `<p class="nota">💡 ${h(c.idea)}</p>` : ''}
-          ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario)}</p>` : ''}
+          ${c.comentario ? `<p class="rojo">✎ Pediste: ${h(c.comentario.replace(/^\[video\] /, ''))}${c.comentario.startsWith('[video]') ? ' · lo rehago en el taller (próximas horas)' : ''}</p>` : ''}
           ${c.error ? `<p class="rojo">⚠ ${h(c.error)}</p>` : ''}
           ${barrasHtml(avance(c, ads.find((a) => a.id === c.anuncio_id)))}
           <p><small>${c.estado === 'publicado' ? 'Publicado' : 'Se publica'}: <b>${c.publicar_en ? fechaHora(c.publicar_en) : 'sin fecha'}</b></small></p>
           <div class="acciones">
-            ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">✓ Aprobar</button>` : ''}
+            ${['por_aprobar', 'rechazado'].includes(c.estado) ? `<button class="btn primario" data-aprobar="${c.id}">${c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]') ? '✦ Aplicar cambio y aprobar' : '✓ Aprobar'}</button>` : ''}
             ${(c.estado === 'por_aprobar' || c.estado === 'aprobado') && !c.publicado_fb && !c.ig_contenedor ? `<button class="btn" data-cambio="${c.id}">✎ Pedir cambio</button>` : ''}
             ${c.estado !== 'publicado' ? `<button class="btn" data-fecha="${c.id}">📅 Cambiar fecha</button>` : ''}
             ${c.error ? `<button class="btn primario" data-reintentar="${c.id}">↻ Reintentar</button>` : ''}
@@ -1396,7 +1396,19 @@ export function iniciar(D, { muestra = false } = {}) {
     $('#ct-subir', v).onclick = () => subirPropio()
     $('#ct-pedir', v).onclick = () => pedirVideo({ uso: 'feed', mercado: 'ambos' })
     $$('[data-cf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-contenido', b.dataset.cf), mostrar())))
-    $$('[data-aprobar]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.guardarContenido({ id: b.dataset.aprobar, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')) && mostrar()))
+    $$('[data-aprobar]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const c = de(b.dataset.aprobar)
+          b.disabled = true
+          // Si tiene un cambio de texto pendiente, primero se aplica (la IA lo rehace) y queda aprobado.
+          if (c.estado === 'rechazado' && c.comentario && !c.comentario.startsWith('[video]')) {
+            b.textContent = 'Aplicando tu cambio…'
+            if (await intenta(() => D.redactarContenido(c.id))) await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Cambio aplicado y aprobado')
+          } else await intenta(() => D.guardarContenido({ id: c.id, estado: 'aprobado', comentario: '' }), 'Aprobado: se publica en su fecha')
+          mostrar()
+        }),
+    )
     $$('[data-cambio]', v).forEach((b) => (b.onclick = () => pedirCambio(de(b.dataset.cambio))))
     $$('[data-fecha]', v).forEach(
       (b) =>
