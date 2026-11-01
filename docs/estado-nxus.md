@@ -16,6 +16,7 @@
 - Netlify publica HQ y el portal desde `claude/jarvis-project-setup-gs6uu2`: si el trabajo se hace en otra rama, hay que pasarlo a esa (con su permiso) para que se vea.
 
 ## Recordatorios para Eduardo (decírselos al terminar el proceso del día)
+- **Crear una cuenta de anuncios aparte para los otros negocios** (Aurelius, etc.). Hoy comparten la cuenta "Eduardo's" (act_736971049130563) con NXUS; HQ solo toca y cuenta las campañas que él mismo crea (con la marca "[NXUS HQ]").
 - **Renovar la LLC** (está pendiente de pago). Hasta renovarla, conviene no mandar el perfil de empresa a Twilio (Trust Hub → Business Profile con el EIN), porque lo pueden rechazar. Después: SHAKEN/STIR y Voice Integrity.
 
 ## Lo que ya existe
