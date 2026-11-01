@@ -1,0 +1,17 @@
+{
+  "firma": "@nextlevelbylalo",
+  "voz": {
+    "modelo": "text2speech_v2",
+    "variant": "elevenlabs",
+    "voice_type": "preset",
+    "voice_id": "f1e8226e-2248-4d5f-b43c-0a79e9949dbf",
+    "nota": "Voz A (Andre en ElevenLabs), escogida por Lalo el 1 nov 2026. Escribir los guiones en español mexicano natural."
+  },
+  "drive": {
+    "carpeta": "1mVNPyLkvVtJFbcbTKE_N16H9vPDhzljT",
+    "crudos": "1mwqKazJVCkF0TIwjxYXm1U5udPu4HuQj",
+    "listos": "1lHxnxg--JLpqZVFZiWIvwbOKlsr1Sc-_",
+    "archivo": "1QV0Z6ZjRhkrijhF3Atcc7wK_Vlgn0bVe",
+    "nota": "registro.json (rotación) vive en 3-Archivo para que no se pierda entre sesiones."
+  }
+}

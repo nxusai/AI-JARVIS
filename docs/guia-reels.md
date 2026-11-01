@@ -2,6 +2,11 @@
 
 Tus clips de Drive → 35 reels a la semana (5 al día), de máximo 10 segundos, con gancho o frase, efectos y, a veces, voz. Tú solo pones la canción en tendencia y publicas.
 
+## Dónde vive todo
+- Drive: carpeta **Next Level Reels** con `1-Crudos`, `2-Listos` y `3-Archivo` (los IDs están en `reels/config.json`).
+- Voz de narrador: la **A** (ElevenLabs, vía Higgsfield `text2speech_v2`), también en `reels/config.json`.
+- Instagram: @nextlevelbylalo.
+
 ## Cómo funciona
 1. Tú subes clips **sin hablar** a Drive, carpeta `1-Crudos`, con número: `1.mp4`, `2.mp4`, `3.mp4`… (nunca repitas un número).
 2. Cada semana Claude:
