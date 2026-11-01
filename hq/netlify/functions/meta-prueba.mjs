@@ -42,6 +42,13 @@ export default async (req) => {
       const i = await graph(instagram(), { params: { fields: 'username,followers_count' } })
       return { detalle: `@${i.username} · ${i.followers_count ?? '?'} seguidores` }
     }),
+    prueba('Campañas de HQ en Meta', async () => {
+      const c = await graph(`${cuenta()}/campaigns`, { params: { fields: 'name,effective_status,ads{name,effective_status}', limit: 50 } })
+      const mias = (c.data ?? []).filter((x) => String(x.name).startsWith('[NXUS HQ]'))
+      if (!mias.length) return { detalle: 'Todavía ninguna (HQ no ha creado nada en Meta).' }
+      const txt = mias.map((x) => `${x.name}: ${x.effective_status}${x.ads?.data?.length ? ` · ${x.ads.data.map((a) => `${a.name} (${a.effective_status})`).join(', ')}` : ' · sin anuncios'}`).join(' | ')
+      return { detalle: txt.slice(0, 900) }
+    }),
     dataset()
       ? prueba('Conjunto de datos (leads y clientes)', async () => {
           const d = await graph(dataset(), { params: { fields: 'name' } })
