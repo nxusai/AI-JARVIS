@@ -1,0 +1,199 @@
+{
+  "id": "l5",
+  "curso": "Next Level IA",
+  "numero": 5,
+  "tituloIntro": "EDITAR",
+  "tituloCorto": "Arregla y adapta en segundos",
+  "bloques": [
+    "IMAGE EDIT",
+    "PLUGINS"
+  ],
+  "tomas": [
+    {
+      "nombre": "layers",
+      "url": "https://higgsfield.ai/layers",
+      "espera": 11000,
+      "pasos": [
+        {
+          "ir": [
+            700,
+            350
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1100,
+            330
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            960,
+            620
+          ],
+          "ms": 900,
+          "pausa": 1000
+        },
+        {
+          "hover": "Upload Media",
+          "ms": 700,
+          "pausa": 1500
+        },
+        {
+          "ir": [
+            800,
+            360
+          ],
+          "ms": 1000,
+          "pausa": 1200
+        },
+        {
+          "ir": [
+            1250,
+            360
+          ],
+          "ms": 1000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "plugins",
+      "url": "https://higgsfield.ai/plugins/after-effects",
+      "espera": 11000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            300
+          ],
+          "ms": 900,
+          "pausa": 1000
+        },
+        {
+          "ir": [
+            960,
+            380
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            445
+          ],
+          "ms": 800,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            860,
+            445
+          ],
+          "ms": 500,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1020,
+            445
+          ],
+          "ms": 500,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1180,
+            445
+          ],
+          "ms": 500,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1300,
+            445
+          ],
+          "ms": 500,
+          "pausa": 1200
+        },
+        {
+          "ir": [
+            960,
+            330
+          ],
+          "ms": 900,
+          "pausa": 1500
+        }
+      ]
+    }
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Bloque cuatro: editar. Porque casi nunca sale perfecto a la primera... y aquí lo arreglas en segundos."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Image Edit separa cualquier imagen en capas. Subes la imagen, y cada elemento queda por separado: lo mueves, lo cambias o lo borras, sin volver a generar todo.",
+      "pantallas": [
+        {
+          "toma": "layers",
+          "etiqueta": "Image Edit",
+          "descripcion": "Cualquier imagen en capas editables",
+          "url": "higgsfield.ai/layers",
+          "zoom": {
+            "x": 50,
+            "y": 45,
+            "escala": 1.6,
+            "palabra": "Subes",
+            "hasta": "separado:"
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y si tu cliente ya trabaja en Premiere, After Effects o Photoshop, Higgsfield está adentro: reencuadras a vertical, quitas fondos, mejoras la calidad y editas video, sin salir del programa.",
+      "pantallas": [
+        {
+          "toma": "plugins",
+          "etiqueta": "Plugins",
+          "descripcion": "Dentro de Premiere, After Effects y más",
+          "url": "higgsfield.ai/plugins/after-effects",
+          "zoom": {
+            "x": 62,
+            "y": 55,
+            "escala": 1.5,
+            "palabra": "reencuadras",
+            "hasta": "video,"
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Capas y plugins: entregas cambios rápido, y tus clientes quedan felices. En la siguiente lección: automatizar.",
+      "marcas": [
+        "Capas",
+        "plugins:",
+        "En"
+      ],
+      "miniaturas": [
+        "layers",
+        "plugins"
+      ]
+    }
+  ]
+}
