@@ -32,9 +32,8 @@ const LIMPIAR = `(() => {
   const limpiar = () => {
     for (const el of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(el);
-      if ((cs.position === 'fixed' || cs.position === 'sticky' || el.getAttribute('role') === 'dialog') && el.id !== '__cursor' && !el.closest('header,nav') && molesto.test((el.innerText || '').slice(0, 400))) el.style.setProperty('display', 'none', 'important');
+      if ((cs.position === 'fixed' || cs.position === 'sticky') && el.childElementCount < 40 && el.id !== '__cursor' && !el.closest('header,nav') && molesto.test((el.innerText || '').slice(0, 400))) el.style.setProperty('display', 'none', 'important');
     }
-    for (const el of document.querySelectorAll('[role=dialog],[aria-modal=true]')) el.style.setProperty('display', 'none', 'important');
   };
   limpiar(); setInterval(limpiar, 300);
 })()`

@@ -9,7 +9,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 // En la nube usamos el navegador que ya trae la máquina; en la Mac, Remotion baja el suyo.
 const NAVEGADOR = process.env.REELS_NAVEGADOR || ['/opt/pw-browsers/chromium_headless_shell-1243/chrome-linux/headless_shell', '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell'].find(existsSync) || null
-const opciones = { browserExecutable: NAVEGADOR, chromiumOptions: { gl: process.env.REELS_GL || (NAVEGADOR ? 'swangle' : 'angle') } }
+export const opciones = { browserExecutable: NAVEGADOR, chromiumOptions: { gl: process.env.REELS_GL || (NAVEGADOR ? 'swangle' : 'angle') } }
 
 let paquete = null
 /** Empaqueta el proyecto una vez por corrida. */
