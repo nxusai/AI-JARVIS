@@ -18,5 +18,11 @@
       "clips.json": "1oiWMFDiB0upZbJK0_l0fpoQ-JSYHODdR"
     },
     "descarga": "1-Crudos tiene 'Anyone with the link: Viewer' (lo activó Lalo el 1 nov 2026): los clips se bajan con curl https://drive.usercontent.google.com/download?id=<id>&export=download&confirm=t"
+  },
+  "vozCurso": {
+    "proveedor": "elevenlabs",
+    "voice_id": "ztLK2033y26Zrda40AkH",
+    "llave": "Network secret del entorno: header xi-api-key para api.elevenlabs.io (la guardó Lalo el 2 nov 2026; solo la ven sesiones nuevas)",
+    "nota": "Voz de Lalo para los cursos. Los reels siguen con la voz A."
   }
 }
