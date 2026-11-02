@@ -16,6 +16,10 @@ export type Pantalla = {
   etiqueta: string;
   descripcion?: string;
   url?: string;
+  /** Resultado de la herramienta en vez de una grabación: se muestra grande, sin navegador. */
+  resultado?: 'imagen' | 'video' | 'audio';
+  /** Para un resultado de audio: el texto que se oye. */
+  texto?: string;
   /** Acercamiento a una zona (en % de la pantalla), desde/hasta en cuadros de la pantalla. */
   zoom?: { x: number; y: number; escala: number; desde: number; hasta: number };
 };
@@ -30,6 +34,8 @@ export type Escena = {
   /** Palabras con tiempos en segundos, relativos al inicio de la escena. */
   palabras: Palabra[];
   bloque?: { numero: number; nombre: string };
+  /** Un audio de ejemplo que suena después de la narración (cuadro de la escena). */
+  sonido?: { src: string; desde: number };
   pantallas?: Pantalla[];
   /** Final: cuándo (cuadros) se prende cada bloque, y miniaturas. */
   marcas?: number[];
@@ -40,6 +46,8 @@ export type LeccionProps = {
   curso: string;
   numero: number;
   titulo: string;
+  /** La palabra en 3D de la intro. */
+  tituloIntro?: string;
   bloques: string[];
   musica: string;
   total: number;

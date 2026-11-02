@@ -109,6 +109,10 @@ for (const toma of guion.tomas) {
       if (caja) await mover(p, raton, caja.x + caja.width / 2, caja.y + caja.height / 2, paso.ms ?? 700)
     } else if (paso.ir) await mover(p, raton, paso.ir[0], paso.ir[1], paso.ms ?? 900)
     else if (paso.scroll) await deslizar(p, paso.scroll, paso.ms ?? 1500)
+    else if (paso.clic) {
+      await mover(p, raton, paso.clic[0], paso.clic[1], paso.ms ?? 700)
+      await p.mouse.click(paso.clic[0], paso.clic[1]).catch(() => {})
+    } else if (paso.escribir) await p.keyboard.type(paso.escribir, { delay: paso.cada ?? 35 })
     if (paso.pausa) await p.waitForTimeout(paso.pausa)
   }
   await p.waitForTimeout(toma.final ?? 600)

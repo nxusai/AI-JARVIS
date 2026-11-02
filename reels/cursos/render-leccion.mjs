@@ -99,6 +99,7 @@ function mezclarAudio(props, salida) {
     poner(e.voz, (e.inicio + e.vozDesde) / FPS, 1)
     for (const s of e.pantallas ?? []) poner('sonidos/whoosh.wav', (e.inicio + Math.max(0, s.inicio - 4)) / FPS, 0.4)
     if (e.bloque || e.tipo !== 'pantallas') poner('sonidos/impacto.wav', e.inicio / FPS, 0.6)
+    if (e.sonido) poner(e.sonido.src, (e.inicio + e.sonido.desde) / FPS, 1)
   }
   const total = props.total / FPS
   const k = entradas.length / 2

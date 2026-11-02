@@ -1,0 +1,211 @@
+{
+  "id": "l2",
+  "curso": "Next Level IA",
+  "numero": 2,
+  "tituloIntro": "CREAR",
+  "tituloCorto": "Foto, video y voz para un anuncio",
+  "bloques": [
+    "IMAGEN",
+    "VIDEO",
+    "AUDIO"
+  ],
+  "tomas": [
+    {
+      "nombre": "image",
+      "url": "https://higgsfield.ai/ai/image",
+      "espera": 9000,
+      "pasos": [
+        {
+          "clic": [
+            890,
+            968
+          ],
+          "ms": 900,
+          "pausa": 200
+        },
+        {
+          "escribir": "Hamburguesa gourmet, luz de estudio, fondo oscuro, estilo publicitario",
+          "cada": 32,
+          "pausa": 400
+        },
+        {
+          "ir": [
+            1324,
+            975
+          ],
+          "ms": 700,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "video",
+      "url": "https://higgsfield.ai/ai/video",
+      "espera": 12000,
+      "pasos": [
+        {
+          "ir": [
+            176,
+            300
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "clic": [
+            176,
+            560
+          ],
+          "ms": 700,
+          "pausa": 200
+        },
+        {
+          "escribir": "Acercamiento lento, el queso se derrite y sale vapor",
+          "cada": 32,
+          "pausa": 400
+        },
+        {
+          "ir": [
+            176,
+            885
+          ],
+          "ms": 700,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "audio",
+      "url": "https://higgsfield.ai/audio",
+      "espera": 9000,
+      "pasos": [
+        {
+          "clic": [
+            213,
+            380
+          ],
+          "ms": 900,
+          "pausa": 200
+        },
+        {
+          "escribir": "Nueva hamburguesa Next Level. Solo este fin de semana.",
+          "cada": 32,
+          "pausa": 400
+        },
+        {
+          "ir": [
+            213,
+            822
+          ],
+          "ms": 800,
+          "pausa": 1200
+        }
+      ]
+    }
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Bloque uno: crear. En menos de dos minutos vas a ver cómo se hace un anuncio completo: la foto, el video y la voz."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Paso uno, la foto. Entras a Image, escribes lo que quieres ver, eliges el modelo y el formato, y le das Generate. En segundos, tienes una foto lista para un anuncio.",
+      "pantallas": [
+        {
+          "toma": "image",
+          "etiqueta": "Image",
+          "descripcion": "Escribe lo que quieres ver",
+          "url": "higgsfield.ai/ai/image",
+          "zoom": {
+            "x": 46,
+            "y": 90,
+            "escala": 1.9,
+            "palabra": "escribes",
+            "hasta": "Generate."
+          }
+        },
+        {
+          "resultado": "imagen",
+          "archivo": "ejemplos/hamburguesa.png",
+          "clave": "En",
+          "etiqueta": "Foto lista para un anuncio"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Paso dos, le damos vida. En Video subes esa misma foto, describes el movimiento y eliges cuánto dura. Generate... y la foto ya es un clip para reels.",
+      "pantallas": [
+        {
+          "toma": "video",
+          "etiqueta": "Video",
+          "descripcion": "Sube la foto y describe el movimiento",
+          "url": "higgsfield.ai/ai/video",
+          "zoom": {
+            "x": 9,
+            "y": 45,
+            "escala": 1.8,
+            "palabra": "subes",
+            "hasta": "dura."
+          }
+        },
+        {
+          "resultado": "video",
+          "archivo": "ejemplos/hamburguesa.mp4",
+          "clave": "Generate...",
+          "etiqueta": "La foto, ahora en video"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Paso tres, la voz. En Audio escribes el texto del anuncio, eliges una voz, y listo. Escucha:",
+      "sonido": "ejemplos/anuncio.wav",
+      "pantallas": [
+        {
+          "toma": "audio",
+          "etiqueta": "Audio",
+          "descripcion": "Escribe el texto y elige una voz",
+          "url": "higgsfield.ai/audio",
+          "zoom": {
+            "x": 11,
+            "y": 35,
+            "escala": 1.8,
+            "palabra": "escribes",
+            "hasta": "voz,"
+          }
+        },
+        {
+          "resultado": "audio",
+          "clave": "Escucha:",
+          "etiqueta": "Voz en off lista",
+          "texto": "Nueva hamburguesa Next Level. Doble queso, pan artesanal. Solo este fin de semana."
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Foto, video y voz: un anuncio completo, sin fotógrafo, sin editor y sin locutor. Eso ya se lo puedes vender a un negocio. En la siguiente lección: dirigir.",
+      "marcas": [
+        "Foto,",
+        "video",
+        "voz:",
+        "En"
+      ],
+      "miniaturas": [
+        "ejemplos/hamburguesa",
+        "video",
+        "audio"
+      ]
+    }
+  ]
+}

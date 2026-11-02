@@ -6,6 +6,7 @@ import '../fuentes';
 import { FUENTE } from '../fuentes';
 import { ACENTOS, C, Estirado, Etiqueta, Flash, Fondo, Glitch, Marca, Navegador, Subtitulos } from './piezas';
 import { Numero3D, Titulo3D } from './tresd';
+import { Resultado } from './resultado';
 import type { Escena, LeccionProps } from './tipos';
 
 const fija = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
@@ -31,13 +32,13 @@ const EntradaBloque: React.FC<{ numero: number; nombre: string; acento: string }
   );
 };
 
-const Intro: React.FC<{ e: Escena; titulo: string; numero: number }> = ({ e, titulo, numero }) => {
+const Intro: React.FC<{ e: Escena; titulo: string; numero: number; texto: string }> = ({ e, titulo, numero, texto }) => {
   const f = useCurrentFrame();
   const sube = interpolate(f, [e.dur - 40, e.dur], [0, 1], fija);
   return (
     <AbsoluteFill style={{ opacity: 1 - sube * 0.9 }}>
       <AbsoluteFill style={{ transform: `translateY(${-sube * 120}px) scale(${1 + sube * 0.4})` }}>
-        <Titulo3D texto="HIGGSFIELD" acento={C.cian} desde={6} />
+        <Titulo3D texto={texto} acento={C.cian} desde={6} />
       </AbsoluteFill>
       <div style={{ position: 'absolute', left: 0, right: 0, top: 700, textAlign: 'center' }}>
         <div style={{ fontFamily: FUENTE, fontWeight: 500, fontSize: 28, letterSpacing: '0.5em', color: C.cian, opacity: interpolate(f, [30, 45], [0, 1], fija) }}>LECCIÓN {numero}</div>
@@ -54,8 +55,8 @@ const Pantallas: React.FC<{ e: Escena; acento: string }> = ({ e, acento }) => {
     <AbsoluteFill>
       {e.pantallas.map((p, i) => (
         <Sequence key={i} from={p.inicio} durationInFrames={p.dur}>
-          <Navegador p={p} acento={acento} lado={i % 2 ? -1 : 1} />
-          <Etiqueta nombre={p.etiqueta} descripcion={p.descripcion} acento={acento} dur={p.dur} />
+          {p.resultado ? <Resultado p={p} acento={acento} /> : <Navegador p={p} acento={acento} lado={i % 2 ? -1 : 1} />}
+          {!p.resultado && <Etiqueta nombre={p.etiqueta} descripcion={p.descripcion} acento={acento} dur={p.dur} />}
         </Sequence>
       ))}
       {e.pantallas.slice(1).map((p, i) => <Flash key={i} en={p.inicio} color={acento} fuerza={0.35} />)}
@@ -72,7 +73,9 @@ const Pantallas: React.FC<{ e: Escena; acento: string }> = ({ e, acento }) => {
 const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, bloques, curso }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const fin = e.marcas?.[5] ?? e.dur - 90;
+  const n = bloques.length;
+  const fin = e.marcas?.[n] ?? e.dur - 90;
+  const medio = (n - 1) / 2;
   const vuela = interpolate(f, [fin, fin + 20], [0, 1], fija);
   const marca = spring({ frame: f - fin - 10, fps, config: { damping: 14 } });
   return (
@@ -81,11 +84,11 @@ const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, b
         {bloques.map((b, i) => {
           const s = spring({ frame: f - 4 - i * 4, fps, config: { damping: 14 } });
           const on = f >= (e.marcas?.[i] ?? 0);
-          const angulo = (i - 2) * 16;
+          const angulo = (i - medio) * 16;
           const ac = ACENTOS[i];
           return (
             <div key={b} style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -150, marginTop: -230, width: 300, height: 420, borderRadius: 24, overflow: 'hidden',
-              transform: `translateX(${(i - 2) * 330}px) translateZ(${-Math.abs(i - 2) * 120}px) rotateY(${-angulo}deg) translateY(${interpolate(s, [0, 1], [400, on ? -20 : 0])}px)`,
+              transform: `translateX(${(i - medio) * 330}px) translateZ(${-Math.abs(i - medio) * 120}px) rotateY(${-angulo}deg) translateY(${interpolate(s, [0, 1], [400, on ? -20 : 0])}px)`,
               opacity: s, background: '#0b1224', border: `2px solid ${on ? ac : '#ffffff22'}`, boxShadow: on ? `0 0 60px ${ac}88, 0 30px 60px rgba(0,0,0,.6)` : '0 30px 60px rgba(0,0,0,.6)' }}>
               {e.miniaturas?.[i] && <Img src={staticFile(e.miniaturas[i])} style={{ width: '100%', height: 230, objectFit: 'cover', filter: on ? 'none' : 'grayscale(1) brightness(.4)' }} />}
               <div style={{ padding: 22, fontFamily: FUENTE }}>
@@ -96,7 +99,7 @@ const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, b
           );
         })}
       </AbsoluteFill>
-      {e.marcas?.slice(0, 5).map((m, i) => <Flash key={i} en={m} color={ACENTOS[i]} fuerza={0.25} />)}
+      {e.marcas?.slice(0, n).map((m, i) => <Flash key={i} en={m} color={ACENTOS[i]} fuerza={0.25} />)}
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', opacity: marca }}>
         <div style={{ textAlign: 'center', transform: `scale(${interpolate(marca, [0, 1], [0.8, 1])})` }}>
           <Glitch texto={curso.toUpperCase()} tamano={130} desde={fin + 10} />
@@ -111,8 +114,8 @@ export const Leccion: React.FC<LeccionProps> = (p) => {
   const f = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const actual = p.escenas.findLast((e) => f >= e.inicio) ?? p.escenas[0];
-  const bloque = actual.bloque ? actual.bloque.numero - 1 : actual.tipo === 'final' ? 5 : -1;
-  const acento = bloque >= 0 && bloque < 5 ? ACENTOS[bloque] : C.cian;
+  const bloque = actual.bloque ? actual.bloque.numero - 1 : actual.tipo === 'final' ? p.bloques.length : -1;
+  const acento = bloque >= 0 && bloque < p.bloques.length ? ACENTOS[bloque] : C.cian;
   const avance = (f - actual.inicio) / actual.dur;
   // Música más alta sin voz (intro y cierre), más baja debajo de la voz.
   const musica = (cuadro: number) => interpolate(cuadro, [0, 25, 45, durationInFrames - 110, durationInFrames - 70, durationInFrames], [0, 0.32, 0.13, 0.13, 0.3, 0], fija);
@@ -122,7 +125,7 @@ export const Leccion: React.FC<LeccionProps> = (p) => {
       <Fondo acento={acento} />
       {p.escenas.map((e, i) => (
         <Sequence key={i} from={e.inicio} durationInFrames={e.dur}>
-          {e.tipo === 'intro' && <Intro e={e} titulo={p.titulo} numero={p.numero} />}
+          {e.tipo === 'intro' && <Intro e={e} titulo={p.titulo} numero={p.numero} texto={p.tituloIntro ?? 'HIGGSFIELD'} />}
           {e.tipo === 'pantallas' && <Pantallas e={e} acento={e.bloque ? ACENTOS[e.bloque.numero - 1] : C.cian} />}
           {e.tipo === 'final' && <Final e={e} bloques={p.bloques} curso={p.curso} />}
           <Sequence from={e.vozDesde}>

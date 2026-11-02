@@ -54,9 +54,12 @@ const escenas = guion.escenas.map((e) => {
   const largoVoz = duracion(voz)
   const antes = e.tipo === 'intro' ? INTRO_ANTES : e.bloque ? BLOQUE_ANTES : 0.15
   const palabras = tiemposDePalabras(voz, e.guion, antes)
-  const dur = Math.round((antes + largoVoz + DESPUES + (e.tipo === 'final' ? CIERRE : 0)) * FPS)
+  // Un ejemplo de audio (el resultado de la herramienta) suena después de la narración.
+  const sonido = e.sonido ? { src: `${base}/${e.sonido}`, largo: duracion(join(PUB, base, e.sonido)) } : null
+  const dur = Math.round((antes + largoVoz + DESPUES + (sonido ? sonido.largo + 0.6 : 0) + (e.tipo === 'final' ? CIERRE : 0)) * FPS)
   const escena = { tipo: e.tipo, inicio: cursor, dur, voz: `${base}/${e.voz}`, vozDesde: Math.round(antes * FPS), palabras }
   if (e.bloque) escena.bloque = { numero: e.bloque, nombre: guion.bloques[e.bloque - 1] }
+  if (sonido) escena.sonido = { src: sonido.src, desde: Math.round((antes + largoVoz + 0.3) * FPS) }
 
   if (e.pantallas) {
     // Cortes: la primera entra al empezar; las demás un poco antes de que se nombren.
@@ -69,6 +72,8 @@ const escenas = guion.escenas.map((e) => {
     })
     const fin0 = (i) => (i < cortes.length - 1 ? cortes[i + 1] + 9 : dur)
     escena.pantallas = e.pantallas.map((p, i) => {
+      // Resultado real de la herramienta (imagen, video o audio generados), sin navegador alrededor.
+      if (p.resultado) return { resultado: p.resultado, src: p.archivo ? `${base}/${p.archivo}` : '', esImagen: p.resultado === 'imagen', desde: 0, inicio: cortes[i], dur: fin0(i) - cortes[i], etiqueta: p.etiqueta, descripcion: p.descripcion, texto: p.texto }
       const toma = tomas.find((t) => t.nombre === p.toma)
       const esImagen = !toma && existsSync(join(PUB, base, `${p.toma}.png`))
       const inicio = cortes[i]
@@ -80,8 +85,10 @@ const escenas = guion.escenas.map((e) => {
       // La copia .mp4 (h264) se lee mucho más rápido que la grabación .webm.
       const pantalla = { src: `${base}/${p.toma}.${esImagen ? 'png' : existsSync(join(PUB, base, `${p.toma}.mp4`)) ? 'mp4' : 'webm'}`, esImagen, desde, velocidad, inicio, dur: fin - inicio, etiqueta: p.etiqueta, descripcion: p.descripcion, url: p.url }
       if (p.zoom) {
-        const a = cuando(palabras, p.zoom.palabra).t
-        const b = p.zoom.hasta ? cuando(palabras, p.zoom.hasta).t : a + 2
+        const za = cuando(palabras, p.zoom.palabra)
+        const a = za.t
+        // "hasta" se busca después de la palabra donde empieza el acercamiento.
+        const b = p.zoom.hasta ? cuando(palabras, p.zoom.hasta, za.i).t : a + 2
         pantalla.zoom = { x: p.zoom.x, y: p.zoom.y, escala: p.zoom.escala, desde: Math.round(a * FPS) - inicio, hasta: Math.round(b * FPS) - inicio }
       }
       return pantalla
@@ -110,7 +117,7 @@ const escenas = guion.escenas.map((e) => {
   return escena
 })
 
-const props = { curso: guion.curso, numero: guion.numero, titulo: guion.tituloCorto, bloques: guion.bloques, musica: `${base}/musica.wav`, total: cursor, escenas }
+const props = { curso: guion.curso, numero: guion.numero, titulo: guion.tituloCorto, tituloIntro: guion.tituloIntro ?? 'HIGGSFIELD', bloques: guion.bloques, musica: `${base}/musica.wav`, total: cursor, escenas }
 const SALIDA = join(RAIZ, 'salida', 'curso', guion.id)
 mkdirSync(SALIDA, { recursive: true })
 writeFileSync(join(SALIDA, 'props.json'), JSON.stringify(props, null, 2))
