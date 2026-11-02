@@ -13,9 +13,18 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 2. **Grabar:** `node cursos/grabar.mjs cursos/leccion-N.json` (retoma lo que falte; quita avisos de cookies; las páginas que se traban se cortan y se reemplazan por una captura `.png` con el mismo nombre).
 3. **Voz:** `node cursos/voz.mjs cursos/leccion-N.json` (ElevenLabs, voz de Lalo).
 4. **Revisar cuadros:** `node cursos/leccion.mjs cursos/leccion-N.json --cuadros`.
-5. **Render:** `node cursos/leccion.mjs cursos/leccion-N.json --render` (en la nube, unos 2 minutos de video tardan entre 1 y 2 horas). La música se compone sola a la medida.
+5. **Render:** `node cursos/leccion.mjs cursos/leccion-N.json --render`. Va por partes: lo que tiene 3D con swangle y el resto con egl (4 veces más rápido); el audio se mezcla con ffmpeg. Un video de 1 minuto tarda unos 12 minutos. La música se compone sola a la medida.
 6. Subir a Drive y avisar.
+
+## Reglas de Lalo para todas las lecciones
+- Breves y directas: máximo 2 minutos (mejor menos), sin huecos.
+- Si generar un ejemplo tarda mucho (videos), solo se enseña el camino; las imágenes y voces sí se generan (segundos).
+- Si aparece su correo o contenido suyo, va borroso. Los avisos emergentes no importan.
+- Edición con efectos, pero que el render sea rápido (nada de desenfoques en vivo).
 
 ## Estado
 - **Lección 1 — Higgsfield: qué es y todo lo que puedes hacer.** Guion aprobado. Narración con la voz de Lalo (ElevenLabs) generada el 2 nov 2026; la versión con voz A quedó en `voz-a/`.
+- **Lección 2 — Crear** (1:08): aprobada.
+- **Lección 3 — Dirigir** (1:10): Cinema Studio, Effects y Genjutsu, solo el camino (sin generar videos).
+- Siguen: Vender, Editar, Automatizar.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).

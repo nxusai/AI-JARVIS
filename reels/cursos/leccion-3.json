@@ -1,0 +1,299 @@
+{
+  "id": "l3",
+  "curso": "Next Level IA",
+  "numero": 3,
+  "tituloIntro": "DIRIGIR",
+  "tituloCorto": "Cámara, efectos y versiones como un director",
+  "bloques": [
+    "CINEMA STUDIO",
+    "EFFECTS",
+    "GENJUTSU"
+  ],
+  "tomas": [
+    {
+      "nombre": "cinema",
+      "url": "https://higgsfield.ai/generate",
+      "espera": 10000,
+      "pasos": [
+        {
+          "clic": [
+            1798,
+            980
+          ],
+          "ms": 300,
+          "pausa": 300
+        },
+        {
+          "ir": [
+            936,
+            446
+          ],
+          "ms": 800,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1100,
+            446
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1264,
+            446
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1428,
+            446
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "clic": [
+            1000,
+            502
+          ],
+          "ms": 700,
+          "pausa": 200
+        },
+        {
+          "escribir": "Detective bajo la lluvia, noche de neón, cámara lenta",
+          "cada": 40,
+          "pausa": 500
+        },
+        {
+          "ir": [
+            1436,
+            534
+          ],
+          "ms": 700,
+          "pausa": 1500
+        }
+      ]
+    },
+    {
+      "nombre": "effects",
+      "url": "https://higgsfield.ai/effects/use",
+      "espera": 10000,
+      "pasos": [
+        {
+          "clic": [
+            1798,
+            980
+          ],
+          "ms": 300,
+          "pausa": 300
+        },
+        {
+          "ir": [
+            294,
+            82
+          ],
+          "ms": 800,
+          "pausa": 1000
+        },
+        {
+          "ir": [
+            101,
+            336
+          ],
+          "ms": 700,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            274,
+            336
+          ],
+          "ms": 500,
+          "pausa": 700
+        },
+        {
+          "ir": [
+            187,
+            508
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "clic": [
+            187,
+            709
+          ],
+          "ms": 600,
+          "pausa": 200
+        },
+        {
+          "escribir": "Mi producto flotando en cámara lenta",
+          "cada": 40,
+          "pausa": 500
+        },
+        {
+          "ir": [
+            187,
+            1027
+          ],
+          "ms": 700,
+          "pausa": 1500
+        }
+      ]
+    },
+    {
+      "nombre": "genjutsu",
+      "url": "https://higgsfield.ai/ai/video?model=genjutsu",
+      "espera": 12000,
+      "pasos": [
+        {
+          "ir": [
+            102,
+            312
+          ],
+          "ms": 800,
+          "pausa": 1100
+        },
+        {
+          "ir": [
+            251,
+            312
+          ],
+          "ms": 600,
+          "pausa": 1100
+        },
+        {
+          "ir": [
+            176,
+            424
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            176,
+            600
+          ],
+          "ms": 600,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            669,
+            716
+          ],
+          "ms": 900,
+          "pausa": 1200
+        },
+        {
+          "ir": [
+            1048,
+            678
+          ],
+          "ms": 800,
+          "pausa": 1200
+        },
+        {
+          "ir": [
+            176,
+            900
+          ],
+          "ms": 900,
+          "pausa": 1200
+        }
+      ]
+    }
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Bloque dos: dirigir. Aquí dejas de pedirle cosas a la inteligencia artificial... y empiezas a dirigirla, como un director de cine."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Cinema Studio es tu set de filmación. Arriba eliges el tipo de película, el movimiento de cámara, la paleta de color y la iluminación. Abajo describes la escena y generas. Tú decides cómo se ve cada toma.",
+      "pantallas": [
+        {
+          "toma": "cinema",
+          "etiqueta": "Cinema Studio",
+          "descripcion": "Cámara, color e iluminación a tu gusto",
+          "url": "higgsfield.ai/generate",
+          "zoom": {
+            "x": 61,
+            "y": 43,
+            "escala": 1.9,
+            "palabra": "Arriba",
+            "hasta": "generas."
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Effects son efectos de cine listos para usar. Escoges un efecto, subes la foto de tu personaje o de tu producto, y Higgsfield hace el resto. Perfecto para anuncios que detienen el scroll.",
+      "pantallas": [
+        {
+          "toma": "effects",
+          "etiqueta": "Effects",
+          "descripcion": "Efectos de cine en un clic",
+          "url": "higgsfield.ai/effects",
+          "zoom": {
+            "x": 10,
+            "y": 40,
+            "escala": 1.8,
+            "palabra": "Escoges",
+            "hasta": "resto."
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y Genjutsu convierte un video en muchas versiones. Con Motion transfer copias el movimiento de un video a tu personaje. Con Objects swap cambias un objeto por otro, por ejemplo, por tu producto. O tomas un estilo de la galería y le das Recreate.",
+      "pantallas": [
+        {
+          "toma": "genjutsu",
+          "etiqueta": "Genjutsu",
+          "descripcion": "Un video, muchas versiones",
+          "url": "higgsfield.ai/ai/video?model=genjutsu",
+          "zoom": {
+            "x": 9,
+            "y": 30,
+            "escala": 1.8,
+            "palabra": "Con",
+            "hasta": "producto."
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Cámara, efectos y versiones: con esto, tus clientes tienen contenido que se ve de producción grande. En la siguiente lección: vender.",
+      "marcas": [
+        "Cámara,",
+        "efectos",
+        "versiones:",
+        "En"
+      ],
+      "miniaturas": [
+        "cinema",
+        "effects",
+        "genjutsu"
+      ]
+    }
+  ]
+}
