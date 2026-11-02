@@ -18,7 +18,7 @@ const EntradaBloque: React.FC<{ numero: number; nombre: string; acento: string }
   const sale = interpolate(f, [TITULO - 12, TITULO], [0, 1], fija);
   const s = spring({ frame: f - 4, fps, config: { damping: 13 } });
   return (
-    <AbsoluteFill style={{ opacity: 1 - sale, transform: `scale(${1 + sale * 2.2})`, filter: `blur(${sale * 14}px)` }}>
+    <AbsoluteFill style={{ opacity: 1 - sale, transform: `scale(${1 + sale * 2.2})`, filter: sale > 0.02 ? `blur(${sale * 14}px)` : undefined }}>
       <AbsoluteFill style={{ background: `linear-gradient(90deg, rgba(5,9,20,.92) 40%, rgba(5,9,20,.6))` }} />
       <Numero3D numero={numero} acento={acento} />
       <div style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(-10%, -50%) translateX(${interpolate(s, [0, 1], [120, 0])}px)`, opacity: s }}>
@@ -77,7 +77,7 @@ const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, b
   const marca = spring({ frame: f - fin - 10, fps, config: { damping: 14 } });
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ perspective: 2000, alignItems: 'center', justifyContent: 'center', opacity: 1 - vuela, transform: `scale(${1 + vuela * 0.6})`, filter: `blur(${vuela * 10}px)` }}>
+      <AbsoluteFill style={{ perspective: 2000, alignItems: 'center', justifyContent: 'center', opacity: 1 - vuela, transform: `scale(${1 + vuela * 0.6})`, filter: vuela > 0.02 ? `blur(${vuela * 10}px)` : undefined }}>
         {bloques.map((b, i) => {
           const s = spring({ frame: f - 4 - i * 4, fps, config: { damping: 14 } });
           const on = f >= (e.marcas?.[i] ?? 0);

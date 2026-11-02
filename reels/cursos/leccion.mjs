@@ -77,7 +77,8 @@ const escenas = guion.escenas.map((e) => {
       const desde = esImagen ? 0 : arranque(join(PUB, base, `${p.toma}.webm`), toma.lista + 0.3)
       const disponible = esImagen ? 99 : duracion(join(PUB, base, `${p.toma}.webm`)) - desde - 0.3
       const velocidad = Math.min(1, Math.max(0.35, disponible / ((fin0(i) - inicio) / FPS)))
-      const pantalla = { src: `${base}/${p.toma}.${esImagen ? 'png' : 'webm'}`, esImagen, desde, velocidad, inicio, dur: fin - inicio, etiqueta: p.etiqueta, descripcion: p.descripcion, url: p.url }
+      // La copia .mp4 (h264) se lee mucho más rápido que la grabación .webm.
+      const pantalla = { src: `${base}/${p.toma}.${esImagen ? 'png' : existsSync(join(PUB, base, `${p.toma}.mp4`)) ? 'mp4' : 'webm'}`, esImagen, desde, velocidad, inicio, dur: fin - inicio, etiqueta: p.etiqueta, descripcion: p.descripcion, url: p.url }
       if (p.zoom) {
         const a = cuando(palabras, p.zoom.palabra).t
         const b = p.zoom.hasta ? cuando(palabras, p.zoom.hasta).t : a + 2

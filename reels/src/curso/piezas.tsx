@@ -19,8 +19,8 @@ export const Fondo: React.FC<{ acento: string }> = ({ acento }) => {
         backgroundImage: `linear-gradient(${acento}33 2px, transparent 2px), linear-gradient(90deg, ${acento}33 2px, transparent 2px)`, backgroundSize: '90px 90px',
         backgroundPosition: `0 ${(f * 2.2) % 90}px`, maskImage: 'linear-gradient(to top, black 10%, transparent 90%)', WebkitMaskImage: 'linear-gradient(to top, black 10%, transparent 90%)' }} />
       {[0, 1, 2].map((i) => (
-        <div key={i} style={{ position: 'absolute', width: 900, height: 900, borderRadius: '50%', filter: 'blur(120px)', opacity: 0.35,
-          background: [acento, C.violeta, C.azul][i],
+        <div key={i} style={{ position: 'absolute', width: 1300, height: 1300, opacity: 0.4,
+          background: `radial-gradient(circle, ${[acento, C.violeta, C.azul][i]} 0%, transparent 62%)`,
           left: `${20 + 30 * i + Math.sin(f / (90 + i * 30) + i) * 12}%`, top: `${-20 + Math.cos(f / (110 + i * 20) + i * 2) * 15}%`, transform: 'translate(-50%,0)' }} />
       ))}
       {Array.from({ length: 40 }, (_, i) => {
@@ -84,7 +84,7 @@ export const Navegador: React.FC<{ p: Pantalla; acento: string; lado: number }> 
   const contenido: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transformOrigin: `${zx}% ${zy}%`, transform: `scale(${ze})` };
   return (
     <div style={{ position: 'absolute', inset: 0, perspective: 2400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: ancho, height: alto + 46, transform: `translate(${x}px, 30px) rotateY(${rotY}deg) rotateX(${rotX}deg) scale(${escala})`, filter: `blur(${desenfoque}px)`,
+      <div style={{ width: ancho, height: alto + 46, transform: `translate(${x}px, 30px) rotateY(${rotY}deg) rotateX(${rotX}deg) scale(${escala})`, filter: desenfoque > 0.3 ? `blur(${desenfoque}px)` : undefined,
         opacity: Math.min(entra * 1.5, 1 - sale), borderRadius: 18, overflow: 'hidden', background: '#0b1224',
         boxShadow: `0 60px 120px rgba(0,0,0,.65), 0 0 0 1px ${acento}55, 0 0 60px ${acento}40` }}>
         <div style={{ height: 46, background: 'linear-gradient(#1a2440, #121a30)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px' }}>
@@ -131,7 +131,7 @@ export const Etiqueta: React.FC<{ nombre: string; descripcion?: string; acento: 
   const sale = interpolate(f, [dur - 10, dur - 2], [0, 1], fija);
   return (
     <div style={{ position: 'absolute', left: 110, bottom: 150, transform: `translateX(${interpolate(s, [0, 1], [-80, 0]) - sale * 60}px)`, opacity: Math.min(s, 1 - sale) }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, padding: '14px 28px 14px 18px', borderRadius: 20, background: 'rgba(5,9,20,.78)', backdropFilter: 'blur(12px)', border: `1px solid ${acento}66`, boxShadow: `0 20px 50px rgba(0,0,0,.5), 0 0 40px ${acento}33` }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, padding: '14px 28px 14px 18px', borderRadius: 20, background: 'rgba(5,9,20,.88)', border: `1px solid ${acento}66`, boxShadow: `0 20px 50px rgba(0,0,0,.5), 0 0 40px ${acento}33` }}>
         <div style={{ width: 8, alignSelf: 'stretch', borderRadius: 4, background: acento, boxShadow: `0 0 16px ${acento}` }} />
         <div>
           <Estirado texto={nombre} tamano={52} desde={10} />
@@ -171,7 +171,7 @@ export const Subtitulos: React.FC<{ palabras: Palabra[]; acento: string; porLine
   const s = spring({ frame: f - Math.round(linea[0].inicio * fps), fps, config: { damping: 16 } });
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 52, display: 'flex', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', gap: '0 14px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 1500, padding: '12px 26px', borderRadius: 16, background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(8px)',
+      <div style={{ display: 'flex', gap: '0 14px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 1500, padding: '12px 26px', borderRadius: 16, background: 'rgba(0,0,0,.66)',
         transform: `translateY(${interpolate(s, [0, 1], [16, 0])}px)`, opacity: s }}>
         {linea.map((p, k) => {
           const ahora = t >= p.inicio && t < p.fin;
