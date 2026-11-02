@@ -21,6 +21,8 @@ const ok = ({ data, error }) => {
 
 const LEAD_LISTA =
   'id,origen,canal,fuente,nombre,empresa,telefono,correo,ciudad,pais,idioma,servicio,permiso_llamada,estado,motivo,llamada_inicio,llamada_seg,resumen,prospecto_id,asignado,traduccion,anuncio_id,creado,actualizado'
+// Lo nuevo de las llamadas (si todavía no se corre el SQL, la lista sale sin esto en vez de fallar).
+const LEAD_LLAMADA = ',llamada_error,intentos'
 
 export function crearSupabase({ url, anon }) {
   const sb = createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -131,13 +133,19 @@ export function crearSupabase({ url, anon }) {
     convertirProspecto: async (id) => ok(await sb.rpc('convertir_prospecto', { pid: id })),
 
     // Leads de los anuncios (ManyChat). La lista sin la transcripción, que pesa; la ficha completa.
-    leads: async () => ok(await tabla('leads').select(LEAD_LISTA).order('creado', { ascending: false })),
+    async leads() {
+      const r = await tabla('leads').select(LEAD_LISTA + LEAD_LLAMADA).order('creado', { ascending: false })
+      if (r.error && /llamada_error|intentos/.test(r.error.message)) return ok(await tabla('leads').select(LEAD_LISTA).order('creado', { ascending: false }))
+      return ok(r)
+    },
     lead: async (id) => ok(await tabla('leads').select('*').eq('id', id).maybeSingle()),
     guardarLead: (l) => guardar('leads', l),
     borrarLead: async (id) => ok(await tabla('leads').delete().eq('id', id)),
     notasLead: async (id) => ok(await tabla('leads_notas').select('*').eq('lead_id', id).order('creada')),
     agregarNotaLead: async (id, texto) => ok(await tabla('leads_notas').insert({ lead_id: id, texto }).select().single()),
     llamarLead: (id) => funcion('nex-llamar', { id }),
+    /** Cómo va la llamada de NEX en este momento: { estado, llamada, seg, texto, terminado }. */
+    estadoLlamada: (id) => funcion('nex-estado', { id }),
     traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 

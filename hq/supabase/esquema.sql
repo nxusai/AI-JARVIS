@@ -1143,3 +1143,8 @@ grant execute on function public.pedir_candado(text) to service_role;
 -- dice la pieza, y la palabra que pide escribir ("AUTOMATIZACIÓN", "OPERACIONES"…), para que el texto coincida.
 alter table public.contenido add column if not exists analisis text not null default '' check (char_length(analisis) <= 4000);
 alter table public.contenido add column if not exists palabra text not null default '' check (char_length(palabra) <= 40);
+
+-- NEX llama en cuanto el lead acepta (2 de noviembre de 2026). Si la llamada no sale, el porqué
+-- queda a la vista en HQ y se reintenta hasta 3 veces; después, a la Cartera.
+alter table public.leads add column if not exists llamada_error text not null default '' check (char_length(llamada_error) <= 500);
+alter table public.leads add column if not exists intentos int not null default 0 check (intentos >= 0);

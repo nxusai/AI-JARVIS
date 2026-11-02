@@ -136,7 +136,7 @@ In each language: Condition `hq_estado` is `nuevo` → message A; otherwise Cond
 
 | | Spanish | English |
 |---|---|---|
-| A (`nuevo`) | `¡Listo, {{nombre}}! ✅ En unos minutos te llama el asistente de IA de NXUS AI. Ten a la mano tu teléfono y revisa que no tengas bloqueadas las llamadas de números desconocidos, para que te entre. Si es de noche, te llama a primera hora de la mañana.` | `You're all set, {{nombre}}! ✅ The NXUS AI assistant will call you in a few minutes. Keep your phone nearby and make sure calls from unknown numbers aren't blocked so it gets through. If it's late, you'll get the call first thing in the morning.` |
+| A (`nuevo`) | `¡Listo, {{nombre}}! ✅ En unos minutos te llama el asistente de IA de NXUS AI. Ten a la mano tu teléfono y revisa que no tengas bloqueadas las llamadas de números desconocidos, para que te entre.` | `You're all set, {{nombre}}! ✅ The NXUS AI assistant will call you in a few minutes. Keep your phone nearby and make sure calls from unknown numbers aren't blocked so it gets through.` |
 | B (`cartera`) | `Gracias, {{nombre}}. Sin problema: un asesor de NXUS AI te escribirá por aquí.` | `Thanks, {{nombre}}. No problem: an NXUS AI advisor will message you here.` |
 | C (other) | `Gracias, {{nombre}}. Ya tenemos tus datos y te contactamos pronto.` | `Thanks, {{nombre}}. We have your details and will be in touch soon.` |
 

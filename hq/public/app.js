@@ -1009,7 +1009,7 @@ export function iniciar(D, { muestra = false } = {}) {
         const r = l.traduccion?.es?.resumen || l.resumen
         return r && ['cartera', 'no_llamar', 'agendado'].includes(l.estado) ? `<small>${h(r.length > 90 ? `${r.slice(0, 90)}…` : r)}</small>` : ''
       })()}</span>
-      <span class="lead-chips">${l.canal ? `<span class="chip">${CANAL[l.canal]}</span>` : '<span class="chip">A mano</span>'}${l.pais ? `<span class="chip ${l.pais === 'otro' ? '' : l.pais}">${PAIS[l.pais]}${l.idioma === 'en' ? ' · EN' : ''}</span>` : ''}${l.permiso_llamada || l.motivo === 'sin_permiso' ? '' : '<span class="chip rojo">Sin permiso</span>'}${chipLead(l)}</span>
+      <span class="lead-chips">${l.canal ? `<span class="chip">${CANAL[l.canal]}</span>` : '<span class="chip">A mano</span>'}${l.pais ? `<span class="chip ${l.pais === 'otro' ? '' : l.pais}">${PAIS[l.pais]}${l.idioma === 'en' ? ' · EN' : ''}</span>` : ''}${l.permiso_llamada || l.motivo === 'sin_permiso' ? '' : '<span class="chip rojo">Sin permiso</span>'}${l.llamada_error && ['nuevo', 'cartera'].includes(l.estado) ? '<span class="chip rojo">⚠ No salió la llamada</span>' : ''}${chipLead(l)}</span>
     </a>`
   /** Los renglones agrupados por día (Hoy, Ayer, sábado 24 de octubre…). */
   const porDia = (lista) => {
@@ -1047,7 +1047,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const lista = todos.filter((l) => (filtro === 'todos' ? true : filtro === 'activos' ? ['nuevo', 'llamando'].includes(l.estado) : l.estado === filtro))
     const calificados = leads.filter((l) => l.estado !== 'incompleto') // también los que ya se fueron a la Cartera
     v.innerHTML = `
-      <p class="nota">Aquí caen solos los que terminan el filtro de ManyChat (nombre, empresa, dirección, teléfono, correo y servicio). NEX les llama una vez: si agendan pasan a <a href="#prospectos">Prospectos</a>; si no, a la <a href="#cartera">Cartera</a>.</p>
+      <p class="nota">Aquí caen solos los que terminan el filtro de ManyChat (nombre, empresa, dirección, teléfono, correo y servicio). NEX les llama en cuanto aceptan la llamada en el chat (a cualquier hora): si agendan pasan a <a href="#prospectos">Prospectos</a>; si no, a la <a href="#cartera">Cartera</a>.</p>
       <div class="acciones">
         ${puedePros('trabajar') ? '<button class="btn" id="ld-nuevo">+ Apuntar a mano</button>' : ''}
         <div class="segmento">${Object.entries(FILTROS).map(([k, t]) => `<button data-lf="${k}" class="${filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div>
@@ -1109,7 +1109,16 @@ export function iniciar(D, { muestra = false } = {}) {
          ${l.resumen ? `<div class="segmento lengua"><button data-lengua="es" class="${lengua === 'es' ? 'on' : ''}">Español</button><button data-lengua="en" class="${lengua === 'en' ? 'on' : ''}">English</button></div>${version ? '' : `<p class="nota">${lengua === 'es' ? 'Todavía sin traducir: se ve como lo escribió NEX.' : 'Not translated yet: shown as NEX wrote it.'}</p>`}<blockquote>${h(resumen)}</blockquote>` : ''}
          ${Object.keys(p).length ? `<dl class="puntos">${Object.entries(p).sort(([a], [b]) => (Object.keys(PUNTOS).indexOf(a) + 99) % 99 - (Object.keys(PUNTOS).indexOf(b) + 99) % 99).map(([k, t]) => `<dt>${h(PUNTOS[k] || k)}</dt><dd>${h(t)}</dd>`).join('')}</dl>` : ''}
          ${l.transcripcion ? `<details><summary>Ver la conversación completa</summary><pre class="transcripcion">${h(l.transcripcion)}</pre></details>` : ''}`
-      : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' ? 'NEX le llama en los próximos minutos (de lunes a sábado, de 9 de la mañana a 8 de la noche, hora del lead).' : 'Sin llamada de NEX.'}</p>`
+      : `<p class="vacio">${l.estado === 'incompleto' ? 'No terminó el filtro de ManyChat: NEX no le llama.' : !l.permiso_llamada ? 'No dio permiso de que una IA le llame: NEX no le llama.' : l.estado === 'nuevo' && !l.llamada_error ? '⏳ NEX todavía no le llama: le llama en 1 o 2 minutos desde que aceptó en el chat.' : 'NEX todavía no ha hablado con él.'}</p>`
+    // Si ya le llamó, si está llamando ahora (en vivo) o por qué no salió la llamada.
+    const enVivo =
+      l.estado === 'llamando'
+        ? '<div class="estado-llamada" id="ld-en-vivo"><span class="punto-vivo"></span><b>📞 NEX le está llamando</b> · <span id="ld-en-vivo-texto">Marcando…</span></div>'
+        : l.llamada_error && ['nuevo', 'cartera'].includes(l.estado)
+          ? `<div class="estado-llamada mal"><b>⚠ ${h(l.llamada_error)}</b>${l.intentos ? `<small> · intento ${l.intentos} de 3</small>` : ''}</div>`
+          : l.llamada_seg != null
+            ? `<div class="estado-llamada bien"><b>✅ NEX ya le llamó</b>${l.llamada_seg ? ` · habló ${duracionLlamada(l.llamada_seg)}` : ' · no contestó'}</div>`
+            : ''
     v.innerHTML = `
       ${atras}
       <div class="ficha dos-cols">
@@ -1139,6 +1148,7 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
         <div class="tarjeta">
           <h3>Llamada de NEX</h3>
+          ${enVivo}
           ${llamada}
         </div>
         <div class="tarjeta ancho-total">
@@ -1159,11 +1169,29 @@ export function iniciar(D, { muestra = false } = {}) {
     )
     $('#ld-llamar', v)?.addEventListener('click', async () => {
       if (!confirm(`¿Que NEX le llame ahora a ${nombreLead(l)} (${l.telefono})?`)) return
-      if (await intenta(() => D.llamarLead(l.id), 'NEX le está llamando. Al colgar, aquí aparece cómo le fue.')) mostrar()
+      const b = $('#ld-llamar', v)
+      b.disabled = true
+      b.textContent = 'Marcando…'
+      await intenta(() => D.llamarLead(l.id), 'La llamada salió: NEX le está llamando. Aquí ves cómo va.')
+      mostrar() // si no salió, aquí queda el porqué y el botón para volver a intentar
     })
+    // Mientras NEX llama: cómo va, en vivo (marcando, en llamada, terminó o no salió).
+    if (l.estado === 'llamando') {
+      const ruta = location.hash
+      const revisar = async () => {
+        if (location.hash !== ruta) return
+        const r = await D.estadoLlamada(l.id).catch(() => null)
+        if (location.hash !== ruta) return
+        if (r?.terminado || r?.llamada === 'failed') return setTimeout(mostrar, r?.terminado ? 0 : 3000)
+        const t = $('#ld-en-vivo-texto', v)
+        if (t && r) t.textContent = `${r.texto}${r.llamada === 'in-progress' && r.seg ? ` · ${duracionLlamada(r.seg)}` : ''}`
+        setTimeout(revisar, 4000)
+      }
+      setTimeout(revisar, 1500)
+    }
     $('#ld-agendo', v)?.addEventListener('click', () => agendoLead(l))
     $('#ld-cartera', v)?.addEventListener('click', () => mandarACartera(l))
-    $('#ld-regresar', v)?.addEventListener('click', () => guardar({ estado: 'nuevo' }, 'De vuelta en Por llamar'))
+    $('#ld-regresar', v)?.addEventListener('click', () => guardar({ estado: 'nuevo', intentos: 0, llamada_error: '' }, 'De vuelta en Por llamar: NEX le llama en 1 o 2 minutos'))
     $('#ld-bloquear', v)?.addEventListener('click', () => {
       if (confirm(`¿${nombreLead(l)} pidió no ser llamado? Nadie le vuelve a llamar, ni NEX ni el call center.`)) guardar({ estado: 'no_llamar' }, 'Marcado: no volver a llamar')
     })

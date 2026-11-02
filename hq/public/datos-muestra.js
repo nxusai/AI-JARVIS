@@ -134,7 +134,7 @@ prospecto({ origen: 'manual', portal_id: null, nombre: 'Lic. Andrés Torres', em
 // Leads de los anuncios: llegan de ManyChat, NEX les llama una vez y quedan
 // agendados (→ Prospectos), en la Cartera o como no calificados.
 const lead = (l) => {
-  const x = { id: id(), manychat_id: id(), origen: 'manychat', canal: 'instagram', fuente: 'Comentó INFO', anuncio_id: '', nombre: '', empresa: '', direccion: '', telefono: '', correo: '', ciudad: '', pais: '', idioma: 'es', servicio: '', permiso_llamada: true, permiso_fecha: null, permiso_texto: 'Sí, acepto que un asistente de IA de NXUS AI me llame a este número.', estado: 'nuevo', motivo: '', llamada_id: '', llamada_inicio: null, llamada_seg: null, grabacion: '', resumen: '', puntos: {}, transcripcion: '', prospecto_id: null, asignado: null, creado: dia(0, 9), actualizado: dia(0, 9), ...l }
+  const x = { id: id(), manychat_id: id(), origen: 'manychat', canal: 'instagram', fuente: 'Comentó INFO', anuncio_id: '', nombre: '', empresa: '', direccion: '', telefono: '', correo: '', ciudad: '', pais: '', idioma: 'es', servicio: '', permiso_llamada: true, permiso_fecha: null, permiso_texto: 'Sí, acepto que un asistente de IA de NXUS AI me llame a este número.', estado: 'nuevo', motivo: '', llamada_id: '', llamada_error: '', intentos: 0, llamada_inicio: null, llamada_seg: null, grabacion: '', resumen: '', puntos: {}, transcripcion: '', prospecto_id: null, asignado: null, creado: dia(0, 9), actualizado: dia(0, 9), ...l }
   if (x.idioma === 'en' && !l.permiso_texto) x.permiso_texto = 'Yes, I agree to receive a call from an NXUS AI assistant at this number.'
   if (!x.permiso_llamada) x.permiso_texto = ''
   x.permiso_fecha = x.permiso_llamada ? x.creado : null
@@ -173,6 +173,7 @@ lead({ nombre: 'Miguel Ángel Soto', empresa: 'Autolavado Soto', telefono: '+52 
 lead({ nombre: 'Laura Peña', empresa: 'Inmobiliaria Peña', telefono: '+52 55 5555 0122', correo: 'laura@inmopena.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Chatbot para clientes', canal: 'facebook', fuente: 'Anuncio · "Tu negocio contesta solo"', estado: 'cartera', motivo: 'ahora_no', creado: dia(-2, 12), actualizado: dia(-2, 12, 20), llamada_inicio: dia(-2, 12, 2), llamada_seg: 148, resumen: 'Le interesa, pero está cerrando el trimestre. Pidió que la busquen en diciembre.', puntos: { necesidad: 'Contestar a los interesados en propiedades fuera de horario', decide: 'Sí, con su socio', urgencia: 'Baja: después de diciembre' } })
 lead({ nombre: 'Kevin Ortiz', empresa: 'Ortiz Cleaning', telefono: '+1 973 555 0166', ciudad: 'Paterson, NJ', pais: 'usa', idioma: 'en', servicio: 'Social media', canal: 'instagram', estado: 'cartera', motivo: 'colgo', creado: dia(-2, 15), actualizado: dia(-2, 15, 3), llamada_inicio: dia(-2, 15, 1), llamada_seg: 21, resumen: 'Colgó después de la presentación.' })
 lead({ nombre: 'Daniela Ríos', empresa: 'Estética Dany', telefono: '+52 33 5555 0155', ciudad: 'Guadalajara', pais: 'mexico', servicio: 'Agenda de citas', canal: 'instagram', estado: 'no_llamar', creado: dia(-3, 11), actualizado: dia(-3, 11, 6), llamada_inicio: dia(-3, 11, 2), llamada_seg: 35, resumen: 'Dijo que ya no le interesa y que no le vuelvan a llamar.' })
+lead({ nombre: 'Jorge Ruiz', empresa: 'Taquería El Güero', telefono: '5512345678', ciudad: '', pais: '', servicio: 'Pedidos por WhatsApp', canal: 'instagram', fuente: 'Comentó RESTAURANTES', llamada_error: 'No sé de qué país es el número "5512345678" (no trae lada y no dijo el país). Corrígelo con "Editar datos" y dale "Llamar ahora".', creado: dia(0, 9, 40), actualizado: dia(0, 9, 41) })
 lead({ nombre: 'Pedro', empresa: '', telefono: '', ciudad: '', pais: '', servicio: '', canal: 'instagram', permiso_llamada: false, estado: 'incompleto', creado: dia(0, 8, 15), actualizado: dia(0, 8, 16) })
 lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León', pais: 'mexico', servicio: 'Contenido para redes', canal: 'facebook', permiso_llamada: false, estado: 'incompleto', creado: dia(-1, 20, 40), actualizado: dia(-1, 20, 44) })
 
@@ -373,8 +374,23 @@ export function crearMuestra() {
       if (!l || !veLead(l) || !puede('trabajar')) nunca()
       if (l.estado === 'no_llamar') throw new Error('Pidió no ser llamado')
       if (!l.permiso_llamada) throw new Error('No dio permiso de que una IA le llame')
-      Object.assign(l, { estado: 'llamando', motivo: '', llamada_inicio: new Date().toISOString(), llamada_seg: null })
+      if (!/^\+(52|1)\d{10}$/.test(l.telefono)) {
+        l.llamada_error = `No sé de qué país es el número "${l.telefono}". Corrígelo con "Editar datos" y dale "Llamar ahora".`
+        throw new Error(l.llamada_error)
+      }
+      Object.assign(l, { estado: 'llamando', motivo: '', llamada_error: '', intentos: (l.intentos ?? 0) + 1, llamada_inicio: new Date().toISOString(), llamada_seg: null, llamada_id: 'conv_muestra' })
       return { ok: true }
+    },
+    /** En la muestra la llamada avanza sola: marcando → en llamada → termina en la Cartera. */
+    async estadoLlamada(lid) {
+      const l = db.leads.find((x) => x.id === lid)
+      if (!l) nunca()
+      if (l.estado !== 'llamando') return { ok: true, estado: l.estado, terminado: true }
+      const seg = Math.round((Date.now() - new Date(l.llamada_inicio)) / 1000)
+      if (seg < 4) return { ok: true, estado: 'llamando', llamada: 'initiated', texto: 'Marcando…' }
+      if (seg < 12) return { ok: true, estado: 'llamando', llamada: 'in-progress', seg: seg - 4, texto: 'En llamada' }
+      Object.assign(l, { estado: 'cartera', motivo: 'ahora_no', llamada_seg: seg - 4, resumen: 'Muestra: le interesa pero pidió que le llamen el próximo mes.' })
+      return { ok: true, estado: 'cartera', terminado: true }
     },
     async leadAProspecto(lid, cita = null, meet = '') {
       const l = db.leads.find((x) => x.id === lid)

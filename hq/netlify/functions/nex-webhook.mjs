@@ -5,6 +5,7 @@
 // ELEVENLABS_WEBHOOK_SECRET (el que da ElevenLabs al crear el webhook).
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { json, sb } from '../lib/sb.mjs'
+import { MAX_INTENTOS } from '../lib/nex.mjs'
 import { traducir } from '../lib/traducir.mjs'
 
 /** La firma de ElevenLabs: "t=<segundos>,v0=<hmac sha256 de `${t}.${cuerpo}`>", de hace menos de 30 minutos. */
@@ -35,6 +36,7 @@ export function cierre(lead, d) {
   for (const k of PUNTOS) if (valor(r, k)) puntos[k] = valor(r, k).slice(0, 500)
   const cambio = {
     llamada_id: String(d.conversation_id || '').slice(0, 120),
+    llamada_error: '',
     llamada_seg: seg,
     resumen: String(d.analysis?.transcript_summary || '').slice(0, 4000),
     puntos,
@@ -71,15 +73,26 @@ export default async (req) => {
   if (!filtro) return json({ ok: true, ignorado: 'sin lead' })
 
   try {
-    const [lead] = await sb(`/rest/v1/leads?${filtro}&select=id,estado,prospecto_id`, { servicio: true })
+    const [lead] = await sb(`/rest/v1/leads?${filtro}&select=id,estado,prospecto_id,intentos`, { servicio: true })
     // 200 aunque no exista: si no, ElevenLabs lo reintenta y termina apagando el webhook.
     if (!lead) return json({ ok: true, ignorado: 'lead no encontrado' })
     if (lead.estado === 'no_llamar') return json({ ok: true })
     let cambio
     if (evento.type === 'call_initiation_failure') {
-      // No contestó, estaba ocupado o la llamada no salió.
       if (lead.estado === 'agendado') return json({ ok: true })
-      const razon = { busy: ['estaba ocupado', 'line was busy'], 'no-answer': ['no contestó', 'no answer'] }[d.failure_reason] ?? ['sin respuesta', 'no answer']
+      // La llamada no salió (número que no existe, falla de Twilio…): se ve en HQ y se reintenta (hasta 3), con el botón "Llamar ahora".
+      if (!['busy', 'no-answer'].includes(d.failure_reason)) {
+        const agotado = (lead.intentos ?? 0) >= MAX_INTENTOS
+        cambio = {
+          llamada_error: `La llamada no salió (${String(d.failure_reason || 'sin razón').slice(0, 80)}).${agotado ? ' Ya fueron 3 intentos: queda en la Cartera.' : ' Se vuelve a intentar en 2 minutos.'}`,
+          llamada_inicio: null,
+          ...(agotado ? { estado: 'cartera', motivo: 'numero_malo' } : { estado: 'nuevo' }),
+        }
+        await sb(`/rest/v1/leads?id=eq.${lead.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: cambio })
+        return json({ ok: true })
+      }
+      // No contestó o estaba ocupado: a la Cartera (NEX no vuelve a llamar solo).
+      const razon = { busy: ['estaba ocupado', 'line was busy'], 'no-answer': ['no contestó', 'no answer'] }[d.failure_reason]
       cambio = {
         estado: 'cartera',
         motivo: 'no_contesto',

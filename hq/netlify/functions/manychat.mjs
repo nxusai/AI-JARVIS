@@ -4,7 +4,9 @@
 // entra quien trae la clave (MANYCHAT_CLAVE en Netlify y en el encabezado de
 // ManyChat). Ver docs/guia-manychat.md.
 import { timingSafeEqual } from 'node:crypto'
+import { llamarYa } from '../lib/nex.mjs'
 import { json, sb } from '../lib/sb.mjs'
+import { normalizar } from '../lib/telefono.mjs'
 
 // Lo que acepta en el chat, tal cual se le enseña (lo que queda como registro).
 export const PERMISO = {
@@ -39,16 +41,15 @@ export function canal(v) {
   return t.includes('insta') ? 'instagram' : t.includes('face') || t.includes('messenger') ? 'facebook' : ''
 }
 
-/** El teléfono con su lada: 10 dígitos de USA → +1, de México → +52. */
-export function telefono(v, p) {
+/**
+ * El teléfono con su lada (+52 / +1): por el país que dijo, si no por su ciudad
+ * o dirección. Si así no se sabe, se guarda como lo escribió y al llamar la IA
+ * decide (lib/telefono.mjs).
+ */
+export function telefono(v, p, ...lugar) {
   const t = texto(v, 40)
-  const d = t.replace(/\D/g, '')
-  if (!d) return ''
-  if (t.startsWith('+')) return `+${d}`.slice(0, 30)
-  if (d.length === 10) return `${p === 'mexico' ? '+52' : p === 'usa' ? '+1' : ''}${d}` || d
-  if (d.length === 11 && d.startsWith('1')) return `+${d}`
-  if (d.length === 12 && d.startsWith('52')) return `+${d}`
-  return d.slice(0, 30)
+  if (!t) return ''
+  return normalizar(t, p, ...lugar).telefono || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
 }
 
 const correo = (v) => {
@@ -67,11 +68,16 @@ export function fila(b) {
     nombre: texto(b.nombre, 80),
     empresa: texto(b.empresa, 120),
     direccion: texto(b.direccion, 200),
-    telefono: telefono(b.telefono, p),
+    telefono: telefono(b.telefono, p, texto(b.ciudad, 80), texto(b.direccion, 200)),
     correo: correo(b.correo),
     ciudad: texto(b.ciudad, 80),
     pais: p,
     servicio: texto(b.servicio, 200),
+  }
+  // Si no dijo el país (u "Otro"), se deduce del número y de su ciudad o dirección.
+  if ((!f.pais || f.pais === 'otro') && f.telefono) {
+    const n = normalizar(texto(b.telefono, 40), p, f.ciudad, f.direccion)
+    if (n.pais === 'mexico' || n.pais === 'usa') f.pais = n.pais
   }
   // El idioma solo si viene: un aviso sin él no regresa a español a quien habla inglés.
   if (texto(b.idioma, 20)) f.idioma = idioma(b.idioma)
@@ -131,6 +137,8 @@ export default async (req) => {
         ;[l] = await parchar(viejo.id)
       }
     }
+    // Aceptó la llamada: NEX le llama YA (en segundo plano; si no arranca, la revisión de cada 2 minutos lo hace).
+    if (l?.estado === 'nuevo' && l.permiso_llamada && viejo?.estado !== 'nuevo') await llamarYa(l.id).catch((err) => console.log('llamarYa:', err.message))
     // ManyChat guarda la respuesta en un campo (hq_estado) para decidir el último mensaje.
     return json({ ok: true, id: l?.id, estado: l?.estado ?? e.estado, faltan: (e.faltan ?? []).join(', ') })
   } catch (err) {

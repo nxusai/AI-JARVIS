@@ -391,3 +391,10 @@ main { display: flex; flex-direction: column; min-height: 100vh; }
   .frase p { font-size: 13.5px; }
   #avisos { left: 12px; right: 12px; bottom: 110px; }
 }
+
+/* La llamada de NEX en vivo (ficha del lead) */
+.estado-llamada { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin: 6px 0 10px; border-radius: 12px; background: rgba(10, 108, 255, 0.12); border: 1px solid rgba(10, 108, 255, 0.35); }
+.estado-llamada.mal { background: rgba(255, 70, 90, 0.1); border-color: rgba(255, 70, 90, 0.4); color: #ff8a98; }
+.estado-llamada.bien { background: rgba(40, 200, 120, 0.1); border-color: rgba(40, 200, 120, 0.35); }
+.punto-vivo { width: 9px; height: 9px; border-radius: 50%; background: #2be08a; box-shadow: 0 0 0 0 rgba(43, 224, 138, 0.6); animation: latido 1.4s infinite; }
+@keyframes latido { 70% { box-shadow: 0 0 0 9px rgba(43, 224, 138, 0); } 100% { box-shadow: 0 0 0 0 rgba(43, 224, 138, 0); } }
