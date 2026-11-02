@@ -78,6 +78,9 @@ export function crearMuestra() {
 
   const CABEZAS = ['u-senen', 'u-gerardo', 'u-marisol', 'u-miguel']
   for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ultron: CABEZAS.includes(p.id) })
+  db.perfiles.find((p) => p.id === 'u-admin').dueno = true
+  // Miguel todavía tiene la contraseña que le puso el admin: al entrar se le ofrece cambiarla.
+  db.perfiles.find((p) => p.id === 'u-miguel').clave_temporal = true
   db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true })
 
   // -- reglas (las mismas que la base de datos) --------------------------------
@@ -461,26 +464,64 @@ export function crearMuestra() {
       if (!admin()) return []
       return copia(db.perfiles)
     },
-    async crearUsuario({ correo, clave, ...datos }) {
+    async crearUsuario({ correo, clave, mandar = true, ...datos }) {
       await espera(400)
       if (!admin()) no('Solo el admin crea usuarios')
+      correo = String(correo || '').trim().toLowerCase()
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) no('Ese correo no se ve bien')
       if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
       if (db.perfiles.some((p) => p.correo === correo)) no('Ya hay un usuario con ese correo')
-      const p = { id: uid(), correo, activo: true, ...datos }
+      if (datos.rol === 'admin') no('Solo el dueño nombra administradores')
+      const p = { id: uid(), correo, activo: true, clave_temporal: true, ...datos }
       db.perfiles.push(p)
       PERSONAS.push({ id: p.id, nombre: p.nombre, correo, rol: p.rol, explica: `Creado por ti (${p.rol})` })
       anota('creó', 'perfiles', p.id, { nombre: p.nombre })
+      return { para: correo, enviado: mandar, aviso: '' }
     },
     async cambiarUsuario(id, datos) {
       if (!admin()) no('Solo el admin cambia usuarios')
       const p = db.perfiles.find((x) => x.id === id)
+      if (p.dueno && id !== yo) no('El acceso del dueño solo lo cambia él')
+      if ('dueno' in datos && datos.dueno !== p.dueno) no('El dueño solo se cambia directo en Supabase')
+      if (datos.rol === 'admin' && p.rol !== 'admin' && !perfil().dueno) no('Solo el dueño nombra administradores')
+      if ('correo' in datos && datos.correo !== p.correo) no('El correo se cambia en Usuarios → Editar')
+      if (id === yo && (datos.rol && datos.rol !== p.rol || datos.activo === false)) no('No te puedes quitar tu propio acceso de admin')
       Object.assign(p, datos)
       anota('cambió', 'perfiles', id, { nombre: p.nombre })
     },
-    async cambiarClave() {
+    async cambiarClave(id, clave, mandar = true) {
       await espera(300)
       if (!admin()) no('Solo el admin cambia contraseñas')
+      const p = db.perfiles.find((x) => x.id === id)
+      if (id === yo) no('Lo tuyo cámbialo en "Mi contraseña"')
+      if (p.dueno) no('El acceso del dueño solo lo cambia él')
+      if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
+      p.clave_temporal = true
+      return { para: p.correo, enviado: mandar, aviso: '' }
+    },
+    async cambiarCorreo(id, correo, { clave, mandar = true } = {}) {
+      await espera(300)
+      if (!admin()) no('Solo el admin cambia usuarios')
+      const p = db.perfiles.find((x) => x.id === id)
+      if (id === yo) no('Lo tuyo cámbialo en "Mi contraseña"')
+      if (p.dueno) no('El acceso del dueño solo lo cambia él')
+      correo = String(correo || '').trim().toLowerCase()
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) no('Ese correo no se ve bien')
+      if (db.perfiles.some((x) => x.correo === correo && x.id !== id)) no('Ya hay un usuario con ese correo')
+      if (mandar && (clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
+      if (correo !== p.correo) {
+        anota('cambió', 'perfiles', id, { correo: [p.correo, correo] })
+        p.correo = correo
+        const persona = PERSONAS.find((x) => x.id === id)
+        if (persona) persona.correo = correo
+      }
+      if (mandar) p.clave_temporal = true
+      return { para: correo, enviado: mandar, aviso: '' }
+    },
+    async cambiarMiClave(clave) {
+      await espera(300)
+      if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
+      perfil().clave_temporal = false
     },
     async cambiarEmpresa(id, { activa }) {
       if (!admin()) no('Solo el admin')

@@ -25,6 +25,9 @@ function claro(error) {
   if (/duplicate key.*carpetas/i.test(m)) return new Error('Ya hay una carpeta con ese nombre aquí')
   if (/carpetas.*foreign key|violates foreign key constraint .*carpeta/i.test(m)) return new Error('Solo se borran carpetas vacías')
   if (/exceeded the maximum allowed size|Payload too large|413/i.test(m)) return new Error('El archivo es muy pesado (máximo 50 MB)')
+  if (/should be different from the old password/i.test(m)) return new Error('Esa es la misma contraseña que ya tenías. Escribe otra.')
+  if (/Password should be at least|weak password|weak_password/i.test(m)) return new Error('Esa contraseña es muy débil. Usa al menos 8 caracteres, con letras y números.')
+  if (/reauthenticat/i.test(m)) return new Error('Por seguridad, sal y vuelve a entrar antes de cambiar tu contraseña.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -232,14 +235,25 @@ export function crearSupabase({ url, anon }) {
     async usuarios() {
       return ok(await sb.from('perfiles').select('*').order('nombre'))
     },
+    // Las tres regresan { para, enviado, aviso }: a quién y si salió el correo de acceso.
     async crearUsuario(datos) {
-      await funcion('usuarios', { accion: 'crear', ...datos })
+      return funcion('usuarios', { accion: 'crear', ...datos })
     },
     async cambiarUsuario(id, datos) {
-      ok(await sb.from('perfiles').update(datos).eq('id', id))
+      const filas = ok(await sb.from('perfiles').update(datos).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('No tienes permiso para hacer eso')
     },
-    async cambiarClave(id, clave) {
-      await funcion('usuarios', { accion: 'clave', id, clave })
+    async cambiarClave(id, clave, mandar = true) {
+      return funcion('usuarios', { accion: 'clave', id, clave, mandar })
+    },
+    async cambiarCorreo(id, correo, { clave, mandar = true } = {}) {
+      return funcion('usuarios', { accion: 'correo', id, correo, clave, mandar })
+    },
+    // Mi propia contraseña: la cambia la persona con su sesión.
+    async cambiarMiClave(clave) {
+      ok(await sb.auth.updateUser({ password: clave }))
+      ok(await sb.rpc('ya_cambie_mi_clave'))
+      if (yo) yo.clave_temporal = false
     },
     async cambiarEmpresa(id, cambios) {
       ok(await sb.from('empresas').update(cambios).eq('id', id))

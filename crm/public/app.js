@@ -256,6 +256,7 @@ async function empezar() {
   const vistas = vistasPermitidas()
   if (!vistas.includes(S.vista)) S.vista = vistas[0] ?? 'tareas'
   pintar()
+  ofrecerCambiarClave()
   // Ultron, solo para la dirección (y el admin), cuando el sistema lo tiene.
   if (D.ultron && (S.yo.ultron || esAdmin())) {
     montarUltron({
@@ -318,6 +319,7 @@ function pintar() {
       <div class="cabeza-fila">
         <div class="marca">${logo()}<div><b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo · NXUS AI</span></div></div>
         <div class="quien"><b>${h(S.yo.nombre)}</b><span>${ROLES[S.yo.rol]}</span></div>
+        <button class="btn chico" data-accion="mi-clave" title="Cambiar mi contraseña" aria-label="Cambiar mi contraseña">🔑<span class="solo-ancho"> Contraseña</span></button>
         <button class="btn chico" data-accion="salir">Salir</button>
       </div>
       <nav class="pestanas">
@@ -1112,9 +1114,9 @@ function vistaUsuarios() {
       <tbody>${lista
         .map(
           (u) => `<tr class="${u.activo ? '' : 'apagado'}">
-            <td><b>${h(u.nombre || '(sin nombre)')}</b><br><span class="ayuda">${h(u.correo)}</span>${u.activo ? '' : '<br><span class="chip urgente">Apagado</span>'}</td>
-            <td>${ROLES[u.rol]}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
-            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">Contraseña</button>`}</td>
+            <td><b>${h(u.nombre || '(sin nombre)')}</b><br><span class="ayuda">${h(u.correo)}</span>${u.activo ? '' : '<br><span class="chip urgente">Apagado</span>'}${u.activo && u.clave_temporal ? '<br><span class="chip" title="Todavía entra con la contraseña que le diste">Contraseña temporal</span>' : ''}</td>
+            <td>${ROLES[u.rol]}${u.dueno ? ' · dueño' : ''}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
+            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : u.dueno ? '<span class="ayuda">Solo él lo cambia</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">Contraseña</button>`}</td>
           </tr>`,
         )
         .join('')}</tbody>
@@ -1141,8 +1143,16 @@ function formUsuario(id) {
     u ? `Editar a ${h(u.nombre)}` : 'Nuevo usuario',
     `<form id="form-usuario">
       <div class="campo"><label for="u-nombre">Nombre</label><input id="u-nombre" type="text" value="${h(u?.nombre ?? '')}" required></div>
-      ${u ? '' : `<div class="campo"><label for="u-correo">Correo (con este entra)</label><input id="u-correo" type="email" required></div>
-      <div class="campo"><label for="u-clave">Contraseña</label><div style="display:flex;gap:6px"><input id="u-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave">↻</button></div><span class="ayuda">Mándasela por WhatsApp; la puede cambiar después contigo.</span></div>`}
+      <div class="campo"><label for="u-correo">Correo (con este entra)</label><input id="u-correo" type="email" value="${h(u?.correo ?? '')}" required></div>
+      ${
+        u
+          ? `<div id="u-correo-nuevo" hidden class="seccion" style="padding:10px 12px;margin-bottom:10px">
+        <label class="casilla"><input type="checkbox" id="u-mandar" checked> Mandarle su acceso al correo nuevo</label>
+        <div class="campo" id="u-clave-campo" style="margin:6px 0 0"><label for="u-clave">Con esta contraseña nueva</label><div style="display:flex;gap:6px"><input id="u-clave" type="text" value="${claveAlAzar()}" minlength="8"><button type="button" class="btn" data-accion="otra-clave">↻</button></div><span class="ayuda">La de antes no la sabemos, por eso va una nueva. Al entrar le ofrecemos cambiarla.</span></div>
+      </div>`
+          : `<div class="campo"><label for="u-clave">Contraseña</label><div style="display:flex;gap:6px"><input id="u-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave">↻</button></div><span class="ayuda">Al entrar le ofrecemos cambiarla por una suya.</span></div>
+      <label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="u-mandar" checked> Mandarle su acceso a su correo (link, correo y contraseña)</label>`
+      }
       <div class="campo"><label for="u-rol">Rol</label><select id="u-rol">
         <option value="cliente" ${u?.rol === 'cliente' || !u ? 'selected' : ''}>Cliente (pide tareas, ve y descarga)</option>
         <option value="equipo" ${u?.rol === 'equipo' ? 'selected' : ''}>Equipo (trabaja las tareas, sube y organiza)</option>
@@ -1168,6 +1178,13 @@ function formUsuario(id) {
   $('#u-rol').addEventListener('change', permisos)
   $('#u-todas').addEventListener('change', () => ($('#u-lista').hidden = $('#u-todas').checked))
   $('[data-accion="otra-clave"]')?.addEventListener('click', () => ($('#u-clave').value = claveAlAzar()))
+  if (u) {
+    // Si se corrige el correo, se ofrece mandarle el acceso al correo nuevo.
+    const correoCambio = () => ($('#u-correo-nuevo').hidden = $('#u-correo').value.trim().toLowerCase() === u.correo)
+    const mandarCambio = () => ($('#u-clave-campo').hidden = !$('#u-mandar').checked)
+    $('#u-correo').addEventListener('input', correoCambio)
+    $('#u-mandar').addEventListener('change', mandarCambio)
+  }
   $('#form-usuario').addEventListener('submit', async (e) => {
     e.preventDefault()
     const datos = {
@@ -1181,14 +1198,18 @@ function formUsuario(id) {
     }
     await ocupado(e.submitter, async () => {
       try {
+        const correo = $('#u-correo').value.trim().toLowerCase()
+        const mandar = $('#u-mandar').checked
+        const clave = $('#u-clave').value
         if (u) {
+          let r = null
+          if (correo !== u.correo) r = await D.cambiarCorreo(u.id, correo, { clave, mandar })
           await D.cambiarUsuario(u.id, { ...datos, activo: $('#u-activo').checked })
-          avisar('Guardado')
+          if (r) avisarAcceso(r, datos.nombre, `Guardado. Ahora entra con ${r.para}.`)
+          else avisar('Guardado')
         } else {
-          const correo = $('#u-correo').value.trim()
-          const clave = $('#u-clave').value
-          await D.crearUsuario({ ...datos, correo, clave })
-          avisar(`Listo. ${datos.nombre} entra con ${correo} y la contraseña que pusiste.`)
+          const r = await D.crearUsuario({ ...datos, correo, clave, mandar })
+          avisarAcceso(r, datos.nombre, `Listo. ${datos.nombre} entra con ${correo} y la contraseña que pusiste.`)
         }
         cerrarVentana()
         await recargar()
@@ -1204,7 +1225,8 @@ function formClave(id) {
   abrirVentana(
     `Contraseña de ${h(u.nombre)}`,
     `<form id="form-clave">
-      <div class="campo"><label for="k-clave">Contraseña nueva</label><div style="display:flex;gap:6px"><input id="k-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave-k">↻</button></div></div>
+      <div class="campo"><label for="k-clave">Contraseña nueva</label><div style="display:flex;gap:6px"><input id="k-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave-k">↻</button></div><span class="ayuda">Al entrar le ofrecemos cambiarla por una suya.</span></div>
+      <label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="k-mandar" checked> Mandársela a su correo (${h(u.correo)})</label>
       <button class="btn principal" data-ocupado="Guardando…">Cambiar contraseña</button>
     </form>`,
     { chica: true },
@@ -1214,9 +1236,69 @@ function formClave(id) {
     e.preventDefault()
     await ocupado(e.submitter, async () => {
       try {
-        await D.cambiarClave(u.id, $('#k-clave').value)
+        const r = await D.cambiarClave(u.id, $('#k-clave').value, $('#k-mandar').checked)
         cerrarVentana()
-        avisar(`Listo. Mándale a ${u.nombre} su contraseña nueva.`)
+        avisarAcceso(r, u.nombre, `Listo. Mándale a ${u.nombre} su contraseña nueva.`)
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+/** Qué decirle al admin después de crear o cambiar un acceso (en rojo si el correo no salió). */
+function avisarAcceso(r, nombre, sinCorreo) {
+  if (r?.enviado) return avisar(`Listo. Le mandé a ${nombre} su acceso a ${r.para}.${MUESTRA ? ' (En la muestra no sale correo de verdad.)' : ''}`)
+  avisar(r?.aviso ? `${sinCorreo} ${r.aviso}` : sinCorreo, Boolean(r?.aviso))
+}
+
+// -- mi contraseña (todos) -----------------------------------------------------
+
+/** Si la contraseña se la puso el admin, al entrar se le ofrece cambiarla (una vez por sesión). */
+function ofrecerCambiarClave() {
+  if (!S.yo?.clave_temporal) return
+  const llave = `crm-clave-luego-${S.yo.id}`
+  try {
+    if (sessionStorage.getItem(llave)) return
+  } catch {}
+  formMiClave({
+    bienvenida: true,
+    luego: () => {
+      try {
+        sessionStorage.setItem(llave, '1')
+      } catch {}
+    },
+  })
+}
+
+function formMiClave({ bienvenida = false, luego } = {}) {
+  abrirVentana(
+    bienvenida ? `Hola, ${h(S.yo.nombre.split(' ')[0])}` : 'Mi contraseña',
+    `<form id="form-mi-clave">
+      ${bienvenida ? '<p style="margin-top:0">Entraste con la contraseña que te dio el administrador. Te recomendamos cambiarla por una que solo tú sepas.</p>' : ''}
+      <div class="campo"><label for="m-clave">Contraseña nueva</label><input id="m-clave" type="password" autocomplete="new-password" minlength="8" required><span class="ayuda">Al menos 8 caracteres.</span></div>
+      <div class="campo"><label for="m-clave2">Escríbela otra vez</label><input id="m-clave2" type="password" autocomplete="new-password" minlength="8" required></div>
+      <label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="m-ver"> Mostrar</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn principal" data-ocupado="Guardando…">Cambiar contraseña</button>
+        ${bienvenida ? '<button type="button" class="btn" data-accion="clave-luego">Ahora no</button>' : ''}
+      </div>
+    </form>`,
+    { chica: true, alCerrar: luego },
+  )
+  $('#m-ver').addEventListener('change', () => document.querySelectorAll('#m-clave, #m-clave2').forEach((x) => (x.type = $('#m-ver').checked ? 'text' : 'password')))
+  $('[data-accion="clave-luego"]')?.addEventListener('click', () => cerrarVentana())
+  $('#form-mi-clave').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const clave = $('#m-clave').value
+    if (clave !== $('#m-clave2').value) return falla(new Error('Las dos contraseñas no son iguales'))
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.cambiarMiClave(clave)
+        S.yo.clave_temporal = false
+        cerrarVentana()
+        avisar('Listo. Desde ahora entras con tu contraseña nueva.')
       } catch (err) {
         falla(err)
       }
@@ -1528,6 +1610,8 @@ async function alClic(e) {
     switch (d.accion) {
       case 'cerrar':
         return cerrarVentana()
+      case 'mi-clave':
+        return formMiClave()
       case 'salir':
         desmontarUltron()
         await D.salir()

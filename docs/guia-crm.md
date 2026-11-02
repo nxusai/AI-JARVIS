@@ -4,7 +4,8 @@ El CRM está en `crm/`:
 - `public/` es la página;
 - `supabase/esquema.sql` es la base de datos con sus candados (quién ve y toca qué);
 - `netlify/functions` mandan correos y crean usuarios;
-- `google/correo.gs` es el que manda los correos desde la cuenta de Google de la empresa.
+- `google/correo.gs` es el que manda los archivos ("✉️ A mi correo") desde la cuenta de Google de la empresa;
+- `google/accesos.gs` es el que manda el acceso a cada usuario nuevo (link, correo y contraseña) desde tu cuenta de Google de NXUS.
 
 Sin conectar nada, la página enseña una **muestra** con datos de ejemplo:
 
@@ -69,6 +70,23 @@ Usa la cuenta de Google **de la empresa**, la del Drive "Etiquetas Mi Semago". N
    - Who has access: **Anyone**
    - Clic en **Deploy**. La URL que termina en `/exec` va como `CORREO_URL`.
 
+## 2b. Correo de accesos (tu Google de NXUS, 5 min)
+
+Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les llegan de ti.
+
+1. Entra a https://script.google.com con contacto@nxusai.org → **New project**.
+2. Copia el código: `pbcopy < ~/Desktop/nexy/crm/google/accesos.gs`
+   - en el editor: Cmd + A, borrar, Cmd + V;
+   - nombre del proyecto: `Accesos Centro de trabajo`;
+   - guarda con Cmd + S.
+3. Elige **preparar** → **▷ Run** y acepta los permisos (**Review permissions** → **Allow**; si sale **Advanced**, **Go to … (unsafe)** → **Allow**).
+4. En el **Execution log** sale la **clave**. Va como `ACCESO_CLAVE`.
+5. (Opcional) Elige **probar** → **▷ Run**: te llega a ti un correo de ejemplo.
+6. **Deploy** → **New deployment** → engrane → **Web app**:
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+   - Clic en **Deploy**. La URL que termina en `/exec` va como `ACCESO_URL`.
+
 ## 3. Netlify (10 min)
 
 1. https://app.netlify.com → **Add new site** → **Import an existing project** → **GitHub** → `nxusai/AI-JARVIS`.
@@ -84,6 +102,8 @@ Usa la cuenta de Google **de la empresa**, la del Drive "Etiquetas Mi Semago". N
    | `SUPABASE_SERVICE_KEY` | Secret key (o service_role) |
    | `CORREO_URL` | la URL `/exec` del paso 2 |
    | `CORREO_CLAVE` | la clave del paso 2 |
+   | `ACCESO_URL` | la URL `/exec` del paso 2b |
+   | `ACCESO_CLAVE` | la clave del paso 2b |
 
 4. Clic en **Deploy**.
 5. Ponle nombre de marca: **Site configuration** → **Change site name**, por ejemplo `centro-misemago-abuelito`. Queda en `https://centro-misemago-abuelito.netlify.app`. Nada que diga NXUS.
@@ -96,7 +116,14 @@ Usa la cuenta de Google **de la empresa**, la del Drive "Etiquetas Mi Semago". N
    - Senen → **Cliente**, todas las empresas, las tres secciones.
    - Gerardo → **Cliente**, todas las empresas, las tres secciones.
 
-   La contraseña sale sola; mándasela a cada uno por WhatsApp.
+   La contraseña sale sola. Con **Mandarle su acceso a su correo** marcado, a cada uno le llega desde tu correo de NXUS el link, su correo y su contraseña. Al entrar, la página le ofrece cambiarla por una suya (o **Ahora no**; se le vuelve a ofrecer la próxima vez). Mientras no la cambie, en Usuarios sale **Contraseña temporal**.
+
+   Si el correo no sale (por ejemplo, si todavía no haces el paso 2b), el usuario sí se crea y la página te avisa en rojo para que le mandes sus datos por WhatsApp.
+
+### Cambios a los usuarios
+- **Corregir un correo mal escrito:** Usuarios → **Editar** → cambia el correo. Sale marcado **Mandarle su acceso al correo nuevo** con una contraseña nueva → **Guardar**.
+- **Contraseña nueva (si la olvidó):** Usuarios → **Contraseña** → con **Mandársela a su correo** marcado → **Cambiar contraseña**.
+- **Tu contraseña o la de cualquiera, por su cuenta:** botón **🔑 Contraseña** arriba, junto a **Salir**.
 3. **Biblioteca** → en cada empresa, clic en **Crear carpetas** (Labels, Logotipos, Diseños, Estructuras de label, Documentos). Tu equipo sube arrastrando los archivos.
 4. **Catálogos** → **Subir catálogo** en cada empresa.
 
@@ -114,6 +141,9 @@ Usa la cuenta de Google **de la empresa**, la del Drive "Etiquetas Mi Semago". N
 | Biblioteca y catálogos | ver, descargar, a su correo | subir, carpetas, versiones | igual que el equipo |
 | Borrar (tareas, correcciones, actualizaciones, archivos, carpetas) | ❌ | ❌ | ✅ solo tú |
 | Usuarios, empresas, bitácora | ❌ | ❌ | ✅ |
+| Cambiar su propia contraseña | ✅ | ✅ | ✅ |
+
+**Tu acceso es solo tuyo.** Tu perfil está marcado como **dueño**. Nadie más (ni otro admin si algún día lo hubiera, ni la llave de servicio) puede borrarte, apagarte, quitarte lo de admin, ni cambiarte el correo o la contraseña. Solo el dueño nombra administradores. La única otra puerta eres tú mismo directo en Supabase (SQL Editor), por eso cuida tu cuenta de Supabase con verificación en dos pasos.
 
 Nada se reemplaza. Cada PDF nuevo (entrega, corrección o versión) se guarda junto a los anteriores. Lo que pidió el cliente no se edita: si cambia de idea, agrega una **actualización** con texto y/o archivos, y queda con fecha como prueba.
 

@@ -17,6 +17,8 @@ El sistema de trabajo entre NXUS y su cliente (el mismo dueño: **Senen**) para 
 | **equipo** | El equipo de NXUS (diseñadores) | Mueve estatus y fecha compromiso, sube PDFs, organiza biblioteca y catálogos, crea y cambia contenidos de la Parrilla. No cambia lo del cliente ni aprueba por él. |
 | **admin** | Eduardo | Todo lo del equipo + usuarios, bitácora y **es el único que borra**. |
 
+Además, el perfil de Eduardo tiene **`dueno`**: a su perfil y a su acceso solo los toca él (ni otro admin ni la llave de servicio; tampoco se puede borrar su cuenta de entrada). Solo el dueño nombra administradores. Solo se cambia directo en Supabase (SQL Editor).
+
 Por usuario: `empresas` (null = todas), `ve_tareas`, `ve_biblioteca`, `ve_catalogos`, `ultron`. Las **vendedoras NO tienen acceso**: solo el gerente de ventas. Su contenido les llegará después por un grupo de Telegram.
 
 **Las reglas viven en la base de datos** (RLS y triggers en `crm/supabase/esquema.sql`): aunque alguien se brinque la página, no ve ni toca lo que no le toca. Cualquier cambio de permisos va ahí, no solo en la página.
@@ -26,7 +28,7 @@ Por usuario: `empresas` (null = todas), `ve_tareas`, `ve_biblioteca`, `ve_catalo
 - **Parrilla de contenidos**: calendario de lo que publican o mandan las vendedoras. Todos la ven; **solo equipo y admin** agregan o cambian; **solo admin** borra. Cada contenido: empresa, canal (WhatsApp, Estado, Instagram, Facebook, TikTok, otro), día, hora, título, texto, link, estado (borrador, listo, enviado) y **material** (imágenes y videos de hasta 50 MB) que **no se ve en el calendario**: al dar clic sale la vista previa con Ver, Descargar y Copiar texto. El campo `enviado` está listo para el envío automático a Telegram.
 - **Biblioteca**: labels, logos, diseños y documentos por empresa y carpeta, con versiones.
 - **Catálogos**: el catálogo vigente de cada empresa y sus versiones anteriores.
-- **Usuarios** y **Bitácora**: solo admin.
+- **Usuarios** y **Bitácora**: solo admin. Al crear un usuario, cambiarle la contraseña o corregirle el correo, se le manda su acceso (link, correo y contraseña) **desde contacto@nxusai.org** con `crm/google/accesos.gs` (`ACCESO_URL` y `ACCESO_CLAVE` en Netlify). Esas contraseñas quedan como **temporales** (`clave_temporal`): al entrar se le ofrece a la persona cambiarla (o "Ahora no"). Botón **🔑 Contraseña** arriba para que cualquiera cambie la suya. El correo de un usuario solo se cambia por Usuarios → Editar (cambia el de entrar y el del perfil juntos).
 - **Ultron**: la IA de la dirección (orbe abajo a la **izquierda**, porque abajo a la derecha Netlify pone su letrero). Resume, busca archivos y prepara tareas (con confirmación). Corre en la Mac de Eduardo bajo NEX (`bridge/ultron.mjs`, `bridge/nucleo/ultron.mjs`) y habla por un buzón en Supabase (`ultron_mensajes`, `ultron_memoria`, `ultron_tablero`). Voz de ElevenLabs; el oído es `crm/netlify/functions/oido.mjs`.
 - **Frase del día** (`crm/public/frases.js`): solo para rol cliente, 60 frases aprobadas por Eduardo sobre su marca en buenas manos; cada tercer día una con sus propios números.
 
@@ -38,7 +40,7 @@ Por usuario: `empresas` (null = todas), `ve_tareas`, `ve_biblioteca`, `ve_catalo
 - `crm/public/datos-supabase.js` — los datos de verdad; `crm/public/datos-muestra.js` — la muestra en memoria con las **mismas reglas** (si cambias una regla, cámbiala en los dos y en el esquema).
 - `crm/public/inicio.js` — decide muestra o real según `config`.
 - `crm/supabase/esquema.sql` — tablas: `empresas`, `perfiles`, `tareas`, `correcciones`, `notas`, `carpetas`, `archivos`, `bitacora`, `ultron_*`, `contenidos`; funciones de rol (`es_admin`, `es_equipo`, `veo`, `es_sistema`) y triggers que protegen lo que escribe cada quien. Se puede volver a correr completo sin perder nada: así se aplican mejoras (Eduardo lo pega en Supabase → SQL Editor → Run).
-- `crm/netlify/functions/` — `config` (llaves públicas), `usuarios` (crear usuarios y contraseñas con la llave de servicio, solo admin), `correo` ("A mi correo", sale de la cuenta de Google de la empresa vía `crm/google/correo.gs`), `oido` (voz → texto para Ultron).
+- `crm/netlify/functions/` — `config` (llaves públicas), `usuarios` (crear usuarios, contraseñas y corregir correos con la llave de servicio, solo admin; nunca al dueño; manda el acceso con `google/accesos.gs`), `correo` ("A mi correo", sale de la cuenta de Google de la empresa vía `crm/google/correo.gs`), `oido` (voz → texto para Ultron).
 - `scripts/crm-muestra.mjs` — arma la muestra en un solo HTML.
 - Video para Senen (inglés): se hizo grabando la muestra; no está en GitHub.
 
@@ -49,6 +51,7 @@ Por usuario: `empresas` (null = todas), `ve_tareas`, `ve_biblioteca`, `ve_catalo
 ## Reglas que no se rompen
 - Senen y Gerardo nunca ven las tareas del otro.
 - Solo Eduardo borra.
+- Nadie más que Eduardo toca su perfil o su acceso, ni nombra administradores (candados en `cuidar_perfil`, `cuidar_dueno` y `cuidar_alta`).
 - Lo que escribe el cliente no se cambia; nada se reemplaza (versiones).
 - El "núcleo" que corre en máquinas del cliente (`bridge/nucleo/`) nunca menciona a NEX, NXUS interno, Jarvis, "Ramos & Co" ni correos de NXUS (se revisa con `node scripts/nucleo.mjs`).
 - El agente de Ana Sofi no se toca sin que Eduardo lo pida.
