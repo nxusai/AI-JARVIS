@@ -1,0 +1,94 @@
+{
+  "id": "m2l3",
+  "curso": "Next Level IA",
+  "numero": "2.3",
+  "tituloIntro": "PROPUESTA",
+  "tituloCorto": "La propuesta en cinco minutos",
+  "bloques": [
+    "NOTAS",
+    "PAQUETES",
+    "DOCUMENTO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: la propuesta en cinco minutos. Ya tienes el diagnóstico... ahora conviértelo en una propuesta que el cliente quiera firmar."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Pega en el chat tus notas de la llamada, tal cual, aunque estén desordenadas, y pídele la propuesta.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Notas",
+          "pregunta": "Notas de la llamada con Cafetería Aurora: quieren más ventas en línea, no tienen tiempo para redes, presupuesto como de 10 mil al mes. Hazme una propuesta.",
+          "respuesta": [
+            "# Propuesta para Cafetería Aurora",
+            "Objetivo: más pedidos en línea en 90 días",
+            "# Lo que incluye",
+            "• Contenido con IA cada semana",
+            "• Agente que contesta Instagram y WhatsApp",
+            "• Reporte mensual de resultados"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Luego pídele tres paquetes con precio mensual. Así el cliente decide cuál, no si te contrata.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Paquetes",
+          "pregunta": "Dame 3 paquetes mensuales: básico, recomendado y completo.",
+          "respuesta": [
+            "# Básico · $6,000 al mes",
+            "12 piezas de contenido",
+            "# Recomendado · $9,500 al mes",
+            "Contenido + agente de Instagram y WhatsApp",
+            "# Completo · $14,000 al mes",
+            "Todo lo anterior + anuncios y reporte semanal"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y pídele que lo convierta en presentación. Claude la crea como Artifact: la ves al lado del chat, la descargas o la compartes con un link.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Documento",
+          "pregunta": "Conviértelo en una presentación de 5 diapositivas.",
+          "respuesta": [
+            "# Lista: 5 diapositivas",
+            "1. El diagnóstico",
+            "2. La oportunidad",
+            "3. Los 3 paquetes",
+            "4. Cómo trabajamos",
+            "5. Siguiente paso: firmar y arrancar"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Notas, paquetes y documento: en cinco minutos tienes una propuesta profesional. En la siguiente lección: proyectos y skills.",
+      "marcas": [
+        "Notas,",
+        "paquetes",
+        "documento:",
+        "En"
+      ]
+    }
+  ]
+}

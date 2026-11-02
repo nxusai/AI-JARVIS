@@ -1,0 +1,90 @@
+{
+  "id": "m2l5",
+  "curso": "Next Level IA",
+  "numero": "2.5",
+  "tituloIntro": "CONECTORES",
+  "tituloCorto": "Claude trabaja en tus herramientas",
+  "bloques": [
+    "CONECTAR",
+    "PEDIR",
+    "RESULTADO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: conectores en acción. Aquí Claude deja de solo escribir... y empieza a hacer el trabajo en tus herramientas."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Entra a Ajustes, Conectores. Busca Google Drive, dale conectar e inicia sesión. Repite con Gmail y con Higgsfield. Se hace una sola vez.",
+      "pantallas": [
+        {
+          "toma": "connectors",
+          "etiqueta": "Conectores",
+          "descripcion": "Drive, Gmail, Higgsfield y más",
+          "url": "claude.com/marketplace/connectors-plugins"
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se conecta",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Ajustes › Conectores",
+            "2. Busca Google Drive › Conectar",
+            "3. Inicia sesión y da permiso",
+            "4. Repite con Gmail y Higgsfield"
+          ],
+          "clave": "Busca"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Ahora, en cualquier chat, le pides la tarea completa: que lea la carpeta del cliente, cree la imagen en Higgsfield y la guarde en su Drive.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pedir",
+          "pregunta": "Lee la carpeta de Cafetería Aurora en Drive, crea en Higgsfield la foto del latte de temporada y guárdala en su carpeta.",
+          "respuesta": [
+            "# Hecho",
+            "✓ Leí su menú y su guía de marca",
+            "✓ Creé la imagen en Higgsfield",
+            "✓ La guardé en Drive › Aurora › Semana 45"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y en un minuto, el contenido está listo, en la carpeta del cliente, sin que abrieras ninguna aplicación.",
+      "pantallas": [
+        {
+          "resultado": "imagen",
+          "archivo": "ejemplos/latte.png",
+          "etiqueta": "Hecho por Claude con Higgsfield"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Conectas, pides y recibes. Así se siente trabajar con un equipo de inteligencia artificial. En la siguiente lección: construir con Claude Code.",
+      "marcas": [
+        "Conectas,",
+        "pides",
+        "recibes.",
+        "En"
+      ]
+    }
+  ]
+}

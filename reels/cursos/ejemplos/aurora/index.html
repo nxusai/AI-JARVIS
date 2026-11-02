@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cafetería Aurora · Guadalajara</title>
+<!-- Página de ejemplo para la lección 2.6 del curso (negocio ficticio). -->
+<style>
+  :root { --cafe: #3b2416; --crema: #f6efe6; --naranja: #d9783f; --texto: #2a1a10; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; background: var(--crema); color: var(--texto); }
+  header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 22px 6vw; z-index: 2; color: #fff; }
+  header b { font-size: 26px; letter-spacing: .04em; }
+  header nav a { color: #fff; text-decoration: none; margin-left: 28px; font: 600 16px system-ui, sans-serif; }
+  .portada { height: 100vh; background: linear-gradient(90deg, rgba(30,15,6,.78), rgba(30,15,6,.15)), url(latte.jpg) center/cover; display: flex; align-items: center; padding: 0 6vw; color: #fff; }
+  .portada h1 { font-size: 76px; line-height: 1.02; max-width: 760px; }
+  .portada p { margin: 22px 0 34px; font: 400 22px/1.5 system-ui, sans-serif; max-width: 560px; opacity: .9; }
+  .boton { display: inline-flex; align-items: center; gap: 12px; padding: 18px 30px; border-radius: 999px; background: #25d366; color: #fff; font: 700 19px system-ui, sans-serif; text-decoration: none; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+  section { padding: 90px 6vw; }
+  h2 { font-size: 46px; margin-bottom: 36px; }
+  .menu { display: grid; grid-template-columns: 1.1fr 1fr; gap: 60px; align-items: center; }
+  .menu img { width: 100%; border-radius: 24px; box-shadow: 0 30px 60px rgba(59,36,22,.25); }
+  .plato { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed #c9b39c; font: 500 21px system-ui, sans-serif; }
+  .plato span:last-child { color: var(--naranja); font-weight: 800; }
+  .info { background: var(--cafe); color: var(--crema); display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+  .info h3 { font-size: 26px; margin-bottom: 10px; color: #f3b07c; }
+  .info p { font: 400 19px/1.6 system-ui, sans-serif; }
+</style>
+</head>
+<body>
+  <header><b>AURORA</b><nav><a href="#menu">Menú</a><a href="#visitanos">Visítanos</a><a href="#pedir">Pedir</a></nav></header>
+  <div class="portada">
+    <div>
+      <h1>El café que te despierta bonito.</h1>
+      <p>Café de especialidad y pan dulce recién horneado, en el corazón de Guadalajara.</p>
+      <a class="boton" id="pedir" href="#">💬 Pide por WhatsApp</a>
+    </div>
+  </div>
+  <section id="menu">
+    <h2>Nuestro menú</h2>
+    <div class="menu">
+      <img src="pan.jpg" alt="Pan dulce recién horneado">
+      <div>
+        <div class="plato"><span>Latte de temporada</span><span>$65</span></div>
+        <div class="plato"><span>Americano</span><span>$42</span></div>
+        <div class="plato"><span>Capuchino</span><span>$55</span></div>
+        <div class="plato"><span>Concha de vainilla</span><span>$28</span></div>
+        <div class="plato"><span>Cuernito con jamón y queso</span><span>$62</span></div>
+        <div class="plato"><span>Combo de la mañana</span><span>$89</span></div>
+      </div>
+    </div>
+  </section>
+  <section class="info" id="visitanos">
+    <div><h3>Horario</h3><p>Lunes a sábado<br>7:00 a 21:00</p></div>
+    <div><h3>Dónde estamos</h3><p>Av. Chapultepec 123<br>Guadalajara, Jal.</p></div>
+    <div><h3>Pedidos</h3><p>Por WhatsApp<br>o para llevar en barra</p></div>
+  </section>
+</body>
+</html>

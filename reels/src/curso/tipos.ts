@@ -17,7 +17,10 @@ export type Pantalla = {
   descripcion?: string;
   url?: string;
   /** Resultado de la herramienta en vez de una grabación: se muestra grande, sin navegador. */
-  resultado?: 'imagen' | 'video' | 'audio';
+  resultado?: 'imagen' | 'video' | 'audio' | 'chat';
+  /** Para un chat: lo que se le pide a Claude y su respuesta, línea por línea ('# ' = título). */
+  pregunta?: string;
+  respuesta?: string[];
   /** Para un resultado de audio: el texto que se oye. */
   texto?: string;
   /** Acercamiento a una zona (en % de la pantalla), desde/hasta en cuadros de la pantalla. */

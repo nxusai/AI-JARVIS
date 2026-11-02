@@ -1,0 +1,91 @@
+{
+  "id": "m2l4",
+  "curso": "Next Level IA",
+  "numero": "2.4",
+  "tituloIntro": "PROYECTOS",
+  "tituloCorto": "Claude conoce a cada cliente",
+  "bloques": [
+    "PROYECTOS",
+    "SKILLS"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: proyectos y skills. Para que Claude trabaje a cada cliente como si llevara años con él."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "En Claude entra a Proyectos y crea uno con el nombre del cliente. En instrucciones escribes su tono y sus reglas; en conocimiento subes su menú, sus precios y la propuesta. Y desde ahí, cada chat ya lo conoce.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se crea un proyecto",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Proyectos › Nuevo proyecto",
+            "2. Nombre: Cafetería Aurora",
+            "3. Instrucciones: tono, reglas y marca",
+            "4. Conocimiento: menú, precios y propuesta"
+          ]
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Proyecto: Cafetería Aurora",
+          "pregunta": "Dame 5 ideas de reels para esta semana.",
+          "respuesta": [
+            "# 5 reels para esta semana",
+            "1. El latte de temporada en cámara lenta",
+            "2. Detrás de la barra: así preparamos tu café",
+            "3. El combo de la mañana",
+            "4. Pan dulce recién salido del horno",
+            "5. Reseña de un cliente frecuente"
+          ],
+          "clave": "desde"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y con Skills le enseñas tu forma de trabajar una sola vez. Le pides a Claude que te ayude a crear una con tu proceso, por ejemplo tu reporte mensual. Después lo hace igual para todos tus clientes.",
+      "pantallas": [
+        {
+          "toma": "skills",
+          "etiqueta": "Skills",
+          "descripcion": "Tu forma de trabajar, siempre igual",
+          "url": "claude.com/skills"
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Skill: reporte mensual",
+          "pregunta": "Usa mi skill de reporte mensual para Cafetería Aurora.",
+          "respuesta": [
+            "# Reporte de octubre · Cafetería Aurora",
+            "• 20 piezas publicadas",
+            "• 412 mensajes contestados por el agente",
+            "• Lo que más funcionó: el latte de temporada",
+            "# Para noviembre",
+            "Más reels de producto y una promo de temporada"
+          ],
+          "clave": "Después"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un proyecto por cliente y tus skills: así atiendes a diez clientes como si fuera uno. En la siguiente lección: conectores en acción.",
+      "marcas": [
+        "proyecto",
+        "skills:",
+        "En"
+      ]
+    }
+  ]
+}

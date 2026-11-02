@@ -1,0 +1,148 @@
+{
+  "id": "m2l6",
+  "curso": "Next Level IA",
+  "numero": "2.6",
+  "tituloIntro": "CLAUDE CODE",
+  "tituloCorto": "Construye sin programar",
+  "bloques": [
+    "PEDIR",
+    "RESULTADO",
+    "CRECER"
+  ],
+  "tomas": [
+    {
+      "nombre": "pagina",
+      "url": "file:///home/user/AI-JARVIS/reels/cursos/ejemplos/aurora/index.html",
+      "espera": 1500,
+      "pasos": [
+        {
+          "ir": [
+            420,
+            690
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            960,
+            500
+          ],
+          "ms": 700,
+          "pausa": 500
+        },
+        {
+          "scroll": 1080,
+          "ms": 2600,
+          "pausa": 1300
+        },
+        {
+          "ir": [
+            1400,
+            500
+          ],
+          "ms": 800,
+          "pausa": 700
+        },
+        {
+          "scroll": 700,
+          "ms": 2200,
+          "pausa": 1500
+        }
+      ]
+    }
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección seis: construir con Claude Code. Páginas, portales y sistemas... sin escribir una sola línea de código."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Instala Claude Code desde su página, crea una carpeta para el cliente y ábrelo ahí. Luego le describes lo que quieres, como a un programador: una página con su menú, sus fotos y un botón de WhatsApp.",
+      "pantallas": [
+        {
+          "toma": "code",
+          "etiqueta": "Claude Code",
+          "descripcion": "Construye por ti",
+          "url": "claude.com/product/claude-code",
+          "desde": 2.5,
+          "hasta": 7.5
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se usa",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Instala Claude Code",
+            "2. Crea una carpeta para el cliente",
+            "3. Abre Claude Code en esa carpeta",
+            "4. Describe lo que quieres construir"
+          ],
+          "clave": "crea"
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Claude Code",
+          "pregunta": "Hazme una página para Cafetería Aurora: portada con foto, menú con precios, horario y botón de WhatsApp.",
+          "respuesta": [
+            "# Construyendo…",
+            "✓ Portada con la foto del latte",
+            "✓ Menú con precios",
+            "✓ Horario y ubicación",
+            "✓ Botón de WhatsApp",
+            "Lista para publicar"
+          ],
+          "clave": "Luego"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y en unos minutos tienes la página funcionando. Esta la hizo Claude Code para este ejemplo.",
+      "pantallas": [
+        {
+          "toma": "pagina",
+          "etiqueta": "Página terminada",
+          "descripcion": "Hecha por Claude Code",
+          "url": "cafeteria-aurora.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Una página así la cobras sola, o dentro del paquete mensual, con cambios cada mes. Y así también se construyen portales y sistemas completos, como los míos.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cambios cada mes",
+          "pregunta": "Agrega una sección de promociones que yo pueda cambiar cada mes.",
+          "respuesta": [
+            "✓ Sección de promociones lista",
+            "Para cambiarla, solo dime la nueva promo",
+            "y la actualizo en un minuto."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Pedir, construir y entregar. Con esto terminas el módulo de Claude: ya tienes un equipo completo trabajando para ti.",
+      "marcas": [
+        "Pedir,",
+        "construir",
+        "entregar.",
+        "Con"
+      ]
+    }
+  ]
+}

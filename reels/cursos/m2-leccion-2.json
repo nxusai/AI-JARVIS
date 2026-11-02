@@ -1,0 +1,95 @@
+{
+  "id": "m2l2",
+  "curso": "Next Level IA",
+  "numero": "2.2",
+  "tituloIntro": "INVESTIGAR",
+  "tituloCorto": "Entiende al cliente antes de venderle",
+  "bloques": [
+    "PEDIR",
+    "OPORTUNIDADES",
+    "MENSAJE"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: investigar a un cliente. Antes de venderle algo a un negocio, necesitas entenderlo... y Claude lo hace por ti en minutos."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Abre un chat nuevo en Claude, con la búsqueda web activada. Le das el nombre del negocio, la ciudad y su página, y le pides que revise su web, sus redes y su competencia.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pedir",
+          "pregunta": "Investiga a Cafetería Aurora en Guadalajara: su web, su Instagram y 3 competidores cercanos. Dime qué hacen bien y qué les falta.",
+          "respuesta": [
+            "# Lo que hacen bien",
+            "• Fotos de producto muy cuidadas",
+            "• Buenas reseñas por el servicio",
+            "# Lo que les falta",
+            "• Publican 1 vez por semana; su competencia, 5",
+            "• Nadie contesta los mensajes en la noche",
+            "• Su web no recibe pedidos en línea"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Después, en el mismo chat, le preguntas en qué le ayudaría la inteligencia artificial a vender más.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Oportunidades",
+          "pregunta": "¿En qué 3 cosas le ayudaría la IA a vender más?",
+          "respuesta": [
+            "# 1. Contenido diario",
+            "Reels y fotos con IA, 5 por semana",
+            "# 2. Agente en Instagram y WhatsApp",
+            "Contesta y toma pedidos las 24 horas",
+            "# 3. Pedidos en su web",
+            "Menú con pedidos y pago en línea"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y le pides el mensaje para abrir la conversación. Así ya no llegas a vender: llegas con un diagnóstico.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Mensaje",
+          "pregunta": "Escríbeme un mensaje corto para la dueña, con el diagnóstico.",
+          "respuesta": [
+            "Hola, Ana. Revisé Cafetería Aurora:",
+            "sus fotos son de lo mejor de la zona,",
+            "pero publican una vez por semana y nadie",
+            "contesta los mensajes en la noche.",
+            "Tengo 3 ideas para que vendan más.",
+            "¿Te las enseño en 15 minutos?"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Investigar, encontrar oportunidades y abrir la conversación. En la siguiente lección: la propuesta en cinco minutos.",
+      "marcas": [
+        "Investigar,",
+        "oportunidades",
+        "conversación.",
+        "En"
+      ]
+    }
+  ]
+}
