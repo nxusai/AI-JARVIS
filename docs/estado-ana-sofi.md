@@ -1,7 +1,7 @@
 # Estado: Ana Sofi y la línea de ventas de Mi Semago
 
 Última actualización: 2 de noviembre de 2026. Para retomar en un chat nuevo dedicado a este tema.
-Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama general).
+Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama general) y **`docs/estado-crm.md`** (el Centro de trabajo Mi Semago · Abuelito, el CRM del cliente: este chat también lo modifica, y ahí llegarán eventualmente los leads de Mi Semago).
 
 ## Cómo trabajar con Eduardo (resumen)
 - Español, pasos clic por clic con los nombres de botones en inglés como salen en pantalla, **links y comandos dentro de cada paso y repetidos al final**.
