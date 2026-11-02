@@ -1,0 +1,37 @@
+{
+  "id": "l4",
+  "curso": "Next Level IA",
+  "numero": 4,
+  "tituloIntro": "VENDER",
+  "tituloCorto": "Contenido que las marcas compran cada mes",
+  "bloques": ["MARKETING STUDIO", "ADS STUDIO", "AI INFLUENCER", "CONTENT FACTORY"],
+  "tomas": [
+    { "nombre": "marketing", "url": "https://higgsfield.ai/marketing-studio", "espera": 11000, "pasos": [
+      { "ir": [767, 200], "ms": 900, "pausa": 800 }, { "ir": [991, 198], "ms": 500, "pausa": 800 }, { "ir": [1371, 200], "ms": 600, "pausa": 800 }, { "ir": [1582, 200], "ms": 500, "pausa": 800 },
+      { "ir": [30, 243], "ms": 900, "pausa": 900 },
+      { "clic": [900, 507], "ms": 800, "pausa": 200 }, { "escribir": "Mi café en una mesa de mármol, luz de mañana", "cada": 40, "pausa": 500 },
+      { "ir": [1360, 507], "ms": 700, "pausa": 1500 } ] },
+    { "nombre": "influencer", "url": "https://higgsfield.ai/ai-influencer-studio", "espera": 11000, "pasos": [
+      { "ir": [172, 242], "ms": 900, "pausa": 900 }, { "ir": [172, 332], "ms": 600, "pausa": 900 }, { "ir": [172, 724], "ms": 700, "pausa": 600 },
+      { "ir": [172, 812], "ms": 400, "pausa": 600 }, { "ir": [172, 900], "ms": 400, "pausa": 600 }, { "ir": [172, 988], "ms": 400, "pausa": 800 },
+      { "ir": [204, 1032], "ms": 500, "pausa": 1000 }, { "ir": [973, 650], "ms": 900, "pausa": 1500 } ] },
+    { "nombre": "contentfactory", "url": "https://higgsfield.ai/content-factory", "espera": 11000, "pasos": [
+      { "ir": [1037, 192], "ms": 900, "pausa": 900 },
+      { "clic": [956, 414], "ms": 700, "pausa": 200 }, { "escribir": "Qué pasaría si los cafés hablaran", "cada": 40, "pausa": 500 },
+      { "ir": [865, 464], "ms": 600, "pausa": 800 }, { "ir": [953, 464], "ms": 400, "pausa": 800 }, { "ir": [1187, 430], "ms": 600, "pausa": 900 },
+      { "ir": [578, 880], "ms": 900, "pausa": 1500 } ] }
+  ],
+  "escenas": [
+    {"tipo":"intro","voz":"voz/0.wav","guion":"Bloque tres: vender. Esta es la parte que más te van a pagar las empresas: contenido que vende."},
+    {"tipo":"pantallas","bloque":1,"voz":"voz/1.wav","guion":"Marketing Studio convierte cualquier producto en contenido. Eliges el formato: UGC, foto de producto, anuncio o póster. Pegas el link del producto, o describes la escena, y generas.",
+     "pantallas":[{"toma":"marketing","etiqueta":"Marketing Studio","descripcion":"Cualquier producto a contenido listo","url":"higgsfield.ai/marketing-studio","zoom":{"x":55,"y":18,"escala":1.7,"palabra":"Eliges","hasta":"póster."}}]},
+    {"tipo":"pantallas","bloque":2,"voz":"voz/2.wav","guion":"Ads Studio está hecho para anuncios que convierten: anuncios estáticos, muchas variaciones de un mismo anuncio, y hasta tu propio influencer actuando en él.",
+     "pantallas":[{"toma":"ads","etiqueta":"Ads Studio","descripcion":"Anuncios y variaciones en segundos","url":"higgsfield.ai/ads-studio","zoom":{"x":50,"y":62,"escala":1.6,"palabra":"estáticos,","hasta":"influencer"}}]},
+    {"tipo":"pantallas","bloque":3,"voz":"voz/3.wav","guion":"Con AI Influencer creas un personaje propio para la marca: tipo, género, estilo, edad... y lo usas en todos sus videos. Una cara para la marca, sin contratar a nadie.",
+     "pantallas":[{"toma":"influencer","etiqueta":"AI Influencer","descripcion":"Una cara propia para la marca","url":"higgsfield.ai/ai-influencer-studio","zoom":{"x":9,"y":62,"escala":1.6,"palabra":"tipo,","hasta":"videos."}}]},
+    {"tipo":"pantallas","bloque":4,"voz":"voz/4.wav","guion":"Y Content Factory hace series de videos: escribes la idea, eliges la duración y cuántos episodios, y escoges un estilo de los que están en tendencia.",
+     "pantallas":[{"toma":"contentfactory","etiqueta":"Content Factory","descripcion":"Series de videos en tendencia","url":"higgsfield.ai/content-factory","zoom":{"x":50,"y":40,"escala":1.8,"palabra":"escribes","hasta":"episodios,"}}]},
+    {"tipo":"final","voz":"voz/5.wav","guion":"Producto, anuncios, influencer y series: eso es lo que las marcas compran cada mes. En la siguiente lección: editar.",
+     "marcas":["Producto,","anuncios,","influencer","series:","En"],"miniaturas":["marketing","ads","influencer","contentfactory"]}
+  ]
+}

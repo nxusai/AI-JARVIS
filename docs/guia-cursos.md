@@ -26,5 +26,6 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - **Lección 1 — Higgsfield: qué es y todo lo que puedes hacer.** Guion aprobado. Narración con la voz de Lalo (ElevenLabs) generada el 2 nov 2026; la versión con voz A quedó en `voz-a/`.
 - **Lección 2 — Crear** (1:08): aprobada.
 - **Lección 3 — Dirigir** (1:10): Cinema Studio, Effects y Genjutsu, solo el camino (sin generar videos).
-- Siguen: Vender, Editar, Automatizar.
+- **Lección 4 — Vender** (1:12): Marketing Studio, Ads Studio (captura), AI Influencer y Content Factory.
+- Siguen: Editar, Automatizar.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).
