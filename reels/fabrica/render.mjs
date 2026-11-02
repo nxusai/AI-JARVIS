@@ -1,7 +1,7 @@
 // Renderiza reels con Remotion, sin abrir nada: se le pasan los datos de cada reel y deja el MP4.
 import { bundle } from '@remotion/bundler'
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer'
-import { existsSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -14,7 +14,12 @@ export const opciones = { browserExecutable: NAVEGADOR, chromiumOptions: { gl: p
 let paquete = null
 /** Empaqueta el proyecto una vez por corrida. */
 export async function preparar() {
-  paquete ??= await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts'), publicDir: join(RAIZ, 'public') })
+  if (!paquete) {
+    paquete = await bundle({ entryPoint: join(RAIZ, 'src', 'index.ts'), publicDir: join(RAIZ, 'public') })
+    // El paquete copia todo public/ (casi 1 GB); se borra al terminar para no llenar el disco.
+    const copia = paquete
+    process.on('exit', () => rmSync(copia, { recursive: true, force: true }))
+  }
   return paquete
 }
 

@@ -30,6 +30,8 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - **Lección 5 — Editar** (0:46): Image Edit y plugins (Premiere, After Effects, Photoshop).
 - **Lección 6 — Automatizar** (1:04): Supercomputer (captura), Canvas y MCP (grabación de la lección 1). Cierra la serie de Higgsfield.
 - Módulo 2 (Claude): 2.1 Tu equipo de trabajo (claude.com en español); 2.2 Investigar a un cliente; 2.3 La propuesta en 5 minutos; 2.4 Proyectos y Skills; 2.5 Conectores en acción; 2.6 Construir con Claude Code. claude.ai bloquea al navegador de la nube, así que lo que pasa dentro de Claude se enseña con tarjetas de pasos y de chat (`resultado: "chat"`, respuestas reales escritas por Claude). Ejemplo: Cafetería Aurora (ficticia); su página está en `reels/cursos/ejemplos/aurora/`.
-- Regla nueva de Lalo: cada lección enseña a usar la función (dónde dar clic y qué escribir), breve y directa.
+- Módulo 3 (Agentes que atienden, ManyChat): 3.1 Qué es un agente; 3.2 Conectar Instagram; 3.3 Comenta y recibe; 3.4 El agente con IA; 3.5 Del chat a tu sistema y cómo cobrarlo. manychat.com bloquea a navegadores automáticos (no se esquiva), así que se enseña con tarjetas de pasos, el teléfono (`resultado: "telefono"`) y el diagrama (`resultado: "flujo"`).
+- Regla nueva de Lalo: cada lección enseña a usar la función (dónde dar clic y qué escribir), breve y directa. Nada de correos ni información sensible; trabajos reales de Lalo se sustituyen por ejemplos o van borrosos.
+- Ojo con el disco: cada render empaqueta todo public/ (casi 1 GB); `fabrica/render.mjs` ya borra ese paquete al terminar.
 - Estructura del curso: 0 Bienvenida (la graba Lalo), 1 Higgsfield ✅, 2 Claude, 3 Agentes que atienden (ManyChat), 4 Agentes que llaman (ElevenLabs), 5 Webs, portales y sistemas, 6 Servicios y precios, 7 Conseguir clientes, 8 Cerrar el contrato, 9 Entregar y retener, Bonus.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).
