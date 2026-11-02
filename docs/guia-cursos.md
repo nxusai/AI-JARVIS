@@ -6,7 +6,7 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - Código: `reels/cursos/` (guiones, grabación, voz, armado) y `reels/src/curso/` (la edición en Remotion).
 - Grabaciones, voces y música: `reels/public/curso/<id>/` (no se suben a git).
 - Video terminado: `reels/salida/curso/<id>/leccion-N.mp4`.
-- Voz del curso: la de Lalo en ElevenLabs, voice ID en `reels/config.json` (`vozCurso`). La llave es un *network secret* del entorno (header `xi-api-key` para `api.elevenlabs.io`): el código nunca la ve y solo funciona en sesiones abiertas después de guardarla.
+- Voz del curso: la de Lalo en ElevenLabs, voice ID en `reels/config.json` (`vozCurso`). La llave es un *network secret* del entorno (header `xi-api-key` para `api.elevenlabs.io`): el proxy la agrega a cada llamada y el código nunca la ve. Por eso `voz.mjs` llama con curl: `fetch` de Node no pasa por el proxy.
 
 ## Cómo se hace una lección
 1. **Guion:** Claude lo escribe y Lalo lo aprueba. Va en `reels/cursos/leccion-N.json`: `tomas` (qué páginas grabar y cómo moverse) y `escenas` (texto de la voz, bloque, pantallas con la palabra que las hace entrar).
@@ -17,5 +17,5 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 6. Subir a Drive y avisar.
 
 ## Estado
-- **Lección 1 — Higgsfield: qué es y todo lo que puedes hacer.** Guion aprobado. Primera versión renderizada con la voz A (Higgsfield). Falta: rehacerla con la voz de Lalo (`voz.mjs` y luego `--render`) en una sesión nueva.
+- **Lección 1 — Higgsfield: qué es y todo lo que puedes hacer.** Guion aprobado. Narración con la voz de Lalo (ElevenLabs) generada el 2 nov 2026; la versión con voz A quedó en `voz-a/`.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).
