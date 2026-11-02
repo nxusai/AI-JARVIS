@@ -1,0 +1,27 @@
+{
+  "id": "l6",
+  "curso": "Next Level IA",
+  "numero": 6,
+  "tituloIntro": "AUTOMATIZAR",
+  "tituloCorto": "Que la IA trabaje por ti",
+  "bloques": ["SUPERCOMPUTER", "CANVAS", "MCP"],
+  "tomas": [
+    { "nombre": "canvas", "url": "https://higgsfield.ai/canvas", "espera": 11000, "pasos": [
+      { "ir": [420, 180], "ms": 900, "pausa": 900 }, { "ir": [770, 260], "ms": 800, "pausa": 900 }, { "ir": [960, 330], "ms": 700, "pausa": 1000 },
+      { "ir": [1300, 270], "ms": 800, "pausa": 900 }, { "ir": [1600, 400], "ms": 800, "pausa": 900 }, { "ir": [960, 620], "ms": 900, "pausa": 1500 } ] },
+    { "nombre": "mcp", "url": "https://higgsfield.ai/mcp", "espera": 11000, "pasos": [
+      { "ir": [960, 330], "ms": 900, "pausa": 1000 }, { "ir": [960, 420], "ms": 700, "pausa": 900 }, { "ir": [860, 470], "ms": 600, "pausa": 900 }, { "ir": [1060, 470], "ms": 600, "pausa": 900 },
+      { "scroll": 350, "ms": 2000, "pausa": 1200 }, { "ir": [960, 600], "ms": 900, "pausa": 1500 } ] }
+  ],
+  "escenas": [
+    {"tipo":"intro","voz":"voz/0.wav","guion":"Último bloque: automatizar. Aquí la inteligencia artificial deja de ser una herramienta... y empieza a trabajar por ti."},
+    {"tipo":"pantallas","bloque":1,"voz":"voz/1.wav","guion":"Supercomputer es un agente: le describes lo que necesitas, como si hablaras con tu equipo, y él planea, escoge los modelos y te entrega el resultado. Sin prompts, sin presets.",
+     "pantallas":[{"toma":"supercomputer","etiqueta":"Supercomputer","descripcion":"Le describes lo que quieres y lo entrega","url":"higgsfield.ai/supercomputer","zoom":{"x":50,"y":22,"escala":1.8,"palabra":"describes","hasta":"resultado."}}]},
+    {"tipo":"pantallas","bloque":2,"voz":"voz/2.wav","guion":"Canvas es un tablero visual: conectas pasos, de una imagen a un video, a una versión para cada red, y guardas el flujo. La próxima vez, solo cambias el producto y se repite solo.",
+     "pantallas":[{"toma":"canvas","etiqueta":"Canvas","descripcion":"Flujos de trabajo que se repiten solos","url":"higgsfield.ai/canvas","zoom":{"x":50,"y":25,"escala":1.6,"palabra":"conectas","hasta":"flujo."}}]},
+    {"tipo":"pantallas","bloque":3,"voz":"voz/3.wav","guion":"Y MCP conecta Higgsfield con agentes como Claude. Así es como yo hago todo esto: le pido a Claude un anuncio, y él genera las imágenes y los videos por mí.",
+     "pantallas":[{"toma":"mcp","etiqueta":"MCP","descripcion":"Higgsfield dentro de Claude","url":"higgsfield.ai/mcp","zoom":{"x":50,"y":35,"escala":1.6,"palabra":"Así","hasta":"mí."}}]},
+    {"tipo":"final","voz":"voz/4.wav","guion":"Agente, flujos y conexión con Claude. Con esto ya conoces Higgsfield completo. Ahora viene lo bueno: convertirlo en servicios que las empresas te paguen cada mes.",
+     "marcas":["Agente,","flujos","conexión","Ahora"],"miniaturas":["supercomputer","canvas","mcp"]}
+  ]
+}

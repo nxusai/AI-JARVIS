@@ -28,5 +28,6 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - **Lección 3 — Dirigir** (1:10): Cinema Studio, Effects y Genjutsu, solo el camino (sin generar videos).
 - **Lección 4 — Vender** (1:12): Marketing Studio, Ads Studio (captura), AI Influencer y Content Factory.
 - **Lección 5 — Editar** (0:46): Image Edit y plugins (Premiere, After Effects, Photoshop).
-- Sigue: Automatizar.
+- **Lección 6 — Automatizar** (1:04): Supercomputer (captura), Canvas y MCP (grabación de la lección 1). Cierra la serie de Higgsfield.
+- Sigue: la parte de servicios (cómo vender esto con pago mensual), por definir con Lalo.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).
