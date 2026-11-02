@@ -1,0 +1,25 @@
+{
+  "id": "l1",
+  "titulo": "Higgsfield: qué es y todo lo que puedes hacer",
+  "tomas": [
+    { "nombre": "home", "url": "https://higgsfield.ai/", "pasos": [
+      { "ir": [700, 300], "ms": 900 }, { "hover": "Image", "ms": 700, "pausa": 250 }, { "hover": "Video", "ms": 350, "pausa": 250 },
+      { "hover": "Audio", "ms": 350, "pausa": 250 }, { "hover": "Cinema Studio", "ms": 800, "pausa": 300 },
+      { "ir": [960, 600], "ms": 700 }, { "scroll": 700, "ms": 2200, "pausa": 600 }, { "scroll": -700, "ms": 1400 } ] },
+    { "nombre": "image", "url": "https://higgsfield.ai/ai/image", "pasos": [ { "ir": [960, 500], "ms": 900, "pausa": 800 }, { "scroll": 500, "ms": 2200, "pausa": 800 } ] },
+    { "nombre": "video", "url": "https://higgsfield.ai/ai/video", "pasos": [ { "ir": [900, 520], "ms": 900, "pausa": 800 }, { "scroll": 500, "ms": 2200, "pausa": 800 } ] },
+    { "nombre": "audio", "url": "https://higgsfield.ai/audio", "pasos": [ { "ir": [960, 480], "ms": 900, "pausa": 800 }, { "scroll": 600, "ms": 2200, "pausa": 800 } ] },
+    { "nombre": "cinema", "url": "https://higgsfield.ai/generate", "pasos": [ { "ir": [960, 560], "ms": 900, "pausa": 800 }, { "scroll": 500, "ms": 2200, "pausa": 800 } ] },
+    { "nombre": "effects", "url": "https://higgsfield.ai/effects/use", "pasos": [ { "ir": [900, 500], "ms": 900, "pausa": 800 }, { "scroll": 500, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "genjutsu", "url": "https://higgsfield.ai/ai/video?model=genjutsu", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 800 }, { "scroll": 400, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "marketing", "url": "https://higgsfield.ai/marketing-studio", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "ads", "url": "https://higgsfield.ai/ads-studio", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "influencer", "url": "https://higgsfield.ai/ai-influencer-studio", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "contentfactory", "url": "https://higgsfield.ai/content-factory", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "layers", "url": "https://higgsfield.ai/layers", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 500, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "plugins", "url": "https://higgsfield.ai/plugins/after-effects", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "supercomputer", "url": "https://higgsfield.ai/supercomputer", "pasos": [ { "ir": [960, 540], "ms": 900, "pausa": 600 }, { "scroll": 500, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "canvas", "url": "https://higgsfield.ai/canvas", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 500, "ms": 2000, "pausa": 600 } ] },
+    { "nombre": "mcp", "url": "https://higgsfield.ai/mcp", "pasos": [ { "ir": [960, 520], "ms": 900, "pausa": 600 }, { "scroll": 600, "ms": 2000, "pausa": 600 } ] }
+  ]
+}
