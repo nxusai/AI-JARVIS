@@ -79,8 +79,10 @@ const escenas = guion.escenas.map((e) => {
       const inicio = cortes[i]
       const fin = fin0(i) // se enciman 9 cuadros para el giro
       // Si la grabación es más corta que su turno, va un poco más lenta para no congelarse.
-      const desde = esImagen ? 0 : arranque(join(PUB, base, `${p.toma}.webm`), toma.lista + 0.3)
-      const disponible = esImagen ? 99 : duracion(join(PUB, base, `${p.toma}.webm`)) - desde - 0.3
+      // El guion puede fijar desde qué segundo se usa la grabación (si la página salta después).
+      const desde = esImagen ? 0 : p.desde ?? arranque(join(PUB, base, `${p.toma}.webm`), toma.lista + 0.3)
+      const hastaMax = p.hasta
+      const disponible = esImagen ? 99 : (hastaMax ?? duracion(join(PUB, base, `${p.toma}.webm`)) - 0.3) - desde
       const velocidad = Math.min(1, Math.max(0.35, disponible / ((fin0(i) - inicio) / FPS)))
       // La copia .mp4 (h264) se lee mucho más rápido que la grabación .webm.
       const pantalla = { src: `${base}/${p.toma}.${esImagen ? 'png' : existsSync(join(PUB, base, `${p.toma}.mp4`)) ? 'mp4' : 'webm'}`, esImagen, desde, velocidad, inicio, dur: fin - inicio, etiqueta: p.etiqueta, descripcion: p.descripcion, url: p.url }
@@ -109,7 +111,7 @@ const escenas = guion.escenas.map((e) => {
       if (existsSync(png)) return `${base}/${n}.png`
       const toma = tomas.find((t) => t.nombre === n)
       const mini = join(PUB, base, `mini-${n}.jpg`)
-      spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-ss', String(toma.lista + 2), '-i', join(PUB, base, `${n}.webm`), '-frames:v', '1', '-vf', 'scale=600:-1', mini])
+      if (!existsSync(mini)) spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-ss', String(toma.lista + 2), '-i', join(PUB, base, `${n}.webm`), '-frames:v', '1', '-vf', 'scale=600:-1', mini])
       return `${base}/mini-${n}.jpg`
     })
   }

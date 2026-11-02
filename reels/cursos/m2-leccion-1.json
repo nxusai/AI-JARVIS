@@ -1,0 +1,422 @@
+{
+  "id": "m2l1",
+  "curso": "Next Level IA",
+  "numero": "2.1",
+  "tituloIntro": "CLAUDE",
+  "tituloCorto": "Tu equipo de trabajo completo",
+  "bloques": [
+    "PENSAR",
+    "CREAR",
+    "CONECTAR",
+    "ACTUAR",
+    "CONSTRUIR"
+  ],
+  "tomas": [
+    {
+      "nombre": "overview",
+      "url": "https://claude.com/product/overview",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "skills",
+      "url": "https://claude.com/skills",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "artifacts",
+      "url": "https://claude.com/features/artifacts",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "connectors",
+      "url": "https://claude.com/marketplace/connectors-plugins",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "cowork",
+      "url": "https://claude.com/product/cowork",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "chrome",
+      "url": "https://claude.com/claude-in-chrome",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 800,
+          "pausa": 800
+        },
+        {
+          "scroll": 450,
+          "ms": 2200,
+          "pausa": 900
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 900
+        },
+        {
+          "scroll": 350,
+          "ms": 2000,
+          "pausa": 1200
+        }
+      ]
+    },
+    {
+      "nombre": "code",
+      "url": "https://claude.com/product/claude-code",
+      "espera": 6000,
+      "pasos": [
+        {
+          "ir": [
+            960,
+            420
+          ],
+          "ms": 900,
+          "pausa": 1300
+        },
+        {
+          "ir": [
+            700,
+            560
+          ],
+          "ms": 900,
+          "pausa": 1300
+        },
+        {
+          "ir": [
+            1200,
+            520
+          ],
+          "ms": 900,
+          "pausa": 1300
+        },
+        {
+          "ir": [
+            960,
+            700
+          ],
+          "ms": 900,
+          "pausa": 1300
+        },
+        {
+          "ir": [
+            600,
+            400
+          ],
+          "ms": 900,
+          "pausa": 1500
+        }
+      ]
+    }
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo dos: Claude. Si Higgsfield es tu estudio de producción... Claude es tu equipo completo: escribe, investiga, conecta tus herramientas y hasta construye sistemas."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Primero, piensa contigo. Le pides una propuesta, un guion, la investigación de un cliente... y te lo entrega en minutos. Y con Skills le enseñas tu forma de trabajar, para que siempre lo haga igual.",
+      "pantallas": [
+        {
+          "toma": "overview",
+          "etiqueta": "Claude",
+          "descripcion": "Propuestas, guiones e investigación",
+          "url": "claude.com"
+        },
+        {
+          "toma": "skills",
+          "clave": "Skills",
+          "etiqueta": "Skills",
+          "descripcion": "Tu forma de trabajar, siempre igual",
+          "url": "claude.com/skills"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Con Artifacts crea documentos, presentaciones, tableros y páginas, listos para mandarle a tu cliente.",
+      "pantallas": [
+        {
+          "toma": "artifacts",
+          "etiqueta": "Artifacts",
+          "descripcion": "Documentos, presentaciones y tableros",
+          "url": "claude.com/features/artifacts"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Con los conectores, Claude entra a tu Drive, tu Gmail, tu calendario y herramientas como Higgsfield... y trabaja con tus archivos reales.",
+      "pantallas": [
+        {
+          "toma": "connectors",
+          "etiqueta": "Conectores",
+          "descripcion": "Drive, Gmail, Calendar, Higgsfield y más",
+          "url": "claude.com/marketplace/connectors-plugins"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 4,
+      "voz": "voz/4.wav",
+      "guion": "Con Cowork le dejas tareas que corren solas, aunque no estés. Y con Claude in Chrome navega por ti: lee, da clic y llena formularios.",
+      "pantallas": [
+        {
+          "toma": "cowork",
+          "etiqueta": "Cowork",
+          "descripcion": "Tareas que corren solas",
+          "url": "claude.com/product/cowork"
+        },
+        {
+          "toma": "chrome",
+          "clave": "Chrome",
+          "etiqueta": "Claude in Chrome",
+          "descripcion": "Navega, da clic y llena formularios",
+          "url": "claude.com/claude-in-chrome"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 5,
+      "voz": "voz/5.wav",
+      "guion": "Y Claude Code construye por ti: páginas, portales y sistemas completos, sin que sepas programar. Así hice mi CRM, mi portal de clientes... y a JARVIS.",
+      "pantallas": [
+        {
+          "toma": "code",
+          "etiqueta": "Claude Code",
+          "descripcion": "Construye sistemas sin programar",
+          "url": "claude.com/product/claude-code",
+          "desde": 2.5,
+          "hasta": 7.5
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/6.wav",
+      "guion": "Pensar, crear, conectar, actuar y construir. En las siguientes lecciones te enseño a usar cada una con tus clientes.",
+      "marcas": [
+        "Pensar,",
+        "crear,",
+        "conectar,",
+        "actuar",
+        "construir.",
+        "En"
+      ],
+      "miniaturas": [
+        "overview",
+        "artifacts",
+        "connectors",
+        "cowork",
+        "code"
+      ]
+    }
+  ]
+}
