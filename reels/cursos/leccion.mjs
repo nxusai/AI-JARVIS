@@ -73,7 +73,7 @@ const escenas = guion.escenas.map((e) => {
     const fin0 = (i) => (i < cortes.length - 1 ? cortes[i + 1] + 9 : dur)
     escena.pantallas = e.pantallas.map((p, i) => {
       // Resultado real de la herramienta (imagen, video o audio generados), sin navegador alrededor.
-      if (p.resultado) return { resultado: p.resultado, src: p.archivo ? `${base}/${p.archivo}` : '', esImagen: p.resultado === 'imagen', desde: 0, inicio: cortes[i], dur: fin0(i) - cortes[i], etiqueta: p.etiqueta, descripcion: p.descripcion, texto: p.texto, pregunta: p.pregunta, respuesta: p.respuesta }
+      if (p.resultado) return { resultado: p.resultado, src: p.archivo ? `${base}/${p.archivo}` : '', esImagen: p.resultado === 'imagen', desde: 0, inicio: cortes[i], dur: fin0(i) - cortes[i], etiqueta: p.etiqueta, descripcion: p.descripcion, texto: p.texto, pregunta: p.pregunta, respuesta: p.respuesta, mensajes: p.mensajes, cuenta: p.cuenta, nodos: p.nodos }
       const toma = tomas.find((t) => t.nombre === p.toma)
       const esImagen = !toma && existsSync(join(PUB, base, `${p.toma}.png`))
       const inicio = cortes[i]

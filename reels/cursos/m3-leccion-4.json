@@ -1,0 +1,111 @@
+{
+  "id": "m3l4",
+  "curso": "Next Level IA",
+  "numero": "3.4",
+  "tituloIntro": "IA",
+  "tituloCorto": "El agente que entiende y califica",
+  "bloques": [
+    "OBJETIVO",
+    "PREGUNTAS",
+    "CONVERSACIÓN"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: el agente con inteligencia artificial. Ya no solo contesta con mensajes fijos: entiende lo que le preguntan y califica al cliente."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "En tu automatización agrega un paso de IA. Primero le das el objetivo, y le subes la información del negocio: menú, precios y horarios. El texto te lo escribe Claude.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Escríbeme el objetivo para el agente de Cafetería Aurora: que tome pedidos a domicilio.",
+          "respuesta": [
+            "# Objetivo del agente",
+            "Ayudar al cliente a hacer su pedido a domicilio.",
+            "Contesta solo con el menú y los precios del negocio.",
+            "Tono cálido, tutea, mensajes cortos.",
+            "Si no sabes algo, ofrece pasar con una persona."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Después defines las preguntas que debe hacer para calificar: qué quiere, para cuándo y su teléfono. Con eso sabes quién está listo para comprar.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Las preguntas",
+          "pregunta": "",
+          "respuesta": [
+            "# El agente debe obtener",
+            "1. ¿Qué quieres pedir?",
+            "2. ¿Para cuándo?",
+            "3. ¿Dirección de entrega?",
+            "4. ¿Teléfono de contacto?"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y así conversa: entiende, responde con la información del negocio y obtiene los datos, sin que tú escribas nada.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "La conversación",
+          "descripcion": "Entiende, responde y obtiene los datos",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "cliente",
+              "texto": "quiero 2 lattes y algo dulce para mañana temprano"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Claro! Te recomiendo 2 lattes de temporada y 2 conchas: $186. ¿A qué hora mañana?"
+            },
+            {
+              "de": "cliente",
+              "texto": "8:30"
+            },
+            {
+              "de": "agente",
+              "texto": "Perfecto. ¿Me compartes la dirección y un teléfono?"
+            },
+            {
+              "de": "cliente",
+              "texto": "Av. Chapultepec 456, 33 1234 5678"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Listo! Pedido confirmado para mañana 8:30 ☕"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Objetivo, preguntas y conversación: un agente que vende solo. En la siguiente lección: mandar cada cliente a tu sistema y cómo cobrar este servicio.",
+      "marcas": [
+        "Objetivo,",
+        "preguntas",
+        "conversación:",
+        "En"
+      ]
+    }
+  ]
+}

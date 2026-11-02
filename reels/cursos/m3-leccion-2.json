@@ -1,0 +1,69 @@
+{
+  "id": "m3l2",
+  "curso": "Next Level IA",
+  "numero": "3.2",
+  "tituloIntro": "CONECTAR",
+  "tituloCorto": "Instagram y ManyChat en 5 minutos",
+  "bloques": [
+    "REQUISITOS",
+    "CONECTAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: conectar Instagram a ManyChat. Es lo primero, y se hace una sola vez por cliente."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Antes de empezar, revisa dos cosas: que la cuenta de Instagram sea profesional, de empresa o creador, y que tengas acceso de administrador.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Requisitos",
+          "pregunta": "",
+          "respuesta": [
+            "# Antes de conectar",
+            "✓ Cuenta de Instagram profesional (Empresa o Creador)",
+            "✓ Acceso de administrador a la cuenta",
+            "✓ Una cuenta de ManyChat por cada Instagram"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "En ManyChat entra a Ajustes, elige Instagram y dale Conectar. Escoge la cuenta del cliente, acepta los permisos y listo: ya está conectada.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se conecta",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. ManyChat › Ajustes (Settings)",
+            "2. Elige Instagram › Conectar",
+            "3. Selecciona la cuenta del cliente",
+            "4. Acepta los permisos y guarda",
+            "✓ Instagram conectado"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Requisitos y conexión: cinco minutos y listo. En la siguiente lección: la automatización que más vende, comenta y recibe.",
+      "marcas": [
+        "Requisitos",
+        "conexión:",
+        "En"
+      ]
+    }
+  ]
+}

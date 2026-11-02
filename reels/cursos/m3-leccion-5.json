@@ -1,0 +1,106 @@
+{
+  "id": "m3l5",
+  "curso": "Next Level IA",
+  "numero": "3.5",
+  "tituloIntro": "LEADS",
+  "tituloCorto": "Del chat a tu sistema, y cómo cobrarlo",
+  "bloques": [
+    "GUARDAR",
+    "AVISAR",
+    "COBRAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: del chat a tu sistema. Un agente no sirve si los datos se quedan en la conversación."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Al final del flujo agrega una acción para guardar los datos: una fila en Google Sheets, o una conexión a tu CRM con una solicitud externa o con Zapier. Esto requiere el plan Pro.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Guardar los datos",
+          "pregunta": "",
+          "respuesta": [
+            "# Al final del flujo",
+            "1. Agrega una acción",
+            "2. Google Sheets: una fila por cliente",
+            "3. O tu CRM: solicitud externa o Zapier",
+            "✓ Nombre, teléfono, pedido y fecha"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y que te avise: un mensaje a tu WhatsApp o a tu correo con cada cliente nuevo, para que tú o tu equipo cierren la venta.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El recorrido completo",
+          "nodos": [
+            {
+              "icono": "💬",
+              "titulo": "Comenta o escribe"
+            },
+            {
+              "icono": "🤖",
+              "titulo": "El agente califica"
+            },
+            {
+              "icono": "📋",
+              "titulo": "Se guarda en tu sistema"
+            },
+            {
+              "icono": "🔔",
+              "titulo": "Te avisa"
+            },
+            {
+              "icono": "💰",
+              "titulo": "Cierras la venta"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "¿Y cómo lo cobras? Una instalación inicial por construirlo, y una mensualidad por mantenerlo, mejorarlo y darle un reporte al cliente cada mes.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se cobra",
+          "pregunta": "",
+          "respuesta": [
+            "# Instalación (una vez)",
+            "Construir el agente y conectarlo",
+            "# Mensualidad",
+            "Mantenerlo, mejorarlo y reporte mensual",
+            "# El argumento",
+            "Cuántos mensajes contestó y cuántas ventas trajo"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Guardar, avisar y cobrar cada mes. Con esto terminas el módulo de agentes que atienden. En el siguiente: agentes que llaman por teléfono.",
+      "marcas": [
+        "Guardar,",
+        "avisar",
+        "cobrar",
+        "Con"
+      ]
+    }
+  ]
+}

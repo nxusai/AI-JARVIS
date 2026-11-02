@@ -1,0 +1,104 @@
+{
+  "id": "m3l3",
+  "curso": "Next Level IA",
+  "numero": "3.3",
+  "tituloIntro": "COMENTA",
+  "tituloCorto": "Comenta una palabra y recibe el mensaje",
+  "bloques": [
+    "DISPARADOR",
+    "MENSAJE",
+    "PRUEBA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: comenta y recibe. Es la automatización que más leads genera: alguien comenta una palabra en tu reel y le llega un mensaje privado al instante."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Crea una automatización nueva. Como disparador elige: el usuario comenta en tu publicación o reel. Escoge el reel y escribe la palabra clave, por ejemplo: menú.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El disparador",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Automatizaciones › Nueva",
+            "2. Disparador: comenta en tu publicación o reel",
+            "3. Elige el reel",
+            "4. Palabra clave: MENU (agrega variantes: menú, Menu)"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Luego escribes el mensaje privado que le llega, con un botón al menú. Y activas una respuesta pública al comentario, para que los demás vean que sí contestas.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El mensaje",
+          "pregunta": "",
+          "respuesta": [
+            "# Lo que le llega",
+            "Mensaje privado: “¡Hola! Aquí está nuestro menú 👇”",
+            "Botón: Ver menú",
+            "# Respuesta pública",
+            "“¡Te lo mandé por mensaje! 📩”"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y lo pruebas desde otra cuenta: comentas la palabra y en segundos te llega el mensaje. Así se ve.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "La prueba",
+          "descripcion": "Comenta MENU y le llega al instante",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "comentario",
+              "texto": "MENU"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Hola! 👋 Aquí está nuestro menú de hoy",
+              "boton": "Ver menú"
+            },
+            {
+              "de": "cliente",
+              "texto": "¡Gracias! ¿Tienen pan dulce?"
+            },
+            {
+              "de": "agente",
+              "texto": "Sí, conchas y cuernitos recién horneados 🥐"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Disparador, mensaje y prueba. En la siguiente lección: le ponemos inteligencia artificial al agente.",
+      "marcas": [
+        "Disparador,",
+        "mensaje",
+        "prueba.",
+        "En"
+      ]
+    }
+  ]
+}

@@ -17,7 +17,12 @@ export type Pantalla = {
   descripcion?: string;
   url?: string;
   /** Resultado de la herramienta en vez de una grabación: se muestra grande, sin navegador. */
-  resultado?: 'imagen' | 'video' | 'audio' | 'chat';
+  resultado?: 'imagen' | 'video' | 'audio' | 'chat' | 'telefono' | 'flujo';
+  /** Teléfono: la conversación (comentario público, cliente o agente) y el nombre de la cuenta. */
+  mensajes?: { de: 'cliente' | 'agente' | 'comentario'; texto: string; boton?: string }[];
+  cuenta?: string;
+  /** Flujo: los pasos del diagrama. */
+  nodos?: { icono: string; titulo: string; sub?: string }[];
   /** Para un chat: lo que se le pide a Claude y su respuesta, línea por línea ('# ' = título). */
   pregunta?: string;
   respuesta?: string[];

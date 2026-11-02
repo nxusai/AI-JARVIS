@@ -1,0 +1,129 @@
+{
+  "id": "m3l1",
+  "curso": "Next Level IA",
+  "numero": "3.1",
+  "tituloIntro": "AGENTES",
+  "tituloCorto": "Un empleado que contesta 24/7",
+  "bloques": [
+    "EL PROBLEMA",
+    "EL AGENTE",
+    "EL VALOR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo tres: agentes que atienden. Un agente contesta los mensajes de un negocio, a cualquier hora, y convierte preguntas en ventas."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "El problema de casi todos los negocios: les escriben por Instagram o WhatsApp... y nadie contesta a tiempo. Cada mensaje sin respuesta es una venta perdida.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "El problema",
+          "descripcion": "Mensajes sin contestar = ventas perdidas",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "cliente",
+              "texto": "Hola, ¿tienen servicio a domicilio?"
+            },
+            {
+              "de": "cliente",
+              "texto": "¿A qué hora cierran?"
+            },
+            {
+              "de": "cliente",
+              "texto": "¿Hola?"
+            },
+            {
+              "de": "cliente",
+              "texto": "Bueno, gracias..."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Un agente lo resuelve: contesta en segundos, responde las preguntas de siempre, pide los datos del cliente y lo manda a comprar.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "El agente",
+          "descripcion": "Contesta en segundos, a cualquier hora",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "cliente",
+              "texto": "Hola, ¿tienen servicio a domicilio?"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Hola! Sí, entregamos de 8 a 20 h en la zona centro. ¿Quieres ver el menú?",
+              "boton": "Ver menú"
+            },
+            {
+              "de": "cliente",
+              "texto": "Sí, por favor"
+            },
+            {
+              "de": "agente",
+              "texto": "Aquí está. ¿A qué dirección te lo mandamos?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y así funciona por dentro: el cliente escribe, el agente responde con inteligencia artificial, guarda sus datos y te avisa. Eso es lo que vas a construir en este módulo.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Cómo funciona",
+          "nodos": [
+            {
+              "icono": "💬",
+              "titulo": "El cliente escribe",
+              "sub": "Instagram o WhatsApp"
+            },
+            {
+              "icono": "🤖",
+              "titulo": "El agente responde",
+              "sub": "Con IA, al instante"
+            },
+            {
+              "icono": "📋",
+              "titulo": "Guarda sus datos",
+              "sub": "Nombre, teléfono, pedido"
+            },
+            {
+              "icono": "🔔",
+              "titulo": "Te avisa",
+              "sub": "Listo para cerrar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Un negocio que contesta al instante vende más. En la siguiente lección: conectar Instagram a ManyChat.",
+      "marcas": [
+        "contesta",
+        "vende",
+        "En"
+      ]
+    }
+  ]
+}
