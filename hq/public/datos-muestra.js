@@ -219,6 +219,11 @@ export function crearMuestra() {
     },
     async olvide() {},
     async nuevaClave() {},
+    async miClave(clave) {
+      if (!clave) throw new Error('Escribe la contraseña')
+      if (yo) yo.cambiar_clave = false
+      return true
+    },
     alCambiarSesion() {},
 
     personas: () => espera(db.perfiles),
@@ -230,14 +235,20 @@ export function crearMuestra() {
     },
     async crearPersona(p) {
       if (!admin()) nunca()
-      const nueva = { id: id(), nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString(), ...permisos(null) }
+      const usuario = String(p.usuario || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '')
+      if (usuario.length < 2) throw new Error('Falta el usuario')
+      if (!p.clave) throw new Error('Falta la contraseña')
+      if (db.perfiles.some((x) => x.usuario === usuario)) throw new Error(`Ya hay alguien con el usuario "${usuario}"`)
+      const nueva = { id: id(), usuario, cambiar_clave: true, nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString(), ...permisos(null) }
       db.perfiles.push(nueva)
       anotar('insert', 'perfiles', nueva.id)
-      return { ok: true, id: nueva.id }
+      return { ok: true, id: nueva.id, usuario, enviado: !!(p.enviar && p.correo) }
     },
-    async claveDe() {
+    async claveDe(pid, clave, enviar) {
       if (!admin()) nunca()
-      return { ok: true }
+      const x = db.perfiles.find((q) => q.id === pid)
+      if (x) x.cambiar_clave = true
+      return { ok: true, enviado: !!(enviar && x?.correo) }
     },
     async subirFoto(pid, file) {
       if (!admin()) nunca()

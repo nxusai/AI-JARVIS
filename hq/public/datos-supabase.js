@@ -7,7 +7,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 /** Los errores de la base de datos, en palabras. */
 function claro(error) {
   const m = error?.message || String(error)
-  if (/Invalid login credentials/i.test(m)) return new Error('Correo o contraseña incorrectos')
+  if (/Invalid login credentials/i.test(m)) return new Error('Usuario o contraseña incorrectos')
+  if (/at least 6|least 6 characters|weak password|password should/i.test(m)) return new Error('La contraseña necesita al menos 6 caracteres (es lo mínimo que pide Supabase)')
+  if (/same.*password|different from the old/i.test(m)) return new Error('Escribe una contraseña distinta a la que tienes')
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
   if (/duplicate key.*perfiles_codigo/i.test(m)) return new Error('Ese código de link ya lo tiene otra persona')
@@ -62,8 +64,11 @@ export function crearSupabase({ url, anon }) {
       }
       return p
     },
+    /** Con su usuario (juan.perez) o, quien ya lo tenía, con su correo. */
     async entrar(correo, clave) {
-      ok(await sb.auth.signInWithPassword({ email: correo.trim().toLowerCase(), password: clave }))
+      const u = correo.trim().toLowerCase()
+      const email = u.includes('@') ? u : `${u.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '')}@equipo.nxusai.org`
+      ok(await sb.auth.signInWithPassword({ email, password: clave }))
       return this.sesion()
     },
     async salir() {
@@ -75,6 +80,12 @@ export function crearSupabase({ url, anon }) {
     async nuevaClave(clave) {
       ok(await sb.auth.updateUser({ password: clave }))
     },
+    /** Cambiar mi propia contraseña (y que ya no se me pida al entrar). */
+    async miClave(clave) {
+      ok(await sb.auth.updateUser({ password: clave }))
+      await sb.rpc('ya_cambie_mi_clave')
+      return true
+    },
     alCambiarSesion(fn) {
       sb.auth.onAuthStateChange((evento) => fn(evento))
     },
@@ -82,7 +93,7 @@ export function crearSupabase({ url, anon }) {
     personas: async () => ok(await tabla('perfiles').select('*').order('creado')),
     guardarPersona: (p) => guardar('perfiles', p),
     crearPersona: (p) => funcion('usuarios', { accion: 'crear', ...p }),
-    claveDe: (id, clave) => funcion('usuarios', { accion: 'clave', id, clave }),
+    claveDe: (id, clave, enviar = false) => funcion('usuarios', { accion: 'clave', id, clave, enviar }),
     async subirFoto(id, file) {
       const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
       const ruta = `${id}/${crypto.randomUUID()}.${ext}`

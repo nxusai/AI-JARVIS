@@ -686,8 +686,7 @@ create policy pros_notas_crear on public.prospectos_notas for insert to authenti
   with check (pros_puede('trabajar') and exists (select 1 from prospectos p where p.id = prospecto_id));
 create policy pros_notas_borrar on public.prospectos_notas for delete to authenticated using (es_admin());
 
-create policy pros_pagos_ver on public.prospectos_pagos for select to authenticated
-  using (pros_puede('pagos') and exists (select 1 from prospectos p where p.id = prospecto_id));
+-- Los pagos (montos) solo los ve el admin (3 de noviembre de 2026: nadie más ve dinero).
 create policy pros_pagos_admin on public.prospectos_pagos for all to authenticated using (es_admin()) with check (es_admin());
 
 
@@ -919,12 +918,9 @@ begin
   end loop;
 end $$;
 
-create policy documentos_ver on public.documentos for select to authenticated using (
-  (tipo = 'propuesta' and exists (select 1 from prospectos p where p.id = prospecto_id))
-  or (tipo = 'contrato' and es_admin()));
-create policy documentos_subir on public.documentos for insert to authenticated with check (
-  (tipo = 'propuesta' and pros_puede('trabajar') and exists (select 1 from prospectos p where p.id = prospecto_id))
-  or (tipo = 'contrato' and es_admin()));
+-- Propuestas y contratos llevan precios: solo el admin (3 de noviembre de 2026: nadie más ve dinero).
+create policy documentos_ver on public.documentos for select to authenticated using (es_admin());
+create policy documentos_subir on public.documentos for insert to authenticated with check (es_admin());
 create policy documentos_borrar on public.documentos for delete to authenticated using (es_admin());
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -933,10 +929,10 @@ on conflict (id) do update set file_size_limit = excluded.file_size_limit, allow
 
 drop policy if exists hq_documentos_ver on storage.objects;
 create policy hq_documentos_ver on storage.objects for select to authenticated
-  using (bucket_id = 'documentos' and exists (select 1 from documentos d where d.ruta = name));
+  using (bucket_id = 'documentos' and es_admin());
 drop policy if exists hq_documentos_subir on storage.objects;
 create policy hq_documentos_subir on storage.objects for insert to authenticated
-  with check (bucket_id = 'documentos' and ((name like 'propuestas/%' and pros_puede('trabajar')) or es_admin()));
+  with check (bucket_id = 'documentos' and es_admin());
 drop policy if exists hq_documentos_borrar on storage.objects;
 create policy hq_documentos_borrar on storage.objects for delete to authenticated using (bucket_id = 'documentos' and es_admin());
 
@@ -1148,3 +1144,18 @@ alter table public.contenido add column if not exists palabra text not null defa
 -- queda a la vista en HQ y se reintenta hasta 3 veces; después, a la Cartera.
 alter table public.leads add column if not exists llamada_error text not null default '' check (char_length(llamada_error) <= 500);
 alter table public.leads add column if not exists intentos int not null default 0 check (intentos >= 0);
+
+-- El equipo (3 de noviembre de 2026): cada quien entra con su USUARIO (no su correo) y la contraseña que
+-- le puso Eduardo; al entrar se le ofrece cambiarla (y después, en "Mi cuenta"). El correo real es para
+-- mandarle su acceso. Por dentro, Supabase usa <usuario>@equipo.nxusai.org.
+alter table public.perfiles add column if not exists usuario text;
+create unique index if not exists perfiles_usuario on public.perfiles (lower(usuario)) where usuario is not null;
+alter table public.perfiles add column if not exists cambiar_clave boolean not null default false;
+create or replace function public.ya_cambie_mi_clave() returns void
+language sql security definer set search_path = public as $$
+  update perfiles set cambiar_clave = false where id = auth.uid();
+$$;
+revoke all on function public.ya_cambie_mi_clave() from public, anon;
+grant execute on function public.ya_cambie_mi_clave() to authenticated;
+-- Nadie más que el admin ve dinero: el permiso "ver lo que pagaron" se apaga para todos.
+update public.perfiles set pros_pagos = false where rol <> 'admin' and pros_pagos;

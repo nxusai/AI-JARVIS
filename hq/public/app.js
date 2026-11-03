@@ -220,7 +220,7 @@ export function iniciar(D, { muestra = false } = {}) {
               ? `<p class="nota">Muestra: entra como cualquier persona para ver lo que cada quien ve.</p>
                  <div class="como">${D.usuariosMuestra().map((u) => `<button class="btn" data-como="${h(u.id)}"><b>${h(u.nombre)}</b><span>${h(u.cargo)}</span></button>`).join('')}</div>`
               : `<form id="f-entrar">
-                  <label>Correo<input name="correo" type="email" autocomplete="username" required></label>
+                  <label>Usuario<input name="correo" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="tu usuario (o tu correo)"></label>
                   <label>Contraseña<input name="clave" type="password" autocomplete="current-password" required></label>
                   ${error ? `<p class="error">${h(error)}</p>` : ''}
                   <button class="btn primario">Entrar</button>
@@ -242,8 +242,9 @@ export function iniciar(D, { muestra = false } = {}) {
         }
       }
       $('#olvide').onclick = () => {
-        const correo = $('[name=correo]', f).value
-        if (!correo) return aviso('Escribe tu correo arriba primero', 'mal')
+        const correo = $('[name=correo]', f).value.trim()
+        if (!correo) return aviso('Escribe tu usuario arriba primero', 'mal')
+        if (!correo.includes('@')) return aviso('Pídele a Eduardo una contraseña nueva: te llega a tu correo.', 'mal')
         intenta(() => D.olvide(correo), 'Te mandamos un correo para cambiar tu contraseña')
       }
     }
@@ -296,7 +297,10 @@ export function iniciar(D, { muestra = false } = {}) {
       </div>`
     $('#frase p').textContent = fraseDelDia(esAdmin())
     $('#menu').onclick = () => $('.nav').classList.toggle('abierta')
-    $('#yo').innerHTML = `${await avatar(yo)}<div><b>${h(yo.nombre)}</b><span>${h(yo.cargo || '')}</span></div><button class="enlace" id="salir">Salir</button>`
+    $('#yo').innerHTML = `${await avatar(yo)}<div><b>${h(yo.nombre)}</b><span>${h(yo.cargo || '')}</span><button class="enlace" id="mi-cuenta">⚙ Mi cuenta</button></div><button class="enlace" id="salir">Salir</button>`
+    $('#mi-cuenta').onclick = () => miCuenta()
+    // La primera vez (o después de que Eduardo le puso una nueva): que cambie la contraseña por una suya.
+    if (yo.cambiar_clave && !muestra) setTimeout(() => miCuenta({ primeraVez: true }), 600)
     $('#salir').onclick = async () => {
       await D.salir()
       yo = null
@@ -368,7 +372,7 @@ export function iniciar(D, { muestra = false } = {}) {
   async function inicio(v) {
     titulo(saludo(yo.nombre))
     $('#frase p').textContent = fraseDelDia(esAdmin())
-    const tareas = await D.tareas()
+    const tareas = (await D.tareas()).filter((t) => !t.cliente_id) // solo las de NXUS: cada cliente tiene su panel
     const mias = tareas.filter((t) => t.asignado === yo.id && t.estado !== 'hecha')
     const tarjetaTarea = (t) =>
       `<li><span class="chip ${t.estado}">${TAREA[t.estado]}</span><b>${h(t.titulo)}</b><small>${h(clienteDe(t.cliente_id)?.nombre ?? '')}${t.vence ? ` · vence ${fechaCorta(t.vence)}` : ''}</small></li>`
@@ -452,16 +456,15 @@ export function iniciar(D, { muestra = false } = {}) {
       return
     }
     titulo(c.nombre)
-    const [tareas, din, pros] = await Promise.all([D.tareas(), esAdmin() ? D.dinero() : [], vePros() ? D.prospectos() : []])
+    const [din, pros] = await Promise.all([esAdmin() ? D.dinero() : [], vePros() ? D.prospectos() : []])
     const d = din.find((x) => x.cliente_id === c.id)
     const vino = pros.find((x) => x.cliente_id === c.id)
-    const suyas = tareas.filter((t) => t.cliente_id === c.id)
     const sinDocs = { html: '', conectar() {} }
     const [contrato, propuestas] = await Promise.all([
       esAdmin()
         ? seccionDocumentos({ tipo: 'contrato', cliente_id: c.id, titulo: 'Contrato <small>PDF · solo tú lo ves</small>', puedeSubir: true }).catch(() => sinDocs)
         : sinDocs,
-      vino ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: vino.id, titulo: 'Propuestas que se le presentaron <small>PDF</small>', puedeSubir: false }).catch(() => sinDocs) : sinDocs,
+      vino && esAdmin() ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: vino.id, titulo: 'Propuestas que se le presentaron <small>PDF · solo tú las ves</small>', puedeSubir: false }).catch(() => sinDocs) : sinDocs,
     ])
     v.innerHTML = `
       <a class="enlace" href="#clientes">← Clientes</a>
@@ -488,15 +491,11 @@ export function iniciar(D, { muestra = false } = {}) {
         }
         ${contrato.html}
         ${propuestas.html}
-        <div class="tarjeta"><div class="fila"><h3>Tareas</h3><button class="btn chico" id="cl-tarea">+ Tarea</button></div>
-          ${suyas.length ? `<ul class="lista tareas">${suyas.map((t) => `<li><span class="chip ${t.estado}">${TAREA[t.estado]}</span><b>${h(t.titulo)}</b><small>${h(nombreDe(t.asignado))}${t.vence ? ` · vence ${fechaCorta(t.vence)}` : ''}</small></li>`).join('')}</ul>` : '<p class="vacio">Sin tareas que puedas ver.</p>'}
-        </div>
       </div>`
     contrato.conectar(v)
     propuestas.conectar(v)
     $('#cl-editar', v)?.addEventListener('click', () => editarCliente(c))
     $('#cl-dinero', v)?.addEventListener('click', () => editarDinero(c, d))
-    $('#cl-tarea', v).onclick = () => editarTarea({ cliente_id: c.id })
   }
 
   const opciones = (obj, actual) => Object.entries(obj).map(([k, t]) => `<option value="${k}" ${k === actual ? 'selected' : ''}>${h(t)}</option>`).join('')
@@ -633,13 +632,6 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Moneda<select name="moneda">${opciones({ USD: 'Dólares (USD)', MXN: 'Pesos (MXN)' }, f.moneda || 'USD')}</select></label>
           <label>Día de cobro<input name="dia_cobro" type="number" min="1" max="31" value="${h(f.dia_cobro || '')}"></label>
         </div>
-        <h3>Primeras tareas</h3>
-        <div class="tareas-ia">${(f.tareas || [])
-          .map(
-            (t, i) => `<div class="tarea-ia"><label class="check"><input type="checkbox" name="t${i}" checked> <b>${h(t.titulo)}</b></label>${t.detalle ? `<small>${h(t.detalle)}</small>` : ''}
-            <select name="a${i}">${opcionesPersonas(c.responsable, 'Sin asignar')}</select></div>`,
-          )
-          .join('') || '<p class="vacio">Sin tareas sugeridas.</p>'}</div>
         <div class="acciones"><button class="btn primario">Guardar cliente</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
       (caja) => {
         $('#f-ficha', caja).onsubmit = async (e) => {
@@ -649,10 +641,6 @@ export function iniciar(D, { muestra = false } = {}) {
           const nuevo = await intenta(() => D.guardarCliente(leerCliente(form)))
           if (!nuevo) return
           await intenta(() => D.guardarDinero({ cliente_id: nuevo.id, mensualidad: Number(x.mensualidad) || 0, pago_unico: Number(x.pago_unico) || 0, moneda: x.moneda, dia_cobro: Number(x.dia_cobro) || null, notas: '' }))
-          for (const [i, t] of (f.tareas || []).entries()) {
-            if (!x[`t${i}`]) continue
-            await intenta(() => D.guardarTarea({ titulo: t.titulo.slice(0, 200), detalle: t.detalle || '', cliente_id: nuevo.id, asignado: x[`a${i}`] || null }))
-          }
           aviso(`${nuevo.nombre} quedó dado de alta`)
           cerrarModal()
           location.hash = `#cliente/${nuevo.id}`
@@ -666,7 +654,7 @@ export function iniciar(D, { muestra = false } = {}) {
 
   const resumenPermisos = (p) => {
     if ((p.pros_ver || 'nada') === 'nada') return '<small>—</small>'
-    const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte', p.pros_pagos && 've pagos'].filter(Boolean)
+    const puede = [p.pros_trabajar && 'trabaja', p.pros_etapas && 'etapas', p.pros_convertir && 'convierte'].filter(Boolean)
     return `<small>${p.pros_ver === 'todos' ? 'Todos' : 'Los suyos'}${puede.length ? ` · ${puede.join(', ')}` : ''}${p.codigo ? ` · link: ${h(p.codigo)}` : ''}</small>`
   }
   /**
@@ -748,7 +736,7 @@ export function iniciar(D, { muestra = false } = {}) {
 
   async function vistaProspectos(v) {
     titulo('Prospectos')
-    const [pros, pagos] = await Promise.all([D.prospectos(), puedePros('pagos') ? D.pagosProspectos() : []])
+    const [pros, pagos] = await Promise.all([D.prospectos(), esAdmin() ? D.pagosProspectos() : []])
     const pagado = new Set(pagos.map((g) => g.prospecto_id))
     const verMios = !esAdmin() && yo.pros_ver === 'suyos'
     const filtro = verMios ? 'mios' : sessionStorage.getItem('hq-pros') || 'todos'
@@ -803,9 +791,9 @@ export function iniciar(D, { muestra = false } = {}) {
     const [pros, notas, pagos, leads, propuestas] = await Promise.all([
       D.prospectos(),
       D.notasProspecto(pid),
-      puedePros('pagos') ? D.pagosProspectos() : [],
+      esAdmin() ? D.pagosProspectos() : [],
       D.leads().catch(() => []),
-      seccionDocumentos({ tipo: 'propuesta', prospecto_id: pid, titulo: 'Propuestas <small>PDF</small>', puedeSubir: puedePros('trabajar'), nota: 'Las propuestas que se le presentan en el meeting.' }).catch(() => ({ html: '', conectar() {} })),
+      esAdmin() ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: pid, titulo: 'Propuestas <small>PDF · solo tú las ves</small>', puedeSubir: true, nota: 'Las propuestas que se le presentan en el meeting.' }).catch(() => ({ html: '', conectar() {} })) : { html: '', conectar() {} },
     ])
     const x = pros.find((p) => p.id === pid)
     if (!x) {
@@ -864,7 +852,7 @@ export function iniciar(D, { muestra = false } = {}) {
               ? `<p>${[d.giro, d.tamano && `${d.tamano} personas`, d.ciudad, d.pais, d.idioma && `habla ${d.idioma.toLowerCase()}`, d.urgencia].filter(Boolean).map(h).join(' · ')}</p>${d.quiere ? `<blockquote>${h(d.quiere)}</blockquote>` : ''}`
               : '<p class="vacio">Todavía no contesta el diagnóstico.</p>'
           }
-          ${puedePros('pagos') ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
+          ${esAdmin() ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
         </div>
         ${propuestas.html}
         <div class="tarjeta ancho-total">
@@ -1102,7 +1090,8 @@ export function iniciar(D, { muestra = false } = {}) {
     }
     const version = l.traduccion?.[lengua]
     const resumen = version?.resumen || l.resumen
-    const p = version?.puntos ?? l.puntos ?? {}
+    const p = { ...(version?.puntos ?? l.puntos ?? {}) }
+    if (!esAdmin()) delete p.presupuesto // montos y dinero: solo Eduardo
     const cita = l.prospecto_id && pros.find((x) => x.id === l.prospecto_id)
     const llamada = l.llamada_inicio
       ? `<p><b>${fechaHora(l.llamada_inicio)}</b>${l.llamada_seg != null ? ` · ${duracionLlamada(l.llamada_seg)}` : ' · en curso'}${l.grabacion ? ` · <a href="${h(l.grabacion)}" target="_blank" rel="noopener">Escuchar grabación ↗</a>` : ''}</p>
@@ -1298,8 +1287,9 @@ export function iniciar(D, { muestra = false } = {}) {
   // -------------------------------------------------------------- tareas
 
   async function vistaTareas(v) {
-    titulo('Tareas')
-    const tareas = await D.tareas()
+    titulo('Tareas de NXUS')
+    // Solo las tareas de NXUS: cada cliente lleva las suyas en su propio panel.
+    const tareas = (await D.tareas()).filter((t) => !t.cliente_id)
     const filtro = sessionStorage.getItem('hq-tareas') || (esAdmin() ? 'todas' : 'mias')
     const lista = filtro === 'mias' ? tareas.filter((t) => t.asignado === yo.id) : tareas
     v.innerHTML = `
@@ -1312,7 +1302,7 @@ export function iniciar(D, { muestra = false } = {}) {
             .map(
               (x) => `<div class="tarea ${x.vence && x.vence < hoyISO() && e !== 'hecha' ? 'atrasada' : ''}" data-t="${x.id}">
                 <b>${h(x.titulo)}</b>
-                <small>${h(clienteDe(x.cliente_id)?.nombre ?? 'Interna')} · ${h(nombreDe(x.asignado))}${x.vence ? ` · ${fechaCorta(x.vence)}` : ''}</small>
+                <small>${h(nombreDe(x.asignado))}${x.vence ? ` · ${fechaCorta(x.vence)}` : ''}</small>
                 <div class="mover">${Object.keys(TAREA).filter((k) => k !== e).map((k) => `<button class="btn chico" data-mover="${k}">${TAREA[k]}</button>`).join('')}</div>
               </div>`,
             )
@@ -1337,7 +1327,6 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="campos">
           <label class="ancho">Qué hay que hacer<input name="titulo" required maxlength="200" value="${h(t.titulo)}"></label>
           <label class="ancho">Detalle<textarea name="detalle" rows="3">${h(t.detalle)}</textarea></label>
-          <label>Cliente<select name="cliente_id"><option value="">Interna (NXUS)</option>${clientes.map((c) => `<option value="${c.id}" ${c.id === t.cliente_id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select></label>
           <label>Para<select name="asignado">${opcionesPersonas(t.asignado ?? yo.id, 'Sin asignar')}</select></label>
           <label>Vence<input name="vence" type="date" value="${h(t.vence || '')}"></label>
           <label>Estado<select name="estado">${opciones(TAREA, t.estado || 'pendiente')}</select></label>
@@ -1349,7 +1338,7 @@ export function iniciar(D, { muestra = false } = {}) {
           e.preventDefault()
           const d = Object.fromEntries(new FormData(e.target))
           const ok = await intenta(
-            () => D.guardarTarea({ ...(t.id ? { id: t.id } : {}), titulo: d.titulo.trim(), detalle: d.detalle.trim(), cliente_id: d.cliente_id || null, asignado: d.asignado || null, vence: d.vence || null, estado: d.estado }),
+            () => D.guardarTarea({ ...(t.id ? { id: t.id } : {}), titulo: d.titulo.trim(), detalle: d.detalle.trim(), cliente_id: null, asignado: d.asignado || null, vence: d.vence || null, estado: d.estado }),
             'Tarea guardada',
           )
           if (ok) {
@@ -1611,15 +1600,29 @@ export function iniciar(D, { muestra = false } = {}) {
     const filas = await Promise.all(
       personas.map(
         async (p) =>
-          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${h(p.correo)}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><button class="btn chico" data-per="${p.id}">Editar</button></td></tr>`,
+          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${p.usuario ? `usuario: ${h(p.usuario)}` : 'entra con su correo'}${p.correo ? ` · ${h(p.correo)}` : ''}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><button class="btn chico" data-per="${p.id}">Editar</button></td></tr>`,
       ),
     )
     v.innerHTML = `
       <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button></div>
       <div class="tarjeta"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Dónde</th><th>Rol</th><th>Prospectos</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div>
-      <p class="nota">Cada persona entra con su correo y su contraseña. Solo tú ves todo; los demás, aunque sean socios, entran como equipo. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
+      <p class="nota">Cada persona entra con su <b>usuario</b> y la contraseña que tú le pones; al entrar puede cambiarla (y después en "⚙ Mi cuenta"). Solo tú ves dinero, montos, propuestas, contratos, Nómina y Personas, y solo tú das de alta y borras. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
     $('#p-nueva', v).onclick = () => editarPersona(null)
     $$('[data-per]', v).forEach((b) => (b.onclick = () => editarPersona(persona(b.dataset.per))))
+  }
+
+  /** Después de dar de alta (o cambiar la contraseña): si se le mandó por correo y, si no, para copiársela. */
+  function accesoListo({ nombre, usuario, clave, correo, enviado, pidio, nueva = false }) {
+    abrirModal(
+      `<h2>✓ ${nueva ? `Contraseña nueva de ${h(nombre)}` : `${h(nombre)} ya puede entrar`}</h2>
+       ${enviado ? `<p class="verde">📧 Le mandamos su acceso a <b>${h(correo)}</b>.</p>` : pidio ? '<p class="rojo">⚠ No se pudo mandar el correo (revisa que la agenda de Google esté actualizada). Pásale estos datos tú:</p>' : '<p>Pásale estos datos:</p>'}
+       <div class="tarjeta"><p>Entra en <b>${h(location.origin)}</b></p><p>Usuario: <b>${h(usuario)}</b></p><p>Contraseña: <b>${h(clave)}</b></p></div>
+       <p class="nota">Al entrar se le pide cambiarla por una suya.</p>
+       <div class="acciones"><button class="btn" id="ac-copiar">Copiar los datos</button><button class="btn primario" data-cerrar>Listo</button></div>`,
+      (caja) => {
+        $('#ac-copiar', caja).onclick = () => navigator.clipboard?.writeText(`NXUS HQ: ${location.origin}\nUsuario: ${usuario}\nContraseña: ${clave}`).then(() => aviso('Copiado'))
+      },
+    )
   }
 
   function editarPersona(p) {
@@ -1631,7 +1634,14 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Cargo<input name="cargo" maxlength="80" value="${h(p?.cargo)}" placeholder="Diseñadora"></label>
           <label>Dónde<select name="sede">${opciones(SEDE, p?.sede || 'usa')}</select></label>
           <label>Reporta a<select name="reporta_a">${opcionesPersonas(p?.reporta_a, '—')}</select></label>
-          ${nueva ? `<label>Correo<input name="correo" type="email" required></label><label>Contraseña<input name="clave" type="text" minlength="8" required placeholder="mínimo 8"></label>` : ''}
+          ${
+            nueva
+              ? `<label>Usuario <small>con el que entra</small><input name="usuario" required maxlength="40" autocapitalize="none" spellcheck="false" placeholder="juan.perez"></label>
+                 <label>Contraseña<input name="clave" type="text" required autocomplete="off" placeholder="la que tú quieras"></label>
+                 <label class="ancho">Su correo <small>ahí le llega su acceso</small><input name="correo" type="email" placeholder="juan@gmail.com"></label>
+                 <label class="check ancho"><input type="checkbox" name="enviar" checked> Mandarle su usuario y contraseña a su correo</label>`
+              : ''
+          }
           ${!nueva && p.id !== yo.id ? `<label class="check"><input type="checkbox" name="activo" ${p.activo ? 'checked' : ''}> Acceso prendido</label>` : ''}
           ${!nueva ? `<label class="ancho">Foto<input name="foto" type="file" accept="image/jpeg,image/png,image/webp"></label>` : ''}
         </div>
@@ -1643,7 +1653,6 @@ export function iniciar(D, { muestra = false } = {}) {
                   <label class="check ancho"><input type="checkbox" name="pros_trabajar" ${p.pros_trabajar ? 'checked' : ''}> Trabajarlos: notas, siguiente paso, datos de contacto y apuntar prospectos nuevos</label>
                   <label class="check ancho"><input type="checkbox" name="pros_etapas" ${p.pros_etapas ? 'checked' : ''}> Mover etapas (reunión hecha, propuesta enviada, perdido…)</label>
                   <label class="check ancho"><input type="checkbox" name="pros_convertir" ${p.pros_convertir ? 'checked' : ''}> Convertirlos en clientes</label>
-                  <label class="check ancho"><input type="checkbox" name="pros_pagos" ${p.pros_pagos ? 'checked' : ''}> Ver lo que pagaron</label>
                   <label class="ancho">Código de su link <small>empezar.nxusai.org/nombre-del-prospecto?de=<b>código</b></small><input name="codigo" maxlength="30" pattern="[a-z0-9-]{2,30}" value="${h(p.codigo || '')}" placeholder="${h(slug(p.nombre.split(' ')[0]))}"></label>
                 </div>
                 <p class="nota">Asignar y borrar prospectos es solo tuyo. Los prospectos que lleguen por su link quedan a su nombre (y su comisión, si cobra comisión).</p>
@@ -1659,11 +1668,19 @@ export function iniciar(D, { muestra = false } = {}) {
           const d = Object.fromEntries(new FormData(e.target))
           let ok
           if (nueva) {
-            ok = await intenta(() => D.crearPersona({ nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, correo: d.correo.trim(), clave: d.clave }), `${d.nombre} ya puede entrar con su correo`)
+            const r = await intenta(() => D.crearPersona({ nombre: d.nombre.trim(), usuario: d.usuario, cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, correo: d.correo.trim(), clave: d.clave, enviar: !!d.enviar }))
+            ok = !!r
+            if (r) {
+              cerrarModal()
+              personas = await D.personas()
+              mostrar()
+              accesoListo({ nombre: d.nombre.trim(), usuario: r.usuario, clave: d.clave, correo: d.correo.trim(), enviado: r.enviado, pidio: !!d.enviar })
+              return
+            }
           } else {
             const pros =
               p.rol !== 'admin'
-                ? { pros_ver: d.pros_ver, pros_trabajar: !!d.pros_trabajar, pros_etapas: !!d.pros_etapas, pros_convertir: !!d.pros_convertir, pros_pagos: !!d.pros_pagos, codigo: slug(d.codigo).slice(0, 30) || null }
+                ? { pros_ver: d.pros_ver, pros_trabajar: !!d.pros_trabajar, pros_etapas: !!d.pros_etapas, pros_convertir: !!d.pros_convertir, codigo: slug(d.codigo).slice(0, 30) || null }
                 : {}
             ok = await intenta(() => D.guardarPersona({ id: p.id, nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, ...(p.id !== yo.id ? { activo: !!d.activo } : {}), ...pros }), 'Guardado')
             const foto = e.target.foto?.files?.[0]
@@ -1679,9 +1696,41 @@ export function iniciar(D, { muestra = false } = {}) {
           }
         }
         $('#p-clave', caja)?.addEventListener('click', async () => {
-          const clave = prompt(`Nueva contraseña para ${p.nombre} (mínimo 8):`)
-          if (clave) await intenta(() => D.claveDe(p.id, clave), 'Contraseña cambiada')
+          const clave = prompt(`Nueva contraseña para ${p.nombre}:`)
+          if (!clave) return
+          const enviar = !!p.correo && confirm(`¿Mandársela a su correo (${p.correo})?`)
+          const r = await intenta(() => D.claveDe(p.id, clave, enviar))
+          if (r) {
+            cerrarModal()
+            accesoListo({ nombre: p.nombre, usuario: p.usuario || p.correo, clave, correo: p.correo, enviado: r.enviado, pidio: enviar, nueva: true })
+          }
         })
+      },
+    )
+  }
+
+  // ------------------------------------------------------------ mi cuenta
+
+  /** Cambiar mi contraseña (al entrar por primera vez se ofrece sola; si no, en "⚙ Mi cuenta"). */
+  function miCuenta({ primeraVez = false } = {}) {
+    abrirModal(
+      `<form id="f-cuenta"><h2>${primeraVez ? `Bienvenido, ${h(String(yo.nombre).split(' ')[0])} 👋` : '⚙ Mi cuenta'}</h2>
+        ${primeraVez ? '<p>Eduardo te creó una contraseña. Cámbiala por una tuya, que solo tú sepas. Si prefieres hacerlo después, está en <b>⚙ Mi cuenta</b> (abajo a la izquierda).</p>' : `<p><small>${yo.usuario ? `Tu usuario: <b>${h(yo.usuario)}</b>` : `Entras con: <b>${h(yo.correo)}</b>`}</small></p>`}
+        <div class="campos">
+          <label class="ancho">Contraseña nueva<input name="clave" type="password" autocomplete="new-password" required></label>
+          <label class="ancho">Escríbela otra vez<input name="otra" type="password" autocomplete="new-password" required></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Cambiar contraseña</button><button type="button" class="btn" data-cerrar>${primeraVez ? 'Ahora no' : 'Cancelar'}</button></div></form>`,
+      (caja) => {
+        $('#f-cuenta', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          if (d.clave !== d.otra) return aviso('Las dos contraseñas no son iguales', 'mal')
+          if (await intenta(() => D.miClave(d.clave), 'Listo: tu contraseña quedó cambiada')) {
+            yo.cambiar_clave = false
+            cerrarModal()
+          }
+        }
       },
     )
   }
@@ -1704,7 +1753,7 @@ export function iniciar(D, { muestra = false } = {}) {
 
   D.alCambiarSesion?.((evento) => {
     if (evento === 'PASSWORD_RECOVERY') {
-      const clave = prompt('Escribe tu contraseña nueva (mínimo 8):')
+      const clave = prompt('Escribe tu contraseña nueva:')
       if (clave) intenta(() => D.nuevaClave(clave), 'Contraseña cambiada')
     }
   })

@@ -1,7 +1,51 @@
 // Dar de alta a alguien del equipo y cambiar contraseñas: solo el admin. Es lo
 // único que usa la llave de servicio de Supabase (lo demás de las personas
 // —cargo, sede, foto, apagar— lo cambia el admin directo, con sus candados).
+//
+// Cada quien entra con su USUARIO y la contraseña que le puso Eduardo (sin
+// reglas de HQ; Supabase solo pide 6 caracteres como mínimo). Por dentro, la
+// cuenta de Supabase es <usuario>@equipo.nxusai.org; el correo real es para
+// mandarle su acceso (lo manda la cuenta de Google de NXUS: AGENDA_URL).
 import { json, quien, sb } from '../lib/sb.mjs'
+
+export const DOMINIO = 'equipo.nxusai.org'
+const env = (k) => (process.env[k] || '').trim()
+const HQ = () => (process.env.URL || 'https://nxus-hq.netlify.app').replace(/\/$/, '')
+
+/** "Juan Pérez" → "juan.perez": minúsculas, sin acentos ni espacios. */
+export const limpiarUsuario = (u) =>
+  String(u ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '.')
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, 40)
+
+/** Los errores de Supabase sobre contraseñas, en palabras. */
+const claro = (err) =>
+  /at least 6|least 6 characters|weak password|password should/i.test(err.message)
+    ? Object.assign(new Error('Supabase pide que la contraseña tenga al menos 6 caracteres (es su mínimo; HQ no pone más reglas).'), { status: 400 })
+    : err
+
+/** Le manda a su correo su usuario, su contraseña y el link de HQ. Devuelve true si se mandó. */
+async function mandarAcceso({ correo, nombre, usuario, clave, nueva = true }) {
+  if (!env('AGENDA_URL') || !correo) return false
+  try {
+    const res = await fetch(env('AGENDA_URL'), {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ accion: 'bienvenida', clave: env('AGENDA_CLAVE'), para: correo, nombre, usuario, contrasena: clave, url: HQ(), nueva }),
+      redirect: 'follow',
+      signal: AbortSignal.timeout(20_000),
+    })
+    const d = await res.json().catch(() => null)
+    return !!d?.ok
+  } catch {
+    return false
+  }
+}
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'POST' }, 405)
@@ -13,34 +57,46 @@ export default async (req) => {
 
   try {
     if (d.accion === 'crear') {
+      const usuario = limpiarUsuario(d.usuario)
       const correo = String(d.correo || '').trim().toLowerCase()
       const nombre = String(d.nombre || '').trim().slice(0, 80)
       const cargo = String(d.cargo || '').trim().slice(0, 80)
       const sede = d.sede === 'mexico' ? 'mexico' : 'usa'
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return json({ ok: false, error: 'Ese correo no se ve bien' }, 400)
-      if (String(d.clave || '').length < 8) return json({ ok: false, error: 'La contraseña necesita al menos 8 caracteres' }, 400)
+      const clave = String(d.clave ?? '')
       if (!nombre) return json({ ok: false, error: 'Falta el nombre' }, 400)
+      if (usuario.length < 2) return json({ ok: false, error: 'Falta el usuario (letras, números o puntos)' }, 400)
+      if (!clave) return json({ ok: false, error: 'Falta la contraseña' }, 400)
+      if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return json({ ok: false, error: 'Ese correo no se ve bien' }, 400)
+      const [hay] = await sb(`/rest/v1/perfiles?usuario=ilike.${encodeURIComponent(usuario)}&select=id`, { servicio: true })
+      if (hay) return json({ ok: false, error: `Ya hay alguien con el usuario "${usuario}"` }, 409)
       let user
       try {
         user = await sb('/auth/v1/admin/users', {
           servicio: true,
           method: 'POST',
-          body: { email: correo, password: d.clave, email_confirm: true, user_metadata: { nombre, cargo, sede, activo: true } },
+          body: { email: `${usuario}@${DOMINIO}`, password: clave, email_confirm: true, user_metadata: { nombre, cargo, sede, activo: true } },
         })
       } catch (err) {
-        if (/already|registered|exists/i.test(err.message)) return json({ ok: false, error: 'Ya hay un usuario con ese correo' }, 409)
-        throw err
+        if (/already|registered|exists/i.test(err.message)) return json({ ok: false, error: `Ya hay alguien con el usuario "${usuario}"` }, 409)
+        throw claro(err)
       }
       const reporta = /^[0-9a-f-]{36}$/i.test(String(d.reporta_a || '')) ? d.reporta_a : null
-      await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: { nombre, correo, cargo, sede, activo: true, rol: 'equipo', reporta_a: reporta } })
-      return json({ ok: true, id: user.id })
+      await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: { nombre, correo, usuario, cargo, sede, activo: true, rol: 'equipo', reporta_a: reporta, cambiar_clave: true } })
+      const enviado = d.enviar !== false && (await mandarAcceso({ correo, nombre, usuario, clave }))
+      return json({ ok: true, id: user.id, usuario, enviado })
     }
     if (d.accion === 'clave') {
       if (!/^[0-9a-f-]{36}$/i.test(String(d.id || ''))) return json({ ok: false, error: 'Falta la persona' }, 400)
-      if (String(d.clave || '').length < 8) return json({ ok: false, error: 'La contraseña necesita al menos 8 caracteres' }, 400)
-      if (d.id === yo.perfil.id) return json({ ok: false, error: 'Tu propia contraseña cámbiala con "¿Olvidaste tu contraseña?" o desde Supabase' }, 400)
-      await sb(`/auth/v1/admin/users/${d.id}`, { servicio: true, method: 'PUT', body: { password: d.clave } })
-      return json({ ok: true })
+      const clave = String(d.clave ?? '')
+      if (!clave) return json({ ok: false, error: 'Falta la contraseña' }, 400)
+      if (d.id === yo.perfil.id) return json({ ok: false, error: 'Tu propia contraseña cámbiala en "Mi cuenta"' }, 400)
+      await sb(`/auth/v1/admin/users/${d.id}`, { servicio: true, method: 'PUT', body: { password: clave } }).catch((err) => {
+        throw claro(err)
+      })
+      const [p] = await sb(`/rest/v1/perfiles?id=eq.${d.id}&select=nombre,correo,usuario`, { servicio: true })
+      await sb(`/rest/v1/perfiles?id=eq.${d.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { cambiar_clave: true } })
+      const enviado = !!d.enviar && !!p && (await mandarAcceso({ correo: p.correo, nombre: p.nombre, usuario: p.usuario || p.correo, clave, nueva: false }))
+      return json({ ok: true, enviado })
     }
     return json({ ok: false, error: 'Acción desconocida' }, 400)
   } catch (err) {

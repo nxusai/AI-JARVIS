@@ -46,6 +46,7 @@ function doPost(e) {
     if (!clave || d.clave !== clave) return respuesta_({ ok: false, error: 'clave incorrecta' })
     if (d.accion === 'horarios') return respuesta_({ ok: true, horarios: horarios_() })
     if (d.accion === 'agendar') return respuesta_(agendar_(d))
+    if (d.accion === 'bienvenida') return respuesta_(bienvenida_(d))
     return respuesta_({ ok: false, error: 'acción desconocida' })
   } catch (err) {
     return respuesta_({ ok: false, error: String((err && err.message) || err) })
@@ -156,6 +157,25 @@ function correo_(para, nombre, tipo, inicio, meet, aviso, idioma, zona) {
     '<p style="color:#555">' + (en ? "It's also in your calendar. To change the time, just reply to this email." : 'También la tienes en tu calendario. Si necesitas cambiar el horario, contesta este correo.') + '</p>' +
     '<p style="color:#888;font-size:12px">NXUS AI · nxusai.org</p></div>'
   MailApp.sendEmail({ to: para, subject: titulo, htmlBody: html, name: 'NXUS AI' })
+}
+
+/** NXUS HQ: el acceso de alguien nuevo del equipo (o su contraseña nueva) a su correo. */
+function bienvenida_(d) {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(d.para || ''))) return { ok: false, error: 'correo inválido' }
+  const esc = (t) => String(t || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+  const nom = String(d.nombre || '').split(' ')[0]
+  const titulo = d.nueva === false ? 'Tu contraseña nueva de NXUS HQ' : 'Tu acceso a NXUS HQ'
+  const html =
+    '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#12161f">' +
+    '<h2 style="margin:0 0 12px">' + (d.nueva === false ? 'Hola' : 'Bienvenido') + (nom ? ', ' + esc(nom) : '') + '</h2>' +
+    '<p>' + (d.nueva === false ? 'Eduardo te puso una contraseña nueva para entrar a NXUS HQ:' : 'Ya tienes tu acceso a NXUS HQ, el sistema de trabajo de NXUS AI:') + '</p>' +
+    '<table style="font-size:16px;margin:12px 0"><tr><td style="color:#666;padding-right:12px">Usuario</td><td><b>' + esc(d.usuario) + '</b></td></tr>' +
+    '<tr><td style="color:#666;padding-right:12px">Contraseña</td><td><b>' + esc(d.contrasena) + '</b></td></tr></table>' +
+    '<p><a href="' + esc(d.url) + '" style="background:#4fd8f7;color:#04101a;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold">Entrar a NXUS HQ</a></p>' +
+    '<p style="color:#555">Al entrar te pedirá que cambies tu contraseña por una tuya. Si no lo haces en ese momento, puedes hacerlo después en "Mi cuenta" (abajo a la izquierda, junto a tu nombre).</p>' +
+    '<p style="color:#888;font-size:12px">NXUS AI · No compartas este correo con nadie.</p></div>'
+  MailApp.sendEmail({ to: d.para, subject: titulo, htmlBody: html, name: 'NXUS AI' })
+  return { ok: true }
 }
 
 /** Cada 15 minutos: los recordatorios de 24 h y de 1 h, una sola vez cada uno. */
