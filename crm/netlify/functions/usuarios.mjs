@@ -1,25 +1,49 @@
-// Crear usuarios, cambiar contraseñas y corregir correos: solo el admin. Es lo
+// Crear usuarios, cambiar contraseñas, usuarios y correos: solo el admin. Es lo
 // único que usa la llave de servicio de Supabase (lo demás de los usuarios
 // —rol, empresas, apagar— lo cambia el admin directo, con sus candados).
 //
-// El acceso (link, correo y contraseña) se le manda a la persona desde la
+// Cada quien entra con su usuario (por ejemplo "senen") y la contraseña que
+// le ponga el admin, aunque sea corta (ver public/acceso.js). Si la persona
+// tiene correo, su acceso (link, usuario y contraseña) se le manda desde la
 // cuenta de Google de NXUS (google/accesos.gs). Al dueño nadie lo toca desde
 // aquí: ni su contraseña ni su correo (la base de datos también lo impide).
 import { json, quien, sb } from '../lib/sb.mjs'
+import { CLAVE_MINIMA, claveReal, correoDeUsuario, normalizarUsuario, usuarioValido } from '../../public/acceso.js'
 
 const ROLES = new Set(['cliente', 'equipo'])
 const SECCIONES = ['ve_tareas', 've_biblioteca', 've_catalogos']
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const ID = /^[0-9a-f-]{36}$/i
 
+const mal = (mensaje, status = 400) => Object.assign(new Error(mensaje), { status })
+const claveValida = (c) => String(c ?? '').trim().length >= CLAVE_MINIMA
+const ERROR_CLAVE = `La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`
+
+/** El correo de verdad (opcional): '' si no hay; error si está mal escrito. */
+function correoOpcional(c) {
+  const correo = String(c || '').trim().toLowerCase()
+  if (correo && !CORREO.test(correo)) throw mal('Ese correo no se ve bien')
+  return correo
+}
+
+/** El usuario, limpio; error si no sirve o ya lo tiene otra persona. */
+async function usuarioLibre(u, menos = null) {
+  const usuario = normalizarUsuario(u)
+  if (!usuarioValido(usuario)) throw mal('El usuario necesita al menos 2 letras o números (sin espacios ni acentos)')
+  const [otro] = await sb(`/rest/v1/perfiles?usuario=eq.${encodeURIComponent(usuario)}&select=id`, { servicio: true })
+  if (otro && otro.id !== menos) throw mal(`Ya hay alguien con el usuario "${usuario}". Elige otro.`, 409)
+  return usuario
+}
+
 /** Le manda a la persona su acceso. Nunca truena: dice si salió o por qué no. */
-async function mandarAcceso({ para, nombre, contrasena, motivo, enlace }) {
+async function mandarAcceso({ para, nombre, usuario, contrasena, motivo, enlace }) {
+  if (!para) return { enviado: false }
   if (!process.env.ACCESO_URL || !process.env.ACCESO_CLAVE) return { enviado: false, aviso: 'El correo de acceso todavía no está conectado (ACCESO_URL en Netlify). Mándale sus datos por WhatsApp.' }
   try {
     const res = await fetch(process.env.ACCESO_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ clave: process.env.ACCESO_CLAVE, para, nombre, usuario: para, contrasena, motivo, enlace }),
+      body: JSON.stringify({ clave: process.env.ACCESO_CLAVE, para, nombre, usuario, contrasena, motivo, enlace }),
       redirect: 'follow',
     })
     const r = await res.json().catch(() => ({}))
@@ -32,15 +56,18 @@ async function mandarAcceso({ para, nombre, contrasena, motivo, enlace }) {
 
 /** La persona a la que se le va a cambiar algo; nunca el dueño ni uno mismo. */
 async function persona(id, yo) {
-  if (!ID.test(String(id || ''))) throw Object.assign(new Error('Falta el usuario'), { status: 400 })
-  if (id === yo.perfil.id) throw Object.assign(new Error('Lo tuyo cámbialo en "Mi contraseña"'), { status: 400 })
-  const [p] = await sb(`/rest/v1/perfiles?id=eq.${id}&select=id,nombre,correo,dueno`, { servicio: true })
-  if (!p) throw Object.assign(new Error('Ese usuario ya no existe'), { status: 404 })
-  if (p.dueno) throw Object.assign(new Error('El acceso del dueño solo lo cambia él'), { status: 403 })
+  if (!ID.test(String(id || ''))) throw mal('Falta el usuario')
+  if (id === yo.perfil.id) throw mal('Lo tuyo cámbialo en "🔑 Contraseña"')
+  const [p] = await sb(`/rest/v1/perfiles?id=eq.${id}&select=id,nombre,correo,usuario,dueno`, { servicio: true })
+  if (!p) throw mal('Ese usuario ya no existe', 404)
+  if (p.dueno) throw mal('El acceso del dueño solo lo cambia él', 403)
   return p
 }
 
-const claveValida = (c) => String(c || '').length >= 8
+async function ponerClave(id, clave) {
+  await sb(`/auth/v1/admin/users/${id}`, { servicio: true, method: 'PUT', body: { password: claveReal(clave) } })
+  await sb(`/rest/v1/perfiles?id=eq.${id}`, { servicio: true, method: 'PATCH', body: { clave_temporal: true } })
+}
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'POST' }, 405)
@@ -51,65 +78,72 @@ export default async (req) => {
   const d = await req.json().catch(() => ({}))
   const enlace = (process.env.CRM_URL || process.env.URL || new URL(req.url).origin).replace(/\/$/, '')
   const mandar = d.mandar !== false
+  const clave = String(d.clave ?? '').trim()
 
   try {
     if (d.accion === 'crear') {
-      const correo = String(d.correo || '').trim().toLowerCase()
       const nombre = String(d.nombre || '').trim().slice(0, 80)
-      if (!CORREO.test(correo)) return json({ ok: false, error: 'Ese correo no se ve bien' }, 400)
-      if (!claveValida(d.clave)) return json({ ok: false, error: 'La contraseña necesita al menos 8 caracteres' }, 400)
-      if (!nombre) return json({ ok: false, error: 'Falta el nombre' }, 400)
-      if (!ROLES.has(d.rol)) return json({ ok: false, error: 'Rol inválido' }, 400)
+      if (!nombre) throw mal('Falta el nombre')
+      const usuario = await usuarioLibre(d.usuario || nombre)
+      const correo = correoOpcional(d.correo)
+      if (!claveValida(clave)) throw mal(ERROR_CLAVE)
+      if (!ROLES.has(d.rol)) throw mal('Rol inválido')
       const empresas = d.empresas === null ? null : Array.isArray(d.empresas) ? d.empresas.map(String).slice(0, 20) : null
       let user
       try {
         user = await sb('/auth/v1/admin/users', {
           servicio: true,
           method: 'POST',
-          body: { email: correo, password: d.clave, email_confirm: true, user_metadata: { nombre } },
+          body: { email: correoDeUsuario(usuario), password: claveReal(clave), email_confirm: true, user_metadata: { nombre } },
         })
       } catch (err) {
-        if (/already|registered|exists/i.test(err.message)) return json({ ok: false, error: 'Ya hay un usuario con ese correo' }, 409)
+        if (/already|registered|exists/i.test(err.message)) throw mal(`Ya hay alguien con el usuario "${usuario}". Elige otro.`, 409)
         throw err
       }
-      const perfil = { nombre, correo, rol: d.rol, activo: true, empresas, clave_temporal: true }
+      const perfil = { nombre, usuario, correo, rol: d.rol, activo: true, empresas, clave_temporal: true }
       for (const s of SECCIONES) perfil[s] = d[s] !== false
       perfil.ultron = d.rol === 'cliente' && d.ultron === true
-      await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: perfil })
-      const correoAcceso = mandar ? await mandarAcceso({ para: correo, nombre, contrasena: d.clave, motivo: 'nuevo', enlace }) : { enviado: false }
-      return json({ ok: true, id: user.id, para: correo, ...correoAcceso })
+      try {
+        await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: perfil })
+      } catch (err) {
+        // Que no quede una cuenta a medias (sin perfil acomodado no podría entrar).
+        await sb(`/auth/v1/admin/users/${user.id}`, { servicio: true, method: 'DELETE' }).catch(() => {})
+        throw mal(/usuario|clave_temporal|column/i.test(err.message) ? 'Falta actualizar la base de datos: corre el esquema en Supabase (SQL Editor) y vuelve a intentar.' : err.message, err.status || 500)
+      }
+      const correoAcceso = mandar ? await mandarAcceso({ para: correo, nombre, usuario, contrasena: clave, motivo: 'nuevo', enlace }) : { enviado: false }
+      return json({ ok: true, id: user.id, usuario, clave, para: correo, ...correoAcceso })
     }
 
     if (d.accion === 'clave') {
       const p = await persona(d.id, yo)
-      if (!claveValida(d.clave)) return json({ ok: false, error: 'La contraseña necesita al menos 8 caracteres' }, 400)
-      await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { password: d.clave } })
-      await sb(`/rest/v1/perfiles?id=eq.${p.id}`, { servicio: true, method: 'PATCH', body: { clave_temporal: true } })
-      const correoAcceso = mandar ? await mandarAcceso({ para: p.correo, nombre: p.nombre, contrasena: d.clave, motivo: 'clave', enlace }) : { enviado: false }
-      return json({ ok: true, para: p.correo, ...correoAcceso })
+      if (!claveValida(clave)) throw mal(ERROR_CLAVE)
+      if (!p.usuario) throw mal('Primero ponle un usuario en Editar')
+      await ponerClave(p.id, clave)
+      const correoAcceso = mandar ? await mandarAcceso({ para: p.correo, nombre: p.nombre, usuario: p.usuario, contrasena: clave, motivo: 'clave', enlace }) : { enviado: false }
+      return json({ ok: true, usuario: p.usuario, clave, para: p.correo, ...correoAcceso })
     }
 
-    // Corregir el correo (por si se escribió mal). Se cambia en los dos lados:
-    // con el que entra y el del perfil. Si se manda el acceso, va con una
-    // contraseña nueva (la de antes nadie la conoce).
-    if (d.accion === 'correo') {
+    // Cambiar con qué entra (usuario) y/o su correo. Con clave, también una
+    // contraseña nueva (y si tiene correo y se pide, se le manda el acceso).
+    if (d.accion === 'acceso') {
       const p = await persona(d.id, yo)
-      const correo = String(d.correo || '').trim().toLowerCase()
-      if (!CORREO.test(correo)) return json({ ok: false, error: 'Ese correo no se ve bien' }, 400)
-      if (mandar && !claveValida(d.clave)) return json({ ok: false, error: 'La contraseña necesita al menos 8 caracteres' }, 400)
-      if (correo !== p.correo) {
+      const usuario = await usuarioLibre(d.usuario, p.id)
+      const correo = correoOpcional(d.correo)
+      if (clave && !claveValida(clave)) throw mal(ERROR_CLAVE)
+      if (!p.usuario && !clave) throw mal('Para darle su usuario ponle también una contraseña')
+      if (usuario !== p.usuario) {
         try {
-          await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { email: correo, email_confirm: true } })
+          await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { email: correoDeUsuario(usuario), email_confirm: true } })
         } catch (err) {
-          if (/already|registered|exists/i.test(err.message)) return json({ ok: false, error: 'Ya hay un usuario con ese correo' }, 409)
+          if (/already|registered|exists/i.test(err.message)) throw mal(`Ya hay alguien con el usuario "${usuario}". Elige otro.`, 409)
           throw err
         }
-        await sb(`/rest/v1/perfiles?id=eq.${p.id}`, { servicio: true, method: 'PATCH', body: { correo } })
       }
-      if (!mandar) return json({ ok: true, para: correo, enviado: false })
-      await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { password: d.clave } })
-      await sb(`/rest/v1/perfiles?id=eq.${p.id}`, { servicio: true, method: 'PATCH', body: { clave_temporal: true } })
-      return json({ ok: true, para: correo, ...(await mandarAcceso({ para: correo, nombre: p.nombre, contrasena: d.clave, motivo: 'correo', enlace })) })
+      if (usuario !== p.usuario || correo !== p.correo) await sb(`/rest/v1/perfiles?id=eq.${p.id}`, { servicio: true, method: 'PATCH', body: { usuario, correo } })
+      if (!clave) return json({ ok: true, usuario, para: correo, enviado: false })
+      await ponerClave(p.id, clave)
+      const correoAcceso = mandar ? await mandarAcceso({ para: correo, nombre: p.nombre, usuario, contrasena: clave, motivo: correo !== p.correo ? 'correo' : 'clave', enlace }) : { enviado: false }
+      return json({ ok: true, usuario, clave, para: correo, ...correoAcceso })
     }
 
     return json({ ok: false, error: 'Acción desconocida' }, 400)

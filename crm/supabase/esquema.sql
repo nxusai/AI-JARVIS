@@ -67,6 +67,9 @@ alter table public.perfiles add column if not exists dueno boolean not null defa
 -- La contraseña la puso el admin: al entrar se le ofrece cambiarla por una suya.
 alter table public.perfiles add column if not exists clave_temporal boolean not null default false;
 create unique index if not exists perfiles_un_dueno on public.perfiles (dueno) where dueno;
+-- Con este nombre entra la persona (por ejemplo "senen"); el correo es aparte y opcional.
+alter table public.perfiles add column if not exists usuario text;
+create unique index if not exists perfiles_usuario_unico on public.perfiles (usuario) where usuario is not null;
 
 -- Quién soy, según la sesión. "security definer" para que las reglas de
 -- perfiles no se muerdan la cola.
@@ -152,8 +155,8 @@ create trigger crm_nuevo_usuario after insert on auth.users
 -- · Al dueño solo lo cambia él mismo (ni otro admin ni la llave de servicio);
 --   desde fuera, solo Eduardo directo en Supabase.
 -- · Nadie nombra administradores más que el dueño.
--- · El correo se cambia solo por Usuarios → Editar (para que el de entrar y el
---   del perfil sean el mismo).
+-- · El usuario y el correo se cambian solo por Usuarios → Editar (para que el
+--   de entrar y el del perfil no se desacomoden).
 -- · El admin no se puede quitar a sí mismo lo de admin (para no quedarse fuera).
 create or replace function public.cuidar_perfil() returns trigger
 language plpgsql as $$
@@ -170,8 +173,8 @@ begin
     raise exception 'Solo el dueño nombra administradores';
   end if;
   if es_sistema() then return new; end if;
-  if new.correo is distinct from old.correo then
-    raise exception 'El correo se cambia en Usuarios → Editar';
+  if new.correo is distinct from old.correo or new.usuario is distinct from old.usuario then
+    raise exception 'El usuario y el correo se cambian en Usuarios → Editar';
   end if;
   if old.id = auth.uid() and (new.rol <> old.rol or not new.activo) then
     raise exception 'No te puedes quitar tu propio acceso de admin';

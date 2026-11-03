@@ -10,6 +10,8 @@ const EMPRESAS = [
   { id: 'vayro', nombre: 'VAYRO', grupo: null, orden: 5, activa: false },
 ]
 
+import { CLAVE_MINIMA, normalizarUsuario, usuarioValido } from './acceso.js'
+
 const PERSONAS = [
   { id: 'u-senen', nombre: 'Senen', correo: 'senen@ejemplo.com', rol: 'cliente', explica: 'Cliente (dueño): pide sus tareas, corrige, aprueba · tiene a Ultron' },
   { id: 'u-gerardo', nombre: 'Gerardo', correo: 'gerardo@ejemplo.com', rol: 'cliente', explica: 'Cliente (gerente): sus propias tareas, no ve las de Senen · tiene a Ultron' },
@@ -77,11 +79,11 @@ export function crearMuestra() {
   let folio = 0
 
   const CABEZAS = ['u-senen', 'u-gerardo', 'u-marisol', 'u-miguel']
-  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ultron: CABEZAS.includes(p.id) })
+  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ultron: CABEZAS.includes(p.id) })
   db.perfiles.find((p) => p.id === 'u-admin').dueno = true
   // Miguel todavía tiene la contraseña que le puso el admin: al entrar se le ofrece cambiarla.
   db.perfiles.find((p) => p.id === 'u-miguel').clave_temporal = true
-  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true })
+  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', usuario: 'disenador2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true })
 
   // -- reglas (las mismas que la base de datos) --------------------------------
   const perfil = () => db.perfiles.find((p) => p.id === yo && p.activo)
@@ -107,6 +109,25 @@ export function crearMuestra() {
     throw new Error(m)
   }
   const anota = (accion, tabla, fila, detalle = {}) => db.bitacora.unshift({ id: db.bitacora.length + 1, cuando: ahora(), quien: yo, accion, tabla, fila, detalle })
+  // Usuarios (como usuarios.mjs): el usuario libre, el correo opcional, nunca el dueño ni uno mismo.
+  const libre = (u, menos = null) => {
+    const usuario = normalizarUsuario(u)
+    if (!usuarioValido(usuario)) no('El usuario necesita al menos 2 letras o números (sin espacios ni acentos)')
+    if (db.perfiles.some((p) => p.usuario === usuario && p.id !== menos)) no(`Ya hay alguien con el usuario "${usuario}". Elige otro.`)
+    return usuario
+  }
+  const correoOpcional = (c) => {
+    const correo = String(c || '').trim().toLowerCase()
+    if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) no('Ese correo no se ve bien')
+    return correo
+  }
+  const alguien = (id) => {
+    if (!admin()) no('Solo el admin cambia usuarios')
+    if (id === yo) no('Lo tuyo cámbialo en "🔑 Contraseña"')
+    const p = db.perfiles.find((x) => x.id === id)
+    if (p.dueno) no('El acceso del dueño solo lo cambia él')
+    return p
+  }
 
   function guardarBlob(blob) {
     const ruta = `m/${uid()}`
@@ -464,19 +485,19 @@ export function crearMuestra() {
       if (!admin()) return []
       return copia(db.perfiles)
     },
-    async crearUsuario({ correo, clave, mandar = true, ...datos }) {
+    async crearUsuario({ usuario, correo, clave, mandar = true, ...datos }) {
       await espera(400)
       if (!admin()) no('Solo el admin crea usuarios')
-      correo = String(correo || '').trim().toLowerCase()
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) no('Ese correo no se ve bien')
-      if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
-      if (db.perfiles.some((p) => p.correo === correo)) no('Ya hay un usuario con ese correo')
+      usuario = libre(usuario || datos.nombre)
+      correo = correoOpcional(correo)
+      clave = String(clave ?? '').trim()
+      if (clave.length < CLAVE_MINIMA) no(`La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`)
       if (datos.rol === 'admin') no('Solo el dueño nombra administradores')
-      const p = { id: uid(), correo, activo: true, clave_temporal: true, ...datos }
+      const p = { id: uid(), usuario, correo, activo: true, clave_temporal: true, ...datos }
       db.perfiles.push(p)
       PERSONAS.push({ id: p.id, nombre: p.nombre, correo, rol: p.rol, explica: `Creado por ti (${p.rol})` })
       anota('creó', 'perfiles', p.id, { nombre: p.nombre })
-      return { para: correo, enviado: mandar, aviso: '' }
+      return { usuario, clave, para: correo, enviado: Boolean(mandar && correo), aviso: '' }
     },
     async cambiarUsuario(id, datos) {
       if (!admin()) no('Solo el admin cambia usuarios')
@@ -484,43 +505,42 @@ export function crearMuestra() {
       if (p.dueno && id !== yo) no('El acceso del dueño solo lo cambia él')
       if ('dueno' in datos && datos.dueno !== p.dueno) no('El dueño solo se cambia directo en Supabase')
       if (datos.rol === 'admin' && p.rol !== 'admin' && !perfil().dueno) no('Solo el dueño nombra administradores')
-      if ('correo' in datos && datos.correo !== p.correo) no('El correo se cambia en Usuarios → Editar')
+      if (('correo' in datos && datos.correo !== p.correo) || ('usuario' in datos && datos.usuario !== p.usuario)) no('El usuario y el correo se cambian en Usuarios → Editar')
       if (id === yo && (datos.rol && datos.rol !== p.rol || datos.activo === false)) no('No te puedes quitar tu propio acceso de admin')
       Object.assign(p, datos)
       anota('cambió', 'perfiles', id, { nombre: p.nombre })
     },
     async cambiarClave(id, clave, mandar = true) {
       await espera(300)
-      if (!admin()) no('Solo el admin cambia contraseñas')
-      const p = db.perfiles.find((x) => x.id === id)
-      if (id === yo) no('Lo tuyo cámbialo en "Mi contraseña"')
-      if (p.dueno) no('El acceso del dueño solo lo cambia él')
-      if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
+      const p = alguien(id)
+      clave = String(clave ?? '').trim()
+      if (clave.length < CLAVE_MINIMA) no(`La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`)
+      if (!p.usuario) no('Primero ponle un usuario en Editar')
       p.clave_temporal = true
-      return { para: p.correo, enviado: mandar, aviso: '' }
+      return { usuario: p.usuario, clave, para: p.correo, enviado: Boolean(mandar && p.correo), aviso: '' }
     },
-    async cambiarCorreo(id, correo, { clave, mandar = true } = {}) {
+    async cambiarAcceso(id, { usuario, correo, clave, mandar = true }) {
       await espera(300)
-      if (!admin()) no('Solo el admin cambia usuarios')
-      const p = db.perfiles.find((x) => x.id === id)
-      if (id === yo) no('Lo tuyo cámbialo en "Mi contraseña"')
-      if (p.dueno) no('El acceso del dueño solo lo cambia él')
-      correo = String(correo || '').trim().toLowerCase()
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) no('Ese correo no se ve bien')
-      if (db.perfiles.some((x) => x.correo === correo && x.id !== id)) no('Ya hay un usuario con ese correo')
-      if (mandar && (clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
-      if (correo !== p.correo) {
-        anota('cambió', 'perfiles', id, { correo: [p.correo, correo] })
-        p.correo = correo
+      const p = alguien(id)
+      usuario = libre(usuario, id)
+      correo = correoOpcional(correo)
+      clave = String(clave ?? '').trim()
+      if (clave && clave.length < CLAVE_MINIMA) no(`La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`)
+      if (!p.usuario && !clave) no('Para darle su usuario ponle también una contraseña')
+      const antes = p.correo
+      if (usuario !== p.usuario || correo !== p.correo) {
+        anota('cambió', 'perfiles', id, { usuario: [p.usuario, usuario], correo: [p.correo, correo] })
+        Object.assign(p, { usuario, correo })
         const persona = PERSONAS.find((x) => x.id === id)
         if (persona) persona.correo = correo
       }
-      if (mandar) p.clave_temporal = true
-      return { para: correo, enviado: mandar, aviso: '' }
+      if (!clave) return { usuario, para: correo, enviado: false }
+      p.clave_temporal = true
+      return { usuario, clave, para: correo, enviado: Boolean(mandar && correo), aviso: '', motivo: correo !== antes ? 'correo' : 'clave' }
     },
     async cambiarMiClave(clave) {
       await espera(300)
-      if ((clave || '').length < 8) no('La contraseña necesita al menos 8 caracteres')
+      if (String(clave ?? '').trim().length < CLAVE_MINIMA) no(`La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`)
       perfil().clave_temporal = false
     },
     async cambiarEmpresa(id, { activa }) {

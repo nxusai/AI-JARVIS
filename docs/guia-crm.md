@@ -5,7 +5,7 @@ El CRM está en `crm/`:
 - `supabase/esquema.sql` es la base de datos con sus candados (quién ve y toca qué);
 - `netlify/functions` mandan correos y crean usuarios;
 - `google/correo.gs` es el que manda los archivos ("✉️ A mi correo") desde la cuenta de Google de la empresa;
-- `google/accesos.gs` es el que manda el acceso a cada usuario nuevo (link, correo y contraseña) desde tu cuenta de Google de NXUS.
+- `google/accesos.gs` es el que manda el acceso a cada usuario nuevo (link, usuario y contraseña) desde tu cuenta de Google de NXUS, si le pusiste correo.
 
 Sin conectar nada, la página enseña una **muestra** con datos de ejemplo:
 
@@ -116,13 +116,15 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
    - Senen → **Cliente**, todas las empresas, las tres secciones.
    - Gerardo → **Cliente**, todas las empresas, las tres secciones.
 
-   La contraseña sale sola. Con **Mandarle su acceso a su correo** marcado, a cada uno le llega desde tu correo de NXUS el link, su correo y su contraseña. Al entrar, la página le ofrece cambiarla por una suya (o **Ahora no**; se le vuelve a ofrecer la próxima vez). Mientras no la cambie, en Usuarios sale **Contraseña temporal**.
+   Cada quien entra con su **usuario** (sale solo del nombre: "Senén Ramos" → `senen`; lo puedes cambiar) y la **contraseña que tú quieras**, desde 3 caracteres (por ejemplo `123`). El **correo es opcional**: si lo pones y dejas marcado **Mandarle su acceso a ese correo**, le llega desde tu correo de NXUS el link, su usuario y su contraseña.
 
-   Si el correo no sale (por ejemplo, si todavía no haces el paso 2b), el usuario sí se crea y la página te avisa en rojo para que le mandes sus datos por WhatsApp.
+   Al crearlo sale una ventana con la página, el usuario y la contraseña, y el botón **📋 Copiar para WhatsApp**. Al entrar, la página le ofrece a la persona cambiar su contraseña por una suya (o **Ahora no**). Mientras no la cambie, en Usuarios sale **Contraseña temporal**.
+
+   Tú (el dueño) sigues entrando con tu correo. Los usuarios creados antes de esto entran con su correo hasta que les pongas un usuario en **Editar** (con una contraseña nueva).
 
 ### Cambios a los usuarios
-- **Corregir un correo mal escrito:** Usuarios → **Editar** → cambia el correo. Sale marcado **Mandarle su acceso al correo nuevo** con una contraseña nueva → **Guardar**.
-- **Contraseña nueva (si la olvidó):** Usuarios → **Contraseña** → con **Mandársela a su correo** marcado → **Cambiar contraseña**.
+- **Cambiarle el usuario o corregir su correo:** Usuarios → **Editar** → **Guardar**. Si además escribes una contraseña nueva y tiene correo, se la puedes mandar.
+- **Contraseña nueva (si la olvidó):** Usuarios → **Contraseña** → escribe la que quieras → **Cambiar contraseña** (si tiene correo, se la puedes mandar).
 - **Tu contraseña o la de cualquiera, por su cuenta:** botón **🔑 Contraseña** arriba, junto a **Salir**.
 3. **Biblioteca** → en cada empresa, clic en **Crear carpetas** (Labels, Logotipos, Diseños, Estructuras de label, Documentos). Tu equipo sube arrastrando los archivos.
 4. **Catálogos** → **Subir catálogo** en cada empresa.

@@ -3,7 +3,7 @@
 // Corre en la cuenta de Google Workspace de NXUS (la de Eduardo). Cuando el
 // admin crea un usuario, le cambia la contraseña o le corrige el correo, el
 // Centro de trabajo le pide a este programa que le mande a esa persona su
-// acceso: el link de la página, su correo y su contraseña. Al entrar, la
+// acceso: el link de la página, su usuario y su contraseña. Al entrar, la
 // página le ofrece cambiarla por una suya.
 //
 // Solo responde si viene la clave. No lee tu correo ni tu Drive, y no guarda
@@ -28,7 +28,7 @@ function preparar() {
 /** Para probar desde el editor: te manda a ti mismo un correo de ejemplo. */
 function probar() {
   const yo = Session.getActiveUser().getEmail()
-  mandar_({ para: yo, nombre: 'Prueba', usuario: yo, contrasena: 'EjemploDe12', enlace: 'https://centro-misemago-abuelito.netlify.app', motivo: 'nuevo' })
+  mandar_({ para: yo, nombre: 'Prueba', usuario: 'prueba', contrasena: '123', enlace: 'https://centro-misemago-abuelito.netlify.app', motivo: 'nuevo' })
   Logger.log('Te mandé un correo de prueba a ' + yo)
 }
 
@@ -57,14 +57,14 @@ function mandar_(d) {
     '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1f1c19;line-height:1.5">' +
     '<p>Hola' + (d.nombre ? ' ' + limpio_(String(d.nombre).split(' ')[0]) : '') + ',</p>' +
     '<p>' + m.intro + '</p>' +
-    '<table style="border-collapse:collapse;margin:8px 0 16px">' + fila('Correo', d.usuario) + fila('Contraseña', d.contrasena) + '</table>' +
+    '<table style="border-collapse:collapse;margin:8px 0 16px">' + fila('Usuario', d.usuario) + fila('Contraseña', d.contrasena) + '</table>' +
     '<p><a href="' + limpio_(d.enlace) + '" style="background:#23303f;color:#fff;padding:11px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Entrar al Centro de trabajo</a></p>' +
     '<p style="color:#6b645c;font-size:13px">O copia este link: ' + limpio_(d.enlace) + '</p>' +
     '<p>Al entrar te vamos a ofrecer cambiar la contraseña por una tuya. Te lo recomendamos, y después borra este correo.</p>' +
     '<p style="color:#888;font-size:12px;margin-top:24px">Si no esperabas este correo, ignóralo o respóndenos para avisarnos.<br>NXUS AI</p></div>'
   const texto =
     'Hola' + (d.nombre ? ' ' + String(d.nombre).split(' ')[0] : '') + ',\n\n' +
-    m.intro.replace(/<[^>]+>/g, '') + '\n\nCorreo: ' + d.usuario + '\nContraseña: ' + d.contrasena + '\n\nEntra aquí: ' + d.enlace +
+    m.intro.replace(/<[^>]+>/g, '') + '\n\nUsuario: ' + d.usuario + '\nContraseña: ' + d.contrasena + '\n\nEntra aquí: ' + d.enlace +
     '\n\nAl entrar te vamos a ofrecer cambiar la contraseña por una tuya.\n\nNXUS AI'
   MailApp.sendEmail({ to: d.para, subject: m.asunto, body: texto, htmlBody: html, name: REMITENTE })
 }
@@ -76,7 +76,7 @@ function doPost(e) {
     if (!clave || d.clave !== clave) return respuesta_({ ok: false, error: 'clave incorrecta' })
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(d.para || ''))) return respuesta_({ ok: false, error: 'correo inválido' })
     if (!/^https:\/\//.test(String(d.enlace || ''))) return respuesta_({ ok: false, error: 'falta el link de la página' })
-    if (String(d.contrasena || '').length < 8) return respuesta_({ ok: false, error: 'falta la contraseña' })
+    if (!String(d.contrasena || '').trim() || !String(d.usuario || '').trim()) return respuesta_({ ok: false, error: 'falta el usuario o la contraseña' })
     if (MailApp.getRemainingDailyQuota() < 1) return respuesta_({ ok: false, error: 'Ya se mandaron todos los correos de hoy.' })
     mandar_(d)
     return respuesta_({ ok: true })
