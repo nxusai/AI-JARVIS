@@ -117,6 +117,19 @@ export default async (req) => {
       const correoR = d.enviar && p ? await mandarAcceso({ correo: p.correo, nombre: p.nombre, usuario: p.usuario || p.correo, clave, nueva: false }) : { enviado: false }
       return json({ ok: true, usuario: p?.usuario || p?.correo, ...correoR })
     }
+    if (d.accion === 'probar') {
+      // 🔧 Probar correo: qué clave y qué agenda usa HQ AHORA (sin revelar la clave) y un correo de prueba al admin.
+      const k = env('AGENDA_CLAVE')
+      const id = /\/s\/([^/]+)\/exec/.exec(env('AGENDA_URL'))?.[1] ?? ''
+      const r = await mandarAcceso({ correo: yo.perfil.correo, nombre: yo.perfil.nombre, usuario: 'prueba', clave: '123' })
+      return json({
+        ok: true,
+        ...r,
+        clave: k ? `${k.slice(0, 4)}…${k.slice(-4)} (${k.length} caracteres)` : '(vacía)',
+        agenda: id ? `…${id.slice(-8)}` : '(sin AGENDA_URL)',
+        para: yo.perfil.correo,
+      })
+    }
     return json({ ok: false, error: 'Acción desconocida' }, 400)
   } catch (err) {
     return json({ ok: false, error: err.message }, err.status || 500)

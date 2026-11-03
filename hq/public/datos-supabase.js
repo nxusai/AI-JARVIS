@@ -100,6 +100,7 @@ export function crearSupabase({ url, anon }) {
     guardarPersona: (p) => guardar('perfiles', p),
     crearPersona: (p) => funcion('usuarios', { accion: 'crear', ...p }),
     claveDe: (id, clave, enviar = false) => funcion('usuarios', { accion: 'clave', id, clave, enviar }),
+    probarCorreo: () => funcion('usuarios', { accion: 'probar' }),
     async subirFoto(id, file) {
       const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
       const ruta = `${id}/${crypto.randomUUID()}.${ext}`

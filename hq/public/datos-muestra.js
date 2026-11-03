@@ -244,6 +244,7 @@ export function crearMuestra() {
       anotar('insert', 'perfiles', nueva.id)
       return { ok: true, id: nueva.id, usuario, enviado: !!(p.enviar && p.correo) }
     },
+    probarCorreo: async () => ({ ok: true, enviado: true, para: 'eduardo@nxusai.org', clave: 'ab12…yz89 (64 caracteres)', agenda: '…muestra1' }),
     async claveDe(pid, clave, enviar) {
       if (!admin()) nunca()
       const x = db.perfiles.find((q) => q.id === pid)

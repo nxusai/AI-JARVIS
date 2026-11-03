@@ -1604,10 +1604,26 @@ export function iniciar(D, { muestra = false } = {}) {
       ),
     )
     v.innerHTML = `
-      <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button></div>
+      <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button><button class="btn" id="p-probar">🔧 Probar correo</button></div>
       <div class="tarjeta"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Dónde</th><th>Rol</th><th>Prospectos</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div>
       <p class="nota">Cada persona entra con su <b>usuario</b> y la contraseña que tú le pones; al entrar puede cambiarla (y después en "⚙ Mi cuenta"). Solo tú ves dinero, montos, propuestas, contratos, Nómina y Personas, y solo tú das de alta y borras. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
     $('#p-nueva', v).onclick = () => editarPersona(null)
+    $('#p-probar', v).onclick = async () => {
+      const b = $('#p-probar', v)
+      b.disabled = true
+      b.textContent = 'Probando…'
+      const r = await intenta(() => D.probarCorreo())
+      b.disabled = false
+      b.textContent = '🔧 Probar correo'
+      if (!r) return
+      abrirModal(
+        `<h2>${r.enviado ? '✅ El correo funciona' : '⚠ El correo no sale'}</h2>
+         ${r.enviado ? `<p>Te mandamos un correo de prueba a <b>${h(r.para)}</b>.</p>` : `<p class="rojo">${h(r.motivo || '')}</p>`}
+         <div class="tarjeta"><p>Clave que usa HQ ahora: <b>${h(r.clave)}</b></p><p>Agenda (ID de la implementación): <b>${h(r.agenda)}</b></p></div>
+         <p class="nota">Compara: en Apps Script → Agenda Portal → ⚙️ Project Settings → Script Properties → CLAVE, los primeros 4 y los últimos 4 caracteres deben ser iguales a estos. Si no, Netlify sigue con la vieja: revisa AGENDA_CLAVE y vuelve a publicar (Deploys → Trigger deploy → Deploy site).</p>
+         <div class="acciones"><button class="btn primario" data-cerrar>Cerrar</button></div>`,
+      )
+    }
     $$('[data-per]', v).forEach((b) => (b.onclick = () => editarPersona(persona(b.dataset.per))))
     $$('[data-reenviar]', v).forEach((b) => (b.onclick = () => reenviarAcceso(persona(b.dataset.reenviar))))
   }
