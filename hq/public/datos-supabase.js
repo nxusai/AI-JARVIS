@@ -8,7 +8,6 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 function claro(error) {
   const m = error?.message || String(error)
   if (/Invalid login credentials/i.test(m)) return new Error('Usuario o contraseña incorrectos')
-  if (/at least 6|least 6 characters|weak password|password should/i.test(m)) return new Error('La contraseña necesita al menos 6 caracteres (es lo mínimo que pide Supabase)')
   if (/same.*password|different from the old/i.test(m)) return new Error('Escribe una contraseña distinta a la que tienes')
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
@@ -16,6 +15,10 @@ function claro(error) {
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
+// Supabase pide mínimo 6 caracteres; para que la contraseña pueda ser cualquiera, se guarda con este
+// final fijo (igual que en netlify/functions/usuarios.mjs). Las cuentas de antes entran sin él.
+const envolver = (clave) => `${clave}#nxus-hq`
+
 const ok = ({ data, error }) => {
   if (error) throw claro(error)
   return data
@@ -68,7 +71,9 @@ export function crearSupabase({ url, anon }) {
     async entrar(correo, clave) {
       const u = correo.trim().toLowerCase()
       const email = u.includes('@') ? u : `${u.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '')}@equipo.nxusai.org`
-      ok(await sb.auth.signInWithPassword({ email, password: clave }))
+      const r = await sb.auth.signInWithPassword({ email, password: envolver(clave) })
+      // Las cuentas creadas antes (como la de Eduardo) tienen la contraseña tal cual.
+      if (r.error) ok(await sb.auth.signInWithPassword({ email, password: clave }))
       return this.sesion()
     },
     async salir() {
@@ -78,11 +83,12 @@ export function crearSupabase({ url, anon }) {
       ok(await sb.auth.resetPasswordForEmail(correo.trim().toLowerCase(), { redirectTo: location.origin }))
     },
     async nuevaClave(clave) {
-      ok(await sb.auth.updateUser({ password: clave }))
+      ok(await sb.auth.updateUser({ password: envolver(clave) }))
     },
     /** Cambiar mi propia contraseña (y que ya no se me pida al entrar). */
     async miClave(clave) {
-      ok(await sb.auth.updateUser({ password: clave }))
+      if (!clave) throw new Error('Escribe tu contraseña nueva')
+      ok(await sb.auth.updateUser({ password: envolver(clave) }))
       await sb.rpc('ya_cambie_mi_clave')
       return true
     },

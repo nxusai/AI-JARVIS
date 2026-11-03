@@ -3,8 +3,9 @@
 // —cargo, sede, foto, apagar— lo cambia el admin directo, con sus candados).
 //
 // Cada quien entra con su USUARIO y la contraseña que le puso Eduardo (sin
-// reglas de HQ; Supabase solo pide 6 caracteres como mínimo). Por dentro, la
-// cuenta de Supabase es <usuario>@equipo.nxusai.org; el correo real es para
+// reglas: ni mínimo ni máximo). Por dentro, la
+// cuenta de Supabase es <usuario>@equipo.nxusai.org (y su contraseña lleva un final fijo: ver
+// envolver); el correo real es para
 // mandarle su acceso (lo manda la cuenta de Google de NXUS: AGENDA_URL).
 import { json, quien, sb } from '../lib/sb.mjs'
 
@@ -22,6 +23,14 @@ export const limpiarUsuario = (u) =>
     .replace(/\s+/g, '.')
     .replace(/[^a-z0-9._-]/g, '')
     .slice(0, 40)
+
+/**
+ * Supabase exige mínimo 6 caracteres y no deja bajarlo. Para que Eduardo ponga la contraseña que
+ * quiera (aunque sea de 1), lo que se guarda en Supabase es la contraseña + este final fijo; HQ se
+ * lo agrega solo al entrar y al cambiarla (public/datos-supabase.js hace lo mismo).
+ */
+export const FINAL = '#nxus-hq'
+export const envolver = (clave) => `${clave}${FINAL}`
 
 /** Los errores de Supabase sobre contraseñas, en palabras. */
 const claro = (err) =>
@@ -74,7 +83,7 @@ export default async (req) => {
         user = await sb('/auth/v1/admin/users', {
           servicio: true,
           method: 'POST',
-          body: { email: `${usuario}@${DOMINIO}`, password: clave, email_confirm: true, user_metadata: { nombre, cargo, sede, activo: true } },
+          body: { email: `${usuario}@${DOMINIO}`, password: envolver(clave), email_confirm: true, user_metadata: { nombre, cargo, sede, activo: true } },
         })
       } catch (err) {
         if (/already|registered|exists/i.test(err.message)) return json({ ok: false, error: `Ya hay alguien con el usuario "${usuario}"` }, 409)
@@ -90,7 +99,7 @@ export default async (req) => {
       const clave = String(d.clave ?? '')
       if (!clave) return json({ ok: false, error: 'Falta la contraseña' }, 400)
       if (d.id === yo.perfil.id) return json({ ok: false, error: 'Tu propia contraseña cámbiala en "Mi cuenta"' }, 400)
-      await sb(`/auth/v1/admin/users/${d.id}`, { servicio: true, method: 'PUT', body: { password: clave } }).catch((err) => {
+      await sb(`/auth/v1/admin/users/${d.id}`, { servicio: true, method: 'PUT', body: { password: envolver(clave) } }).catch((err) => {
         throw claro(err)
       })
       const [p] = await sb(`/rest/v1/perfiles?id=eq.${d.id}&select=nombre,correo,usuario`, { servicio: true })
