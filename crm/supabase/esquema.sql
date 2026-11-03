@@ -62,6 +62,19 @@ create table if not exists public.perfiles (
 -- Quién habla con Ultron (la dirección). Lo prende el admin en Usuarios.
 alter table public.perfiles add column if not exists ultron boolean not null default false;
 
+-- El dueño (Eduardo): a su perfil y a su acceso solo los toca él. Hay uno solo.
+alter table public.perfiles add column if not exists dueno boolean not null default false;
+-- La contraseña la puso el admin: al entrar se le ofrece cambiarla por una suya.
+alter table public.perfiles add column if not exists clave_temporal boolean not null default false;
+create unique index if not exists perfiles_un_dueno on public.perfiles (dueno) where dueno;
+-- Con este nombre entra la persona (por ejemplo "senen"); el correo es aparte y opcional.
+alter table public.perfiles add column if not exists usuario text;
+create unique index if not exists perfiles_usuario_unico on public.perfiles (usuario) where usuario is not null;
+-- Eliminado por el dueño. Si no tenía historial se borra de verdad; si pidió o
+-- subió algo, su cuenta de entrada se cierra para siempre y su nombre se queda
+-- solo para que sus tareas y archivos sigan diciendo de quién son.
+alter table public.perfiles add column if not exists eliminado boolean not null default false;
+
 -- Quién soy, según la sesión. "security definer" para que las reglas de
 -- perfiles no se muerdan la cola.
 create or replace function public.yo_rol() returns text
@@ -106,19 +119,33 @@ language sql stable as $$
   select auth.uid() is null or coalesce(current_setting('crm.sistema', true), '') = '1'
 $$;
 
+-- Eduardo directo en Supabase (SQL Editor o el panel). Es la única puerta para
+-- cambiar al dueño desde fuera de su propia sesión. "session_user" no cambia
+-- dentro de funciones ni con la llave de servicio (esa entra como authenticator).
+create or replace function public.es_consola() returns boolean
+language sql stable as $$
+  select session_user in ('postgres', 'supabase_admin')
+$$;
+
+create or replace function public.es_dueno() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select dueno from perfiles where id = auth.uid() and activo), false)
+$$;
+
 -- Cada usuario nuevo nace con su perfil. El primero de todos es el admin; los
 -- demás nacen apagados hasta que el admin los acomoda (los crea el admin desde
 -- la página, nadie se puede registrar solo).
 create or replace function public.nuevo_usuario() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into perfiles (id, nombre, correo, rol, activo)
+  insert into perfiles (id, nombre, correo, rol, activo, dueno)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'nombre', ''),
     coalesce(new.email, ''),
     case when exists (select 1 from perfiles where rol = 'admin') then 'cliente' else 'admin' end,
-    not exists (select 1 from perfiles where rol = 'admin')
+    not exists (select 1 from perfiles where rol = 'admin'),
+    not exists (select 1 from perfiles where rol = 'admin' or dueno)
   )
   on conflict (id) do nothing;
   return new;
@@ -128,12 +155,37 @@ drop trigger if exists crm_nuevo_usuario on auth.users;
 create trigger crm_nuevo_usuario after insert on auth.users
   for each row execute function public.nuevo_usuario();
 
--- El admin no se puede quitar a sí mismo lo de admin (para no quedarse fuera).
+-- Los candados de las personas:
+-- · Al dueño solo lo cambia él mismo (ni otro admin ni la llave de servicio);
+--   desde fuera, solo Eduardo directo en Supabase.
+-- · Nadie nombra administradores más que el dueño.
+-- · El usuario y el correo se cambian solo por Usuarios → Editar (para que el
+--   de entrar y el del perfil no se desacomoden).
+-- · El admin no se puede quitar a sí mismo lo de admin (para no quedarse fuera).
 create or replace function public.cuidar_perfil() returns trigger
 language plpgsql as $$
 begin
-  if es_sistema() then return new; end if;
+  if es_consola() then return new; end if;
   if new.id <> old.id then raise exception 'No se puede cambiar el id'; end if;
+  if new.dueno is distinct from old.dueno then
+    raise exception 'El administrador principal solo se cambia directo en Supabase';
+  end if;
+  if old.dueno and auth.uid() is distinct from old.id then
+    raise exception 'El acceso del administrador principal solo lo cambia él';
+  end if;
+  if new.rol = 'admin' and old.rol <> 'admin' and not es_dueno() then
+    raise exception 'Solo el administrador principal nombra administradores';
+  end if;
+  if old.eliminado and (new.activo or not new.eliminado or new.usuario is not null) then
+    raise exception 'Ese usuario ya fue eliminado';
+  end if;
+  if es_sistema() then return new; end if;
+  if new.eliminado is distinct from old.eliminado then
+    raise exception 'Para eliminar usa Usuarios → Eliminar';
+  end if;
+  if new.correo is distinct from old.correo or new.usuario is distinct from old.usuario then
+    raise exception 'El usuario y el correo se cambian en Usuarios → Editar';
+  end if;
   if old.id = auth.uid() and (new.rol <> old.rol or not new.activo) then
     raise exception 'No te puedes quitar tu propio acceso de admin';
   end if;
@@ -143,6 +195,49 @@ end $$;
 drop trigger if exists crm_cuidar_perfil on public.perfiles;
 create trigger crm_cuidar_perfil before update on public.perfiles
   for each row execute function public.cuidar_perfil();
+
+-- Al dueño no lo borra nadie (tampoco borrando su cuenta de entrada, que
+-- arrastraría su perfil). Solo Eduardo directo en Supabase.
+create or replace function public.cuidar_dueno() returns trigger
+language plpgsql as $$
+begin
+  if old.dueno and not es_consola() then
+    raise exception 'Al administrador principal no lo puede borrar nadie';
+  end if;
+  return old;
+end $$;
+
+drop trigger if exists crm_cuidar_dueno on public.perfiles;
+create trigger crm_cuidar_dueno before delete on public.perfiles
+  for each row execute function public.cuidar_dueno();
+
+-- Nadie nace dueño ni admin por fuera (los perfiles los crea crm_nuevo_usuario).
+create or replace function public.cuidar_alta() returns trigger
+language plpgsql as $$
+begin
+  if es_consola() or current_user = 'postgres' then return new; end if;
+  if new.dueno or new.rol = 'admin' then
+    raise exception 'Solo el administrador principal nombra administradores';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_cuidar_alta on public.perfiles;
+create trigger crm_cuidar_alta before insert on public.perfiles
+  for each row execute function public.cuidar_alta();
+
+-- El dueño es el primer admin que hubo (se marca una vez; correrlo de nuevo no cambia nada).
+update public.perfiles set dueno = true
+where id = (select id from public.perfiles where rol = 'admin' order by creado limit 1)
+  and not exists (select 1 from public.perfiles where dueno);
+
+-- Ya puse mi propia contraseña: se apaga el aviso de "cámbiala".
+create or replace function public.ya_cambie_mi_clave() returns void
+language sql security definer set search_path = public as $$
+  update perfiles set clave_temporal = false where id = auth.uid() and clave_temporal
+$$;
+revoke all on function public.ya_cambie_mi_clave() from public, anon;
+grant execute on function public.ya_cambie_mi_clave() to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Tareas y correcciones

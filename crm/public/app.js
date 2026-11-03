@@ -43,6 +43,7 @@ const ICONOS = {
 }
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
+import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
 import { fraseDelDia } from './frases.js'
 import { desmontarUltron, montarUltron } from './ultron.js'
 
@@ -205,6 +206,7 @@ async function recargar() {
 
 // -- entrada -----------------------------------------------------------------
 
+let ultimoUsuario = ''
 function pintarEntrada(error = '') {
   const app = $('#app')
   if (MUESTRA) {
@@ -227,7 +229,7 @@ function pintarEntrada(error = '') {
     <div class="entrada"><form class="entrada-caja" id="form-entrar">
       ${marcaEntrada()}
       ${error ? `<p class="error">${h(error)}</p>` : ''}
-      <div class="campo"><label for="correo">Correo</label><input id="correo" type="email" autocomplete="username" required></div>
+      <div class="campo"><label for="usuario">Usuario</label><input id="usuario" type="text" value="${h(ultimoUsuario)}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="por ejemplo: senen" required></div>
       <div class="campo"><label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" required></div>
       <button class="btn principal grande" style="width:100%" data-ocupado="Entrando…">Entrar</button>
       <p class="ayuda" style="text-align:center;margin-bottom:0">¿Olvidaste tu contraseña? Pídele una nueva a tu administrador.</p>
@@ -238,7 +240,8 @@ function pintarEntrada(error = '') {
     const b = e.submitter
     await ocupado(b, async () => {
       try {
-        S.yo = await D.entrar($('#correo').value.trim(), $('#clave').value)
+        ultimoUsuario = $('#usuario').value.trim()
+        S.yo = await D.entrar(ultimoUsuario, $('#clave').value.trim())
         await empezar()
       } catch (err) {
         pintarEntrada(err.message || 'No se pudo entrar')
@@ -256,6 +259,7 @@ async function empezar() {
   const vistas = vistasPermitidas()
   if (!vistas.includes(S.vista)) S.vista = vistas[0] ?? 'tareas'
   pintar()
+  ofrecerCambiarClave()
   // Ultron, solo para la dirección (y el admin), cuando el sistema lo tiene.
   if (D.ultron && (S.yo.ultron || esAdmin())) {
     montarUltron({
@@ -318,6 +322,7 @@ function pintar() {
       <div class="cabeza-fila">
         <div class="marca">${logo()}<div><b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo · NXUS AI</span></div></div>
         <div class="quien"><b>${h(S.yo.nombre)}</b><span>${ROLES[S.yo.rol]}</span></div>
+        <button class="btn chico" data-accion="mi-clave" title="Cambiar mi contraseña" aria-label="Cambiar mi contraseña">🔑<span class="solo-ancho"> Contraseña</span></button>
         <button class="btn chico" data-accion="salir">Salir</button>
       </div>
       <nav class="pestanas">
@@ -508,7 +513,7 @@ function formNuevaTarea() {
   abrirVentana(
     esCliente() ? 'Nueva tarea' : 'Registrar tarea de un cliente',
     `<form id="form-tarea">
-      ${esEquipo() ? `<div class="campo"><label for="t-cliente">¿De quién es?</label><select id="t-cliente" required>${S.clientes.map((c) => `<option value="${c.id}">${h(c.nombre)}</option>`).join('')}</select><span class="ayuda">Solo esa persona la verá (y el equipo).</span></div>` : ''}
+      ${esEquipo() ? `<div class="campo"><label for="t-cliente">¿De quién es?</label><select id="t-cliente" required>${S.clientes.filter((c) => c.activo !== false).map((c) => `<option value="${c.id}">${h(c.nombre)}</option>`).join('')}</select><span class="ayuda">Solo esa persona la verá (y el equipo).</span></div>` : ''}
       <div class="campo"><label for="t-empresa">¿Para qué empresa?</label><select id="t-empresa" required><option value="">Elige…</option>${opcionesEmpresa(emps)}</select></div>
       <div class="campo"><label for="t-titulo">¿Qué necesitas? (en pocas palabras)</label><input id="t-titulo" type="text" maxlength="200" required placeholder="Ej. Label de pupusas de frijol 12 oz"></div>
       <div class="campo"><label for="t-desc">Detalles</label><textarea id="t-desc" maxlength="5000" placeholder="Medidas, colores, textos, para cuándo lo necesitas…"></textarea></div>
@@ -1102,7 +1107,8 @@ function vistaCatalogos() {
 
 function vistaUsuarios() {
   const orden = { admin: 0, equipo: 1, cliente: 2 }
-  const lista = [...S.usuarios].sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
+  const lista = S.usuarios.filter((u) => !u.eliminado).sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
+  const eliminados = S.usuarios.filter((u) => u.eliminado).length
   const nombresEmp = (u) => (u.rol !== 'cliente' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
   const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos', u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada')
   return `
@@ -1112,13 +1118,14 @@ function vistaUsuarios() {
       <tbody>${lista
         .map(
           (u) => `<tr class="${u.activo ? '' : 'apagado'}">
-            <td><b>${h(u.nombre || '(sin nombre)')}</b><br><span class="ayuda">${h(u.correo)}</span>${u.activo ? '' : '<br><span class="chip urgente">Apagado</span>'}</td>
-            <td>${ROLES[u.rol]}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
-            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">Contraseña</button>`}</td>
+            <td><b>${h(u.nombre || '(sin nombre)')}</b><br><span class="ayuda">${u.usuario ? `Usuario: <b>${h(u.usuario)}</b>` : u.dueno ? h(u.correo) : 'Sin usuario: ponle uno en Editar'}</span>${u.usuario && u.correo ? `<br><span class="ayuda">${h(u.correo)}</span>` : ''}${u.activo ? '' : '<br><span class="chip urgente">Apagado</span>'}${u.activo && u.clave_temporal ? '<br><span class="chip" title="Todavía entra con la contraseña que le diste">Contraseña temporal</span>' : ''}</td>
+            <td>${ROLES[u.rol]}${u.dueno ? ' principal' : ''}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
+            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : u.dueno ? '<span class="ayuda">Solo él lo cambia</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">✉️ Reenviar acceso</button>${S.yo.dueno ? ` <button class="btn chico peligro" data-eliminar-usuario="${u.id}">Eliminar</button>` : ''}`}</td>
           </tr>`,
         )
         .join('')}</tbody>
     </table></div>
+    ${eliminados ? `<p class="ayuda">${eliminados} usuario${eliminados === 1 ? '' : 's'} eliminado${eliminados === 1 ? '' : 's'} con historial: ya no pueden entrar, pero sus tareas y archivos siguen diciendo de quién son.</p>` : ''}
     <div class="seccion" style="margin-top:16px">
       <h3>Empresas</h3>
       <p class="ayuda" style="margin-top:0">Apaga o prende una empresa para todos (por ejemplo, VAYRO cuando entre).</p>
@@ -1127,11 +1134,14 @@ function vistaUsuarios() {
 }
 
 function claveAlAzar() {
-  const letras = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const r = new Uint32Array(12)
+  const letras = 'abcdefghjkmnpqrstuvwxyz23456789'
+  const r = new Uint32Array(6)
   crypto.getRandomValues(r)
   return [...r].map((n) => letras[n % letras.length]).join('')
 }
+
+const campoClave = (id, { valor = '', requerida = true, etiqueta = 'Contraseña' } = {}) =>
+  `<div class="campo"><label for="${id}">${etiqueta}</label><div style="display:flex;gap:6px"><input id="${id}" type="text" value="${h(valor)}" minlength="${CLAVE_MINIMA}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="La que tú quieras (mínimo ${CLAVE_MINIMA})" ${requerida ? 'required' : ''}><button type="button" class="btn" data-otra-clave="${id}" title="Una al azar">↻</button></div><span class="ayuda">Al entrar le ofrecemos cambiarla por una suya.</span></div>`
 
 function formUsuario(id) {
   const u = id ? S.usuarios.find((x) => x.id === id) : null
@@ -1141,8 +1151,10 @@ function formUsuario(id) {
     u ? `Editar a ${h(u.nombre)}` : 'Nuevo usuario',
     `<form id="form-usuario">
       <div class="campo"><label for="u-nombre">Nombre</label><input id="u-nombre" type="text" value="${h(u?.nombre ?? '')}" required></div>
-      ${u ? '' : `<div class="campo"><label for="u-correo">Correo (con este entra)</label><input id="u-correo" type="email" required></div>
-      <div class="campo"><label for="u-clave">Contraseña</label><div style="display:flex;gap:6px"><input id="u-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave">↻</button></div><span class="ayuda">Mándasela por WhatsApp; la puede cambiar después contigo.</span></div>`}
+      <div class="campo"><label for="u-usuario">Usuario (con este entra)</label><input id="u-usuario" type="text" value="${h(u?.usuario ?? '')}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="por ejemplo: senen" required><span class="ayuda">${u && !u.usuario ? 'Todavía no tiene usuario: ponle uno y una contraseña.' : 'Sin espacios ni acentos (se acomoda solo).'}</span></div>
+      ${campoClave('u-clave', { requerida: !u || !u.usuario, etiqueta: u ? (u.usuario ? 'Contraseña nueva (déjala vacía para no cambiarla)' : 'Contraseña') : 'Contraseña' })}
+      <div class="campo"><label for="u-correo">Correo (opcional)</label><input id="u-correo" type="email" value="${h(u?.correo ?? '')}" autocapitalize="none" placeholder="para mandarle su acceso y archivos"></div>
+      <label class="casilla" id="u-mandar-fila" style="margin-bottom:10px" hidden><input type="checkbox" id="u-mandar" checked> Mandarle su acceso a ese correo (link, usuario y contraseña)</label>
       <div class="campo"><label for="u-rol">Rol</label><select id="u-rol">
         <option value="cliente" ${u?.rol === 'cliente' || !u ? 'selected' : ''}>Cliente (pide tareas, ve y descarga)</option>
         <option value="equipo" ${u?.rol === 'equipo' ? 'selected' : ''}>Equipo (trabaja las tareas, sube y organiza)</option>
@@ -1167,7 +1179,20 @@ function formUsuario(id) {
   permisos()
   $('#u-rol').addEventListener('change', permisos)
   $('#u-todas').addEventListener('change', () => ($('#u-lista').hidden = $('#u-todas').checked))
-  $('[data-accion="otra-clave"]')?.addEventListener('click', () => ($('#u-clave').value = claveAlAzar()))
+  // El usuario sale solo del nombre ("Senén Ramos" → "senen") mientras no lo escriban a mano.
+  let usuarioAMano = Boolean(u?.usuario)
+  const sugerir = () => {
+    if (!usuarioAMano) $('#u-usuario').value = normalizarUsuario($('#u-nombre').value.trim().split(/\s+/)[0])
+  }
+  if (!u?.usuario) sugerir()
+  $('#u-nombre').addEventListener('input', sugerir)
+  $('#u-usuario').addEventListener('input', () => (usuarioAMano = true))
+  $('#u-usuario').addEventListener('blur', () => ($('#u-usuario').value = normalizarUsuario($('#u-usuario').value)))
+  // Mandar el acceso solo tiene sentido con correo y contraseña.
+  const mandarFila = () => ($('#u-mandar-fila').hidden = !$('#u-correo').value.trim() || !$('#u-clave').value.trim())
+  mandarFila()
+  $('#u-correo').addEventListener('input', mandarFila)
+  $('#u-clave').addEventListener('input', mandarFila)
   $('#form-usuario').addEventListener('submit', async (e) => {
     e.preventDefault()
     const datos = {
@@ -1179,19 +1204,23 @@ function formUsuario(id) {
       ve_catalogos: $('#u-cat').checked,
       ultron: $('#u-rol').value === 'cliente' && $('#u-ultron').checked,
     }
+    const usuario = normalizarUsuario($('#u-usuario').value)
+    const correo = $('#u-correo').value.trim().toLowerCase()
+    const clave = $('#u-clave').value.trim()
+    const mandar = !$('#u-mandar-fila').hidden && $('#u-mandar').checked
     await ocupado(e.submitter, async () => {
       try {
+        let r = null
         if (u) {
+          if (usuario !== (u.usuario ?? '') || correo !== (u.correo ?? '') || clave) r = await D.cambiarAcceso(u.id, { usuario, correo, clave, mandar })
           await D.cambiarUsuario(u.id, { ...datos, activo: $('#u-activo').checked })
-          avisar('Guardado')
         } else {
-          const correo = $('#u-correo').value.trim()
-          const clave = $('#u-clave').value
-          await D.crearUsuario({ ...datos, correo, clave })
-          avisar(`Listo. ${datos.nombre} entra con ${correo} y la contraseña que pusiste.`)
+          r = await D.crearUsuario({ ...datos, usuario, correo, clave, mandar })
         }
         cerrarVentana()
         await recargar()
+        if (r?.clave) datosDeAcceso(datos.nombre, r)
+        else avisar(r ? `Guardado. Entra con el usuario ${r.usuario}.` : 'Guardado')
       } catch (err) {
         falla(err)
       }
@@ -1202,21 +1231,128 @@ function formUsuario(id) {
 function formClave(id) {
   const u = S.usuarios.find((x) => x.id === id)
   abrirVentana(
-    `Contraseña de ${h(u.nombre)}`,
+    `Reenviar acceso a ${h(u.nombre)}`,
     `<form id="form-clave">
-      <div class="campo"><label for="k-clave">Contraseña nueva</label><div style="display:flex;gap:6px"><input id="k-clave" type="text" value="${claveAlAzar()}" minlength="8" required><button type="button" class="btn" data-accion="otra-clave-k">↻</button></div></div>
-      <button class="btn principal" data-ocupado="Guardando…">Cambiar contraseña</button>
+      <p style="margin-top:0">${u.usuario ? `Entra con el usuario <b>${h(u.usuario)}</b>. ` : ''}Su contraseña de antes nadie la conoce (ni tú), así que le ponemos una nueva y se la mandas.</p>
+      ${campoClave('k-clave', { valor: claveAlAzar(), etiqueta: 'Contraseña nueva' })}
+      ${u.correo ? `<label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="k-mandar" checked> Mandárselo a su correo (${h(u.correo)})</label>` : '<p class="ayuda">No tiene correo: al terminar te enseño sus datos para mandárselos por WhatsApp.</p>'}
+      <button class="btn principal" data-ocupado="Enviando…">Reenviar acceso</button>
     </form>`,
     { chica: true },
   )
-  $('[data-accion="otra-clave-k"]').addEventListener('click', () => ($('#k-clave').value = claveAlAzar()))
   $('#form-clave').addEventListener('submit', async (e) => {
     e.preventDefault()
     await ocupado(e.submitter, async () => {
       try {
-        await D.cambiarClave(u.id, $('#k-clave').value)
+        const r = await D.cambiarClave(u.id, $('#k-clave').value.trim(), Boolean($('#k-mandar')?.checked))
         cerrarVentana()
-        avisar(`Listo. Mándale a ${u.nombre} su contraseña nueva.`)
+        await recargar()
+        datosDeAcceso(u.nombre, r)
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+async function eliminarUsuario(id, boton) {
+  const u = S.usuarios.find((x) => x.id === id)
+  const ok = await preguntar(
+    `Eliminar a ${u.nombre}`,
+    `Ya no podrá entrar${u.usuario ? ` y el usuario "${u.usuario}" quedará libre` : ''}. Si ya pidió o subió algo, sus tareas y archivos se quedan (no se borra nada de eso). ¿Seguro?`,
+    { boton: 'Eliminar', peligro: true },
+  )
+  if (!ok) return
+  await ocupado(boton, async () => {
+    try {
+      const r = await D.eliminarUsuario(id)
+      await recargar()
+      avisar(r.borrado ? `${u.nombre} quedó eliminado.` : `${u.nombre} quedó eliminado. Sus tareas y archivos se quedan con su nombre.`)
+    } catch (err) {
+      falla(err)
+    }
+  })
+}
+
+/** Después de crear a alguien o cambiarle la contraseña: sus datos, listos para mandárselos. */
+function datosDeAcceso(nombre, r) {
+  const enlace = MUESTRA ? 'https://centro-misemago-abuelito.netlify.app' : location.origin
+  const texto = `Hola ${primerNombre(nombre)}, este es tu acceso al Centro de trabajo Mi Semago · Abuelito:\n${enlace}\nUsuario: ${r.usuario}\nContraseña: ${r.clave}\nAl entrar puedes cambiar la contraseña por una tuya.`
+  const correo = r.enviado
+    ? `<p class="ayuda">✉️ Se lo mandé a ${h(r.para)}.${MUESTRA ? ' (En la muestra no sale correo de verdad.)' : ''}</p>`
+    : r.aviso
+      ? `<p class="error">${h(r.aviso)}</p>`
+      : '<p class="ayuda">Mándaselos por WhatsApp:</p>'
+  abrirVentana(
+    `Acceso de ${h(nombre)}`,
+    `${correo}
+    <table class="tabla" style="margin:8px 0 14px"><tbody>
+      <tr><td>Página</td><td><b>${h(enlace)}</b></td></tr>
+      <tr><td>Usuario</td><td><b style="font-size:17px">${h(r.usuario)}</b></td></tr>
+      <tr><td>Contraseña</td><td><b style="font-size:17px">${h(r.clave)}</b></td></tr>
+    </tbody></table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn principal" data-copiar-acceso>📋 Copiar para WhatsApp</button>
+      <button type="button" class="btn" data-accion="cerrar">Listo</button>
+    </div>`,
+    { chica: true },
+  )
+  $('[data-copiar-acceso]').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(texto)
+      avisar('Copiado. Pégalo en WhatsApp.')
+    } catch {
+      avisar('No se pudo copiar. Cópialo a mano.', true)
+    }
+  })
+}
+
+// -- mi contraseña (todos) -----------------------------------------------------
+
+/** Si la contraseña se la puso el admin, al entrar se le ofrece cambiarla (una vez por sesión). */
+function ofrecerCambiarClave() {
+  if (!S.yo?.clave_temporal) return
+  const llave = `crm-clave-luego-${S.yo.id}`
+  try {
+    if (sessionStorage.getItem(llave)) return
+  } catch {}
+  formMiClave({
+    bienvenida: true,
+    luego: () => {
+      try {
+        sessionStorage.setItem(llave, '1')
+      } catch {}
+    },
+  })
+}
+
+function formMiClave({ bienvenida = false, luego } = {}) {
+  abrirVentana(
+    bienvenida ? `Hola, ${h(S.yo.nombre.split(' ')[0])}` : 'Mi contraseña',
+    `<form id="form-mi-clave">
+      ${bienvenida ? '<p style="margin-top:0">Entraste con la contraseña que te dio el administrador. Te recomendamos cambiarla por una que solo tú sepas.</p>' : ''}
+      <div class="campo"><label for="m-clave">Contraseña nueva</label><input id="m-clave" type="password" autocomplete="new-password" minlength="${CLAVE_MINIMA}" required><span class="ayuda">La que tú quieras (mínimo ${CLAVE_MINIMA}). Entre más larga, más segura.</span></div>
+      <div class="campo"><label for="m-clave2">Escríbela otra vez</label><input id="m-clave2" type="password" autocomplete="new-password" minlength="${CLAVE_MINIMA}" required></div>
+      <label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="m-ver"> Mostrar</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn principal" data-ocupado="Guardando…">Cambiar contraseña</button>
+        ${bienvenida ? '<button type="button" class="btn" data-accion="clave-luego">Ahora no</button>' : ''}
+      </div>
+    </form>`,
+    { chica: true, alCerrar: luego },
+  )
+  $('#m-ver').addEventListener('change', () => document.querySelectorAll('#m-clave, #m-clave2').forEach((x) => (x.type = $('#m-ver').checked ? 'text' : 'password')))
+  $('[data-accion="clave-luego"]')?.addEventListener('click', () => cerrarVentana())
+  $('#form-mi-clave').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const clave = $('#m-clave').value.trim()
+    if (clave !== $('#m-clave2').value.trim()) return falla(new Error('Las dos contraseñas no son iguales'))
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.cambiarMiClave(clave)
+        S.yo.clave_temporal = false
+        cerrarVentana()
+        avisar('Listo. Desde ahora entras con tu contraseña nueva.')
       } catch (err) {
         falla(err)
       }
@@ -1521,13 +1657,22 @@ async function alClic(e) {
       await recargar()
       return
     }
+    if (d.otraClave) {
+      const campo = $(`#${d.otraClave}`)
+      campo.value = claveAlAzar()
+      campo.dispatchEvent(new Event('input'))
+      return
+    }
     if (d.editarUsuario) return formUsuario(d.editarUsuario)
     if (d.claveUsuario) return formClave(d.claveUsuario)
+    if (d.eliminarUsuario) return eliminarUsuario(d.eliminarUsuario, b)
     if (d.empresaActiva) return
 
     switch (d.accion) {
       case 'cerrar':
         return cerrarVentana()
+      case 'mi-clave':
+        return formMiClave()
       case 'salir':
         desmontarUltron()
         await D.salir()

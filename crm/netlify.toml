@@ -3,6 +3,10 @@
   publish = "public"
   functions = "netlify/functions"
 
+# Las funciones comparten public/acceso.js con la página: esbuild lo empaca junto.
+[functions]
+  node_bundler = "esbuild"
+
 [[headers]]
   for = "/*"
   [headers.values]

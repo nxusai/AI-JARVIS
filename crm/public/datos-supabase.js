@@ -3,6 +3,7 @@
 // solo llega el error y se le enseña a la persona en palabras.
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm'
+import { claveReal, correoDeUsuario, normalizarUsuario } from './acceso.js'
 
 const BUCKET = 'archivos'
 
@@ -20,11 +21,15 @@ function nombreSeguro(nombre) {
 /** Los errores de la base de datos, en palabras. */
 function claro(error) {
   const m = error?.message || String(error)
-  if (/Invalid login credentials/i.test(m)) return new Error('Correo o contraseña incorrectos')
+  if (/Invalid login credentials/i.test(m)) return new Error('Usuario o contraseña incorrectos')
+  if (/rate limit|too many/i.test(m)) return new Error('Demasiados intentos. Espera unos minutos y vuelve a intentar.')
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
   if (/duplicate key.*carpetas/i.test(m)) return new Error('Ya hay una carpeta con ese nombre aquí')
   if (/carpetas.*foreign key|violates foreign key constraint .*carpeta/i.test(m)) return new Error('Solo se borran carpetas vacías')
   if (/exceeded the maximum allowed size|Payload too large|413/i.test(m)) return new Error('El archivo es muy pesado (máximo 50 MB)')
+  if (/should be different from the old password/i.test(m)) return new Error('Esa es la misma contraseña que ya tenías. Escribe otra.')
+  if (/Password should be at least|weak password|weak_password/i.test(m)) return new Error('El sistema no aceptó esa contraseña. Prueba con otra.')
+  if (/reauthenticat/i.test(m)) return new Error('Por seguridad, sal y vuelve a entrar antes de cambiar tu contraseña.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -84,8 +89,16 @@ export function crearSupabase({ url, anon }) {
     async sesion() {
       return miPerfil()
     },
-    async entrar(correo, clave) {
-      ok(await sb.auth.signInWithPassword({ email: correo, password: clave }))
+    // Se entra con el usuario ("senen"); el admin también con su correo.
+    // Primero con la contraseña como se guarda ahora; si no, como se guardaba
+    // antes (cuentas creadas antes de los usuarios por nombre).
+    async entrar(quien, clave) {
+      quien = String(quien || '').trim()
+      const email = quien.includes('@') ? quien.toLowerCase() : correoDeUsuario(normalizarUsuario(quien))
+      let r = await sb.auth.signInWithPassword({ email, password: claveReal(clave) })
+      const tal = String(clave ?? '')
+      if (r.error && /Invalid login credentials/i.test(r.error.message) && tal.length >= 6) r = await sb.auth.signInWithPassword({ email, password: tal })
+      ok(r)
       return miPerfil()
     },
     async salir() {
@@ -96,7 +109,7 @@ export function crearSupabase({ url, anon }) {
       return ok(await sb.from('empresas').select('*').order('orden'))
     },
     async clientes() {
-      return ok(await sb.from('perfiles').select('id, nombre').eq('rol', 'cliente').order('nombre'))
+      return ok(await sb.from('perfiles').select('id, nombre, activo').eq('rol', 'cliente').order('nombre'))
     },
     async tareas() {
       const [tareas, correcciones, archivos, notas] = await Promise.all([
@@ -232,14 +245,29 @@ export function crearSupabase({ url, anon }) {
     async usuarios() {
       return ok(await sb.from('perfiles').select('*').order('nombre'))
     },
+    // Las tres regresan { para, enviado, aviso }: a quién y si salió el correo de acceso.
     async crearUsuario(datos) {
-      await funcion('usuarios', { accion: 'crear', ...datos })
+      return funcion('usuarios', { accion: 'crear', ...datos })
     },
     async cambiarUsuario(id, datos) {
-      ok(await sb.from('perfiles').update(datos).eq('id', id))
+      const filas = ok(await sb.from('perfiles').update(datos).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('No tienes permiso para hacer eso')
     },
-    async cambiarClave(id, clave) {
-      await funcion('usuarios', { accion: 'clave', id, clave })
+    async cambiarClave(id, clave, mandar = true) {
+      return funcion('usuarios', { accion: 'clave', id, clave, mandar })
+    },
+    // { borrado: true } si se borró de verdad; false si tenía historial y solo se le cerró la cuenta.
+    async eliminarUsuario(id) {
+      return funcion('usuarios', { accion: 'eliminar', id })
+    },
+    async cambiarAcceso(id, { usuario, correo, clave, mandar = true }) {
+      return funcion('usuarios', { accion: 'acceso', id, usuario, correo, clave, mandar })
+    },
+    // Mi propia contraseña: la cambia la persona con su sesión.
+    async cambiarMiClave(clave) {
+      ok(await sb.auth.updateUser({ password: claveReal(clave) }))
+      ok(await sb.rpc('ya_cambie_mi_clave'))
+      if (yo) yo.clave_temporal = false
     },
     async cambiarEmpresa(id, cambios) {
       ok(await sb.from('empresas').update(cambios).eq('id', id))
