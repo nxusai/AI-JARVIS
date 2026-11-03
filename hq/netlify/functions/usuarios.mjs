@@ -56,7 +56,7 @@ async function mandarAcceso({ correo, nombre, usuario, clave, nueva = true }) {
     return {
       enviado: false,
       motivo: /desconocida/i.test(e)
-        ? 'La agenda de Google todavía tiene la versión vieja: pega el código nuevo y publica una "New version" (Implementar → Administrar implementaciones → lápiz).'
+        ? `La agenda de Google que usa HQ todavía corre la versión vieja. HQ le habla a la implementación cuyo ID termina en "${(/\/s\/([^/]+)\/exec/.exec(env('AGENDA_URL'))?.[1] ?? '?').slice(-8)}": en Apps Script → Implementar → Administrar implementaciones, edita (lápiz) ESA, elige "New version" y Deploy.`
         : /clave/i.test(e)
           ? 'La clave de la agenda no coincide con AGENDA_CLAVE de Netlify.'
           : `La agenda de Google dijo: ${e}`,

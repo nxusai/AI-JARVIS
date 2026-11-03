@@ -159,6 +159,13 @@ function correo_(para, nombre, tipo, inicio, meet, aviso, idioma, zona) {
   MailApp.sendEmail({ to: para, subject: titulo, htmlBody: html, name: 'NXUS AI' })
 }
 
+/** Para probar desde el editor (botón Run): te manda a ti un correo de acceso de ejemplo. */
+function probarBienvenida() {
+  const yo = Session.getActiveUser().getEmail()
+  const r = bienvenida_({ para: yo, nombre: 'Prueba', usuario: 'prueba', contrasena: '123', url: 'https://nxus-hq.netlify.app' })
+  Logger.log(r.ok ? 'Listo: te mandé un correo de prueba a ' + yo : 'Falló: ' + r.error)
+}
+
 /** NXUS HQ: el acceso de alguien nuevo del equipo (o su contraseña nueva) a su correo. */
 function bienvenida_(d) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(d.para || ''))) return { ok: false, error: 'correo inválido' }
