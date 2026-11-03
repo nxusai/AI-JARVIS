@@ -124,7 +124,8 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 
 ### Cambios a los usuarios
 - **Cambiarle el usuario o corregir su correo:** Usuarios → **Editar** → **Guardar**. Si además escribes una contraseña nueva y tiene correo, se la puedes mandar.
-- **Contraseña nueva (si la olvidó):** Usuarios → **Contraseña** → escribe la que quieras → **Cambiar contraseña** (si tiene correo, se la puedes mandar).
+- **Reenviar acceso (si la olvidó o no le llegó):** Usuarios → **✉️ Reenviar acceso**. Lleva una contraseña nueva (la de antes nadie la conoce; puedes poner la que quieras) → **Reenviar acceso**. Si tiene correo se la manda; si no, te enseña sus datos con **📋 Copiar para WhatsApp**.
+- **Eliminar (solo tú):** Usuarios → **Eliminar** → confirma. Si nunca pidió ni subió nada, se borra por completo y su usuario queda libre. Si ya tiene tareas o archivos, esos se quedan con su nombre, pero la persona ya no puede entrar nunca y desaparece de la lista. Ni otro admin ni tus clientes ven este botón.
 - **Tu contraseña o la de cualquiera, por su cuenta:** botón **🔑 Contraseña** arriba, junto a **Salir**.
 3. **Biblioteca** → en cada empresa, clic en **Crear carpetas** (Labels, Logotipos, Diseños, Estructuras de label, Documentos). Tu equipo sube arrastrando los archivos.
 4. **Catálogos** → **Subir catálogo** en cada empresa.

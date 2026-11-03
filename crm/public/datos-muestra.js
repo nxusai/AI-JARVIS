@@ -125,7 +125,8 @@ export function crearMuestra() {
     if (!admin()) no('Solo el admin cambia usuarios')
     if (id === yo) no('Lo tuyo cámbialo en "🔑 Contraseña"')
     const p = db.perfiles.find((x) => x.id === id)
-    if (p.dueno) no('El acceso del dueño solo lo cambia él')
+    if (!p || p.eliminado) no('Ese usuario ya no existe')
+    if (p.dueno) no('El acceso del administrador principal solo lo cambia él')
     return p
   }
 
@@ -283,7 +284,7 @@ export function crearMuestra() {
       return perfil() ? copia(db.empresas) : []
     },
     async clientes() {
-      return equipo() ? db.perfiles.filter((p) => p.rol === 'cliente').map((p) => ({ id: p.id, nombre: p.nombre })) : []
+      return equipo() ? db.perfiles.filter((p) => p.rol === 'cliente').map((p) => ({ id: p.id, nombre: p.nombre, activo: p.activo })) : []
     },
     async tareas() {
       await espera()
@@ -492,7 +493,7 @@ export function crearMuestra() {
       correo = correoOpcional(correo)
       clave = String(clave ?? '').trim()
       if (clave.length < CLAVE_MINIMA) no(`La contraseña necesita al menos ${CLAVE_MINIMA} caracteres`)
-      if (datos.rol === 'admin') no('Solo el dueño nombra administradores')
+      if (datos.rol === 'admin') no('Solo el administrador principal nombra administradores')
       const p = { id: uid(), usuario, correo, activo: true, clave_temporal: true, ...datos }
       db.perfiles.push(p)
       PERSONAS.push({ id: p.id, nombre: p.nombre, correo, rol: p.rol, explica: `Creado por ti (${p.rol})` })
@@ -502,9 +503,10 @@ export function crearMuestra() {
     async cambiarUsuario(id, datos) {
       if (!admin()) no('Solo el admin cambia usuarios')
       const p = db.perfiles.find((x) => x.id === id)
-      if (p.dueno && id !== yo) no('El acceso del dueño solo lo cambia él')
-      if ('dueno' in datos && datos.dueno !== p.dueno) no('El dueño solo se cambia directo en Supabase')
-      if (datos.rol === 'admin' && p.rol !== 'admin' && !perfil().dueno) no('Solo el dueño nombra administradores')
+      if (p.dueno && id !== yo) no('El acceso del administrador principal solo lo cambia él')
+      if (p.eliminado) no('Ese usuario ya fue eliminado')
+      if ('dueno' in datos && datos.dueno !== p.dueno) no('El administrador principal solo se cambia directo en Supabase')
+      if (datos.rol === 'admin' && p.rol !== 'admin' && !perfil().dueno) no('Solo el administrador principal nombra administradores')
       if (('correo' in datos && datos.correo !== p.correo) || ('usuario' in datos && datos.usuario !== p.usuario)) no('El usuario y el correo se cambian en Usuarios → Editar')
       if (id === yo && (datos.rol && datos.rol !== p.rol || datos.activo === false)) no('No te puedes quitar tu propio acceso de admin')
       Object.assign(p, datos)
@@ -518,6 +520,26 @@ export function crearMuestra() {
       if (!p.usuario) no('Primero ponle un usuario en Editar')
       p.clave_temporal = true
       return { usuario: p.usuario, clave, para: p.correo, enviado: Boolean(mandar && p.correo), aviso: '' }
+    },
+    async eliminarUsuario(id) {
+      await espera(300)
+      if (!perfil()?.dueno) no('Solo el administrador principal elimina usuarios')
+      const p = alguien(id)
+      if (p.eliminado) no('Ese usuario ya no existe')
+      const conHistoria =
+        db.tareas.some((t) => t.cliente_id === id || t.creada_por === id) ||
+        db.correcciones.some((c) => c.pedida_por === id) ||
+        db.notas.some((n) => n.autor === id) ||
+        db.archivos.some((a) => a.subido_por === id)
+      const i = PERSONAS.findIndex((x) => x.id === id)
+      if (i >= 0) PERSONAS.splice(i, 1)
+      anota('borró', 'perfiles', id, { nombre: p.nombre })
+      if (!conHistoria) {
+        db.perfiles.splice(db.perfiles.indexOf(p), 1)
+        return { borrado: true }
+      }
+      Object.assign(p, { activo: false, eliminado: true, usuario: null, correo: '', clave_temporal: false })
+      return { borrado: false }
     },
     async cambiarAcceso(id, { usuario, correo, clave, mandar = true }) {
       await espera(300)

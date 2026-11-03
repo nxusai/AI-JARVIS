@@ -70,6 +70,10 @@ create unique index if not exists perfiles_un_dueno on public.perfiles (dueno) w
 -- Con este nombre entra la persona (por ejemplo "senen"); el correo es aparte y opcional.
 alter table public.perfiles add column if not exists usuario text;
 create unique index if not exists perfiles_usuario_unico on public.perfiles (usuario) where usuario is not null;
+-- Eliminado por el dueño. Si no tenía historial se borra de verdad; si pidió o
+-- subió algo, su cuenta de entrada se cierra para siempre y su nombre se queda
+-- solo para que sus tareas y archivos sigan diciendo de quién son.
+alter table public.perfiles add column if not exists eliminado boolean not null default false;
 
 -- Quién soy, según la sesión. "security definer" para que las reglas de
 -- perfiles no se muerdan la cola.
@@ -164,15 +168,21 @@ begin
   if es_consola() then return new; end if;
   if new.id <> old.id then raise exception 'No se puede cambiar el id'; end if;
   if new.dueno is distinct from old.dueno then
-    raise exception 'El dueño solo se cambia directo en Supabase';
+    raise exception 'El administrador principal solo se cambia directo en Supabase';
   end if;
   if old.dueno and auth.uid() is distinct from old.id then
-    raise exception 'El acceso del dueño solo lo cambia él';
+    raise exception 'El acceso del administrador principal solo lo cambia él';
   end if;
   if new.rol = 'admin' and old.rol <> 'admin' and not es_dueno() then
-    raise exception 'Solo el dueño nombra administradores';
+    raise exception 'Solo el administrador principal nombra administradores';
+  end if;
+  if old.eliminado and (new.activo or not new.eliminado or new.usuario is not null) then
+    raise exception 'Ese usuario ya fue eliminado';
   end if;
   if es_sistema() then return new; end if;
+  if new.eliminado is distinct from old.eliminado then
+    raise exception 'Para eliminar usa Usuarios → Eliminar';
+  end if;
   if new.correo is distinct from old.correo or new.usuario is distinct from old.usuario then
     raise exception 'El usuario y el correo se cambian en Usuarios → Editar';
   end if;
@@ -192,7 +202,7 @@ create or replace function public.cuidar_dueno() returns trigger
 language plpgsql as $$
 begin
   if old.dueno and not es_consola() then
-    raise exception 'Al dueño no lo puede borrar nadie';
+    raise exception 'Al administrador principal no lo puede borrar nadie';
   end if;
   return old;
 end $$;
@@ -207,7 +217,7 @@ language plpgsql as $$
 begin
   if es_consola() or current_user = 'postgres' then return new; end if;
   if new.dueno or new.rol = 'admin' then
-    raise exception 'Solo el dueño nombra administradores';
+    raise exception 'Solo el administrador principal nombra administradores';
   end if;
   return new;
 end $$;

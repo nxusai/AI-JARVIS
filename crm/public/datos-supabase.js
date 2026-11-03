@@ -109,7 +109,7 @@ export function crearSupabase({ url, anon }) {
       return ok(await sb.from('empresas').select('*').order('orden'))
     },
     async clientes() {
-      return ok(await sb.from('perfiles').select('id, nombre').eq('rol', 'cliente').order('nombre'))
+      return ok(await sb.from('perfiles').select('id, nombre, activo').eq('rol', 'cliente').order('nombre'))
     },
     async tareas() {
       const [tareas, correcciones, archivos, notas] = await Promise.all([
@@ -255,6 +255,10 @@ export function crearSupabase({ url, anon }) {
     },
     async cambiarClave(id, clave, mandar = true) {
       return funcion('usuarios', { accion: 'clave', id, clave, mandar })
+    },
+    // { borrado: true } si se borró de verdad; false si tenía historial y solo se le cerró la cuenta.
+    async eliminarUsuario(id) {
+      return funcion('usuarios', { accion: 'eliminar', id })
     },
     async cambiarAcceso(id, { usuario, correo, clave, mandar = true }) {
       return funcion('usuarios', { accion: 'acceso', id, usuario, correo, clave, mandar })

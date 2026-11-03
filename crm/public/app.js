@@ -513,7 +513,7 @@ function formNuevaTarea() {
   abrirVentana(
     esCliente() ? 'Nueva tarea' : 'Registrar tarea de un cliente',
     `<form id="form-tarea">
-      ${esEquipo() ? `<div class="campo"><label for="t-cliente">¿De quién es?</label><select id="t-cliente" required>${S.clientes.map((c) => `<option value="${c.id}">${h(c.nombre)}</option>`).join('')}</select><span class="ayuda">Solo esa persona la verá (y el equipo).</span></div>` : ''}
+      ${esEquipo() ? `<div class="campo"><label for="t-cliente">¿De quién es?</label><select id="t-cliente" required>${S.clientes.filter((c) => c.activo !== false).map((c) => `<option value="${c.id}">${h(c.nombre)}</option>`).join('')}</select><span class="ayuda">Solo esa persona la verá (y el equipo).</span></div>` : ''}
       <div class="campo"><label for="t-empresa">¿Para qué empresa?</label><select id="t-empresa" required><option value="">Elige…</option>${opcionesEmpresa(emps)}</select></div>
       <div class="campo"><label for="t-titulo">¿Qué necesitas? (en pocas palabras)</label><input id="t-titulo" type="text" maxlength="200" required placeholder="Ej. Label de pupusas de frijol 12 oz"></div>
       <div class="campo"><label for="t-desc">Detalles</label><textarea id="t-desc" maxlength="5000" placeholder="Medidas, colores, textos, para cuándo lo necesitas…"></textarea></div>
@@ -1107,7 +1107,8 @@ function vistaCatalogos() {
 
 function vistaUsuarios() {
   const orden = { admin: 0, equipo: 1, cliente: 2 }
-  const lista = [...S.usuarios].sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
+  const lista = S.usuarios.filter((u) => !u.eliminado).sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
+  const eliminados = S.usuarios.filter((u) => u.eliminado).length
   const nombresEmp = (u) => (u.rol !== 'cliente' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
   const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos', u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada')
   return `
@@ -1118,12 +1119,13 @@ function vistaUsuarios() {
         .map(
           (u) => `<tr class="${u.activo ? '' : 'apagado'}">
             <td><b>${h(u.nombre || '(sin nombre)')}</b><br><span class="ayuda">${u.usuario ? `Usuario: <b>${h(u.usuario)}</b>` : u.dueno ? h(u.correo) : 'Sin usuario: ponle uno en Editar'}</span>${u.usuario && u.correo ? `<br><span class="ayuda">${h(u.correo)}</span>` : ''}${u.activo ? '' : '<br><span class="chip urgente">Apagado</span>'}${u.activo && u.clave_temporal ? '<br><span class="chip" title="Todavía entra con la contraseña que le diste">Contraseña temporal</span>' : ''}</td>
-            <td>${ROLES[u.rol]}${u.dueno ? ' · dueño' : ''}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
-            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : u.dueno ? '<span class="ayuda">Solo él lo cambia</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">Contraseña</button>`}</td>
+            <td>${ROLES[u.rol]}${u.dueno ? ' principal' : ''}</td><td>${h(nombresEmp(u))}</td><td>${h(ve(u))}</td>
+            <td style="white-space:nowrap">${u.id === S.yo.id ? '<span class="ayuda">Tú</span>' : u.dueno ? '<span class="ayuda">Solo él lo cambia</span>' : `<button class="btn chico" data-editar-usuario="${u.id}">Editar</button> <button class="btn chico" data-clave-usuario="${u.id}">✉️ Reenviar acceso</button>${S.yo.dueno ? ` <button class="btn chico peligro" data-eliminar-usuario="${u.id}">Eliminar</button>` : ''}`}</td>
           </tr>`,
         )
         .join('')}</tbody>
     </table></div>
+    ${eliminados ? `<p class="ayuda">${eliminados} usuario${eliminados === 1 ? '' : 's'} eliminado${eliminados === 1 ? '' : 's'} con historial: ya no pueden entrar, pero sus tareas y archivos siguen diciendo de quién son.</p>` : ''}
     <div class="seccion" style="margin-top:16px">
       <h3>Empresas</h3>
       <p class="ayuda" style="margin-top:0">Apaga o prende una empresa para todos (por ejemplo, VAYRO cuando entre).</p>
@@ -1229,12 +1231,12 @@ function formUsuario(id) {
 function formClave(id) {
   const u = S.usuarios.find((x) => x.id === id)
   abrirVentana(
-    `Contraseña de ${h(u.nombre)}`,
+    `Reenviar acceso a ${h(u.nombre)}`,
     `<form id="form-clave">
-      ${u.usuario ? `<p style="margin-top:0">Entra con el usuario <b>${h(u.usuario)}</b>.</p>` : ''}
-      ${campoClave('k-clave', { etiqueta: 'Contraseña nueva' })}
-      ${u.correo ? `<label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="k-mandar" checked> Mandársela a su correo (${h(u.correo)})</label>` : ''}
-      <button class="btn principal" data-ocupado="Guardando…">Cambiar contraseña</button>
+      <p style="margin-top:0">${u.usuario ? `Entra con el usuario <b>${h(u.usuario)}</b>. ` : ''}Su contraseña de antes nadie la conoce (ni tú), así que le ponemos una nueva y se la mandas.</p>
+      ${campoClave('k-clave', { valor: claveAlAzar(), etiqueta: 'Contraseña nueva' })}
+      ${u.correo ? `<label class="casilla" style="margin-bottom:10px"><input type="checkbox" id="k-mandar" checked> Mandárselo a su correo (${h(u.correo)})</label>` : '<p class="ayuda">No tiene correo: al terminar te enseño sus datos para mandárselos por WhatsApp.</p>'}
+      <button class="btn principal" data-ocupado="Enviando…">Reenviar acceso</button>
     </form>`,
     { chica: true },
   )
@@ -1250,6 +1252,25 @@ function formClave(id) {
         falla(err)
       }
     })
+  })
+}
+
+async function eliminarUsuario(id, boton) {
+  const u = S.usuarios.find((x) => x.id === id)
+  const ok = await preguntar(
+    `Eliminar a ${u.nombre}`,
+    `Ya no podrá entrar${u.usuario ? ` y el usuario "${u.usuario}" quedará libre` : ''}. Si ya pidió o subió algo, sus tareas y archivos se quedan (no se borra nada de eso). ¿Seguro?`,
+    { boton: 'Eliminar', peligro: true },
+  )
+  if (!ok) return
+  await ocupado(boton, async () => {
+    try {
+      const r = await D.eliminarUsuario(id)
+      await recargar()
+      avisar(r.borrado ? `${u.nombre} quedó eliminado.` : `${u.nombre} quedó eliminado. Sus tareas y archivos se quedan con su nombre.`)
+    } catch (err) {
+      falla(err)
+    }
   })
 }
 
@@ -1644,6 +1665,7 @@ async function alClic(e) {
     }
     if (d.editarUsuario) return formUsuario(d.editarUsuario)
     if (d.claveUsuario) return formClave(d.claveUsuario)
+    if (d.eliminarUsuario) return eliminarUsuario(d.eliminarUsuario, b)
     if (d.empresaActiva) return
 
     switch (d.accion) {

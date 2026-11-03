@@ -8,7 +8,7 @@
 // cuenta de Google de NXUS (google/accesos.gs). Al dueño nadie lo toca desde
 // aquí: ni su contraseña ni su correo (la base de datos también lo impide).
 import { json, quien, sb } from '../lib/sb.mjs'
-import { CLAVE_MINIMA, claveReal, correoDeUsuario, normalizarUsuario, usuarioValido } from '../../public/acceso.js'
+import { CLAVE_MINIMA, DOMINIO_ENTRADA, claveReal, correoDeUsuario, normalizarUsuario, usuarioValido } from '../../public/acceso.js'
 
 const ROLES = new Set(['cliente', 'equipo'])
 const SECCIONES = ['ve_tareas', 've_biblioteca', 've_catalogos']
@@ -58,9 +58,9 @@ async function mandarAcceso({ para, nombre, usuario, contrasena, motivo, enlace 
 async function persona(id, yo) {
   if (!ID.test(String(id || ''))) throw mal('Falta el usuario')
   if (id === yo.perfil.id) throw mal('Lo tuyo cámbialo en "🔑 Contraseña"')
-  const [p] = await sb(`/rest/v1/perfiles?id=eq.${id}&select=id,nombre,correo,usuario,dueno`, { servicio: true })
-  if (!p) throw mal('Ese usuario ya no existe', 404)
-  if (p.dueno) throw mal('El acceso del dueño solo lo cambia él', 403)
+  const [p] = await sb(`/rest/v1/perfiles?id=eq.${id}&select=id,nombre,correo,usuario,dueno,eliminado`, { servicio: true })
+  if (!p || p.eliminado) throw mal('Ese usuario ya no existe', 404)
+  if (p.dueno) throw mal('El acceso del administrador principal solo lo cambia él', 403)
   return p
 }
 
@@ -144,6 +144,26 @@ export default async (req) => {
       await ponerClave(p.id, clave)
       const correoAcceso = mandar ? await mandarAcceso({ para: correo, nombre: p.nombre, usuario, contrasena: clave, motivo: correo !== p.correo ? 'correo' : 'clave', enlace }) : { enviado: false }
       return json({ ok: true, usuario, clave, para: correo, ...correoAcceso })
+    }
+
+    // Eliminar: solo el dueño. Sin historial se borra de verdad (y su usuario
+    // queda libre). Si ya pidió o subió algo, la base de datos no deja borrarlo
+    // (se perderían sus tareas): se le cierra la cuenta para siempre y se
+    // esconde, y sus tareas y archivos siguen diciendo de quién son.
+    if (d.accion === 'eliminar') {
+      if (!yo.perfil.dueno) throw mal('Solo el administrador principal elimina usuarios', 403)
+      const p = await persona(d.id, yo)
+      try {
+        await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'DELETE' })
+        return json({ ok: true, borrado: true })
+      } catch (err) {
+        if (err.status && err.status < 500 && !/database|foreign|violates/i.test(err.message)) throw err
+      }
+      await sb(`/rest/v1/perfiles?id=eq.${p.id}`, { servicio: true, method: 'PATCH', body: { activo: false, eliminado: true, usuario: null, correo: '', clave_temporal: false } })
+      const azar = `${crypto.randomUUID()}${crypto.randomUUID()}`
+      await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { email: `baja.${p.id}@${DOMINIO_ENTRADA}`, email_confirm: true, password: azar } })
+      await sb(`/auth/v1/admin/users/${p.id}`, { servicio: true, method: 'PUT', body: { ban_duration: '876000h' } }).catch(() => {})
+      return json({ ok: true, borrado: false })
     }
 
     return json({ ok: false, error: 'Acción desconocida' }, 400)
