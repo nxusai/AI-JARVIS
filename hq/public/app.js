@@ -1600,7 +1600,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const filas = await Promise.all(
       personas.map(
         async (p) =>
-          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${p.usuario ? `usuario: ${h(p.usuario)}` : 'entra con su correo'}${p.correo ? ` · ${h(p.correo)}` : ''}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><button class="btn chico" data-per="${p.id}">Editar</button></td></tr>`,
+          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${p.usuario ? `usuario: ${h(p.usuario)}` : 'entra con su correo'}${p.correo ? ` · ${h(p.correo)}` : ''}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><div class="acciones"><button class="btn chico" data-per="${p.id}">Editar</button>${p.rol !== 'admin' && p.id !== yo.id ? `<button class="btn chico" data-reenviar="${p.id}" title="Le pone una contraseña y se la manda a su correo">📧 Reenviar acceso</button>` : ''}</div></td></tr>`,
       ),
     )
     v.innerHTML = `
@@ -1609,18 +1609,41 @@ export function iniciar(D, { muestra = false } = {}) {
       <p class="nota">Cada persona entra con su <b>usuario</b> y la contraseña que tú le pones; al entrar puede cambiarla (y después en "⚙ Mi cuenta"). Solo tú ves dinero, montos, propuestas, contratos, Nómina y Personas, y solo tú das de alta y borras. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
     $('#p-nueva', v).onclick = () => editarPersona(null)
     $$('[data-per]', v).forEach((b) => (b.onclick = () => editarPersona(persona(b.dataset.per))))
+    $$('[data-reenviar]', v).forEach((b) => (b.onclick = () => reenviarAcceso(persona(b.dataset.reenviar))))
   }
 
   /** Después de dar de alta (o cambiar la contraseña): si se le mandó por correo y, si no, para copiársela. */
-  function accesoListo({ nombre, usuario, clave, correo, enviado, pidio, nueva = false }) {
+  function accesoListo({ nombre, usuario, clave, correo, enviado, pidio, nueva = false, motivo = '' }) {
     abrirModal(
       `<h2>✓ ${nueva ? `Contraseña nueva de ${h(nombre)}` : `${h(nombre)} ya puede entrar`}</h2>
-       ${enviado ? `<p class="verde">📧 Le mandamos su acceso a <b>${h(correo)}</b>.</p>` : pidio ? '<p class="rojo">⚠ No se pudo mandar el correo (revisa que la agenda de Google esté actualizada). Pásale estos datos tú:</p>' : '<p>Pásale estos datos:</p>'}
+       ${enviado ? `<p class="verde">📧 Le mandamos su acceso a <b>${h(correo)}</b>.</p>` : pidio ? `<p class="rojo">⚠ No se pudo mandar el correo${motivo ? `: ${h(motivo)}` : '.'}</p><p>Pásale estos datos tú o, cuando lo arregles, dale <b>📧 Reenviar acceso</b> en Personas:</p>` : '<p>Pásale estos datos:</p>'}
        <div class="tarjeta"><p>Entra en <b>${h(location.origin)}</b></p><p>Usuario: <b>${h(usuario)}</b></p><p>Contraseña: <b>${h(clave)}</b></p></div>
        <p class="nota">Al entrar se le pide cambiarla por una suya.</p>
        <div class="acciones"><button class="btn" id="ac-copiar">Copiar los datos</button><button class="btn primario" data-cerrar>Listo</button></div>`,
       (caja) => {
         $('#ac-copiar', caja).onclick = () => navigator.clipboard?.writeText(`NXUS HQ: ${location.origin}\nUsuario: ${usuario}\nContraseña: ${clave}`).then(() => aviso('Copiado'))
+      },
+    )
+  }
+
+  /** 📧 Reenviar acceso: HQ no guarda contraseñas, así que se le pone una (puede ser la misma) y se le manda. */
+  function reenviarAcceso(p) {
+    abrirModal(
+      `<form id="f-reenviar"><h2>📧 Reenviar acceso a ${h(p.nombre)}</h2>
+        <p>Le llega a <b>${h(p.correo || '— (no tiene correo: agrégaselo en Editar)')}</b> su usuario <b>${h(p.usuario || p.correo)}</b> y esta contraseña. HQ no guarda contraseñas, así que escribe la que le quieres mandar (puede ser la misma de antes).</p>
+        ${p.cambiar_clave ? '' : '<p class="rojo">Ojo: ya cambió su contraseña por una suya. Esto la reemplaza por la que escribas aquí.</p>'}
+        <div class="campos"><label class="ancho">Contraseña<input name="clave" type="text" required autocomplete="off"></label></div>
+        <div class="acciones"><button class="btn primario" ${p.correo ? '' : 'disabled'}>Mandar acceso</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-reenviar', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const clave = e.target.clave.value
+          const r = await intenta(() => D.claveDe(p.id, clave, true))
+          if (r) {
+            cerrarModal()
+            accesoListo({ nombre: p.nombre, usuario: r.usuario || p.usuario || p.correo, clave, correo: p.correo, enviado: r.enviado, pidio: true, nueva: true, motivo: r.motivo })
+          }
+        }
       },
     )
   }
@@ -1674,7 +1697,7 @@ export function iniciar(D, { muestra = false } = {}) {
               cerrarModal()
               personas = await D.personas()
               mostrar()
-              accesoListo({ nombre: d.nombre.trim(), usuario: r.usuario, clave: d.clave, correo: d.correo.trim(), enviado: r.enviado, pidio: !!d.enviar })
+              accesoListo({ nombre: d.nombre.trim(), usuario: r.usuario, clave: d.clave, correo: d.correo.trim(), enviado: r.enviado, pidio: !!d.enviar, motivo: r.motivo })
               return
             }
           } else {
@@ -1702,7 +1725,7 @@ export function iniciar(D, { muestra = false } = {}) {
           const r = await intenta(() => D.claveDe(p.id, clave, enviar))
           if (r) {
             cerrarModal()
-            accesoListo({ nombre: p.nombre, usuario: p.usuario || p.correo, clave, correo: p.correo, enviado: r.enviado, pidio: enviar, nueva: true })
+            accesoListo({ nombre: p.nombre, usuario: p.usuario || p.correo, clave, correo: p.correo, enviado: r.enviado, pidio: enviar, nueva: true, motivo: r.motivo })
           }
         })
       },

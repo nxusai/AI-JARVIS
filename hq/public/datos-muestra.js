@@ -248,7 +248,7 @@ export function crearMuestra() {
       if (!admin()) nunca()
       const x = db.perfiles.find((q) => q.id === pid)
       if (x) x.cambiar_clave = true
-      return { ok: true, enviado: !!(enviar && x?.correo) }
+      return { ok: true, usuario: x?.usuario, enviado: !!(enviar && x?.correo) }
     },
     async subirFoto(pid, file) {
       if (!admin()) nunca()

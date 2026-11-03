@@ -38,9 +38,10 @@ const claro = (err) =>
     ? Object.assign(new Error('Supabase pide que la contraseña tenga al menos 6 caracteres (es su mínimo; HQ no pone más reglas).'), { status: 400 })
     : err
 
-/** Le manda a su correo su usuario, su contraseña y el link de HQ. Devuelve true si se mandó. */
+/** Le manda a su correo su usuario, su contraseña y el link de HQ. { enviado, motivo } */
 async function mandarAcceso({ correo, nombre, usuario, clave, nueva = true }) {
-  if (!env('AGENDA_URL') || !correo) return false
+  if (!correo) return { enviado: false, motivo: 'No tiene correo guardado: agrégaselo en Editar.' }
+  if (!env('AGENDA_URL')) return { enviado: false, motivo: 'Falta AGENDA_URL en Netlify (la agenda de Google).' }
   try {
     const res = await fetch(env('AGENDA_URL'), {
       method: 'POST',
@@ -50,9 +51,18 @@ async function mandarAcceso({ correo, nombre, usuario, clave, nueva = true }) {
       signal: AbortSignal.timeout(20_000),
     })
     const d = await res.json().catch(() => null)
-    return !!d?.ok
-  } catch {
-    return false
+    if (d?.ok) return { enviado: true }
+    const e = String(d?.error || `la agenda respondió ${res.status}`)
+    return {
+      enviado: false,
+      motivo: /desconocida/i.test(e)
+        ? 'La agenda de Google todavía tiene la versión vieja: pega el código nuevo y publica una "New version" (Implementar → Administrar implementaciones → lápiz).'
+        : /clave/i.test(e)
+          ? 'La clave de la agenda no coincide con AGENDA_CLAVE de Netlify.'
+          : `La agenda de Google dijo: ${e}`,
+    }
+  } catch (err) {
+    return { enviado: false, motivo: `No se pudo hablar con la agenda de Google (${err.message}).` }
   }
 }
 
@@ -91,8 +101,8 @@ export default async (req) => {
       }
       const reporta = /^[0-9a-f-]{36}$/i.test(String(d.reporta_a || '')) ? d.reporta_a : null
       await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: { nombre, correo, usuario, cargo, sede, activo: true, rol: 'equipo', reporta_a: reporta, cambiar_clave: true } })
-      const enviado = d.enviar !== false && (await mandarAcceso({ correo, nombre, usuario, clave }))
-      return json({ ok: true, id: user.id, usuario, enviado })
+      const correoR = d.enviar !== false ? await mandarAcceso({ correo, nombre, usuario, clave }) : { enviado: false }
+      return json({ ok: true, id: user.id, usuario, ...correoR })
     }
     if (d.accion === 'clave') {
       if (!/^[0-9a-f-]{36}$/i.test(String(d.id || ''))) return json({ ok: false, error: 'Falta la persona' }, 400)
@@ -104,8 +114,8 @@ export default async (req) => {
       })
       const [p] = await sb(`/rest/v1/perfiles?id=eq.${d.id}&select=nombre,correo,usuario`, { servicio: true })
       await sb(`/rest/v1/perfiles?id=eq.${d.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { cambiar_clave: true } })
-      const enviado = !!d.enviar && !!p && (await mandarAcceso({ correo: p.correo, nombre: p.nombre, usuario: p.usuario || p.correo, clave, nueva: false }))
-      return json({ ok: true, enviado })
+      const correoR = d.enviar && p ? await mandarAcceso({ correo: p.correo, nombre: p.nombre, usuario: p.usuario || p.correo, clave, nueva: false }) : { enviado: false }
+      return json({ ok: true, usuario: p?.usuario || p?.correo, ...correoR })
     }
     return json({ ok: false, error: 'Acción desconocida' }, 400)
   } catch (err) {
