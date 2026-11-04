@@ -134,7 +134,7 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 
 | | Cliente (Senen, Gerardo) | Equipo | Admin (tú) |
 |---|---|---|---|
-| Pedir tarea / corrección | ✅ las suyas | registra a nombre de un cliente | igual que el equipo |
+| Pedir tarea / corrección | ✅ las suyas | registra tareas a nombre de un cliente activo (no pide correcciones: lo que el cliente cambie por WhatsApp va como actualización) | igual que el equipo |
 | Agregar instrucciones o PDFs a una tarea ya pedida (actualizaciones, con fecha) | ✅ las suyas | ✅ (lo que el cliente pidió por WhatsApp) | ✅ |
 | Ver tareas | solo las suyas | todas | todas |
 | Cambiar lo que escribió el cliente | ❌ | ❌ | ❌ |

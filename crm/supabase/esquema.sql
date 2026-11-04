@@ -678,7 +678,8 @@ drop policy if exists tareas_pedir on public.tareas;
 create policy tareas_pedir on public.tareas for insert to authenticated
   with check (
     (cliente_id = auth.uid() and yo_rol() = 'cliente' and veo('tareas', empresa_id))
-    or (es_equipo() and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente'))
+    -- El equipo registra a nombre de un cliente que pueda entrar (no apagado ni eliminado).
+    or (es_equipo() and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente' and p.activo and not p.eliminado))
   );
 drop policy if exists tareas_equipo on public.tareas;
 create policy tareas_equipo on public.tareas for update to authenticated using (es_equipo()) with check (es_equipo());

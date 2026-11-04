@@ -299,7 +299,7 @@ export function crearMuestra() {
       await espera(300)
       if (!empresa_id) no('Elige la empresa')
       if (!titulo) no('Escribe qué necesitas')
-      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente'))) no('No tienes permiso para pedir esa tarea')
+      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente' && p.activo && !p.eliminado))) no('No tienes permiso para pedir esa tarea')
       const t = { id: uid(), folio: ++folio, cliente_id, empresa_id, titulo, descripcion, urgente, pedida: ahora(), creada_por: yo, estatus: 'recibida', compromiso: null, entregada: null, aprobada: null, actualizada: ahora() }
       db.tareas.push(t)
       anota('creó', 'tareas', t.id, { titulo })
