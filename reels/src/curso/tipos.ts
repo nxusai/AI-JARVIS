@@ -23,6 +23,8 @@ export type Pantalla = {
   /** Teléfono: la conversación (comentario público, cliente o agente) y el nombre de la cuenta. */
   mensajes?: { de: 'cliente' | 'agente' | 'comentario'; texto: string; boton?: string }[];
   cuenta?: string;
+  /** Debajo del nombre de la cuenta (por omisión, 'Agente automático'). */
+  subcuenta?: string;
   /** Flujo: los pasos del diagrama. */
   nodos?: { icono: string; titulo: string; sub?: string }[];
   /** Para un chat: lo que se le pide a Claude y su respuesta, línea por línea ('# ' = título). */

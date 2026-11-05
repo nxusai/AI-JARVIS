@@ -1,0 +1,72 @@
+{
+  "id": "m7l4",
+  "curso": "Next Level IA",
+  "numero": "7.4",
+  "tituloIntro": "DEMO",
+  "tituloCorto": "La demo que vende",
+  "bloques": [
+    "LLEGA CON ALGO",
+    "LA REUNIÓN"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: la demo que vende. El truco que más clientes cierra."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "No llegues a explicar: llega con algo hecho. Antes de la reunión, hazle una página con su menú, o un agente que conteste como su negocio. Con lo que aprendiste, te toma menos de una hora.",
+      "pantallas": [
+        {
+          "toma": "pagina",
+          "etiqueta": "Llega con esto",
+          "descripcion": "Su página, hecha antes de la reunión",
+          "url": "cafeteria-aurora.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "En la reunión, se lo enseñas funcionando: su página, su agente contestando, su llamada. Cuando el dueño ve su propio negocio funcionando, la pregunta ya no es si lo quiere... sino cuánto cuesta.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "La reunión",
+          "nodos": [
+            {
+              "icono": "👀",
+              "titulo": "Lo ve funcionando",
+              "sub": "Su página y su agente"
+            },
+            {
+              "icono": "💡",
+              "titulo": "Se imagina el resultado",
+              "sub": "Más pedidos, menos trabajo"
+            },
+            {
+              "icono": "💬",
+              "titulo": "Pregunta el precio",
+              "sub": "Le muestras tus 3 paquetes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Llega con algo hecho y enséñalo funcionando. En la siguiente lección: anuncios y referidos.",
+      "marcas": [
+        "hecho",
+        "funcionando.",
+        "En"
+      ]
+    }
+  ]
+}

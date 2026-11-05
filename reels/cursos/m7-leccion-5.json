@@ -1,0 +1,84 @@
+{
+  "id": "m7l5",
+  "curso": "Next Level IA",
+  "numero": "7.5",
+  "tituloIntro": "ANUNCIOS",
+  "tituloCorto": "Anuncios y referidos",
+  "bloques": [
+    "ANUNCIOS",
+    "REFERIDOS"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: anuncios y referidos. Las dos formas de que los clientes lleguen solos."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Con anuncios en Instagram y Facebook, empiezas con un presupuesto pequeño: un reel con resultados, dirigido a dueños de negocio de tu ciudad, que los mande a tu agente. El agente califica y los agenda por ti.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El anuncio",
+          "nodos": [
+            {
+              "icono": "📣",
+              "titulo": "Reel con resultados",
+              "sub": "Presupuesto pequeño"
+            },
+            {
+              "icono": "🎯",
+              "titulo": "Dueños de negocio",
+              "sub": "En tu ciudad"
+            },
+            {
+              "icono": "🤖",
+              "titulo": "Tu agente",
+              "sub": "Califica y agenda"
+            },
+            {
+              "icono": "📅",
+              "titulo": "Demo",
+              "sub": "En tu calendario"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y los referidos: a cada cliente contento pídele que te recomiende con otro negocio, y dale un mes con descuento por cada uno que firme. Tus mejores clientes van a venir de tus clientes.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Referidos",
+          "pregunta": "",
+          "respuesta": [
+            "# A cada cliente contento",
+            "“¿Conoces otro negocio al que le sirva esto?”",
+            "# El incentivo",
+            "Un mes con descuento por cada uno que firme",
+            "# El resultado",
+            "Clientes que ya llegan confiando en ti"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Anuncios que llevan a tu agente, y referidos de tus clientes. Con esto terminas el módulo de conseguir clientes.",
+      "marcas": [
+        "Anuncios",
+        "referidos",
+        "Con"
+      ]
+    }
+  ]
+}

@@ -42,7 +42,7 @@ export const Telefono: React.FC<{ p: Pantalla; acento: string }> = ({ p, acento 
             <div style={{ width: 46, height: 46, borderRadius: 23, background: `linear-gradient(135deg, ${acento}, #a01cff)` }} />
             <div>
               <div style={{ color: '#fff', fontWeight: 900, fontSize: 21 }}>{p.cuenta ?? 'tu.negocio'}</div>
-              <div style={{ color: '#ffffff77', fontSize: 15 }}>Agente automático</div>
+              <div style={{ color: '#ffffff77', fontSize: 15 }}>{p.subcuenta ?? 'Agente automático'}</div>
             </div>
           </div>
           <div style={{ flex: 1, padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 10 }}>

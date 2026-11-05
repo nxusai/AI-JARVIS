@@ -1,0 +1,71 @@
+{
+  "id": "m7l1",
+  "curso": "Next Level IA",
+  "numero": "7.1",
+  "tituloIntro": "CLIENTES",
+  "tituloCorto": "Tu cliente ideal",
+  "bloques": [
+    "UN NICHO",
+    "LA LISTA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo siete: conseguir clientes. Y todo empieza por saber a quién le vas a vender."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Escoge un nicho: un tipo de negocio en tu ciudad. Por ejemplo, cafeterías en Guadalajara. Busca los que tienen un Instagram activo pero no contestan rápido, y buenas reseñas: ya venden, y tú los ayudas a vender más.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Tu nicho",
+          "pregunta": "",
+          "respuesta": [
+            "# Un tipo de negocio, una ciudad",
+            "Ej. cafeterías en Guadalajara",
+            "# Las señales",
+            "✓ Instagram activo",
+            "✓ Tardan en contestar",
+            "✓ Buenas reseñas: ya venden"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Luego le pides a Claude, con la búsqueda web activada, una lista de veinte negocios de tu nicho, con sus redes y qué les falta. Esa es tu lista de prospectos para la semana.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Con búsqueda web: dame 20 cafeterías en Guadalajara con Instagram activo. Para cada una: su cuenta y qué le falta.",
+          "respuesta": [
+            "# Tus 20 prospectos",
+            "1. Cafetería A · publica poco",
+            "2. Cafetería B · sin pedidos en línea",
+            "3. Cafetería C · tarda en contestar",
+            "…",
+            "Guárdalos en tu CRM, columna Nuevos."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un nicho claro y una lista de prospectos. En la siguiente lección: contenido que atrae clientes.",
+      "marcas": [
+        "nicho",
+        "lista",
+        "En"
+      ]
+    }
+  ]
+}

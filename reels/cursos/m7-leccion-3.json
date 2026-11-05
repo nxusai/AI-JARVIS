@@ -1,0 +1,88 @@
+{
+  "id": "m7l3",
+  "curso": "Next Level IA",
+  "numero": "7.3",
+  "tituloIntro": "PROSPECTAR",
+  "tituloCorto": "Prospección directa",
+  "bloques": [
+    "EL MENSAJE",
+    "EL SEGUIMIENTO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: prospección directa. Escribirle tú al negocio... sin sonar a vendedor."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "El primer mensaje no vende: entrega algo. Usa el diagnóstico que hiciste con Claude: qué hacen bien, qué les falta y una idea concreta. Corto, personal y con una pregunta al final.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "El primer mensaje",
+          "descripcion": "Corto, personal y con un regalo",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "cliente",
+              "texto": "Hola, Ana. Vi Cafetería Aurora: sus fotos son de lo mejor de la zona. Noté que nadie contesta los mensajes en la noche. Tengo una idea para que no pierdan esos pedidos. ¿Te la muestro en 15 minutos?"
+            },
+            {
+              "de": "agente",
+              "texto": "Hola, ¡gracias! Sí, ¿qué idea?"
+            }
+          ],
+          "subcuenta": "Mensaje directo"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Si no contesta, haz seguimiento: al tercer día, un mensaje corto; a la semana, un ejemplo de algo que hiciste. Y si dice que no, das las gracias y lo dejas ahí. Nunca insistas de más.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El seguimiento",
+          "nodos": [
+            {
+              "icono": "✉️",
+              "titulo": "Día 1",
+              "sub": "El mensaje con diagnóstico"
+            },
+            {
+              "icono": "👋",
+              "titulo": "Día 3",
+              "sub": "Un recordatorio corto"
+            },
+            {
+              "icono": "🎁",
+              "titulo": "Día 7",
+              "sub": "Un ejemplo de tu trabajo"
+            },
+            {
+              "icono": "🙏",
+              "titulo": "Si dice que no",
+              "sub": "Gracias, y lo dejas"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un buen mensaje y un seguimiento respetuoso. En la siguiente lección: la demo que vende.",
+      "marcas": [
+        "mensaje",
+        "seguimiento",
+        "En"
+      ]
+    }
+  ]
+}

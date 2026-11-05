@@ -1,0 +1,82 @@
+{
+  "id": "m7l2",
+  "curso": "Next Level IA",
+  "numero": "7.2",
+  "tituloIntro": "CONTENIDO",
+  "tituloCorto": "Contenido que atrae clientes",
+  "bloques": [
+    "QUÉ PUBLICAR",
+    "COMENTA Y RECIBE"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: contenido que atrae clientes. Para que los negocios te busquen a ti, y no al revés."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Publica lo que haces, no lo que sabes: el antes y el después de un negocio, un agente contestando en vivo, una llamada real, el tablero de resultados. Cada reel es una prueba de que funciona.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Qué publicar",
+          "pregunta": "",
+          "respuesta": [
+            "✓ Antes y después de un negocio",
+            "✓ Un agente contestando en vivo",
+            "✓ Una llamada real del agente",
+            "✓ Resultados: pedidos y ventas",
+            "# Y el módulo 1 te enseñó a hacerlo con IA"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y cada reel termina con una invitación: comenta una palabra y te mando el sistema. Así cada comentario se vuelve una conversación... y un prospecto en tu CRM.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "Comenta y recibe",
+          "descripcion": "Cada comentario, un prospecto",
+          "cuenta": "mi.agencia.ia",
+          "mensajes": [
+            {
+              "de": "comentario",
+              "texto": "SISTEMA"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Hola! Aquí está cómo un agente de IA contesta y vende por un negocio 👇",
+              "boton": "Ver el sistema"
+            },
+            {
+              "de": "cliente",
+              "texto": "Me interesa para mi restaurante"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Perfecto! ¿Te agendo una demo de 15 minutos esta semana?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Publica resultados y convierte comentarios en conversaciones. En la siguiente lección: prospección directa.",
+      "marcas": [
+        "resultados",
+        "conversaciones.",
+        "En"
+      ]
+    }
+  ]
+}
