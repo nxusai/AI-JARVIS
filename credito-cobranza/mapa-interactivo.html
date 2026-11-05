@@ -24,6 +24,8 @@
   --slate: #3c5a8a;
   --slate-soft: #e0e7f3;
   --focus: #0e7c7b;
+  --plum: #7a3f8f;
+  --plum-soft: #f1e5f4;
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -32,14 +34,14 @@
     --bg: #0e1a24; --surface: #142430; --surface-2: #1a3040; --ink: #e4edf1; --ink-2: #9fb2bd;
     --line: #2f4757; --line-soft: #233746; --teal: #4cc3bf; --teal-soft: #173c42; --navy: #e4edf1; --on-navy: #0e1a24;
     --rust: #f08c69; --rust-soft: #3b2219; --ochre: #e0b65a; --ochre-soft: #352b14; --slate: #94b1e3; --slate-soft: #1d2b42;
-    --focus: #4cc3bf; color-scheme: dark;
+    --focus: #4cc3bf; --plum: #d39ae6; --plum-soft: #34203d; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0e1a24; --surface: #142430; --surface-2: #1a3040; --ink: #e4edf1; --ink-2: #9fb2bd;
   --line: #2f4757; --line-soft: #233746; --teal: #4cc3bf; --teal-soft: #173c42; --navy: #e4edf1; --on-navy: #0e1a24;
   --rust: #f08c69; --rust-soft: #3b2219; --ochre: #e0b65a; --ochre-soft: #352b14; --slate: #94b1e3; --slate-soft: #1d2b42;
-  --focus: #4cc3bf; color-scheme: dark;
+  --focus: #4cc3bf; --plum: #d39ae6; --plum-soft: #34203d; color-scheme: dark;
 }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; overflow: hidden; }
@@ -106,6 +108,18 @@ button, input { font: inherit; color: inherit; }
 .node.module circle.body { fill: var(--surface-2); stroke: var(--teal); }
 .node.sub circle.body { fill: var(--surface); stroke: var(--teal); stroke-width: 1.5; }
 .node.entry circle.body { fill: var(--surface); stroke: var(--ink-2); }
+.node.sugg circle.body { stroke: var(--plum); }
+.node.module.sugg circle.body { fill: var(--plum-soft); }
+.node.sugg .n-id { fill: var(--plum); }
+.edge-nav-s { stroke: var(--plum); opacity: .45; stroke-dasharray: 2 4; }
+.badge-s circle { fill: var(--plum-soft); stroke: var(--plum); stroke-width: 1.2; }
+.badge-s text { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; fill: var(--plum); }
+.tag.S { background: var(--plum-soft); color: var(--plum); }
+.sugg-box { border: 1px solid var(--plum); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; background: var(--plum-soft); }
+.sugg-h { font-size: 12.5px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.chip-s .cid { color: var(--plum); }
+.later { font-size: 10.5px; color: var(--ink-2); border: 1px dashed var(--ink-2); border-radius: 4px; padding: 0 4px; }
+.btn-s[aria-pressed="true"] { background: var(--plum-soft); border-color: var(--plum); }
 .node.pending circle.body { stroke: var(--rust); stroke-dasharray: 4 4; }
 .node .sel { fill: none; stroke: var(--teal); stroke-width: 3; opacity: 0; }
 .node.selected .sel { opacity: 1; }
@@ -215,7 +229,7 @@ button, input { font: inherit; color: inherit; }
     <div class="brand">
       <div class="eyebrow">NXUS AI · Financiera de Emmanuel Copto</div>
       <h1>Mapa del sistema de crédito y cobranza</h1>
-      <div class="meta">Vista general · mapa v0.1 · basado en la guía v1.0 del 4 nov 2026</div>
+      <div class="meta">Vista general · mapa v0.2 · guía v1.0 del 4 nov 2026 + sugerencias [S]</div>
     </div>
     <div class="tools">
       <div class="search">
@@ -226,6 +240,7 @@ button, input { font: inherit; color: inherit; }
       <button class="btn" id="expandAll" type="button">Desplegar todo</button>
       <button class="btn" id="collapseAll" type="button">Contraer</button>
       <button class="btn" id="allLinks" type="button" aria-pressed="false">Todas las conexiones</button>
+      <button class="btn btn-s" id="showS" type="button" aria-pressed="true"><span class="tag S">S</span> Sugerencias</button>
     </div>
   </header>
   <div class="main">
@@ -575,39 +590,286 @@ button, input { font: inherit; color: inherit; }
     { a: "N700", b: "N600", kind: "data", v: "consulta" }
   ];
 
+  // ---------- Capa de sugerencias [S]: lo que propone NXUS/Claude para una financiera completa. No está en la guía v1.0; cada una requiere aprobación de Eduardo ----------
+  const V1 = "Candidata para la versión inicial; requiere aprobación";
+  const LATER = "La guía la deja fuera de la versión inicial; se documenta para una fase posterior";
+  MODULES.push(
+    { id: "N900", t: "Finanzas", s: "Dinero de la empresa", sugg: true },
+    { id: "N1000", t: "Cumplimiento", s: "Legal y riesgo", sugg: true }
+  );
+  const S = {
+    N900: { tipo: "Módulo sugerido", src: "[S] Sugerencia; no está en la guía", fase: V1,
+      fn: "Ver de dónde sale el dinero que se presta, cuánto regresa, cuánto se pierde y cuánto gana la financiera.",
+      por: "Prestar y cobrar sólo dice cuánto debe cada cliente. Dirección también necesita saber si el negocio tiene liquidez, cuánto se debe reservar por riesgo y qué producto u oficina deja utilidad.",
+      rol: "[S] Dirección y responsable de finanzas.",
+      pend: ["[?] ¿Quién lleva hoy la contabilidad y en qué sistema?", "[?] ¿La financiera usa fondeo externo o sólo capital propio?"] },
+    N910: { t: "Fondeo y capital", tipo: "Pantalla y entidad", fase: V1,
+      fn: "Registrar las fuentes de dinero para prestar: capital propio, socios o préstamos recibidos, con su costo y vencimiento.",
+      por: "Sin saber el costo del dinero no se puede saber si una tasa es rentable ni cuánto se puede colocar.",
+      campos: ["[S] Fuente, monto, fecha, costo y calendario de devolución"],
+      pend: "[?] ¿Existen inversionistas o líneas de crédito que deban reportarse?" },
+    N920: { t: "Flujo de efectivo", tipo: "Pantalla", fase: V1,
+      fn: "Proyectar cobranza esperada contra colocación planeada y gastos en los próximos 7, 30 y 90 días.",
+      por: "Evita prometer créditos sin efectivo disponible en cajas o en banco.",
+      datos: "Cuotas pendientes (N430), cajas (N610), solicitudes aprobadas (N340).",
+      pend: "[D] Depende de las fórmulas de crédito aprobadas." },
+    N930: { t: "Estimación de reservas", tipo: "Cálculo", fase: V1,
+      fn: "Calcular la reserva por riesgo de la cartera según días de atraso.",
+      por: "Muestra la pérdida esperada antes de que ocurra; las financieras reguladas además deben constituirla.",
+      val: "[S] Porcentajes por rango de atraso aprobados por dirección o por la norma que aplique.",
+      pend: "[?] ¿La financiera es SOFOM u otra figura? Eso define si la metodología es obligatoria." },
+    N940: { t: "Castigos y recuperación", tipo: "Acción sensible", fase: V1,
+      fn: "Pasar a cartera castigada los créditos incobrables según una política, y registrar lo que se recupere después.",
+      por: "Separa la cartera real de la que ya no se espera cobrar sin borrar la deuda ni el historial.",
+      val: ["[S] Autorización de dirección y motivo", "[S] El crédito castigado sigue visible para cobranza y en bitácora"],
+      pend: "[?] ¿Después de cuántos días de atraso se castiga un crédito?" },
+    N950: { t: "Rentabilidad", tipo: "Reporte", fase: V1,
+      fn: "Margen por producto, oficina, ruta y asesor: intereses cobrados menos costo de fondeo, gastos y pérdidas.",
+      por: "Permite decidir dónde crecer y qué producto ajustar con datos, no con impresiones." },
+    N960: { t: "Enlace contable", tipo: "Exportación", fase: V1,
+      fn: "Exportar los movimientos del periodo en un formato que el contador pueda registrar: préstamos, cobros, intereses, gastos y traslados.",
+      por: "Evita recapturar a mano y reduce diferencias entre operación y contabilidad.",
+      val: "[F] Sin CFDI ni contabilidad fiscal en la versión inicial; sólo exportación.",
+      pend: "[?] Tratamiento fiscal de los intereses (IVA): validar con el contador." },
+    N970: { t: "Comisiones de asesores", tipo: "Cálculo", fase: V1,
+      fn: "Calcular el incentivo de cada asesor por colocación y cobranza según reglas aprobadas.",
+      por: "Si hoy se calcula a mano, es fuente frecuente de errores y conflictos.",
+      val: "[S] La guía pide no añadir comisiones por conveniencia: sólo se construye si el cliente lo pide y aprueba la regla.",
+      pend: "[?] ¿Hoy se pagan comisiones o bonos? ¿Con qué regla?" },
+
+    N1000: { tipo: "Módulo sugerido", src: "[S] Sugerencia; no está en la guía", fase: V1,
+      fn: "Concentrar lo que la financiera debe cumplir ante clientes y autoridades: identificación, transparencia, quejas, datos personales y políticas.",
+      por: "Una financiera que presta con intereses en México tiene obligaciones de transparencia, protección de datos y, según su figura legal, de prevención de lavado de dinero y reporte a burós. Tenerlas en el sistema evita multas y discusiones con clientes.",
+      pend: ["[?] Figura legal de la financiera (SOFOM ENR, SOFOM regulada u otra): define qué obligaciones aplican", "[?] Validar cada punto con su asesor legal; este mapa no es una opinión legal"] },
+    N1010: { t: "Identificación del cliente", tipo: "Checklist", fase: V1,
+      fn: "Lista de verificación manual de identidad y domicilio antes de aprobar: documentos recibidos, quién los verificó y cuándo.",
+      por: "Es la base contra fraude y suplantación, y la primera pieza de una política de conocer al cliente.",
+      val: ["[F] Cotejo humano; sin biometría ni validación automática", "[F] PLD/KYC automatizado queda fuera de la versión inicial"],
+      datos: "Cliente / expediente (N220), documentos (N230)." },
+    N1020: { t: "Prevención de lavado", tipo: "Proceso", fase: LATER,
+      fn: "Detectar y documentar operaciones relevantes, inusuales o preocupantes y revisar listas de personas bloqueadas.",
+      por: "Si la figura legal lo exige, es obligatorio y auditable.",
+      val: "[F] PLD automatizado está fuera de la versión inicial." },
+    N1030: { t: "Transparencia y contrato", tipo: "Documento", fase: V1,
+      fn: "Mostrar al cliente antes de firmar el costo total, la tabla de pagos y las condiciones, y guardar la versión del contrato firmado.",
+      por: "Reduce quejas y disputas: el cliente sabe cuánto pagará en total y la financiera prueba qué se le informó.",
+      pend: "[?] ¿Debe mostrarse el CAT y registrarse el contrato ante CONDUSEF? Depende de la figura legal." },
+    N1040: { t: "Quejas y aclaraciones", tipo: "Pantalla y flujo", fase: V1,
+      fn: "Registrar quejas y aclaraciones de clientes con folio, responsable, plazo y respuesta.",
+      por: "Una aclaración sin seguimiento suele terminar en pago retenido o queja ante autoridad.",
+      datos: "Cliente, crédito, pago y evento de auditoría." },
+    N1050: { t: "Datos personales", tipo: "Política y control", fase: V1,
+      fn: "Aviso de privacidad aceptado, consentimiento, solicitudes de acceso o corrección de datos, y plazos de conservación.",
+      por: "La financiera guarda identificaciones, domicilios y videos: es información sensible con obligaciones legales.",
+      val: "[F] Cifrado, acceso restringido y bitácora ya están en la especificación." },
+    N1060: { t: "Burós de crédito", tipo: "Integración", fase: LATER,
+      fn: "Consultar historial con autorización firmada del cliente y reportar la cartera periódicamente.",
+      por: "Mejora la decisión de crédito y presiona al pago puntual.",
+      val: "[F] Buró de Crédito está fuera de la versión inicial." },
+    N1070: { t: "Políticas y manuales", tipo: "Repositorio", fase: V1,
+      fn: "Versiones aprobadas de la política de crédito, de cobranza y de cajas, con fecha y responsable.",
+      por: "El sistema aplica reglas; las políticas explican por qué y permiten capacitar a personal nuevo." },
+
+    // Tablero
+    N150: { t: "Metas y productividad", tipo: "Pantalla", fase: V1,
+      fn: "Colocación y cobranza de cada asesor, oficina y ruta contra su meta del periodo.",
+      por: "El gerente detecta a tiempo qué ruta se está quedando atrás." ,
+      pend: "[?] ¿Existen metas por asesor? ¿Semanales o mensuales?" },
+    N160: { t: "Indicadores de riesgo", tipo: "Pantalla", fase: V1,
+      fn: "Índice de morosidad, cosechas por mes de originación y cuántos créditos pasan de un rango de atraso al siguiente.",
+      por: "Muestra si los créditos nuevos salen peores que los anteriores antes de que la pérdida sea grande.",
+      pend: "[D] Usa las definiciones de cartera vencida y rangos de atraso que apruebe el cliente." },
+    N170: { t: "Alertas operativas", tipo: "Pantalla", fase: V1,
+      fn: "Avisos de cajas sin cierre, reversos frecuentes, créditos entregados sin evidencia y cobros fuera de horario.",
+      por: "Convierte la bitácora en señales de posible error o fraude interno." },
+
+    // Clientes
+    N250: { t: "Avales y referencias", tipo: "Pantalla y entidad", fase: V1,
+      fn: "Registrar aval u obligado solidario y referencias, con su verificación.",
+      por: "En crédito en efectivo, el aval y las referencias son la principal vía de localización y cobro.",
+      pend: "[?] ¿Los productos actuales exigen aval?" },
+    N260: { t: "Visita y domicilio", tipo: "Acción", fase: V1,
+      fn: "Verificación de domicilio y negocio con foto y nota del asesor antes de aprobar.",
+      por: "Confirma que el cliente existe donde dice y facilita la cobranza en ruta.",
+      val: "[S] Ubicación sólo con consentimiento y si la política de datos lo permite." },
+    N270: { t: "Lista de no elegibles", tipo: "Control", fase: V1,
+      fn: "Clientes vetados, fraudes detectados y documentos repetidos en otro expediente.",
+      por: "Evita volver a prestar a quien ya defraudó o a identidades duplicadas.",
+      val: "[S] Motivo, autor y fecha; acceso restringido." },
+    N280: { t: "Renovaciones", tipo: "Flujo", fase: V1,
+      fn: "Ofrecer un nuevo crédito o una ampliación a clientes con buen historial, liquidando el saldo anterior si aplica.",
+      por: "El cliente recurrente es el más barato de conseguir y el de menor riesgo.",
+      pend: "[?] ¿Se permite renovar con saldo pendiente? ¿Cómo se liquida el anterior?" },
+    N290: { t: "Contactos con el cliente", tipo: "Bitácora", fase: V1,
+      fn: "Historial de llamadas, visitas y mensajes con el cliente y su resultado.",
+      por: "Cualquier persona que tome el expediente sabe qué se habló y qué se prometió." },
+
+    // Solicitudes
+    N350: { t: "Capacidad de pago", tipo: "Cálculo", fase: V1,
+      fn: "Capturar ingresos, gastos y otras deudas, y calcular qué pago puede cubrir el cliente.",
+      por: "Prestar más de lo que el cliente puede pagar es la causa principal de cartera vencida.",
+      pend: "[?] ¿Qué porcentaje máximo del ingreso puede ir al pago?" },
+    N360: { t: "Política y niveles de autorización", tipo: "Configuración", fase: V1,
+      fn: "Reglas de quién puede aprobar qué monto y qué excepciones requieren a dirección.",
+      por: "Aterriza la segregación de funciones que la guía deja pendiente.",
+      pend: "[D] Quién aprueba, límites por monto y segregación de funciones." },
+    N370: { t: "Contrato y pagaré", tipo: "Documento", fase: V1,
+      fn: "Generar contrato, pagaré y tabla de pagos con los datos aprobados, para firma autógrafa.",
+      por: "El pagaré firmado es el título para cobrar por la vía legal.",
+      val: "[F] La firma electrónica certificada está fuera de la versión inicial." },
+    N380: { t: "Consulta a buró", tipo: "Integración", fase: LATER,
+      fn: "Consultar el historial crediticio con autorización firmada y guardar el resultado en la solicitud.",
+      por: "Reduce el riesgo de prestar a quien ya está sobreendeudado.",
+      val: "[F] Buró de Crédito está fuera de la versión inicial." },
+    N390: { t: "Puntaje interno", tipo: "Cálculo", fase: V1,
+      fn: "Calificación simple a partir del historial de pagos con la financiera, capacidad de pago y verificación.",
+      por: "Ayuda a la mesa de control a decidir con el mismo criterio; la decisión sigue siendo humana.",
+      val: "[F] La decisión crediticia corresponde a personas autorizadas; el puntaje sólo informa." },
+
+    // Créditos
+    N460: { t: "Simulador", tipo: "Pantalla", fase: V1,
+      fn: "Mostrar pago por periodo, total a pagar y calendario antes de solicitar.",
+      por: "El asesor ofrece con números exactos y el cliente decide informado.",
+      pend: "[D] Usa las fórmulas aprobadas; no se construye antes." },
+    N470: { t: "Cargos y comisiones", tipo: "Configuración", fase: V1,
+      fn: "Comisión por apertura, cargo por pago tardío u otros cargos, si el cliente los usa.",
+      por: "Si existen en la operación actual, deben estar en el cálculo y en el estado de cuenta.",
+      val: "[S] La guía pide no añadir comisiones ni tasas por conveniencia: sólo con instrucción del cliente." },
+    N480: { t: "Condonaciones y quitas", tipo: "Acción sensible", fase: V1,
+      fn: "Descuentos autorizados sobre mora, intereses o capital, con nivel de autorización y motivo.",
+      por: "Sin control, una quita es la forma más fácil de perder dinero o encubrir un faltante.",
+      val: ["[S] Valor anterior, nuevo, autor y motivo en bitácora", "[S] Límites por rol"] },
+    N490: { t: "Finiquito", tipo: "Documento", fase: V1,
+      fn: "Constancia de liquidación o de no adeudo al terminar de pagar.",
+      por: "El cliente la pide para renovar o para aclarar en buró; protege a ambas partes." },
+
+    // Cobranza
+    N550: { t: "Promesas de pago", tipo: "Pantalla y entidad", fase: V1,
+      fn: "Registrar la fecha y monto que el cliente promete pagar y medir si cumple.",
+      por: "Es la herramienta principal del cobrador cuando no hay pago en la visita." },
+    N560: { t: "Gestiones de cobranza", tipo: "Bitácora", fase: V1,
+      fn: "Registrar cada visita o llamada con resultado, aunque no haya pago.",
+      por: "Sin gestiones no se sabe si un crédito atrasado se está trabajando.",
+      val: "[F] La API documentada ya menciona «gestiones»; falta definir su pantalla." },
+    N570: { t: "Etapas de cobranza", tipo: "Proceso", fase: V1,
+      fn: "Asignar cada crédito a preventiva, temprana, tardía o legal según días de atraso, con responsable por etapa.",
+      por: "Cada etapa requiere una persona y un trato distintos.",
+      pend: "[D] Rangos de atraso por definir." },
+    N580: { t: "Reglas de conducta", tipo: "Política y control", fase: V1,
+      fn: "Horarios permitidos, identificación del gestor y prohibición de amenazas, con registro de incidentes.",
+      por: "La cobranza indebida genera quejas y sanciones; documentar el trato protege a la financiera.",
+      pend: "[?] Validar con asesor legal las normas de cobranza aplicables." },
+    N590: { t: "Recordatorios automáticos", tipo: "Integración", fase: LATER,
+      fn: "Mensajes de recordatorio antes y después del vencimiento.",
+      por: "Bajan el atraso temprano a bajo costo.",
+      val: "[F] WhatsApp, SMS y cobranza automatizada no se añaden sin validación; fuera de la versión inicial." },
+
+    // Cajas
+    N660: { t: "Arqueo", tipo: "Acción", fase: V1,
+      fn: "Conteo por denominación de billetes y monedas al recibir o cerrar una caja.",
+      por: "Da sustento a la recepción física y aclara faltantes al momento." },
+    N670: { t: "Límites de efectivo", tipo: "Configuración", fase: V1,
+      fn: "Monto máximo que un asesor puede traer en ruta y alerta al superarlo.",
+      por: "Reduce el riesgo de robo y de pérdidas grandes." },
+    N680: { t: "Depósitos a banco", tipo: "Acción", fase: V1,
+      fn: "Registrar el traslado de efectivo de una caja a una cuenta bancaria, con ficha de depósito.",
+      por: "Cierra el recorrido del dinero; sin esto el efectivo parece desaparecer de las cajas.",
+      val: "[F] Sin conciliación bancaria automática; el registro es manual." },
+    N690: { t: "Aprobación de gastos", tipo: "Flujo", fase: V1,
+      fn: "Gastos de ruta con foto del comprobante y aprobación del gerente.",
+      por: "Evita que los gastos se usen para cubrir faltantes." },
+
+    // Reportes
+    N740: { t: "Cosechas", tipo: "Reporte", fase: V1,
+      fn: "Comportamiento de los créditos agrupados por mes de entrega.",
+      por: "Muestra si cambios en la política de crédito mejoran o empeoran la cartera." },
+    N750: { t: "Auditoría operativa", tipo: "Reporte", fase: V1,
+      fn: "Reversos, ajustes, condonaciones y fechas anteriores por usuario y periodo.",
+      por: "Concentra en un lugar las acciones sensibles para revisión de dirección." },
+    N760: { t: "Reportes regulatorios", tipo: "Reporte", fase: LATER,
+      fn: "Reportes a burós, prevención de lavado y autoridades, si aplican.",
+      por: "Depende de la figura legal.",
+      val: "[F] Reportes regulatorios fuera de la versión inicial." },
+
+    // Administración
+    N870: { t: "Días inhábiles", tipo: "Configuración", fase: V1,
+      fn: "Festivos y fines de semana para calcular vencimientos y cierres.",
+      por: "La guía pide definir el tratamiento de fines de semana; sin calendario no se puede aplicar.",
+      pend: "[D] Tratamiento de fines de semana." },
+    N880: { t: "Plantillas", tipo: "Configuración", fase: V1,
+      fn: "Formatos de contrato, pagaré, recibo y finiquito con versión.",
+      por: "Cambiar un formato no requiere programar." },
+    N890: { t: "Dispositivos y sesiones", tipo: "Seguridad", fase: V1,
+      fn: "Ver sesiones activas y cerrarlas a distancia si se pierde un teléfono.",
+      por: "Los asesores trabajan desde el celular en la calle; un teléfono robado no debe abrir la cartera." }
+  };
+  const SSUBS = {
+    N100: ["N150", "N160", "N170"], N200: ["N250", "N260", "N270", "N280", "N290"], N300: ["N350", "N360", "N370", "N380", "N390"],
+    N400: ["N460", "N470", "N480", "N490"], N500: ["N550", "N560", "N570", "N580", "N590"], N600: ["N660", "N670", "N680", "N690"],
+    N700: ["N740", "N750", "N760"], N800: ["N870", "N880", "N890"],
+    N900: ["N910", "N920", "N930", "N940", "N950", "N960", "N970"],
+    N1000: ["N1010", "N1020", "N1030", "N1040", "N1050", "N1060", "N1070"]
+  };
+  Object.keys(S).forEach(id => { N[id] = Object.assign({ src: "[S] Sugerencia; no está en la guía" }, S[id], { sugg: true }); });
+  SUBS.N900 = []; SUBS.N1000 = [];
+  LINKS.push(
+    { a: "N350", b: "N330", kind: "data", v: "informa", sugg: true },
+    { a: "N370", b: "N440", kind: "seq", v: "firma antes de entregar", sugg: true },
+    { a: "N550", b: "N510", kind: "data", v: "agenda visita", sugg: true },
+    { a: "N680", b: "N610", kind: "seq", v: "registra depósito", sugg: true },
+    { a: "N480", b: "N840", kind: "data", v: "deja bitácora", sugg: true },
+    { a: "N930", b: "N120", kind: "data", v: "usa atrasos", sugg: true },
+    { a: "N920", b: "N430", kind: "data", v: "usa cuotas", sugg: true },
+    { a: "N1010", b: "N220", kind: "data", v: "verifica", sugg: true },
+    { a: "N1030", b: "N370", kind: "data", v: "define contenido", sugg: true }
+  );
+
   // Completar datos de módulos
   MODULES.forEach(m => { Object.assign(N[m.id], { t: m.t, s: m.s, kind: "module" }); });
   Object.keys(SUBS).forEach(p => SUBS[p].forEach(id => { N[id].kind = "sub"; N[id].parent = p; }));
+  Object.keys(SSUBS).forEach(p => SSUBS[p].forEach(id => { N[id].kind = "sub"; N[id].parent = p; }));
+  function kids(m) { return SUBS[m].concat(state.showS ? SSUBS[m] : []); }
   N.N010.parent = null; N.N000.parent = null;
   MODULES.forEach(m => { N[m.id].parent = "N010"; });
 
-  // ---------- Geometría ----------
-  const R_MOD = 300, R_SUB_A = 600, R_SUB_B = 705, SUB_STEP = 7.8;
+  // ---------- Geometría (se recalcula al mostrar u ocultar sugerencias) ----------
+  const R_MOD = 300, R_IN_A = 620, R_IN_B = 730, R_OUT_A = 860, R_OUT_B = 970;
   const RAD = { center: 80, module: 64, sub: 47, entry: 40 };
   const base = {};
-  base.N010 = { x: 0, y: 0 };
-  { const a = -112.5 * Math.PI / 180; base.N000 = { x: Math.cos(a) * 172, y: Math.sin(a) * 172 }; }
-  MODULES.forEach(m => {
-    const a = m.a * Math.PI / 180;
-    base[m.id] = { x: Math.cos(a) * R_MOD, y: Math.sin(a) * R_MOD };
-    const subs = SUBS[m.id], n = subs.length;
-    subs.forEach((id, i) => {
-      const ang = (m.a + (i - (n - 1) / 2) * SUB_STEP) * Math.PI / 180;
-      const r = i % 2 === 0 ? R_SUB_A : R_SUB_B;
+  function layout() {
+    const mods = MODULES.filter(m => !m.sugg || state.showS), step = 360 / mods.length;
+    base.N010 = { x: 0, y: 0 };
+    const a0 = (-90 - step / 2) * Math.PI / 180; base.N000 = { x: Math.cos(a0) * 172, y: Math.sin(a0) * 172 };
+    const ctr = { in: 0, out: 0 };
+    const place = (ids, deg, angStep, rA, rB, ring) => ids.forEach((id, i) => {
+      const ang = (deg + (i - (ids.length - 1) / 2) * angStep) * Math.PI / 180;
+      const r = ctr[ring]++ % 2 === 0 ? rA : rB;
       base[id] = { x: Math.cos(ang) * r, y: Math.sin(ang) * r };
     });
-  });
+    mods.forEach((m, k) => {
+      const deg = -90 + k * step; m.a = deg;
+      const a = deg * Math.PI / 180;
+      base[m.id] = { x: Math.cos(a) * R_MOD, y: Math.sin(a) * R_MOD };
+      const g = SUBS[m.id], sg = SSUBS[m.id] || [];
+      const inStep = Math.min(7.8, (step - 3.5) / Math.max(1, g.length - 1));
+      place(g, deg, inStep, R_IN_A, R_IN_B, "in");
+      if (g.length) place(sg, deg, Math.min(6, (step - 4) / Math.max(1, sg.length - 1)), R_OUT_A, R_OUT_B, "out");
+      else place(sg, deg, Math.min(5.2, (step - 4) / Math.max(1, sg.length - 1)), R_IN_A, R_IN_B, "in");
+    });
+  }
 
   // ---------- Estado ----------
-  const state = { expanded: new Set(), selected: null, allLinks: false, offset: {}, view: { x: 0, y: 0, k: 1 } };
+  const state = { expanded: new Set(), selected: null, allLinks: false, showS: true, offset: {}, view: { x: 0, y: 0, k: 1 } };
+  layout();
 
   function pos(id) {
     const b = base[id], o = state.offset[id] || { x: 0, y: 0 };
     const p = N[id].kind === "sub" ? (state.offset[N[id].parent] || { x: 0, y: 0 }) : { x: 0, y: 0 };
     return { x: b.x + o.x + p.x, y: b.y + o.y + p.y };
   }
-  function visible(id) { const n = N[id]; return n.kind !== "sub" || state.expanded.has(n.parent); }
-  function resolve(id) { return visible(id) ? id : N[id].parent; }
+  function shown(id) { return state.showS || !N[id].sugg; }
+  function visible(id) { const n = N[id]; return shown(id) && (n.kind !== "sub" || (shown(n.parent) && state.expanded.has(n.parent))); }
+  function resolve(id) { if (!shown(id)) return null; return visible(id) ? id : N[id].parent; }
 
   // ---------- Render SVG ----------
   const svg = document.getElementById("svg");
@@ -639,7 +901,7 @@ button, input { font: inherit; color: inherit; }
     const s = state.selected;
     if (!s) return new Set();
     const set = new Set([s]);
-    if (N[s].kind === "module") SUBS[s].forEach(x => set.add(x));
+    if (N[s].kind === "module") kids(s).forEach(x => set.add(x));
     return set;
   }
 
@@ -651,12 +913,12 @@ button, input { font: inherit; color: inherit; }
   function render() {
     gEdges.textContent = ""; gLabels.textContent = ""; gNodes.textContent = "";
     // navegación: inicio → módulos → subnodos
-    MODULES.forEach(m => {
+    MODULES.filter(m => shown(m.id)).forEach(m => {
       const t = trimLine(pos("N010"), pos(m.id), RAD.center, RAD.module);
-      el("line", { x1: t.x1, y1: t.y1, x2: t.x2 + 0, y2: t.y2, class: "edge-nav" }, gEdges);
-      if (state.expanded.has(m.id)) SUBS[m.id].forEach(s => {
+      el("line", { x1: t.x1, y1: t.y1, x2: t.x2 + 0, y2: t.y2, class: m.sugg ? "edge-nav edge-nav-s" : "edge-nav" }, gEdges);
+      if (state.expanded.has(m.id)) kids(m.id).forEach(s => {
         const u = trimLine(pos(m.id), pos(s), RAD.module, RAD.sub);
-        el("line", { x1: u.x1, y1: u.y1, x2: u.x2, y2: u.y2, class: "edge-nav" }, gEdges);
+        el("line", { x1: u.x1, y1: u.y1, x2: u.x2, y2: u.y2, class: N[s].sugg ? "edge-nav edge-nav-s" : "edge-nav" }, gEdges);
       });
     });
     // conexiones de negocio y datos
@@ -664,7 +926,7 @@ button, input { font: inherit; color: inherit; }
     const seen = new Set();
     LINKS.forEach(l => {
       const a = resolve(l.a), b = resolve(l.b);
-      if (a === b) return;
+      if (!a || !b || a === b) return;
       const touchesSel = fam.has(l.a) || fam.has(l.b) || fam.has(a) || fam.has(b);
       const bothDetailed = a === l.a && b === l.b && N[a].kind === "sub" && N[b].kind === "sub";
       const show = l.kind === "entry" || state.allLinks || touchesSel || bothDetailed;
@@ -689,11 +951,12 @@ button, input { font: inherit; color: inherit; }
     });
 
     // nodos
-    const order = ["N000", "N010"].concat(MODULES.map(m => m.id));
-    MODULES.forEach(m => { if (state.expanded.has(m.id)) order.push(...SUBS[m.id]); });
+    const mods = MODULES.filter(m => shown(m.id)).map(m => m.id);
+    const order = ["N000", "N010"].concat(mods);
+    mods.forEach(m => { if (state.expanded.has(m)) order.push(...kids(m)); });
     order.forEach(id => {
       const n = N[id], p = pos(id), r = radius(id);
-      const g = el("g", { class: "node " + n.kind + (n.pending ? " pending" : "") + (state.selected === id ? " selected" : ""), "data-id": id,
+      const g = el("g", { class: "node " + n.kind + (n.pending ? " pending" : "") + (n.sugg ? " sugg" : "") + (state.selected === id ? " selected" : ""), "data-id": id,
         transform: `translate(${p.x},${p.y})`, tabindex: "0", role: "button",
         "aria-label": `${id} ${n.t}${n.kind === "module" ? (state.expanded.has(id) ? ", desplegado" : ", contraído") : ""}` }, gNodes);
       el("circle", { r: r + 6, class: "sel" }, g);
@@ -714,6 +977,12 @@ button, input { font: inherit; color: inherit; }
         const bg = el("g", { class: "badge-d", transform: `translate(${bx},${by})` }, g);
         el("circle", { r: 10 }, bg);
         const bt = el("text", { y: 3.5, "text-anchor": "middle" }, bg); bt.textContent = "D";
+      }
+      if (n.sugg) {
+        const a = -3 * Math.PI / 4, bx = Math.cos(a) * r, by = Math.sin(a) * r;
+        const bg = el("g", { class: "badge-s", transform: `translate(${bx},${by})` }, g);
+        el("circle", { r: 10 }, bg);
+        const bt = el("text", { y: 3.5, "text-anchor": "middle" }, bg); bt.textContent = n.fase === LATER ? "S2" : "S";
       }
       if (n.kind === "module") {
         const a = Math.PI / 4, bx = Math.cos(a) * r, by = Math.sin(a) * r;
@@ -841,11 +1110,12 @@ button, input { font: inherit; color: inherit; }
       const opening = !state.expanded.has(id);
       if (state.selected === id || opening) toggle(id);
       select(id, false);
-      if (opening) fitTo(["N010", id].concat(SUBS[id]), true);
+      if (opening) fitTo(["N010", id].concat(kids(id)), true);
     } else select(id, false);
     if (keepFocus) { const f = gNodes.querySelector(`[data-id="${id}"]`); if (f) f.focus(); }
   }
   function select(id, recenter) {
+    if (id && N[id].sugg && !state.showS) setShowS(true);
     state.selected = id;
     if (id && N[id].kind === "sub" && !state.expanded.has(N[id].parent)) state.expanded.add(N[id].parent);
     render();
@@ -872,23 +1142,23 @@ button, input { font: inherit; color: inherit; }
   }
   handle.addEventListener("click", () => openSheet(panel.dataset.open !== "true"));
 
-  const TAG_RE = /^\[(R\/F|F\/P|P\/D|R|F|P|D|\?)\]\s*/;
-  const TAG_TITLE = { R: "Reunión del 29 oct 2026", F: "Especificación funcional", P: "Propuesta de diseño, por validar", D: "Por definir", Q: "Pregunta sugerida por Claude; no está en la guía" };
+  const TAG_RE = /^\[(R\/F|F\/P|P\/D|R|F|P|D|S|\?)\]\s*/;
+  const TAG_TITLE = { R: "Reunión del 29 oct 2026", F: "Especificación funcional", P: "Propuesta de diseño, por validar", D: "Por definir", Q: "Pregunta sugerida por Claude; no está en la guía", S: "Sugerencia NXUS/Claude; no está en la guía, requiere aprobación" };
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
   function tagHTML(t) {
     const parts = t.split("/");
     return parts.map(p => { const c = p === "?" ? "Q" : p; return `<span class="tag ${c}" title="${TAG_TITLE[c]}">${p === "?" ? "?" : p}</span>`; }).join("");
   }
   function inlineTags(text) {
-    return esc(text).replace(/\[(R\/F|F\/P|P\/D|R|F|P|D|\?)\]\s*/g, (_, t) => `<span style="display:inline-flex;gap:3px;vertical-align:baseline">${tagHTML(t)}</span> `);
+    return esc(text).replace(/\[(R\/F|F\/P|P\/D|R|F|P|D|S|\?)\]\s*/g, (_, t) => `<span style="display:inline-flex;gap:3px;vertical-align:baseline">${tagHTML(t)}</span> `);
   }
   function item(s) {
     const m = String(s).match(TAG_RE);
     if (m) return `<span style="display:inline-flex;gap:3px">${tagHTML(m[1])}</span><span>${inlineTags(String(s).slice(m[0].length))}</span>`;
     return `<span>${inlineTags(s)}</span>`;
   }
-  function value(v) {
-    if (v == null || (Array.isArray(v) && !v.length)) return `<span class="missing">No documentado en la guía v1.0</span>`;
+  function value(v, sugg) {
+    if (v == null || (Array.isArray(v) && !v.length)) return `<span class="missing">${sugg ? "Se define si se aprueba" : "No documentado en la guía v1.0"}</span>`;
     const arr = Array.isArray(v) ? v : [v];
     return `<ul>${arr.map(s => `<li>${item(s)}</li>`).join("")}</ul>`;
   }
@@ -896,7 +1166,7 @@ button, input { font: inherit; color: inherit; }
     const rows = [];
     const n = N[id];
     if (n.parent) rows.push({ to: n.parent, kind: "Navegación", v: "pertenece a" });
-    if (n.kind === "module") SUBS[id].forEach(s => rows.push({ to: s, kind: "Navegación", v: "contiene" }));
+    if (n.kind === "module") SUBS[id].concat(SSUBS[id] || []).forEach(s => rows.push({ to: s, kind: "Navegación", v: "contiene" }));
     if (n.kind === "center") MODULES.forEach(m => rows.push({ to: m.id, kind: "Navegación", v: "da acceso a" }));
     LINKS.forEach(l => {
       const k = l.kind === "seq" ? "Secuencia" : l.kind === "data" ? "Datos" : "Entrada";
@@ -908,7 +1178,7 @@ button, input { font: inherit; color: inherit; }
     return `<div class="conn">${rows.map(r => `<button type="button" data-go="${r.to}"><span class="cid">${r.to}</span> ${esc(N[r.to].t)} <span class="kind">· ${esc(r.kind)}: ${esc(r.v)}</span></button>`).join("")}</div>`;
   }
   const FIELDS = [
-    ["tipo", "Tipo"], ["src", "Fuente / estado"], ["rol", "Rol y ámbito"], ["ent", "Entrada"], ["campos", "Campos"], ["acc", "Acciones"],
+    ["por", "Por qué"], ["tipo", "Tipo"], ["src", "Fuente / estado"], ["rol", "Rol y ámbito"], ["ent", "Entrada"], ["campos", "Campos"], ["acc", "Acciones"],
     ["val", "Validaciones"], ["sal", "Salida"], ["con", "Conexiones"], ["err", "Errores"], ["datos", "Datos afectados"], ["prueba", "Prueba de aceptación"], ["pend", "Pendientes"]
   ];
   function renderPanel() {
@@ -920,6 +1190,7 @@ button, input { font: inherit; color: inherit; }
     let c = n.parent; while (c) { crumb.unshift(c); c = N[c].parent; }
     if (id !== "N000" && id !== "N010") crumb.unshift("N000");
     const isMod = n.kind === "module";
+    const fieldsFor = FIELDS.filter(([k]) => k !== "por" || n.sugg);
     inner.innerHTML = `
       <div class="f-head">
         <div class="f-crumb">${crumb.map(x => `<button type="button" data-go="${x}">${x} ${esc(N[x].t)}</button><span>›</span>`).join("")}<span>${id}</span></div>
@@ -932,13 +1203,15 @@ button, input { font: inherit; color: inherit; }
         <button class="btn" type="button" id="ctr">Centrar en el mapa</button>
         <button class="btn" type="button" id="back">Cómo leer el mapa</button>
       </div>
-      ${isMod ? `<div class="links">${SUBS[id].map(s => `<button class="chip" type="button" data-go="${s}"><span class="cid">${s}</span>${esc(N[s].t)}</button>`).join("")}</div>` : ""}
+      ${isMod && SUBS[id].length ? `<div class="links">${SUBS[id].map(s => `<button class="chip" type="button" data-go="${s}"><span class="cid">${s}</span>${esc(N[s].t)}</button>`).join("")}</div>` : ""}
+      ${isMod && (SSUBS[id] || []).length ? `<div class="sugg-box"><div class="sugg-h">${tagHTML("S")} Sugerencias para este departamento</div><div class="links">${SSUBS[id].map(s => `<button class="chip chip-s" type="button" data-go="${s}"><span class="cid">${s}</span>${esc(N[s].t)}${N[s].fase === LATER ? ' <span class="later">fase posterior</span>' : ""}</button>`).join("")}</div></div>` : ""}
+      ${n.sugg ? `<div class="sugg-box"><div class="sugg-h">${tagHTML("S")} Sugerencia sin aprobar</div><p class="small" style="margin:0">${esc(n.fase || V1)}. Para incorporarla, Eduardo la confirma y se registra como decisión con su regla y prueba.</p></div>` : ""}
       <dl class="fields">
-        ${FIELDS.map(([k, label]) => `<div class="field"><dt>${label}</dt><dd>${k === "con" ? connectionsHTML(id) : value(n[k])}</dd></div>`).join("")}
+        ${fieldsFor.map(([k, label]) => `<div class="field"><dt>${label}</dt><dd>${k === "con" ? connectionsHTML(id) : value(n[k], n.sugg)}</dd></div>`).join("")}
       </dl>
       <p class="small">Los campos sin dato quedan marcados; no se completan con suposiciones. Una propuesta [P] pasa a aprobada cuando Eduardo la confirma.</p>`;
     const tgl = document.getElementById("tgl");
-    if (tgl) tgl.addEventListener("click", () => { const opening = !state.expanded.has(id); toggle(id); render(); renderPanel(); if (opening) fitTo(["N010", id].concat(SUBS[id]), true); });
+    if (tgl) tgl.addEventListener("click", () => { const opening = !state.expanded.has(id); toggle(id); render(); renderPanel(); if (opening) fitTo(["N010", id].concat(kids(id)), true); });
     document.getElementById("ctr").addEventListener("click", () => centerOn(id));
     document.getElementById("back").addEventListener("click", () => select(null));
     bindGo();
@@ -949,13 +1222,20 @@ button, input { font: inherit; color: inherit; }
   }
   function introHTML() {
     const pendCount = Object.values(N).filter(n => n.pending).length;
+    const sug = Object.keys(N).filter(k => N[k].sugg && N[k].kind === "sub");
+    const later = sug.filter(k => N[k].fase === LATER).length;
     return `
       <div class="intro" style="display:grid;gap:14px">
         <h2>Vista general del sistema nuevo</h2>
         <p>Cada círculo es una pantalla o grupo de funciones. Desde <b>N010 Inicio</b> cada usuario ve sólo los módulos que su rol autoriza. Toca un módulo para desplegar sus círculos y toca cualquier círculo para abrir su ficha.</p>
         <div class="box">
           <h3>Módulos</h3>
-          <div class="mods">${["N000", "N010"].concat(MODULES.map(m => m.id)).map(x => `<button class="chip" type="button" data-go="${x}"><span class="cid">${x}</span>${esc(N[x].t)}</button>`).join("")}</div>
+          <div class="mods">${["N000", "N010"].concat(MODULES.map(m => m.id)).map(x => `<button class="chip${N[x].sugg ? " chip-s" : ""}" type="button" data-go="${x}"><span class="cid">${x}</span>${esc(N[x].t)}${N[x].sugg ? " " + tagHTML("S") : ""}</button>`).join("")}</div>
+        </div>
+        <div class="sugg-box">
+          <div class="sugg-h">${tagHTML("S")} Lo que sugiero agregar para una financiera completa</div>
+          <p style="margin:0">Agregué ${sug.length} funciones en morado y dos departamentos nuevos: <b>N900 Finanzas</b> (fondeo, flujo, reservas, castigos, rentabilidad) y <b>N1000 Cumplimiento</b> (identificación, transparencia, quejas, datos personales, políticas). ${sug.length - later} son candidatas para la versión inicial; ${later}, marcadas «S2», la guía las deja para una fase posterior.</p>
+          <p class="small" style="margin:0">Ninguna está aprobada. La guía pide no añadir módulos, tasas ni comisiones por conveniencia: cada una pasa al sistema sólo cuando Eduardo la confirma. El botón «Sugerencias» las oculta para ver sólo lo acordado.</p>
         </div>
         <div class="box">
           <h3>Líneas y contornos</h3>
@@ -964,6 +1244,7 @@ button, input { font: inherit; color: inherit; }
             <div class="legend-row"><svg viewBox="0 0 52 22"><line x1="2" y1="11" x2="44" y2="11" class="edge-seq" marker-end="url(#arSeq)"/></svg><span>Secuencia de negocio, con verbo: «aprueba», «registra», «transfiere»</span></div>
             <div class="legend-row"><svg viewBox="0 0 52 22"><line x1="2" y1="11" x2="44" y2="11" class="edge-data" marker-end="url(#arData)"/></svg><span>Dependencia de datos o consulta</span></div>
             <div class="legend-row"><svg viewBox="0 0 52 22"><circle cx="26" cy="11" r="9" fill="none" stroke="var(--rust)" stroke-width="2" stroke-dasharray="4 4"/><text x="26" y="15" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="600" fill="var(--rust)">D</text></svg><span>Contorno punteado: depende de decisiones prioritarias pendientes (${pendCount} círculos)</span></div>
+            <div class="legend-row"><svg viewBox="0 0 52 22"><circle cx="26" cy="11" r="9" fill="var(--plum-soft)" stroke="var(--plum)" stroke-width="1.5"/><text x="26" y="14.5" text-anchor="middle" font-size="9.5" font-family="var(--font-mono)" font-weight="600" fill="var(--plum)">S</text></svg><span>Contorno morado: sugerencia sin aprobar; «S2» = fase posterior</span></div>
           </div>
           <p class="small" style="margin:0">Por defecto se dibujan las conexiones del círculo elegido y de los módulos desplegados. «Todas las conexiones» las muestra todas.</p>
         </div>
@@ -974,6 +1255,7 @@ button, input { font: inherit; color: inherit; }
             <div>${tagHTML("F")}<span>Especificación funcional, consolidada el 30 oct 2026</span></div>
             <div>${tagHTML("P")}<span>Propuesta de diseño; Eduardo y el cliente la validan</span></div>
             <div>${tagHTML("D")}<span>Por definir; se pregunta y se documenta la respuesta</span></div>
+            <div>${tagHTML("S")}<span>Función sugerida por NXUS/Claude; no está en la guía y requiere aprobación</span></div>
             <div>${tagHTML("?")}<span>Pregunta que sugiero agregar; no está en la guía</span></div>
           </div>
         </div>
@@ -982,6 +1264,7 @@ button, input { font: inherit; color: inherit; }
           <ol class="prio">
             <li><b>Dinero.</b> Los dos productos, tasa, periodicidad, base de días, mora, orden de aplicación y redondeo, con ejemplos de pago parcial, atraso y liquidación.</li>
             <li><b>Cajas.</b> Si se traslada todo el saldo o sólo lo cobrado, a qué hora y zona horaria, a qué gerente, y cómo se recibe y se resuelven faltantes.</li>
+            <li><b>Figura legal.</b> Si la financiera es SOFOM u otra figura: define qué obligaciones de transparencia, prevención de lavado y burós le aplican. <span class="tag Q">?</span></li>
             <li><b>Datos actuales.</b> Qué archivos se pueden exportar, si traen IDs, cuotas, pagos y saldos, cuántos registros hay y la fecha de corte.</li>
           </ol>
         </div>
@@ -1015,12 +1298,19 @@ button, input { font: inherit; color: inherit; }
   });
   document.addEventListener("click", e => { if (!e.target.closest(".search")) results.hidden = true; });
 
-  document.getElementById("expandAll").addEventListener("click", () => { MODULES.forEach(m => state.expanded.add(m.id)); render(); renderPanel(); fitAll(true); });
+  document.getElementById("expandAll").addEventListener("click", () => { MODULES.filter(m => shown(m.id)).forEach(m => state.expanded.add(m.id)); render(); renderPanel(); fitAll(true); });
   document.getElementById("collapseAll").addEventListener("click", () => {
     state.expanded.clear();
     if (state.selected && N[state.selected].kind === "sub") state.selected = N[state.selected].parent;
     render(); renderPanel(); setHash(state.selected); fitAll(true);
   });
+  const sBtn = document.getElementById("showS");
+  function setShowS(on) {
+    state.showS = on; sBtn.setAttribute("aria-pressed", String(on));
+    if (!on && state.selected && N[state.selected].sugg) { state.selected = N[state.selected].kind === "sub" && !N[N[state.selected].parent].sugg ? N[state.selected].parent : null; setHash(state.selected); }
+    layout();
+  }
+  sBtn.addEventListener("click", () => { setShowS(!state.showS); render(); renderPanel(); fitAll(true); });
   const allBtn = document.getElementById("allLinks");
   allBtn.addEventListener("click", () => { state.allLinks = !state.allLinks; allBtn.setAttribute("aria-pressed", String(state.allLinks)); render(); });
   document.getElementById("zin").addEventListener("click", () => { const { w, h } = stageBox(); zoomAt(1.25, w / 2, h / 2); });
