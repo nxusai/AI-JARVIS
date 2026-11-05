@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resultados de octubre · Cafetería Aurora</title>
+<!-- Tablero de resultados de ejemplo para el módulo 5 del curso: datos ficticios. -->
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, sans-serif; background: #f7f4ef; color: #241810; padding: 50px 70px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-end; }
+  .top small { color: #a0785a; font-weight: 700; letter-spacing: .18em; }
+  h1 { font: 700 46px Georgia, serif; margin-top: 8px; }
+  .top span { background: #fff; padding: 12px 20px; border-radius: 999px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,.06); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin: 40px 0; }
+  .k { background: #fff; border-radius: 22px; padding: 26px 28px; box-shadow: 0 16px 36px rgba(59,36,22,.08); }
+  .k small { color: #8a6e58; font-size: 16px; } .k div { font-size: 44px; font-weight: 800; margin-top: 8px; }
+  .k em { font-style: normal; color: #1f9d5c; font-weight: 700; font-size: 16px; }
+  .grande { display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; }
+  .caja { background: #fff; border-radius: 22px; padding: 30px; box-shadow: 0 16px 36px rgba(59,36,22,.08); }
+  .caja h2 { font: 700 24px Georgia, serif; margin-bottom: 24px; }
+  .barras { display: flex; align-items: flex-end; gap: 22px; height: 300px; }
+  .barras div { flex: 1; background: linear-gradient(#d9783f, #f0a970); border-radius: 12px 12px 4px 4px; position: relative; animation: crece 1.4s cubic-bezier(.2,.9,.3,1) both; transform-origin: bottom; }
+  .barras div span { position: absolute; bottom: -30px; left: 0; right: 0; text-align: center; color: #8a6e58; font-size: 15px; }
+  @keyframes crece { from { transform: scaleY(0); } }
+  li { list-style: none; padding: 14px 0; border-bottom: 1px dashed #e7d9c8; font-size: 18px; display: flex; justify-content: space-between; }
+  li b { color: #d9783f; }
+</style>
+</head>
+<body>
+  <div class="top"><div><small>REPORTE MENSUAL · EJEMPLO</small><h1>Cafetería Aurora · Octubre</h1></div><span>Preparado por Mi Agencia IA</span></div>
+  <div class="kpis">
+    <div class="k"><small>Mensajes contestados</small><div>412</div><em>▲ 100 % al instante</em></div>
+    <div class="k"><small>Pedidos por el agente</small><div>86</div><em>▲ 31 % vs septiembre</em></div>
+    <div class="k"><small>Ventas atribuidas</small><div>$48,200</div><em>▲ 24 %</em></div>
+    <div class="k"><small>Contenido publicado</small><div>20</div><em>5 por semana</em></div>
+  </div>
+  <div class="grande">
+    <div class="caja"><h2>Pedidos por semana</h2>
+      <div class="barras"><div style="height:45%;animation-delay:.1s"><span>Sem 1</span></div><div style="height:62%;animation-delay:.25s"><span>Sem 2</span></div><div style="height:74%;animation-delay:.4s"><span>Sem 3</span></div><div style="height:92%;animation-delay:.55s"><span>Sem 4</span></div></div>
+    </div>
+    <div class="caja"><h2>Lo que más funcionó</h2>
+      <ul><li>Latte de temporada <b>38 pedidos</b></li><li>Combo de la mañana <b>22 pedidos</b></li><li>Pedidos para oficinas <b>14 pedidos</b></li><li>Pan dulce <b>12 pedidos</b></li></ul>
+    </div>
+  </div>
+</body>
+</html>

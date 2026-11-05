@@ -1,0 +1,15 @@
+{ "id": "m5", "tomas": [
+  { "nombre": "portal", "url": "file:///home/user/AI-JARVIS/reels/cursos/ejemplos/portal/index.html", "espera": 1200, "pasos": [
+    { "ir": [500, 450], "ms": 700, "pausa": 600 },
+    { "campo": "#empresa", "texto": "Despacho Ríos", "pausa": 200 }, { "campo": "#nombre", "texto": "Laura Ríos", "pausa": 200 },
+    { "campo": "#whatsapp", "texto": "33 0000 0000", "pausa": 200 }, { "campo": "#personas", "texto": "30", "pausa": 200 },
+    { "campo": "#fecha", "texto": "Viernes 9:00", "pausa": 500 }, { "campo": "#enviar", "pausa": 2200 } ] },
+  { "nombre": "crm", "url": "file:///home/user/AI-JARVIS/reels/cursos/ejemplos/crm/index.html", "espera": 800, "pasos": [
+    { "ir": [700, 300], "ms": 900, "pausa": 1200 }, { "ir": [300, 420], "ms": 900, "pausa": 2600 }, { "ir": [1300, 420], "ms": 1000, "pausa": 1200 }, { "ir": [1700, 400], "ms": 900, "pausa": 1400 } ] },
+  { "nombre": "tablero", "url": "file:///home/user/AI-JARVIS/reels/cursos/ejemplos/tablero/index.html", "espera": 300, "pasos": [
+    { "ir": [500, 330], "ms": 900, "pausa": 1100 }, { "ir": [1100, 330], "ms": 900, "pausa": 900 }, { "ir": [700, 700], "ms": 900, "pausa": 1100 }, { "ir": [1500, 700], "ms": 900, "pausa": 1500 } ] },
+  { "nombre": "drop", "url": "https://app.netlify.com/drop", "espera": 5000, "pasos": [
+    { "ir": [960, 400], "ms": 900, "pausa": 1200 }, { "ir": [960, 560], "ms": 800, "pausa": 1500 }, { "scroll": 300, "ms": 2000, "pausa": 1200 } ] },
+  { "nombre": "dominios", "url": "https://docs.netlify.com/manage/domains/get-started-with-domains/", "espera": 5000, "pasos": [
+    { "ir": [960, 420], "ms": 900, "pausa": 1000 }, { "scroll": 380, "ms": 2200, "pausa": 1000 }, { "ir": [1200, 520], "ms": 900, "pausa": 1200 } ] }
+] }

@@ -1,0 +1,77 @@
+{
+  "id": "m5l2",
+  "curso": "Next Level IA",
+  "numero": "5.2",
+  "tituloIntro": "PÁGINA",
+  "tituloCorto": "La página que vende",
+  "bloques": [
+    "ESTRUCTURA",
+    "PEDIRLA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: la página que vende. No se trata de que se vea bonita... se trata de que el cliente compre."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Toda página que vende tiene cuatro partes: una portada que dice qué ofreces en una frase, el producto con precios, una prueba de que es bueno, y un botón claro para pedir.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "La estructura",
+          "pregunta": "",
+          "respuesta": [
+            "# Las 4 partes",
+            "1. Portada: qué ofreces, en una frase",
+            "2. Producto o menú, con precios",
+            "3. Prueba: reseñas o fotos reales",
+            "4. Botón: WhatsApp o pedir"
+          ]
+        },
+        {
+          "toma": "pagina",
+          "etiqueta": "Así se ve",
+          "descripcion": "Las 4 partes en una página",
+          "url": "cafeteria-aurora.mx",
+          "clave": "una"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y se la pides a Claude Code con esas cuatro partes. Pásale las fotos, el menú y el teléfono, y dile el estilo que quieres.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídesela a Claude Code",
+          "pregunta": "Haz una página para Cafetería Aurora con portada, menú con precios, reseñas y botón de WhatsApp. Estilo cálido, colores café. Las fotos están en esta carpeta.",
+          "respuesta": [
+            "# Página lista",
+            "✓ Portada con la foto del latte",
+            "✓ Menú con 6 productos y precios",
+            "✓ Sección de reseñas",
+            "✓ Botón de WhatsApp fijo",
+            "Ábrela en tu navegador para verla."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Estructura clara y una buena instrucción: así se hace una página que vende. En la siguiente lección: publicarla en internet.",
+      "marcas": [
+        "Estructura",
+        "instrucción:",
+        "En"
+      ]
+    }
+  ]
+}

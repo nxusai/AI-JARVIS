@@ -1,0 +1,80 @@
+{
+  "id": "m5l1",
+  "curso": "Next Level IA",
+  "numero": "5.1",
+  "tituloIntro": "SISTEMAS",
+  "tituloCorto": "Lo que construyes y cobras cada mes",
+  "bloques": [
+    "PÁGINAS",
+    "PORTALES",
+    "SISTEMAS"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo cinco: webs, portales y sistemas. Lo que construyes con Claude Code... y cobras cada mes."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Primero, páginas: la cara del negocio en internet, con su menú, sus fotos y un botón para pedir.",
+      "pantallas": [
+        {
+          "toma": "pagina",
+          "etiqueta": "Página web",
+          "descripcion": "Hecha con Claude Code",
+          "url": "cafeteria-aurora.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Después, portales: donde el cliente hace algo solo, como pedir, agendar o cotizar, sin llamar a nadie.",
+      "pantallas": [
+        {
+          "toma": "portal",
+          "etiqueta": "Portal de pedidos",
+          "descripcion": "El cliente pide solo",
+          "url": "pedidos.cafeteria-aurora.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y sistemas: un CRM donde llegan los prospectos solos, y un tablero con los resultados del mes.",
+      "pantallas": [
+        {
+          "toma": "crm",
+          "etiqueta": "CRM",
+          "descripcion": "Los prospectos llegan solos",
+          "url": "crm.miagencia.mx"
+        },
+        {
+          "toma": "tablero",
+          "etiqueta": "Tablero de resultados",
+          "descripcion": "El reporte de cada mes",
+          "url": "reportes.miagencia.mx",
+          "clave": "tablero"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Páginas, portales y sistemas: todo hecho con Claude Code. En la siguiente lección: la página que vende.",
+      "marcas": [
+        "Páginas,",
+        "portales",
+        "sistemas:",
+        "En"
+      ]
+    }
+  ]
+}

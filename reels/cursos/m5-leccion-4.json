@@ -1,0 +1,88 @@
+{
+  "id": "m5l4",
+  "curso": "Next Level IA",
+  "numero": "5.4",
+  "tituloIntro": "PORTALES",
+  "tituloCorto": "Portales y formularios que trabajan solos",
+  "bloques": [
+    "EL PORTAL",
+    "A DÓNDE LLEGA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: portales y formularios. Para que el cliente haga las cosas solo, sin llamar a nadie."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Un portal le deja al cliente pedir, agendar o cotizar por su cuenta. Este es un portal de pedidos para empresas: llenan sus datos, envían, y listo.",
+      "pantallas": [
+        {
+          "toma": "portal",
+          "etiqueta": "Portal de pedidos",
+          "descripcion": "El cliente pide solo",
+          "url": "pedidos.cafeteria-aurora.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Lo importante es a dónde llega: cada pedido se guarda en tu sistema, te avisa por WhatsApp y el cliente recibe su confirmación. Se lo pides a Claude Code tal cual.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "A dónde llega",
+          "nodos": [
+            {
+              "icono": "📝",
+              "titulo": "Formulario"
+            },
+            {
+              "icono": "📋",
+              "titulo": "Se guarda",
+              "sub": "En tu CRM"
+            },
+            {
+              "icono": "🔔",
+              "titulo": "Te avisa",
+              "sub": "Por WhatsApp"
+            },
+            {
+              "icono": "✅",
+              "titulo": "Confirmación",
+              "sub": "Al cliente"
+            }
+          ]
+        },
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude Code",
+          "pregunta": "Haz que cada pedido del formulario se guarde en mi CRM y me avise por WhatsApp.",
+          "respuesta": [
+            "# Listo",
+            "✓ Cada pedido se guarda en el CRM",
+            "✓ Te llega un aviso con los datos",
+            "✓ El cliente recibe su confirmación"
+          ],
+          "clave": "Se"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un portal y a dónde llega cada pedido. En la siguiente lección: el CRM, el tablero y cómo cobrarlo.",
+      "marcas": [
+        "portal",
+        "llega",
+        "En"
+      ]
+    }
+  ]
+}

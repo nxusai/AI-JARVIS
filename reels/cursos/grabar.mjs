@@ -113,6 +113,15 @@ for (const toma of guion.tomas) {
       await mover(p, raton, paso.clic[0], paso.clic[1], paso.ms ?? 700)
       await p.mouse.click(paso.clic[0], paso.clic[1]).catch(() => {})
     } else if (paso.escribir) await p.keyboard.type(paso.escribir, { delay: paso.cada ?? 35 })
+    else if (paso.campo) {
+      // Llenar un campo: el cursor va a él, da clic y escribe (o solo da clic si no hay texto).
+      const caja = await p.locator(paso.campo).first().boundingBox().catch(() => null)
+      if (caja) {
+        await mover(p, raton, caja.x + Math.min(caja.width / 2, 160), caja.y + caja.height / 2, paso.ms ?? 600)
+        await p.mouse.click(raton.x, raton.y).catch(() => {})
+        if (paso.texto) await p.keyboard.type(paso.texto, { delay: paso.cada ?? 35 })
+      }
+    }
     if (paso.pausa) await p.waitForTimeout(paso.pausa)
   }
   await p.waitForTimeout(toma.final ?? 600)

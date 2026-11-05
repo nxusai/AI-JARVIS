@@ -1,0 +1,80 @@
+{
+  "id": "m5l5",
+  "curso": "Next Level IA",
+  "numero": "5.5",
+  "tituloIntro": "CRM",
+  "tituloCorto": "CRM, tablero y cómo cobrarlo",
+  "bloques": [
+    "CRM",
+    "TABLERO",
+    "COBRAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: el CRM, el tablero de resultados... y cómo cobrar todo esto cada mes."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Un CRM sencillo: cada prospecto en su columna, de nuevo a cliente. Y los nuevos llegan solos, desde el agente o el formulario. Mira: acaba de entrar uno.",
+      "pantallas": [
+        {
+          "toma": "crm",
+          "etiqueta": "CRM",
+          "descripcion": "Los prospectos llegan solos",
+          "url": "crm.miagencia.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y para tu cliente, un tablero con sus resultados del mes: mensajes contestados, pedidos y ventas. Es lo que hace que renueve contigo.",
+      "pantallas": [
+        {
+          "toma": "tablero",
+          "etiqueta": "Tablero de resultados",
+          "descripcion": "Lo que hace que renueve",
+          "url": "reportes.miagencia.mx"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "¿Cómo lo cobras? Una construcción inicial por la página, el portal o el sistema. Y una mensualidad por el hosting, los cambios y las mejoras, con el tablero de resultados cada mes.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se cobra",
+          "pregunta": "",
+          "respuesta": [
+            "# Construcción (una vez)",
+            "Página, portal o sistema",
+            "# Mensualidad",
+            "Hosting, cambios y mejoras",
+            "# El reporte",
+            "El tablero de resultados de cada mes"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "CRM, tablero y cobro mensual. Con esto terminas el módulo de webs, portales y sistemas.",
+      "marcas": [
+        "CRM,",
+        "tablero",
+        "cobro",
+        "Con"
+      ]
+    }
+  ]
+}

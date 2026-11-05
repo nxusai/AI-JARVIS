@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prospectos · Mi Agencia IA</title>
+<!-- Mini CRM de ejemplo para el módulo 5 del curso: datos ficticios. -->
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, sans-serif; background: #0b1020; color: #e8ecf8; min-height: 100vh; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 26px 40px; border-bottom: 1px solid #ffffff14; }
+  header b { font-size: 22px; letter-spacing: .06em; } header span { color: #8ea3cc; font-size: 16px; }
+  .resumen { display: flex; gap: 18px; padding: 26px 40px 0; }
+  .dato { background: #121a33; border: 1px solid #ffffff12; border-radius: 16px; padding: 18px 24px; min-width: 210px; }
+  .dato small { color: #8ea3cc; font-size: 14px; } .dato div { font-size: 30px; font-weight: 800; margin-top: 4px; }
+  .tablero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 26px 40px 40px; }
+  .col { background: #10172d; border-radius: 18px; padding: 18px; min-height: 640px; }
+  .col h3 { font-size: 15px; letter-spacing: .12em; color: #8ea3cc; margin-bottom: 14px; display: flex; justify-content: space-between; }
+  .t { background: #18213d; border: 1px solid #ffffff12; border-left: 5px solid var(--c); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .t b { font-size: 18px; display: block; } .t span { color: #a9b6d6; font-size: 15px; display: block; margin-top: 4px; }
+  .t i { font-style: normal; display: inline-block; margin-top: 10px; padding: 4px 10px; border-radius: 999px; background: #ffffff10; font-size: 13px; color: #c9d4ef; }
+  .nuevo { animation: entra .7s cubic-bezier(.2,1.4,.4,1) both, brilla 2.4s ease-out .7s; }
+  @keyframes entra { from { transform: translateY(-40px) scale(.9); opacity: 0; } }
+  @keyframes brilla { 0% { box-shadow: 0 0 0 0 #00e5ffaa; } 100% { box-shadow: 0 0 0 18px #00e5ff00; } }
+</style>
+</head>
+<body>
+  <header><b>MI AGENCIA IA · Prospectos</b><span>Ejemplo · datos ficticios</span></header>
+  <div class="resumen">
+    <div class="dato"><small>Prospectos este mes</small><div id="total">23</div></div>
+    <div class="dato"><small>Propuestas enviadas</small><div>7</div></div>
+    <div class="dato"><small>Clientes nuevos</small><div>3</div></div>
+    <div class="dato"><small>Ingreso mensual</small><div>$31,500</div></div>
+  </div>
+  <div class="tablero">
+    <div class="col" id="nuevos"><h3>NUEVOS <span>5</span></h3>
+      <div class="t" style="--c:#00e5ff"><b>Dental Sonrisa</b><span>Agente de WhatsApp</span><i>Instagram · hoy</i></div>
+      <div class="t" style="--c:#00e5ff"><b>Gimnasio Fuerza</b><span>Contenido mensual</span><i>Formulario · ayer</i></div>
+    </div>
+    <div class="col"><h3>CONTACTADOS <span>6</span></h3>
+      <div class="t" style="--c:#a01cff"><b>Florería Pétalo</b><span>Agente de llamadas</span><i>Llamada · 2 días</i></div>
+      <div class="t" style="--c:#a01cff"><b>Taller Rápido</b><span>Página web</span><i>WhatsApp · 3 días</i></div>
+    </div>
+    <div class="col"><h3>PROPUESTA <span>7</span></h3>
+      <div class="t" style="--c:#ffb547"><b>Cafetería Aurora</b><span>Paquete recomendado · $9,500/mes</span><i>Enviada · ayer</i></div>
+      <div class="t" style="--c:#ffb547"><b>Óptica Visión</b><span>Contenido + agente · $8,000/mes</span><i>Enviada · 4 días</i></div>
+    </div>
+    <div class="col"><h3>CLIENTES <span>3</span></h3>
+      <div class="t" style="--c:#2fd38a"><b>Panadería Trigo</b><span>$6,000/mes</span><i>Desde octubre</i></div>
+      <div class="t" style="--c:#2fd38a"><b>Hotel Bahía</b><span>$14,000/mes</span><i>Desde septiembre</i></div>
+    </div>
+  </div>
+  <script>
+    // Un prospecto nuevo llega solo (del formulario o del agente), como en la vida real.
+    setTimeout(() => {
+      const t = document.createElement('div');
+      t.className = 't nuevo'; t.style.setProperty('--c', '#00e5ff');
+      t.innerHTML = '<b>Restaurante Brasa</b><span>Agente de Instagram</span><i>⚡ Llegó del agente · ahora</i>';
+      const col = document.getElementById('nuevos'); col.insertBefore(t, col.children[1]);
+      col.querySelector('h3 span').textContent = '6'; document.getElementById('total').textContent = '24';
+    }, 4500);
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedidos para empresas · Cafetería Aurora</title>
+<!-- Portal de ejemplo para el módulo 5 del curso (negocio ficticio). -->
+<style>
+  :root { --cafe: #3b2416; --crema: #f6efe6; --naranja: #d9783f; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #f6efe6, #ead9c4); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; color: #2a1a10; }
+  .lado { padding: 90px 7vw; display: flex; flex-direction: column; justify-content: center; }
+  .lado b { font: 700 18px Georgia, serif; letter-spacing: .2em; color: var(--naranja); }
+  .lado h1 { font: 700 64px/1.05 Georgia, serif; margin: 18px 0 22px; color: var(--cafe); }
+  .lado p { font-size: 21px; line-height: 1.6; max-width: 520px; color: #5a4030; }
+  .lado ul { margin-top: 30px; padding: 0; list-style: none; font-size: 19px; line-height: 2; }
+  .forma { margin: 70px 7vw 70px 0; background: #fff; border-radius: 28px; padding: 50px; box-shadow: 0 40px 80px rgba(59,36,22,.18); align-self: center; }
+  .forma h2 { font: 700 30px Georgia, serif; margin-bottom: 26px; color: var(--cafe); }
+  label { display: block; font-weight: 600; font-size: 15px; margin: 16px 0 6px; color: #6b5040; }
+  input, select { width: 100%; padding: 15px 16px; border: 2px solid #e8dccd; border-radius: 12px; font-size: 18px; font-family: inherit; }
+  input:focus { outline: none; border-color: var(--naranja); }
+  .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  button { margin-top: 28px; width: 100%; padding: 18px; border: 0; border-radius: 14px; background: var(--cafe); color: #fff; font: 700 20px system-ui; cursor: pointer; }
+  .ok { display: none; text-align: center; padding: 40px 0; }
+  .ok div { font-size: 70px; }
+  .ok h3 { font: 700 30px Georgia, serif; margin: 10px 0; color: var(--cafe); }
+  .enviado form { display: none; } .enviado .ok { display: block; }
+</style>
+</head>
+<body>
+  <div class="lado">
+    <b>CAFETERÍA AURORA · EMPRESAS</b>
+    <h1>Café y pan dulce para tu oficina.</h1>
+    <p>Pide para juntas, desayunos y eventos. Te confirmamos en minutos por WhatsApp.</p>
+    <ul><li>☕ Desde 10 personas</li><li>🚚 Entrega a domicilio en la zona centro</li><li>🧾 Factura incluida</li></ul>
+  </div>
+  <div class="forma" id="forma">
+    <form onsubmit="event.preventDefault(); document.getElementById('forma').classList.add('enviado')">
+      <h2>Haz tu pedido</h2>
+      <label>Empresa</label><input id="empresa" placeholder="Nombre de tu empresa">
+      <label>Tu nombre</label><input id="nombre" placeholder="¿Quién hace el pedido?">
+      <div class="fila">
+        <div><label>WhatsApp</label><input id="whatsapp" placeholder="33 0000 0000"></div>
+        <div><label>Personas</label><input id="personas" placeholder="Ej. 30"></div>
+      </div>
+      <label>¿Para cuándo?</label><input id="fecha" placeholder="Fecha y hora">
+      <button id="enviar">Enviar pedido</button>
+    </form>
+    <div class="ok"><div>✅</div><h3>¡Pedido recibido!</h3><p>Te escribimos por WhatsApp en unos minutos.</p></div>
+  </div>
+</body>
+</html>

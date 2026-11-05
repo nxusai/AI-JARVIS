@@ -1,0 +1,84 @@
+{
+  "id": "m5l3",
+  "curso": "Next Level IA",
+  "numero": "5.3",
+  "tituloIntro": "PUBLICAR",
+  "tituloCorto": "Tu página en internet en un minuto",
+  "bloques": [
+    "NETLIFY",
+    "DOMINIO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: publicar la página. En un minuto la tienes en internet, gratis."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Entra a Netlify Drop y arrastra la carpeta de tu página. En segundos te da un link funcionando. Crea tu cuenta gratis para conservarla y actualizarla.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Publicar con Netlify Drop",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Entra a app.netlify.com/drop",
+            "2. Arrastra la carpeta de tu página",
+            "3. Te da un link en segundos",
+            "4. Crea tu cuenta para conservarla"
+          ]
+        },
+        {
+          "toma": "drop",
+          "etiqueta": "Netlify Drop",
+          "descripcion": "Arrastra y publica",
+          "url": "app.netlify.com/drop",
+          "clave": "En"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Después conecta el dominio del cliente. En tu sitio, entra a dominios, agrega el dominio, y Netlify te dice qué registros poner donde lo compraste.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Conectar el dominio",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Tu sitio › Domain management",
+            "2. Agrega el dominio del cliente",
+            "3. Netlify te dice qué registros poner",
+            "4. Ponlos donde compraste el dominio",
+            "✓ cafeteria-aurora.mx en línea"
+          ]
+        },
+        {
+          "toma": "dominios",
+          "etiqueta": "Dominios",
+          "descripcion": "Guía oficial de Netlify",
+          "url": "docs.netlify.com",
+          "clave": "Netlify"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Netlify y el dominio del cliente: página publicada. En la siguiente lección: portales y formularios.",
+      "marcas": [
+        "Netlify",
+        "dominio",
+        "En"
+      ]
+    }
+  ]
+}
