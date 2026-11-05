@@ -38,6 +38,7 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - Módulo 7 (Conseguir clientes): 7.1 Cliente ideal y lista; 7.2 Contenido que atrae; 7.3 Prospección directa y seguimiento; 7.4 La demo que vende; 7.5 Anuncios y referidos.
 - Módulo 8 (Cerrar el contrato): 8.1 Reunión de cierre; 8.2 Objeciones; 8.3 Propuesta y firma; 8.4 Cobrar cada mes (Stripe/Mercado Pago); 8.5 El arranque.
 - Módulo 9 (Entregar y retener): 9.1 Entregar en una semana; 9.2 Reporte mensual; 9.3 Mantenimiento y mejoras; 9.4 Subir de paquete; 9.5 Testimonios y referidos. Paquetes acepta "insignia" (texto de la etiqueta del destacado).
+- Bonus (Escalar tu agencia): B.1 De 1 a 10 clientes; B.2 Plantillas por nicho; B.3 Contratar ayuda; B.4 Plan de 30 días. Paquetes acepta "periodo" ("" quita el /mes); el guion acepta "siguiente" (texto bajo la marca del cierre).
 - Ojo con el disco: cada render empaqueta todo public/ (casi 1 GB); `fabrica/render.mjs` ya borra ese paquete al terminar.
 - Estructura del curso: 0 Bienvenida (la graba Lalo), 1 Higgsfield ✅, 2 Claude, 3 Agentes que atienden (ManyChat), 4 Agentes que llaman (ElevenLabs), 5 Webs, portales y sistemas, 6 Servicios y precios, 7 Conseguir clientes, 8 Cerrar el contrato, 9 Entregar y retener, Bonus.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).

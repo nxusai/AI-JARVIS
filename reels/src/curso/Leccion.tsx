@@ -73,7 +73,7 @@ const Pantallas: React.FC<{ e: Escena; acento: string }> = ({ e, acento }) => {
 };
 
 /** Cierre: los cinco bloques en tarjetas sobre un arco que se prenden al nombrarlos; luego la marca. */
-const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, bloques, curso }) => {
+const Final: React.FC<{ e: Escena; bloques: string[]; curso: string; siguiente?: string }> = ({ e, bloques, curso, siguiente }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const n = bloques.length;
@@ -106,7 +106,7 @@ const Final: React.FC<{ e: Escena; bloques: string[]; curso: string }> = ({ e, b
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', opacity: marca }}>
         <div style={{ textAlign: 'center', transform: `scale(${interpolate(marca, [0, 1], [0.8, 1])})` }}>
           <Glitch texto={curso.toUpperCase()} tamano={130} desde={fin + 10} />
-          <div style={{ fontFamily: FUENTE, fontWeight: 500, fontSize: 32, color: '#ffffffcc', marginTop: 18, letterSpacing: '0.2em' }}>SIGUIENTE LECCIÓN →</div>
+          <div style={{ fontFamily: FUENTE, fontWeight: 500, fontSize: 32, color: '#ffffffcc', marginTop: 18, letterSpacing: '0.2em' }}>{siguiente ?? 'SIGUIENTE LECCIÓN →'}</div>
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -130,7 +130,7 @@ export const Leccion: React.FC<LeccionProps> = (p) => {
         <Sequence key={i} from={e.inicio} durationInFrames={e.dur}>
           {e.tipo === 'intro' && <Intro e={e} titulo={p.titulo} numero={p.numero} texto={p.tituloIntro ?? 'HIGGSFIELD'} />}
           {e.tipo === 'pantallas' && <Pantallas e={e} acento={e.bloque ? ACENTOS[e.bloque.numero - 1] : C.cian} />}
-          {e.tipo === 'final' && <Final e={e} bloques={p.bloques} curso={p.curso} />}
+          {e.tipo === 'final' && <Final e={e} bloques={p.bloques} curso={p.curso} siguiente={p.siguiente} />}
           <Sequence from={e.vozDesde}>
             <Subtitulos palabras={e.palabras.map((w) => ({ ...w, inicio: w.inicio - e.vozDesde / 30, fin: w.fin - e.vozDesde / 30 }))} acento={e.bloque ? ACENTOS[e.bloque.numero - 1] : C.cian} />
             <Audio src={staticFile(e.voz)} />

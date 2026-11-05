@@ -1,0 +1,70 @@
+{
+  "id": "bl2",
+  "curso": "Next Level IA",
+  "numero": "B.2",
+  "tituloIntro": "PLANTILLAS",
+  "tituloCorto": "Plantillas que reutilizas",
+  "bloques": [
+    "POR NICHO",
+    "CON CLAUDE"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección dos: plantillas. Lo que haces una vez, no lo vuelvas a hacer.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Elige un nicho, como cafeterías, y guarda todo lo que ya te funcionó: el agente, la web, la propuesta y el reporte. El segundo cliente te toma la mitad del tiempo.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Tu kit por nicho",
+          "pregunta": "",
+          "respuesta": [
+            "# Kit: cafeterías",
+            "✓ Agente de Instagram y WhatsApp",
+            "✓ Plantilla de web",
+            "✓ Propuesta y contrato",
+            "✓ Reporte mensual",
+            "# El segundo cliente: la mitad del tiempo"
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Y deja que Claude adapte la plantilla: le das el kit y los datos del nuevo negocio, y te lo entrega listo, con su menú, sus precios y sus horarios.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Adapta mi kit de cafeterías para Café Luna con estos datos: menú, precios y horarios.",
+          "respuesta": [
+            "# Kit adaptado",
+            "✓ Agente con el menú de Café Luna",
+            "✓ Precios y horarios nuevos",
+            "✓ Propuesta con su nombre",
+            "✓ Listo para entregar"
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Un kit por nicho y Claude que lo adapta. En la siguiente lección: contratar ayuda.",
+      "marcas": [
+        "kit",
+        "adapta.",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

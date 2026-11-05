@@ -1,0 +1,82 @@
+{
+  "id": "bl1",
+  "curso": "Next Level IA",
+  "numero": "B.1",
+  "tituloIntro": "ESCALAR",
+  "tituloCorto": "De 1 a 10 clientes",
+  "bloques": [
+    "LA META",
+    "EL CAMINO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Bonus: escalar tu agencia. De tu primer cliente a diez.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Haz la cuenta: diez clientes con el paquete Recomendado son noventa y cinco mil pesos al mes, todos los meses. No necesitas cien clientes, necesitas diez que se queden.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "La meta",
+          "pregunta": "",
+          "respuesta": [
+            "# 10 clientes × $9,500",
+            "= $95,000 al mes",
+            "Todos los meses",
+            "# No cien: diez que se queden"
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "El camino: uno, para aprender. Tres, para tener tus plantillas. Cinco, para contratar ayuda. Y diez, con un sistema que funciona sin ti.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El camino",
+          "nodos": [
+            {
+              "icono": "1️⃣",
+              "titulo": "1 cliente",
+              "sub": "Aprendes"
+            },
+            {
+              "icono": "3️⃣",
+              "titulo": "3 clientes",
+              "sub": "Plantillas"
+            },
+            {
+              "icono": "5️⃣",
+              "titulo": "5 clientes",
+              "sub": "Contratas ayuda"
+            },
+            {
+              "icono": "🔟",
+              "titulo": "10 clientes",
+              "sub": "Tu sistema"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Una meta clara y un camino por etapas. En la siguiente lección: tus plantillas.",
+      "marcas": [
+        "meta",
+        "camino",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ export type Pantalla = {
   /** Resultado de la herramienta en vez de una grabación: se muestra grande, sin navegador. */
   resultado?: 'imagen' | 'video' | 'audio' | 'chat' | 'telefono' | 'flujo' | 'paquetes';
   /** Paquetes: nombre, precio, qué incluye y cuál se recomienda. */
-  paquetes?: { nombre: string; precio: string; incluye: string[]; destacado?: boolean; insignia?: string }[];
+  paquetes?: { nombre: string; precio: string; incluye: string[]; destacado?: boolean; insignia?: string; periodo?: string }[];
   /** Teléfono: la conversación (comentario público, cliente o agente) y el nombre de la cuenta. */
   mensajes?: { de: 'cliente' | 'agente' | 'comentario'; texto: string; boton?: string }[];
   cuenta?: string;
@@ -60,6 +60,8 @@ export type LeccionProps = {
   titulo: string;
   /** La palabra en 3D de la intro. */
   tituloIntro?: string;
+  /** Texto bajo la marca al final (por omisión, 'SIGUIENTE LECCIÓN →'). */
+  siguiente?: string;
   bloques: string[];
   musica: string;
   total: number;

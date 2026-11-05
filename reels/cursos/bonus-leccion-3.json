@@ -1,0 +1,99 @@
+{
+  "id": "bl3",
+  "curso": "Next Level IA",
+  "numero": "B.3",
+  "tituloIntro": "EQUIPO",
+  "tituloCorto": "Contratar ayuda",
+  "bloques": [
+    "QUÉ DELEGAR",
+    "CÓMO ENSEÑAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección tres: contratar ayuda. Para crecer, deja de hacerlo todo tú.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Delega lo que se repite: el contenido, la revisión semanal del agente y los reportes. Tú te quedas con lo que solo tú haces: vender y cuidar a tus clientes.",
+      "pantallas": [
+        {
+          "resultado": "paquetes",
+          "etiqueta": "Qué delegar",
+          "paquetes": [
+            {
+              "nombre": "Lo delegas",
+              "precio": "Se repite",
+              "incluye": [
+                "Contenido",
+                "Revisión semanal",
+                "Reportes"
+              ],
+              "periodo": ""
+            },
+            {
+              "nombre": "Te lo quedas",
+              "precio": "Solo tú",
+              "incluye": [
+                "Vender",
+                "Cuidar a tus clientes",
+                "Las decisiones"
+              ],
+              "destacado": true,
+              "insignia": "TU TRABAJO",
+              "periodo": ""
+            }
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Para enseñar, graba tu pantalla mientras lo haces una vez, y pídele a Claude que lo convierta en una guía paso a paso. Tu ayudante la sigue, y tú solo revisas.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Cómo enseñar",
+          "nodos": [
+            {
+              "icono": "🎥",
+              "titulo": "Grabas",
+              "sub": "Lo haces una vez"
+            },
+            {
+              "icono": "📝",
+              "titulo": "Claude",
+              "sub": "Lo vuelve guía"
+            },
+            {
+              "icono": "🙋",
+              "titulo": "Tu ayudante",
+              "sub": "La sigue"
+            },
+            {
+              "icono": "✅",
+              "titulo": "Tú",
+              "sub": "Solo revisas"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Delega lo que se repite y enséñalo con una guía. En la siguiente lección: tu plan de treinta días.",
+      "marcas": [
+        "Delega",
+        "guía.",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

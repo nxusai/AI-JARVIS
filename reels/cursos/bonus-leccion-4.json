@@ -1,0 +1,88 @@
+{
+  "id": "bl4",
+  "curso": "Next Level IA",
+  "numero": "B.4",
+  "tituloIntro": "30 DÍAS",
+  "tituloCorto": "Tu plan de 30 días",
+  "bloques": [
+    "SEMANAS 1 Y 2",
+    "SEMANAS 3 Y 4"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Última lección: tu plan de treinta días para conseguir tu primer cliente.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Semana uno: elige tu nicho y arma tu demo. Semana dos: publica contenido todos los días y escríbele a veinte negocios.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Semanas 1 y 2",
+          "nodos": [
+            {
+              "icono": "🎯",
+              "titulo": "Semana 1",
+              "sub": "Nicho y demo"
+            },
+            {
+              "icono": "📣",
+              "titulo": "Semana 2",
+              "sub": "Contenido diario"
+            },
+            {
+              "icono": "✉️",
+              "titulo": "Semana 2",
+              "sub": "20 negocios"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Semana tres: agenda tus reuniones de diagnóstico. Semana cuatro: cierra tu primer contrato y entrégalo en una semana. Ya sabes cómo hacer cada paso.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Semanas 3 y 4",
+          "nodos": [
+            {
+              "icono": "📅",
+              "titulo": "Semana 3",
+              "sub": "Diagnósticos"
+            },
+            {
+              "icono": "✍️",
+              "titulo": "Semana 4",
+              "sub": "Primer contrato"
+            },
+            {
+              "icono": "🚀",
+              "titulo": "Semana 4",
+              "sub": "Entrega"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Treinta días, un paso a la vez. Ya tienes todo lo que necesitas. Ahora te toca a ti. Nos vemos en el siguiente nivel.",
+      "marcas": [
+        "Treinta",
+        "paso",
+        "Ahora"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ],
+  "siguiente": "TE VEO EN EL SIGUIENTE NIVEL"
+}

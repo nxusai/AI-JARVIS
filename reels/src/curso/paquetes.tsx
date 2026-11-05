@@ -25,7 +25,7 @@ export const Paquetes: React.FC<{ p: Pantalla; acento: string }> = ({ p, acento 
               transform: `translateY(${(1 - s) * 260 - top * 40}px) rotateY(${(i - 1) * -10 * (1 - top * 0.6)}deg) scale(${1 + top * 0.08})`, opacity: s }}>
               {q.destacado && <div style={{ display: 'inline-block', marginBottom: 14, padding: '6px 16px', borderRadius: 999, background: acento, color: '#06101e', fontWeight: 900, fontSize: 18, letterSpacing: '0.1em', opacity: top }}>{q.insignia ?? 'RECOMENDADO'}</div>}
               <div style={{ color: '#fff', fontWeight: 900, fontSize: 34 }}>{q.nombre}</div>
-              <div style={{ marginTop: 10, color: q.destacado ? acento : '#fff', fontWeight: 900, fontSize: 56 }}>{q.precio}<span style={{ fontSize: 22, color: '#ffffff88', fontWeight: 500 }}> /mes</span></div>
+              <div style={{ marginTop: 10, color: q.destacado ? acento : '#fff', fontWeight: 900, fontSize: 56 }}>{q.precio}<span style={{ fontSize: 22, color: '#ffffff88', fontWeight: 500 }}>{q.periodo ?? ' /mes'}</span></div>
               <div style={{ marginTop: 18, borderTop: '1px solid #ffffff1a', paddingTop: 18 }}>
                 {q.incluye.map((x, k) => (
                   <div key={k} style={{ color: '#d9e1f5', fontSize: 23, lineHeight: 1.5, opacity: interpolate(f - 14 - i * 7 - k * 4, [0, 8], [0, 1], fija) }}>✓ {x}</div>

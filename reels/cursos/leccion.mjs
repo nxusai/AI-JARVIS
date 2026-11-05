@@ -119,7 +119,7 @@ const escenas = guion.escenas.map((e) => {
   return escena
 })
 
-const props = { curso: guion.curso, numero: guion.numero, titulo: guion.tituloCorto, tituloIntro: guion.tituloIntro ?? 'HIGGSFIELD', bloques: guion.bloques, musica: `${base}/musica.wav`, total: cursor, escenas }
+const props = { curso: guion.curso, numero: guion.numero, titulo: guion.tituloCorto, tituloIntro: guion.tituloIntro ?? 'HIGGSFIELD', siguiente: guion.siguiente, bloques: guion.bloques, musica: `${base}/musica.wav`, total: cursor, escenas }
 const SALIDA = join(RAIZ, 'salida', 'curso', guion.id)
 mkdirSync(SALIDA, { recursive: true })
 writeFileSync(join(SALIDA, 'props.json'), JSON.stringify(props, null, 2))
