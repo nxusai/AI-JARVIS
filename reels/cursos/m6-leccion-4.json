@@ -1,0 +1,92 @@
+{
+  "id": "m6l4",
+  "curso": "Next Level IA",
+  "numero": "6.4",
+  "tituloIntro": "PAQUETES",
+  "tituloCorto": "Los 3 paquetes que venden",
+  "bloques": [
+    "TRES OPCIONES",
+    "EL RECOMENDADO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: los tres paquetes. La forma más fácil de que un cliente diga que sí."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Siempre presenta tres opciones: básico, recomendado y completo. Así el cliente ya no decide si te contrata... decide cuál paquete quiere.",
+      "pantallas": [
+        {
+          "resultado": "paquetes",
+          "etiqueta": "Tus 3 paquetes",
+          "descripcion": "Precios de ejemplo, en pesos mexicanos",
+          "paquetes": [
+            {
+              "nombre": "Básico",
+              "precio": "$6,000",
+              "incluye": [
+                "12 piezas de contenido",
+                "Reporte mensual"
+              ]
+            },
+            {
+              "nombre": "Recomendado",
+              "precio": "$9,500",
+              "incluye": [
+                "20 piezas de contenido",
+                "Agente de Instagram y WhatsApp",
+                "Reporte mensual"
+              ],
+              "destacado": true
+            },
+            {
+              "nombre": "Completo",
+              "precio": "$14,000",
+              "incluye": [
+                "Todo lo del Recomendado",
+                "Agente de llamadas",
+                "Anuncios y reporte semanal"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "El de en medio es el que quieres vender: tiene lo que el cliente de verdad necesita, y el completo hace que se vea razonable. La mayoría escoge el recomendado.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Por qué funciona",
+          "pregunta": "",
+          "respuesta": [
+            "# Básico",
+            "Para el que tiene poco presupuesto",
+            "# Recomendado",
+            "Lo que de verdad necesita: el que vendes",
+            "# Completo",
+            "Hace que el recomendado se vea razonable"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Tres opciones y un recomendado claro. En la siguiente lección: el contrato mensual.",
+      "marcas": [
+        "opciones",
+        "recomendado",
+        "En"
+      ]
+    }
+  ]
+}

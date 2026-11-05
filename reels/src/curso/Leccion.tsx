@@ -9,6 +9,7 @@ import { Numero3D, Titulo3D } from './tresd';
 import { Resultado } from './resultado';
 import { Chat } from './chat';
 import { Flujo, Telefono } from './telefono';
+import { Paquetes } from './paquetes';
 import type { Escena, LeccionProps } from './tipos';
 
 const fija = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
@@ -57,7 +58,7 @@ const Pantallas: React.FC<{ e: Escena; acento: string }> = ({ e, acento }) => {
     <AbsoluteFill>
       {e.pantallas.map((p, i) => (
         <Sequence key={i} from={p.inicio} durationInFrames={p.dur}>
-          {p.resultado === 'telefono' ? <Telefono p={p} acento={acento} /> : p.resultado === 'flujo' ? <Flujo p={p} acento={acento} /> : p.resultado === 'chat' ? <Chat p={p} acento={acento} /> : p.resultado ? <Resultado p={p} acento={acento} /> : <Navegador p={p} acento={acento} lado={i % 2 ? -1 : 1} />}
+          {p.resultado === 'paquetes' ? <Paquetes p={p} acento={acento} /> : p.resultado === 'telefono' ? <Telefono p={p} acento={acento} /> : p.resultado === 'flujo' ? <Flujo p={p} acento={acento} /> : p.resultado === 'chat' ? <Chat p={p} acento={acento} /> : p.resultado ? <Resultado p={p} acento={acento} /> : <Navegador p={p} acento={acento} lado={i % 2 ? -1 : 1} />}
           {!p.resultado && <Etiqueta nombre={p.etiqueta} descripcion={p.descripcion} acento={acento} dur={p.dur} />}
         </Sequence>
       ))}

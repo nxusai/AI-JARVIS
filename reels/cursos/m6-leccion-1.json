@@ -1,0 +1,83 @@
+{
+  "id": "m6l1",
+  "curso": "Next Level IA",
+  "numero": "6.1",
+  "tituloIntro": "SERVICIOS",
+  "tituloCorto": "Tu catálogo de servicios",
+  "bloques": [
+    "LOS 4 SERVICIOS",
+    "EMPIEZA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo seis: servicios y precios. Aquí conviertes todo lo que aprendiste en algo que se puede vender."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Ya sabes hacer cuatro servicios: contenido con inteligencia artificial, agentes que atienden, agentes que llaman, y páginas y sistemas. Cada uno resuelve un problema distinto del negocio.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Tus 4 servicios",
+          "nodos": [
+            {
+              "icono": "🎬",
+              "titulo": "Contenido",
+              "sub": "Fotos, videos y reels"
+            },
+            {
+              "icono": "💬",
+              "titulo": "Agentes que atienden",
+              "sub": "Instagram y WhatsApp"
+            },
+            {
+              "icono": "📞",
+              "titulo": "Agentes que llaman",
+              "sub": "Seguimiento y confirmación"
+            },
+            {
+              "icono": "🌐",
+              "titulo": "Webs y sistemas",
+              "sub": "Página, portal, CRM"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Pero no empieces vendiendo los cuatro. Escoge uno o dos, los que mejor domines, y vuélvete muy bueno en ellos. Los demás los agregas después, a clientes que ya confían en ti.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo empezar",
+          "pregunta": "",
+          "respuesta": [
+            "# Tu primer catálogo",
+            "✓ 1 o 2 servicios que domines",
+            "✓ Un tipo de negocio: restaurantes, clínicas…",
+            "# Después",
+            "Agrega los demás a clientes que ya confían en ti"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Cuatro servicios, y empiezas con uno o dos. En la siguiente lección: cuánto te cuesta cada cliente.",
+      "marcas": [
+        "servicios,",
+        "empiezas",
+        "En"
+      ]
+    }
+  ]
+}

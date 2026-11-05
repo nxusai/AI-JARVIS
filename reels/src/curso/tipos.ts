@@ -17,7 +17,9 @@ export type Pantalla = {
   descripcion?: string;
   url?: string;
   /** Resultado de la herramienta en vez de una grabación: se muestra grande, sin navegador. */
-  resultado?: 'imagen' | 'video' | 'audio' | 'chat' | 'telefono' | 'flujo';
+  resultado?: 'imagen' | 'video' | 'audio' | 'chat' | 'telefono' | 'flujo' | 'paquetes';
+  /** Paquetes: nombre, precio, qué incluye y cuál se recomienda. */
+  paquetes?: { nombre: string; precio: string; incluye: string[]; destacado?: boolean }[];
   /** Teléfono: la conversación (comentario público, cliente o agente) y el nombre de la cuenta. */
   mensajes?: { de: 'cliente' | 'agente' | 'comentario'; texto: string; boton?: string }[];
   cuenta?: string;

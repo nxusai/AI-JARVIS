@@ -1,0 +1,71 @@
+{
+  "id": "m6l5",
+  "curso": "Next Level IA",
+  "numero": "6.5",
+  "tituloIntro": "CONTRATO",
+  "tituloCorto": "El contrato mensual",
+  "bloques": [
+    "LAS REGLAS",
+    "EL DOCUMENTO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: el contrato mensual. Lo que protege tu ingreso cada mes."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Tu contrato necesita reglas claras: un plazo mínimo de tres meses, qué incluye y qué no, pago mensual por adelantado, los cambios extra se cobran aparte, y la cancelación con treinta días de aviso.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Las reglas",
+          "pregunta": "",
+          "respuesta": [
+            "✓ Plazo mínimo: 3 meses",
+            "✓ Qué incluye y qué no",
+            "✓ Pago mensual por adelantado",
+            "✓ Cambios extra: se cobran aparte",
+            "✓ Cancelación: 30 días de aviso"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "El documento te lo escribe Claude con esas reglas y tus paquetes. Y antes de usarlo con clientes, pídele a un abogado que lo revise una vez: es una inversión pequeña que te cuida siempre.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Escribe un contrato de servicios mensuales con mis 3 paquetes, plazo mínimo de 3 meses, pago por adelantado y cancelación con 30 días de aviso.",
+          "respuesta": [
+            "# Contrato de servicios",
+            "1. Partes y servicios contratados",
+            "2. Paquete, precio y forma de pago",
+            "3. Plazo mínimo y renovación",
+            "4. Cambios fuera del paquete",
+            "5. Cancelación y aviso",
+            "Revísalo con un abogado antes de usarlo."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Reglas claras y un buen documento. Con esto terminas el módulo de servicios y precios.",
+      "marcas": [
+        "Reglas",
+        "documento.",
+        "Con"
+      ]
+    }
+  ]
+}

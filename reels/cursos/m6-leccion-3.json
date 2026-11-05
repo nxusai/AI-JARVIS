@@ -1,0 +1,70 @@
+{
+  "id": "m6l3",
+  "curso": "Next Level IA",
+  "numero": "6.3",
+  "tituloIntro": "PRECIO",
+  "tituloCorto": "Cuánto cobrar",
+  "bloques": [
+    "MÍNIMO",
+    "POR VALOR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: cuánto cobrar. La pregunta que más miedo da... y que tiene una respuesta muy simple."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Regla número uno: nunca cobres menos de tres veces tu costo. Si te cuesta tres mil quinientos al mes, tu mínimo es diez mil quinientos. Ese margen paga tu crecimiento y los imprevistos.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El mínimo",
+          "pregunta": "",
+          "respuesta": [
+            "# Regla de 3",
+            "Costo: $3,500 al mes",
+            "× 3",
+            "# Mínimo: $10,500 al mes",
+            "Ese margen paga crecimiento e imprevistos"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y regla número dos: cobra por lo que le generas, no por tus horas. Si tu agente le trae al negocio cuarenta y ocho mil pesos en ventas al mes, cobrar diez mil es barato. Muéstrale ese número en la propuesta.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "El agente le trajo a la cafetería 86 pedidos este mes, con ticket promedio de $560. ¿Cuánto le generó y cuánto podría cobrar?",
+          "respuesta": [
+            "# Lo que le generó",
+            "86 pedidos × $560 = $48,160 al mes",
+            "# Lo que puedes cobrar",
+            "Entre el 15 y el 25 % de eso:",
+            "$7,200 a $12,000 al mes",
+            "Y sigue siendo un buen negocio para él."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Tres veces tu costo como mínimo, y por el valor que generas. En la siguiente lección: los tres paquetes.",
+      "marcas": [
+        "costo",
+        "valor",
+        "En"
+      ]
+    }
+  ]
+}

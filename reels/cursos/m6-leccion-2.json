@@ -1,0 +1,71 @@
+{
+  "id": "m6l2",
+  "curso": "Next Level IA",
+  "numero": "6.2",
+  "tituloIntro": "COSTOS",
+  "tituloCorto": "Cuánto te cuesta cada cliente",
+  "bloques": [
+    "HERRAMIENTAS",
+    "TU TIEMPO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: cuánto te cuesta cada cliente. No puedes poner un buen precio sin saber tus números."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Primero, las herramientas. Suma lo que pagas al mes por ese cliente: Higgsfield, ManyChat, los minutos de ElevenLabs, el hosting y Claude. Si una herramienta la usas para varios clientes, divídela entre ellos.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Herramientas por cliente",
+          "pregunta": "",
+          "respuesta": [
+            "# Suma al mes",
+            "Higgsfield · contenido",
+            "ManyChat · agente de mensajes",
+            "ElevenLabs · minutos de llamadas",
+            "Netlify y dominio · página",
+            "Claude · tu equipo",
+            "# Compartida entre clientes: divídela"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y segundo, tu tiempo: cuántas horas al mes le dedicas a ese cliente, por lo que vale tu hora. Esa suma es tu costo real, y tu precio siempre tiene que estar muy por encima.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Mis herramientas para este cliente cuestan $1,500 al mes y le dedico 8 horas. Mi hora vale $250. ¿Cuál es mi costo real?",
+          "respuesta": [
+            "# Tu costo real",
+            "Herramientas: $1,500",
+            "Tiempo: 8 h × $250 = $2,000",
+            "# Total: $3,500 al mes",
+            "Tu precio debe estar muy por encima."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Herramientas más tu tiempo: ese es tu costo. En la siguiente lección: cuánto cobrar.",
+      "marcas": [
+        "Herramientas",
+        "tiempo:",
+        "En"
+      ]
+    }
+  ]
+}
