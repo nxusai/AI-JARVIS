@@ -1,0 +1,1046 @@
+<title>Mapa Crédito y Cobranza</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: full-height workspace — header strip, pannable SVG map, ficha panel at right (bottom sheet on phone). Colors follow the NXUS guide: navy + teal. */
+:root {
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --surface-2: #e9f1f2;
+  --ink: #142739;
+  --ink-2: #4a5d6c;
+  --line: #c9d6db;
+  --line-soft: #dde6e9;
+  --teal: #0e7c7b;
+  --teal-soft: #d6ecec;
+  --navy: #142739;
+  --on-navy: #ffffff;
+  --rust: #b04a2a;
+  --rust-soft: #f6e3dc;
+  --ochre: #8a6512;
+  --ochre-soft: #f4ead2;
+  --slate: #3c5a8a;
+  --slate-soft: #e0e7f3;
+  --focus: #0e7c7b;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1a24; --surface: #142430; --surface-2: #1a3040; --ink: #e4edf1; --ink-2: #9fb2bd;
+    --line: #2f4757; --line-soft: #233746; --teal: #4cc3bf; --teal-soft: #173c42; --navy: #e4edf1; --on-navy: #0e1a24;
+    --rust: #f08c69; --rust-soft: #3b2219; --ochre: #e0b65a; --ochre-soft: #352b14; --slate: #94b1e3; --slate-soft: #1d2b42;
+    --focus: #4cc3bf; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1a24; --surface: #142430; --surface-2: #1a3040; --ink: #e4edf1; --ink-2: #9fb2bd;
+  --line: #2f4757; --line-soft: #233746; --teal: #4cc3bf; --teal-soft: #173c42; --navy: #e4edf1; --on-navy: #0e1a24;
+  --rust: #f08c69; --rust-soft: #3b2219; --ochre: #e0b65a; --ochre-soft: #352b14; --slate: #94b1e3; --slate-soft: #1d2b42;
+  --focus: #4cc3bf; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; overflow: hidden; }
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.top {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px;
+  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.brand { min-width: 0; flex: 1 1 320px; }
+.eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); font-weight: 600; }
+.brand h1 { margin: 2px 0 0; font-size: 19px; line-height: 1.25; font-weight: 700; text-wrap: balance; }
+.brand .meta { color: var(--ink-2); font-size: 12.5px; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.search { position: relative; }
+.search input {
+  width: 210px; max-width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+}
+.btn {
+  height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+}
+.btn:hover { border-color: var(--teal); }
+.btn[aria-pressed="true"] { background: var(--teal-soft); border-color: var(--teal); color: var(--ink); }
+.results {
+  position: absolute; top: 38px; left: 0; z-index: 30; width: 280px; max-width: 80vw; max-height: 300px; overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 4px;
+}
+.results button { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 5px; cursor: pointer; }
+.results button:hover, .results button.on { background: var(--surface-2); }
+.results .rid { font-family: var(--font-mono); font-size: 12px; color: var(--teal); min-width: 40px; }
+
+.main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 420px; }
+.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; }
+.stage svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; -webkit-user-select: none; }
+.stage svg.panning { cursor: grabbing; }
+.zoom {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.zoom .btn { width: 36px; padding: 0; justify-content: center; font-size: 17px; }
+.zoom .btn.wide { width: auto; padding: 0 10px; font-size: 12.5px; }
+.hint {
+  position: absolute; right: 12px; bottom: 12px; font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-soft);
+  padding: 6px 10px; border-radius: 6px; max-width: 60%;
+}
+
+/* SVG */
+.edge-nav { stroke: var(--line); stroke-width: 1.6; fill: none; }
+.edge-entry { stroke: var(--ink-2); stroke-width: 1.8; fill: none; }
+.edge-seq { stroke: var(--teal); stroke-width: 1.8; fill: none; }
+.edge-data { stroke: var(--slate); stroke-width: 1.6; fill: none; stroke-dasharray: 6 5; }
+.edge-dim { opacity: .28; }
+.edge-label { font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+.edge-label.seq { fill: var(--teal); }
+.edge-label.data { fill: var(--slate); }
+.edge-label.entry { fill: var(--ink-2); }
+.node { cursor: pointer; }
+.node circle.body { stroke-width: 2; }
+.node.center circle.body { fill: var(--navy); stroke: var(--navy); }
+.node.module circle.body { fill: var(--surface-2); stroke: var(--teal); }
+.node.sub circle.body { fill: var(--surface); stroke: var(--teal); stroke-width: 1.5; }
+.node.entry circle.body { fill: var(--surface); stroke: var(--ink-2); }
+.node.pending circle.body { stroke: var(--rust); stroke-dasharray: 4 4; }
+.node .sel { fill: none; stroke: var(--teal); stroke-width: 3; opacity: 0; }
+.node.selected .sel { opacity: 1; }
+.node:hover circle.body { filter: brightness(1.04); stroke-width: 2.6; }
+.node:focus { outline: none; }
+.node:focus-visible .sel { opacity: 1; stroke: var(--focus); stroke-dasharray: 3 3; }
+.n-id { font-family: var(--font-mono); font-weight: 600; fill: var(--teal); }
+.n-title { font-family: var(--font-sans); font-weight: 600; fill: var(--ink); }
+.n-sub { font-family: var(--font-sans); fill: var(--ink-2); }
+.center .n-id, .center .n-title, .center .n-sub { fill: var(--on-navy); }
+.badge-d circle { fill: var(--rust-soft); stroke: var(--rust); stroke-width: 1.2; }
+.badge-d text { font-family: var(--font-mono); font-size: 10px; font-weight: 600; fill: var(--rust); }
+.badge-x circle { fill: var(--teal); }
+.badge-x text { font-family: var(--font-mono); font-size: 12px; font-weight: 600; fill: var(--surface); }
+
+/* Panel */
+.panel { min-height: 0; overflow: auto; border-left: 1px solid var(--line); background: var(--surface); }
+.panel-inner { padding: 18px 20px 28px; padding-right: max(20px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+.handle { display: none; }
+.f-head { display: grid; gap: 6px; }
+.f-id { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--teal); letter-spacing: .03em; }
+.f-head h2 { margin: 0; font-size: 22px; line-height: 1.2; text-wrap: balance; }
+.f-fn { color: var(--ink); margin: 0; }
+.f-crumb { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.f-crumb button { border: 0; background: none; padding: 0; color: var(--teal); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.f-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fields { display: grid; gap: 0; border-top: 1px solid var(--line-soft); }
+.field { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.field dt { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); font-weight: 600; padding-top: 2px; }
+.field dd { margin: 0; min-width: 0; }
+.field ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.field li { display: flex; gap: 6px; align-items: baseline; }
+.missing { color: var(--ink-2); font-style: italic; border: 1px dashed var(--line); border-radius: 5px; padding: 2px 8px; display: inline-block; font-size: 12.5px; }
+.tag {
+  flex: none; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; line-height: 1; padding: 3px 5px; border-radius: 4px; border: 1px solid transparent;
+  position: relative; top: -1px;
+}
+.tag.R { background: var(--slate-soft); color: var(--slate); }
+.tag.F { background: var(--teal-soft); color: var(--teal); }
+.tag.P { background: var(--ochre-soft); color: var(--ochre); }
+.tag.D { background: var(--rust-soft); color: var(--rust); border: 1px dashed var(--rust); }
+.tag.Q { background: transparent; color: var(--ink-2); border: 1px dashed var(--ink-2); }
+.links { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 3px 10px 3px 8px; cursor: pointer; font-size: 12.5px;
+  display: inline-flex; gap: 6px; align-items: baseline;
+}
+.chip:hover { border-color: var(--teal); }
+.chip .cid { font-family: var(--font-mono); font-size: 11px; color: var(--teal); font-weight: 600; }
+.conn { display: grid; gap: 5px; }
+.conn button { text-align: left; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); }
+.conn button:hover .cid { text-decoration: underline; }
+.conn .cid { font-family: var(--font-mono); font-size: 12px; color: var(--teal); font-weight: 600; }
+.conn .kind { font-size: 11px; color: var(--ink-2); }
+
+.intro h2 { margin: 0; font-size: 20px; line-height: 1.25; text-wrap: balance; }
+.intro p { margin: 0; }
+.box { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--bg); }
+.box h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); }
+.legend { display: grid; gap: 8px; }
+.legend-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; font-size: 13px; }
+.legend-row svg { width: 52px; height: 22px; overflow: visible; }
+.tags-legend { display: grid; gap: 6px; font-size: 13px; }
+.tags-legend div { display: flex; gap: 8px; align-items: baseline; }
+.prio { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.prio b { font-weight: 600; }
+.mods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.mods .chip { border-radius: 6px; justify-content: flex-start; }
+.small { font-size: 12.5px; color: var(--ink-2); }
+
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .panel {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 62%; border-left: 0; border-top: 1px solid var(--line);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -8px 28px rgba(0,0,0,.16); transition: transform .25s ease; z-index: 20;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .panel[data-open="false"] { transform: translateY(calc(100% - 52px)); overflow: hidden; }
+  .handle {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; height: 52px; border: 0; background: var(--surface);
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--line-soft); cursor: pointer; font-weight: 600; text-align: left;
+  }
+  .handle .grip { width: 36px; height: 4px; border-radius: 4px; background: var(--line); flex: none; }
+  .handle .ht { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .handle .hs { font-size: 12px; color: var(--ink-2); font-weight: 500; flex: none; }
+  .panel-inner { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .zoom { bottom: 64px; }
+  .hint { display: none; }
+  .top { padding-block: 10px; gap: 8px; }
+  .brand { flex-basis: 100%; }
+  .brand .meta { display: none; }
+  .tools { width: 100%; flex-wrap: nowrap; gap: 6px; }
+  .search { flex: 1 1 auto; min-width: 0; }
+  .search input { width: 100%; }
+  .tools .btn { padding: 0 9px; font-size: 12.5px; }
+  #collapseAll { display: none; }
+  .panel { max-height: 56%; }
+  .brand h1 { font-size: 17px; }
+  .field { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+@media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">NXUS AI · Financiera de Emmanuel Copto</div>
+      <h1>Mapa del sistema de crédito y cobranza</h1>
+      <div class="meta">Vista general · mapa v0.1 · basado en la guía v1.0 del 4 nov 2026</div>
+    </div>
+    <div class="tools">
+      <div class="search">
+        <label for="q" class="sr" hidden>Buscar círculo</label>
+        <input id="q" type="search" placeholder="Buscar ID o nombre…" autocomplete="off" aria-label="Buscar círculo por ID o nombre">
+        <div class="results" id="results" hidden></div>
+      </div>
+      <button class="btn" id="expandAll" type="button">Desplegar todo</button>
+      <button class="btn" id="collapseAll" type="button">Contraer</button>
+      <button class="btn" id="allLinks" type="button" aria-pressed="false">Todas las conexiones</button>
+    </div>
+  </header>
+  <div class="main">
+    <div class="stage" id="stage">
+      <svg id="svg" role="application" aria-label="Mapa de círculos conectados. Arrastra para mover, usa la rueda o pellizca para acercar.">
+        <defs>
+          <marker id="arSeq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--teal)"/></marker>
+          <marker id="arData" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--slate)"/></marker>
+          <marker id="arEntry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker>
+        </defs>
+        <g id="world"><g id="edges"></g><g id="labels"></g><g id="nodes"></g></g>
+      </svg>
+      <div class="zoom">
+        <button class="btn" id="zin" type="button" aria-label="Acercar">+</button>
+        <button class="btn" id="zout" type="button" aria-label="Alejar">−</button>
+        <button class="btn wide" id="fit" type="button">Encuadrar</button>
+        <button class="btn wide" id="reset" type="button">Reordenar</button>
+      </div>
+      <div class="hint">Toca un módulo para desplegar sus círculos. Arrastra un círculo para moverlo.</div>
+    </div>
+    <aside class="panel" id="panel" data-open="false" aria-live="polite">
+      <button class="handle" id="handle" type="button" aria-controls="panel"><span class="grip"></span><span class="ht" id="handleTitle">Cómo leer el mapa</span><span class="hs" id="handleState">Abrir</span></button>
+      <div class="panel-inner" id="panelInner"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Datos: cada valor lleva su etiqueta de origen [R] [F] [P] [D]; [?] = pregunta sugerida por Claude, no está en la guía ----------
+  const MODULES = [
+    { id: "N100", t: "Tablero", s: "Resumen", a: -90 },
+    { id: "N200", t: "Clientes", s: "Expedientes", a: -45 },
+    { id: "N300", t: "Solicitudes", s: "Revisión", a: 0 },
+    { id: "N400", t: "Créditos", s: "Cartera", a: 45 },
+    { id: "N500", t: "Cobranza", s: "Pagos", a: 90 },
+    { id: "N600", t: "Cajas", s: "Efectivo", a: 135 },
+    { id: "N700", t: "Reportes", s: "Análisis", a: 180 },
+    { id: "N800", t: "Administración", s: "Control", a: -135 }
+  ];
+
+  const N = {
+    N000: { t: "Acceso", kind: "entry", tipo: "Pantalla y proceso", src: "[P] Nombre y posición propuestos; [F] MFA de administradores",
+      fn: "Autentica al usuario, recupera el acceso cuando corresponde y comprueba que la cuenta esté activa.",
+      rol: "Todos los usuarios antes de entrar.",
+      ent: "Usuario sin sesión.",
+      acc: ["[P] Autenticar", "[P] Recuperar el acceso cuando corresponda"],
+      val: ["[P] La cuenta debe estar activa", "[F] Autenticación multifactor para administradores", "[R/F] El bloqueo de un usuario debe ser efectivo también en la API"],
+      sal: "[P] N010 Inicio, sólo con los módulos autorizados.",
+      datos: "Usuario / rol / ámbito; evento de auditoría.",
+      prueba: "[P] Un usuario bloqueado no entra ni por pantalla ni por API.",
+      pend: ["[?] Método de recuperación de acceso y quién lo autoriza", "[?] Política de sesión y cierre en teléfono compartido"] },
+
+    N010: { t: "Inicio", kind: "center", s: "Según rol y permisos", tipo: "Pantalla", src: "[P] Estructura propuesta",
+      fn: "Muestra identidad, ámbito asignado, accesos autorizados y tareas relevantes para cada perfil.",
+      rol: ["[P] Dirección / administrador: cartera consolidada, caja, atrasos, zonas y reportes",
+            "[P] Gerente / responsable: equipo y oficinas, cobranza del día, recepción de caja y redistribución",
+            "[P] Asesor / cobrador: ruta, clientes asignados, vencimientos, registrar pago, solicitudes y caja propia",
+            "[P] Mesa de control: solicitudes pendientes, documentos, observaciones y decisiones",
+            "[P] Consulta / auditoría: reportes y bitácoras en su ámbito, sin edición por defecto"],
+      ent: "N000 Acceso con sesión válida.",
+      val: ["[P] Acceso en tres niveles: función (qué puede hacer), ámbito (región, gerencia, oficina, ruta o clientes) y acción sensible (autorización adicional)",
+            "[P] Las reglas se aplican en servidor y API; ocultar un botón no basta"],
+      sal: "Los módulos N100 a N800 que el rol tenga autorizados.",
+      datos: "Usuario / rol / ámbito; unidad organizativa.",
+      prueba: "[R/F] El asesor A no accede a clientes ni rutas del asesor B.",
+      pend: ["[D] Qué acciones administrativas y financieras puede autorizar Dirección",
+             "[D] Si existe un gerente por oficina, por zona o por varias unidades",
+             "[D] Si asesor y cobrador son un mismo rol o dos diferentes",
+             "[D] Quién aprueba en mesa de control, límites por monto y segregación de funciones",
+             "[D] Funcionamiento sin internet: no confirmado ni ofrecido por defecto"] },
+
+    // ----- N100 Tablero
+    N100: { tipo: "Módulo", src: "[R/F] Mejora pedida en la reunión; [P] organización",
+      fn: "Ver el negocio sin perder el detalle: deuda en dinero y cantidad de clientes, en vista consolidada y por nivel.",
+      rol: "[P] Dirección y gerentes, siempre dentro de su ámbito.",
+      campos: ["[F] Cartera vigente y vencida", "[F] Antigüedad de saldos", "[F] Cuotas atrasadas", "[F] Pagos del día y últimos pagos"],
+      val: ["[F] El resultado respeta el ámbito del usuario, también al exportar", "[P] Mostrar fecha y hora del cálculo"],
+      prueba: "[P] El tablero y un reporte con los mismos filtros y corte cuadran; cada total permite llegar a sus movimientos de origen.",
+      pend: ["[R] Fórmulas y pantallas actuales por verificar", "[D] Definición de cada indicador (ver círculos N110 a N130)", "[D] No usar la cantidad de personas como sustituto del dinero adeudado"] },
+    N110: { t: "Resumen de cartera", tipo: "Pantalla", src: "[R/F]",
+      fn: "Cartera total vigente y vencida y antigüedad de saldos.",
+      campos: ["[D] Cartera total: capital pendiente, saldo con intereses o ambas columnas separadas", "[D] Antigüedad: fecha de referencia y rangos de días"],
+      val: "[P] Mostrar la fecha y hora del cálculo.",
+      datos: "Crédito, cuota, aplicación de pago.",
+      pend: ["[D] Qué significa cartera vencida", "[D] Capital o total"] },
+    N120: { t: "Atrasos", tipo: "Pantalla", src: "[R/F]",
+      fn: "Cuotas atrasadas, clientes con atraso y dinero vencido.",
+      campos: ["[D] Clientes con atraso: contar clientes únicos, sin duplicar a quien tiene varias cuotas o créditos vencidos", "[D] Dinero vencido: separar capital, interés y mora cuando corresponda", "[D] Cartera vencida no es lo mismo que el saldo de créditos con atraso"],
+      acc: "[P] Abrir la cartera filtrada (N410).",
+      pend: ["[D] Rangos de atraso", "[D] Si «con atraso» es una condición calculada del crédito activo y no un estado"] },
+    N130: { t: "Cobranza del día", tipo: "Pantalla", src: "[R/F]",
+      fn: "Pagos confirmados del periodo y últimos pagos.",
+      val: ["[D] Tratamiento explícito de reversos", "[D] No mezclar traslados de cajas con cobranza"],
+      acc: "[P] Abrir el historial de pagos del día (N540).",
+      pend: "[D] Definir el periodo y el corte que separa pagos del día de los posteriores." },
+    N140: { t: "Filtros organizativos", tipo: "Control de pantalla", src: "[F]",
+      fn: "Filtrar por zona/región, gerencia, oficina y ruta.",
+      val: "[F] Sólo muestra unidades dentro del ámbito del usuario.",
+      datos: "Unidad organizativa.",
+      pend: "[D] Qué niveles de la estructura son obligatorios y si hay excepciones." },
+
+    // ----- N200 Clientes
+    N200: { tipo: "Módulo", src: "[R/F]",
+      fn: "Un solo expediente por cliente que enlaza datos, documentos, solicitudes, decisiones, asesor responsable, créditos, pagos y evidencia.",
+      rol: "[P] Asesores dentro de su ruta; mesa de control y dirección según ámbito.",
+      val: "[P] Nadie consulta un expediente fuera de su ámbito modificando una URL o un ID.",
+      datos: "Cliente / expediente." },
+    N210: { t: "Lista y búsqueda", tipo: "Pantalla", src: "[P]",
+      fn: "Verificar si el cliente ya existe antes de crear otro.",
+      acc: ["[P] Buscar cliente", "[P] Abrir expediente existente o crear uno nuevo"],
+      val: "[P] Evitar clientes duplicados.",
+      sal: "N220 Expediente.",
+      pend: "[?] Criterios para detectar un duplicado (nombre, teléfono, otro dato)" },
+    N220: { t: "Expediente", tipo: "Pantalla y entidad", src: "[R/F] Expediente único; [P/D] datos mínimos",
+      fn: "Registrar o actualizar los datos permitidos del cliente y concentrar su historia.",
+      campos: ["[P/D] ID interno", "[P/D] Nombre y contacto", "[P/D] Ubicación necesaria para la operación", "[P/D] Oficina / ruta y asesor", "[P/D] Estado, notas y documentos"],
+      acc: ["[P] Iniciar una nueva solicitud (N310)", "[P] Abrir un crédito del cliente (N420)"],
+      val: "[P] No usar un número de identificación como contraseña ni como clave pública del expediente.",
+      datos: "Cliente / expediente; un cliente puede tener varias solicitudes y créditos.",
+      pend: "[D] Validar qué datos son obligatorios." },
+    N230: { t: "Documentos y evidencias", tipo: "Pantalla y almacenamiento", src: "[F] Evidencia de recepción; [P] metadatos",
+      fn: "Archivos del expediente, incluida la foto o video de recepción del préstamo.",
+      campos: "[P] Cada archivo tiene tipo, fecha, autor y vínculo con su expediente.",
+      ent: "[F] Evidencia que registra N440 Entrega.",
+      val: ["[P] Almacenamiento privado con metadatos en base de datos", "[P] Enlaces de archivo temporales"],
+      datos: "Entrega / evidencia; cliente / expediente.",
+      pend: ["[D] Documentos obligatorios", "[D] Tamaño máximo de videos y política de archivos"] },
+    N240: { t: "Historial y responsable", tipo: "Pantalla", src: "[R/F] Historial y trazabilidad",
+      fn: "Historial del cliente y asesor responsable a lo largo del tiempo.",
+      datos: "Usuario / ámbito (asignaciones con historial); evento de auditoría.",
+      pend: "[?] Quién puede reasignar un cliente a otro asesor" },
+
+    // ----- N300 Solicitudes
+    N300: { tipo: "Módulo", src: "[R/F]",
+      fn: "Unificar registro, documentos y autorización en la misma plataforma, con mesa de control interna y revisión humana.",
+      campos: "[P] Estados: Borrador → En revisión → Observada / Aprobada / Rechazada.",
+      val: "[F] La decisión crediticia corresponde a personas autorizadas del cliente.",
+      datos: "Solicitud / decisión.",
+      pend: ["[D] El autorregistro por enlace o QR no se activa inicialmente", "[D] ¿Puede una persona aprobar su propia solicitud?"] },
+    N310: { t: "Registro", tipo: "Pantalla / acción", src: "[P]",
+      fn: "Seleccionar producto y capturar importe y plazo.",
+      ent: "[P] Desde el expediente N220.",
+      campos: ["[P] Producto", "[P] Importe", "[P] Plazo"],
+      sal: "[P] Estado Borrador; conserva autor, datos capturados y fecha.",
+      pend: "[D] Quién registra la solicitud." },
+    N320: { t: "Documentación", tipo: "Pantalla / acción", src: "[P]",
+      fn: "Anexar los archivos exigidos y enviar a revisión.",
+      ent: ["[P] Borrador desde N310", "[P] Solicitud observada que regresa de N340"],
+      acc: "[P] Envía a revisión.",
+      sal: "[P] Estado En revisión. Si estaba observada, conserva motivo y versiones de la documentación.",
+      pend: "[D] Documentos obligatorios." },
+    N330: { t: "Mesa de control", tipo: "Pantalla", src: "[R/F]",
+      fn: "La mesa de control consulta expediente y documentos.",
+      rol: "[P] Perfil Mesa de control.",
+      sal: "[P] Conserva revisor y documentos examinados.",
+      pend: "[D] Quién aprueba, límites por monto y segregación de funciones." },
+    N340: { t: "Decisión y asignación", tipo: "Acción", src: "[R/F] Aprobación o rechazo y asignación al asesor",
+      fn: "Aprueba, rechaza o devuelve con observaciones. Si aprueba, registra responsable y asigna al asesor.",
+      acc: ["[P] Aprueba → crea o habilita el crédito (N420)", "[P] Observa → regresa a documentación (N320)", "[P] Rechaza → conserva historial"],
+      sal: "[P] Conserva decisión, fecha, responsable y justificación.",
+      datos: "Solicitud / decisión: identifica al revisor y vincula el crédito originado.",
+      pend: ["[D] Cuándo nace y cuándo se activa el crédito", "[D] ¿Puede una persona aprobar su propia solicitud?"] },
+
+    // ----- N400 Créditos
+    N400: { tipo: "Módulo", src: "[F] Funciones; [P] estados",
+      fn: "Cartera de créditos con condiciones, calendario, entrega y cambios controlados.",
+      campos: ["[F] Hasta dos productos de préstamo", "[F] Tasa fija e interés simple sobre saldo insoluto", "[F] Pagos semanales, quincenales o mensuales", "[F] Abonos parciales, liquidaciones y reestructuras autorizadas", "[P] Estados: Preparado → Pendiente de entrega → Activo → Liquidado; Reestructurado conserva el plan previo"],
+      prueba: "[P] Con el cliente: ejemplos de pago puntual, parcial, tardío, anticipado, liquidación y reestructura. Comparar calendario, capital, intereses y total.",
+      pend: ["[D] No programar fórmulas a partir de suposiciones: pedir ejemplos reales anonimizados", "[D] Anulación y reapertura requieren reglas expresas"] },
+    N410: { t: "Cartera", tipo: "Pantalla", src: "[P]",
+      fn: "Buscar créditos por cliente, estado y estructura.",
+      ent: "[P] También desde N120 Atrasos, ya filtrada.",
+      sal: "N420 Detalle." },
+    N420: { t: "Detalle y condiciones", tipo: "Pantalla y entidad", src: "[P]", pending: true,
+      fn: "Condiciones, importe original, saldo desglosado, responsable, documentos y movimientos del crédito.",
+      ent: ["[P] Crédito creado al aprobar en N340", "[P] Saldo actualizado desde N540"],
+      acc: "[P] Registrar pago (N520).",
+      datos: "[P] El crédito guarda una copia versionada de las condiciones; cambiar un producto no altera créditos existentes.",
+      pend: ["[D] Unidad de tasa, base de días, fecha inicial, redondeo", "[D] Si un abono parcial reduce de inmediato la base del interés", "[D] Cómo se calcula una liquidación y desde cuándo deja de devengar"] },
+    N430: { t: "Calendario", tipo: "Pantalla y cálculo", src: "[F] Tabla de pagos; [P] vista", pending: true,
+      fn: "Fechas, importe esperado, importe cubierto y saldo pendiente por cuota, con enlace al pago que la cubrió.",
+      campos: "[F] Capital, intereses ordinarios y moratorios con fórmulas aprobadas por el cliente.",
+      datos: "Cuota / aplicación de pago.",
+      prueba: "[P] Calendario, capital, intereses y total cuadran con los ejemplos del cliente.",
+      pend: ["[D] «Quincenal»: cada 15 días o fechas fijas del mes", "[D] Tratamiento de fines de semana y prorrateos", "[D] Mora y efecto de abonos anticipados", "[D] Momento exacto de generación del calendario"] },
+    N440: { t: "Entrega y confirmación", tipo: "Acción", src: "[F] Evidencia de recepción; [P] salida de caja", pending: true,
+      fn: "Confirmar la entrega real del efectivo al cliente con evidencia, y registrar la salida de la caja responsable.",
+      campos: ["[F] Confirmación del cliente", "[F] Foto o video de recepción"],
+      acc: ["[P] Guarda la evidencia en N230", "[P] Registra la salida en la caja N610"],
+      val: ["[F] El cotejo con la identificación es humano; sin reconocimiento facial ni biometría", "[P] Validar efectivo disponible y autorización", "[P] Reintentos sin generar dos salidas por la misma entrega"],
+      datos: "Entrega / evidencia; movimiento de caja.",
+      pend: ["[D] Mecanismo de confirmación; quién captura y verifica", "[D] Qué ocurre si falta evidencia", "[D] Momento exacto de activación del crédito"] },
+    N450: { t: "Ajustes autorizados", tipo: "Acción sensible", src: "[F] Permisos y bitácora; [P] versión",
+      fn: "Cambios de tasa, plazo, calendario y registros con permisos.",
+      val: ["[F] Guardar autor, fecha y motivo", "[P] Guardar valor anterior, valor nuevo y versión del plan", "[P] Una reestructura conserva el vínculo con las condiciones originales sin borrar pagos realizados"],
+      datos: "Producto / crédito (versión de condiciones); evento de auditoría.",
+      pend: "[D] Quién autoriza cada tipo de ajuste; reglas de anulación y reapertura." },
+
+    // ----- N500 Cobranza
+    N500: { tipo: "Módulo", src: "[F] Alcance; [P] recorrido",
+      fn: "Cobranza en efectivo: ruta, registro de pago, recibo e historial.",
+      campos: ["[F] Incluye pagos en efectivo, recibos y estados de cuenta operativos", "[F] No incluye CFDI, pasarela de pago, conciliación bancaria automática ni dispersión bancaria"],
+      val: "[P] Un pago es una sola operación: registra, aplica, actualiza saldos, genera la entrada de caja y deja bitácora. Si falla una parte, no se muestra como exitoso.",
+      prueba: "[R/F] Un reintento no duplica el cobro; un reverso deja rastro y ajusta caja y saldo." },
+    N510: { t: "Agenda / ruta", tipo: "Pantalla", src: "[P]",
+      fn: "Listar clientes y vencimientos autorizados para el cobrador.",
+      sal: "[P] N420 para verificar persona, saldo y cuota." },
+    N520: { t: "Registro de pago", tipo: "Acción", src: "[P]", pending: true,
+      fn: "Capturar el importe efectivamente recibido, mostrar resumen y confirmar.",
+      ent: "[P] Desde el detalle del crédito N420.",
+      campos: ["[P] Importe recibido", "[P] Fecha operativa", "[P] Referencia y observaciones permitidas"],
+      acc: "[P] Registra la entrada en la caja N610.",
+      val: ["[P] Identificador único de operación: un doble toque no crea dos pagos", "[P] Pago parcial: aplicar la prelación aprobada y dejar visible el faltante", "[P] Pago mayor al saldo: bloquear o gestionar excedente según regla aprobada", "[P] Dos usuarios a la vez: revalidar saldo y permisos en el servidor"],
+      err: ["[P] Falla de conexión: consultar el resultado antes de reintentar; distinguir pendiente, confirmado y fallido", "[P] Captura equivocada: reverso y movimiento compensatorio autorizado, con motivo"],
+      datos: "Pago, aplicación de pago, cuota, movimiento de caja, evento de auditoría.",
+      pend: ["[D] Si un cobro puede abarcar varios créditos", "[D] Quién puede registrar fechas anteriores", "[D] Quién autoriza reversos", "[D] Orden de aplicación del pago y redondeo"] },
+    N530: { t: "Recibo y estado de cuenta", tipo: "Salida", src: "[F] Recibos; [P] contenido",
+      fn: "Entregar el comprobante operativo con el saldo posterior.",
+      pend: ["[D] Formato y forma de entrega del recibo", "[D] No añadir impresoras, WhatsApp o SMS sin validación"] },
+    N540: { t: "Historial de pagos", tipo: "Pantalla", src: "[P]",
+      fn: "Conservar quién cobró y cuándo.",
+      sal: "[P] Saldo actualizado en N420.",
+      datos: "Pago / movimiento de caja; reverso enlazado al original." },
+
+    // ----- N600 Cajas
+    N600: { tipo: "Módulo", src: "[R/F] Cambio acordado; [P] controles",
+      fn: "Cajas de efectivo: saldos, ingresos y gastos, cierre automático, recepción física y redistribución. Es el cambio más delicado.",
+      val: "[P] La suma de saldos de las cajas se conserva en cada traslado; el saldo se deriva de movimientos verificables.",
+      prueba: "[P] Ejecutar el cierre dos veces en pruebas genera un solo traslado.",
+      pend: "[R] Se pidió corregir cómo se refleja el cierre." },
+    N610: { t: "Saldo y movimientos", tipo: "Pantalla y entidad", src: "[R/F]",
+      fn: "Muestra saldos y movimientos de cada caja.",
+      ent: ["[P] Salida por entrega de préstamo (N440)", "[P] Entrada por pago (N520)", "[P] Redistribución del gerente (N650)"],
+      val: "[P] Comparar el saldo derivado de movimientos con el mostrado.",
+      datos: "Caja / movimiento." },
+    N620: { t: "Ingresos y gastos", tipo: "Acción", src: "[R/F]",
+      fn: "Registra ingresos y gastos de la caja.",
+      pend: "[D] Tratamiento de gastos y fondo inicial en el cierre." },
+    N630: { t: "Cierre automático", tipo: "Proceso programado", src: "[R/F] Traslado acordado; [P] controles", pending: true,
+      fn: "A una hora configurada, reasigna el saldo registrado de la caja del asesor a la del gerente y deja bitácora.",
+      campos: "[P] Ejemplo: asesor $2,500 y gerente $10,000 → asesor $0 y gerente $12,500. Total antes y después: $12,500.",
+      acc: "[P] Transfiere a N640 la recepción física pendiente.",
+      val: ["[P] Transferencia completa: salida y entrada con un mismo ID, procesadas juntas", "[P] Cierre único: una misma caja y corte no se cierran dos veces", "[P] Concurrencia: corte que separa pagos del día de los posteriores", "[P] Se ejecuta en servidor; no depende de que un teléfono siga abierto"],
+      err: "[P] Reportar cajas sin gerente, cierre fallido y diferencias sin ocultarlas; alertas de cierres fallidos.",
+      datos: "Caja / traslado / cierre.",
+      prueba: "[P] La suma se conserva; dos ejecuciones generan un solo traslado.",
+      pend: ["[D] Zona horaria y hora exacta", "[D] Si se traslada todo el saldo o sólo lo cobrado", "[D] Fondo inicial, gastos y entregas", "[D] Qué gerente recibe", "[D] Pagos tardíos, caja negativa, cierre manual y correcciones después del corte"] },
+    N640: { t: "Recepción y diferencias", tipo: "Acción", src: "[F] El traslado no prueba recepción; [P] estados", pending: true,
+      fn: "Registrar la recepción física de los billetes por el gerente, separada del traslado registrado.",
+      campos: "[P] Estados de recepción: pendiente, confirmada o con diferencia.",
+      val: "[P] Un faltante se investiga; no desaparece ajustando silenciosamente el saldo.",
+      datos: "Caja / cierre; la recepción física de un cierre es distinta de la recepción del préstamo.",
+      pend: ["[D] Cuándo y cómo se confirma el efectivo", "[D] Cómo se resuelven los faltantes"] },
+    N650: { t: "Redistribución", tipo: "Acción", src: "[R/F]",
+      fn: "Redistribuir efectivo del gerente al asesor para nuevos créditos.",
+      campos: "[P] Ejemplo: se redistribuyen $1,000 → gerente $11,500 y asesor $1,000. El traslado no crea ingresos ni efectivo adicional.",
+      acc: "[P] Redistribuye a la caja del asesor en N610.",
+      datos: "Caja / traslado." },
+
+    // ----- N700 Reportes
+    N700: { tipo: "Módulo", src: "[R/F]",
+      fn: "Consulta créditos, pagos y cajas. No modifica sus movimientos.",
+      val: "[F] Respeta el ámbito del usuario, también al exportar.",
+      prueba: "[P] Un reporte y el tablero con los mismos filtros y corte cuadran." },
+    N710: { t: "Cartera y vencimientos", tipo: "Reporte", src: "[F]",
+      fn: "Reporte de cartera y vencimientos.",
+      pend: "[D] Definiciones de cartera vencida y rangos de atraso." },
+    N720: { t: "Recaudador", tipo: "Reporte", src: "[F] Exportación; [P] columnas",
+      fn: "Reporte recaudador con fechas, montos, pagos y vencimientos.",
+      campos: "[P] ID del pago, fecha/hora, cliente, crédito, asesor, ruta, oficina, importe recibido, componentes aplicados, cuota/fecha de vencimiento y saldo restante.",
+      pend: "[D] El cliente valida nombres, orden y filtros del formato." },
+    N730: { t: "Exportaciones", tipo: "Proceso", src: "[F] Excel/CSV y API; [P] controles",
+      fn: "Exportar a Excel/CSV conforme al alcance.",
+      val: ["[P] Mantener filtros y fecha de corte en el archivo", "[P] Volúmenes grandes en segundo plano con descarga autorizada", "[P] El enlace no publica datos de clientes"],
+      datos: "[F] La API documentada cubre clientes, créditos, pagos y gestiones." },
+
+    // ----- N800 Administración
+    N800: { tipo: "Módulo", src: "[P] Organización; [F] controles",
+      fn: "Estructura, usuarios, permisos, parámetros, auditoría y operación técnica.",
+      val: "[P] N810 y N820 limitan todos los módulos; N840 recibe sus eventos." },
+    N810: { t: "Estructura", tipo: "Configuración", src: "[R/F]",
+      fn: "Jerarquía región/zona → gerencia → oficina → ruta.",
+      datos: "Unidad organizativa.",
+      pend: ["[D] Qué niveles son obligatorios y si hay excepciones", "[D] Cómo se asignan oficinas y rutas"] },
+    N820: { t: "Usuarios y permisos", tipo: "Configuración", src: "[R/F]",
+      fn: "Usuarios, roles, ámbitos y acciones sensibles; bloqueo de usuarios y registro de cambios.",
+      val: ["[F] MFA de administradores", "[P] Guardar las asignaciones e historial cuando cambien", "[F] Sin máximo fijo de usuarios"],
+      datos: "Usuario / rol / ámbito.",
+      prueba: "[R/F] El bloqueo de un usuario es efectivo también en la API.",
+      pend: "[D] ¿Quién registra, aprueba, entrega, cobra, revierte y administra?" },
+    N830: { t: "Productos y parámetros", tipo: "Configuración", src: "[F]",
+      fn: "Hasta dos productos de préstamo y parámetros operativos, como la hora de cierre.",
+      val: "[P] Cambiar un producto no altera silenciosamente las condiciones de créditos existentes.",
+      datos: "Producto / crédito.",
+      pend: "[D] ¿Cuáles son los dos productos? Tasa, periodicidad, base de días, mora, orden de aplicación y redondeo." },
+    N840: { t: "Bitácora", tipo: "Entidad y pantalla", src: "[F] Bitácora; [P] contenido",
+      fn: "Registro de quién, cuándo, entidad, acción, motivo y cambios.",
+      ent: "[P] Eventos de todos los módulos.",
+      val: "[P] Acceso restringido y sin edición ordinaria.",
+      datos: "Evento de auditoría." },
+    N850: { t: "Migración", tipo: "Proceso", src: "[F] Volúmenes; [P] secuencia", pending: true,
+      fn: "Importar la operación existente desde una fuente Excel/CSV, con una prueba y una carga final.",
+      campos: "[F] Hasta 5,000 clientes, 5,000 créditos y 50,000 movimientos en la importación inicial; no limita el uso posterior.",
+      acc: "[P] 1 inventariar archivos · 2 mapear columnas · 3 detectar duplicados · 4 importar prueba · 5 conciliar con el cliente · 6 acordar corte final · 7 carga final · 8 ruta de recuperación.",
+      val: ["[F] Sin exportación utilizable se acuerdan saldos iniciales; no se inventa historial", "[R/F] Consulta autorizada del sistema anterior sin alterar clientes ni movimientos"],
+      prueba: "[P] Conteos y saldos por cliente, crédito y unidad coinciden con el corte acordado.",
+      pend: ["[D] ¿Qué archivos se pueden exportar? ¿Traen IDs, cuotas, pagos y saldos?", "[D] Cuántos registros hay y qué fecha de corte se usará"] },
+    N860: { t: "Respaldos y API", tipo: "Operación técnica", src: "[F]",
+      fn: "Respaldos diarios y API propia documentada.",
+      val: ["[F] Respaldos diarios con retención de 30 días", "[F] Cifrado en tránsito y en reposo", "[P] Pruebas de restauración"],
+      prueba: "[P] Restauración comprobada en pruebas.",
+      pend: "[D] Proveedor tecnológico y objetivos de recuperación." }
+  };
+
+  const SUBS = {
+    N100: ["N110", "N120", "N130", "N140"],
+    N200: ["N210", "N220", "N230", "N240"],
+    N300: ["N310", "N320", "N330", "N340"],
+    N400: ["N410", "N420", "N430", "N440", "N450"],
+    N500: ["N510", "N520", "N530", "N540"],
+    N600: ["N610", "N620", "N630", "N640", "N650"],
+    N700: ["N710", "N720", "N730"],
+    N800: ["N810", "N820", "N830", "N840", "N850", "N860"]
+  };
+
+  // Conexiones fuera del módulo (catálogo p. 5). kind: seq = secuencia con verbo; data = dependencia de datos
+  const LINKS = [
+    { a: "N000", b: "N010", kind: "entry", v: "autentica" },
+    { a: "N120", b: "N410", kind: "data", v: "filtra cartera" },
+    { a: "N130", b: "N540", kind: "data", v: "consulta pagos" },
+    { a: "N220", b: "N310", kind: "seq", v: "inicia solicitud" },
+    { a: "N220", b: "N420", kind: "data", v: "abre crédito" },
+    { a: "N340", b: "N420", kind: "seq", v: "aprueba" },
+    { a: "N340", b: "N320", kind: "seq", v: "observa" },
+    { a: "N440", b: "N230", kind: "data", v: "guarda evidencia" },
+    { a: "N440", b: "N610", kind: "seq", v: "registra salida" },
+    { a: "N420", b: "N520", kind: "seq", v: "registra pago" },
+    { a: "N520", b: "N610", kind: "seq", v: "registra entrada" },
+    { a: "N540", b: "N420", kind: "data", v: "actualiza saldo" },
+    { a: "N630", b: "N640", kind: "seq", v: "transfiere" },
+    { a: "N650", b: "N610", kind: "seq", v: "redistribuye" },
+    { a: "N700", b: "N400", kind: "data", v: "consulta" },
+    { a: "N700", b: "N500", kind: "data", v: "consulta" },
+    { a: "N700", b: "N600", kind: "data", v: "consulta" }
+  ];
+
+  // Completar datos de módulos
+  MODULES.forEach(m => { Object.assign(N[m.id], { t: m.t, s: m.s, kind: "module" }); });
+  Object.keys(SUBS).forEach(p => SUBS[p].forEach(id => { N[id].kind = "sub"; N[id].parent = p; }));
+  N.N010.parent = null; N.N000.parent = null;
+  MODULES.forEach(m => { N[m.id].parent = "N010"; });
+
+  // ---------- Geometría ----------
+  const R_MOD = 300, R_SUB_A = 600, R_SUB_B = 705, SUB_STEP = 7.8;
+  const RAD = { center: 80, module: 64, sub: 47, entry: 40 };
+  const base = {};
+  base.N010 = { x: 0, y: 0 };
+  { const a = -112.5 * Math.PI / 180; base.N000 = { x: Math.cos(a) * 172, y: Math.sin(a) * 172 }; }
+  MODULES.forEach(m => {
+    const a = m.a * Math.PI / 180;
+    base[m.id] = { x: Math.cos(a) * R_MOD, y: Math.sin(a) * R_MOD };
+    const subs = SUBS[m.id], n = subs.length;
+    subs.forEach((id, i) => {
+      const ang = (m.a + (i - (n - 1) / 2) * SUB_STEP) * Math.PI / 180;
+      const r = i % 2 === 0 ? R_SUB_A : R_SUB_B;
+      base[id] = { x: Math.cos(ang) * r, y: Math.sin(ang) * r };
+    });
+  });
+
+  // ---------- Estado ----------
+  const state = { expanded: new Set(), selected: null, allLinks: false, offset: {}, view: { x: 0, y: 0, k: 1 } };
+
+  function pos(id) {
+    const b = base[id], o = state.offset[id] || { x: 0, y: 0 };
+    const p = N[id].kind === "sub" ? (state.offset[N[id].parent] || { x: 0, y: 0 }) : { x: 0, y: 0 };
+    return { x: b.x + o.x + p.x, y: b.y + o.y + p.y };
+  }
+  function visible(id) { const n = N[id]; return n.kind !== "sub" || state.expanded.has(n.parent); }
+  function resolve(id) { return visible(id) ? id : N[id].parent; }
+
+  // ---------- Render SVG ----------
+  const svg = document.getElementById("svg");
+  const world = document.getElementById("world");
+  const gEdges = document.getElementById("edges");
+  const gLabels = document.getElementById("labels");
+  const gNodes = document.getElementById("nodes");
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function wrap(text, max) {
+    const words = text.split(" "), lines = [];
+    let cur = "";
+    words.forEach(w => {
+      if (!cur) cur = w;
+      else if ((cur + " " + w).length <= max) cur += " " + w;
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  function radius(id) { return RAD[N[id].kind]; }
+
+  function selectedFamily() {
+    const s = state.selected;
+    if (!s) return new Set();
+    const set = new Set([s]);
+    if (N[s].kind === "module") SUBS[s].forEach(x => set.add(x));
+    return set;
+  }
+
+  function trimLine(p1, p2, r1, r2) {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, d = Math.hypot(dx, dy) || 1;
+    return { x1: p1.x + dx / d * r1, y1: p1.y + dy / d * r1, x2: p2.x - dx / d * (r2 + 3), y2: p2.y - dy / d * (r2 + 3), d };
+  }
+
+  function render() {
+    gEdges.textContent = ""; gLabels.textContent = ""; gNodes.textContent = "";
+    // navegación: inicio → módulos → subnodos
+    MODULES.forEach(m => {
+      const t = trimLine(pos("N010"), pos(m.id), RAD.center, RAD.module);
+      el("line", { x1: t.x1, y1: t.y1, x2: t.x2 + 0, y2: t.y2, class: "edge-nav" }, gEdges);
+      if (state.expanded.has(m.id)) SUBS[m.id].forEach(s => {
+        const u = trimLine(pos(m.id), pos(s), RAD.module, RAD.sub);
+        el("line", { x1: u.x1, y1: u.y1, x2: u.x2, y2: u.y2, class: "edge-nav" }, gEdges);
+      });
+    });
+    // conexiones de negocio y datos
+    const fam = selectedFamily();
+    const seen = new Set();
+    LINKS.forEach(l => {
+      const a = resolve(l.a), b = resolve(l.b);
+      if (a === b) return;
+      const touchesSel = fam.has(l.a) || fam.has(l.b) || fam.has(a) || fam.has(b);
+      const bothDetailed = a === l.a && b === l.b && N[a].kind === "sub" && N[b].kind === "sub";
+      const show = l.kind === "entry" || state.allLinks || touchesSel || bothDetailed;
+      if (!show) return;
+      const key = a + ">" + b + ">" + l.v;
+      if (seen.has(key)) return; seen.add(key);
+      const p1 = pos(a), p2 = pos(b);
+      const t = trimLine(p1, p2, radius(a), radius(b));
+      // curva suave hacia afuera para no cruzar el centro
+      const mx = (t.x1 + t.x2) / 2, my = (t.y1 + t.y2) / 2;
+      let nx = -(t.y2 - t.y1), ny = t.x2 - t.x1; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; }
+      const bend = Math.max(26, Math.min(90, t.d * 0.18));
+      const cx = mx + nx * bend, cy = my + ny * bend;
+      const cls = l.kind === "seq" ? "edge-seq" : l.kind === "data" ? "edge-data" : "edge-entry";
+      const marker = l.kind === "seq" ? "url(#arSeq)" : l.kind === "data" ? "url(#arData)" : "url(#arEntry)";
+      const dim = state.selected && !touchesSel && l.kind !== "entry" ? " edge-dim" : "";
+      el("path", { d: `M${t.x1},${t.y1} Q${cx},${cy} ${t.x2},${t.y2}`, class: cls + dim, "marker-end": marker }, gEdges);
+      const lx = 0.25 * t.x1 + 0.5 * cx + 0.25 * t.x2 + nx * 12, ly = 0.25 * t.y1 + 0.5 * cy + 0.25 * t.y2 + ny * 12;
+      const lab = el("text", { x: lx, y: ly + 4, "text-anchor": "middle", class: "edge-label " + (l.kind === "seq" ? "seq" : l.kind === "data" ? "data" : "entry") + dim }, gLabels);
+      lab.textContent = l.v;
+    });
+
+    // nodos
+    const order = ["N000", "N010"].concat(MODULES.map(m => m.id));
+    MODULES.forEach(m => { if (state.expanded.has(m.id)) order.push(...SUBS[m.id]); });
+    order.forEach(id => {
+      const n = N[id], p = pos(id), r = radius(id);
+      const g = el("g", { class: "node " + n.kind + (n.pending ? " pending" : "") + (state.selected === id ? " selected" : ""), "data-id": id,
+        transform: `translate(${p.x},${p.y})`, tabindex: "0", role: "button",
+        "aria-label": `${id} ${n.t}${n.kind === "module" ? (state.expanded.has(id) ? ", desplegado" : ", contraído") : ""}` }, gNodes);
+      el("circle", { r: r + 6, class: "sel" }, g);
+      el("circle", { r, class: "body" }, g);
+      let lines, idSize, tSize, lh, extra = null;
+      if (n.kind === "center") { lines = [n.t.toUpperCase()]; idSize = 13; tSize = 18; lh = 21; extra = wrap(n.s, 13); }
+      else if (n.kind === "module") { lines = [n.t]; idSize = 12; tSize = n.t.length > 12 ? 13.5 : 15; lh = 18; extra = [n.s]; }
+      else if (n.kind === "entry") { lines = [n.t]; idSize = 11; tSize = 13; lh = 16; }
+      else { lines = wrap(n.t, 12); idSize = 11; tSize = 11.5; lh = 13.5; }
+      const blockH = idSize + 4 + lines.length * lh + (extra ? extra.length * 14 + 2 : 0);
+      let y = -blockH / 2 + idSize;
+      const tid = el("text", { y, "text-anchor": "middle", class: "n-id", "font-size": idSize }, g); tid.textContent = id;
+      y += 4;
+      lines.forEach(line => { y += lh; const tt = el("text", { y: y - 3, "text-anchor": "middle", class: "n-title", "font-size": tSize }, g); tt.textContent = line; });
+      if (extra) extra.forEach(line => { y += 14; const ts = el("text", { y: y - 1, "text-anchor": "middle", class: "n-sub", "font-size": 11.5 }, g); ts.textContent = line; });
+      if (n.pending) {
+        const a = -Math.PI / 4, bx = Math.cos(a) * r, by = Math.sin(a) * r;
+        const bg = el("g", { class: "badge-d", transform: `translate(${bx},${by})` }, g);
+        el("circle", { r: 10 }, bg);
+        const bt = el("text", { y: 3.5, "text-anchor": "middle" }, bg); bt.textContent = "D";
+      }
+      if (n.kind === "module") {
+        const a = Math.PI / 4, bx = Math.cos(a) * r, by = Math.sin(a) * r;
+        const bg = el("g", { class: "badge-x", transform: `translate(${bx},${by})` }, g);
+        el("circle", { r: 11 }, bg);
+        const bt = el("text", { y: 4, "text-anchor": "middle" }, bg); bt.textContent = state.expanded.has(id) ? "−" : "+";
+        const sc = SUBS[id].some(s => N[s].pending);
+        if (sc) {
+          const a2 = -Math.PI / 4, cx2 = Math.cos(a2) * r, cy2 = Math.sin(a2) * r;
+          const dg = el("g", { class: "badge-d", transform: `translate(${cx2},${cy2})` }, g);
+          el("circle", { r: 10 }, dg);
+          const dt = el("text", { y: 3.5, "text-anchor": "middle" }, dg); dt.textContent = "D";
+        }
+      }
+    });
+    applyView();
+  }
+
+  // ---------- Vista: pan / zoom ----------
+  function applyView() { const v = state.view; world.setAttribute("transform", `translate(${v.x},${v.y}) scale(${v.k})`); }
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let anim = null;
+  function animateTo(target) {
+    if (anim) cancelAnimationFrame(anim);
+    if (reduceMotion) { state.view = target; applyView(); return; }
+    const from = Object.assign({}, state.view), t0 = performance.now(), D = 320;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3);
+      state.view = { x: from.x + (target.x - from.x) * e, y: from.y + (target.y - from.y) * e, k: from.k + (target.k - from.k) * e };
+      applyView();
+      if (t < 1) anim = requestAnimationFrame(step); else anim = null;
+    };
+    anim = requestAnimationFrame(step);
+  }
+  function stageBox() {
+    const rect = svg.getBoundingClientRect();
+    let w = rect.width, h = rect.height;
+    const panel = document.getElementById("panel");
+    if (isSheet() && panel.dataset.open === "true") h = Math.max(160, h - panel.getBoundingClientRect().height);
+    else if (isSheet()) h = Math.max(160, h - 52);
+    return { w, h };
+  }
+  function isSheet() { return window.matchMedia("(max-width: 860px)").matches; }
+  function fitTo(ids, animate) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    ids.forEach(id => { const p = pos(id), r = radius(id) + 14; minX = Math.min(minX, p.x - r); minY = Math.min(minY, p.y - r); maxX = Math.max(maxX, p.x + r); maxY = Math.max(maxY, p.y + r); });
+    const { w, h } = stageBox(), pad = 24;
+    const k = Math.min(1.6, Math.max(0.2, Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY))));
+    const target = { k, x: w / 2 - k * (minX + maxX) / 2, y: h / 2 - k * (minY + maxY) / 2 };
+    if (animate) animateTo(target); else { state.view = target; applyView(); }
+  }
+  function visibleIds() { return Object.keys(N).filter(visible); }
+  function fitAll(animate) { fitTo(visibleIds(), animate); }
+  function zoomAt(factor, sx, sy) {
+    const v = state.view, k = Math.min(3, Math.max(0.15, v.k * factor)), f = k / v.k;
+    state.view = { k, x: sx - (sx - v.x) * f, y: sy - (sy - v.y) * f }; applyView();
+  }
+  function centerOn(id) {
+    const { w, h } = stageBox(), p = pos(id), k = Math.max(state.view.k, 0.75);
+    animateTo({ k, x: w / 2 - p.x * k, y: h / 2 - p.y * k });
+  }
+
+  // ---------- Interacción ----------
+  const pointers = new Map();
+  let drag = null, pinch = null;
+  function local(e) { const r = svg.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  svg.addEventListener("pointerdown", e => {
+    svg.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, local(e));
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), k: state.view.k }; drag = null; return;
+    }
+    const nodeEl = e.target.closest("[data-id]");
+    const p = local(e);
+    if (nodeEl) {
+      const id = nodeEl.getAttribute("data-id");
+      drag = { type: "node", id, sx: p.x, sy: p.y, moved: false, start: Object.assign({ x: 0, y: 0 }, state.offset[id]) };
+    } else {
+      drag = { type: "pan", sx: p.x, sy: p.y, vx: state.view.x, vy: state.view.y, moved: false };
+      svg.classList.add("panning");
+    }
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, local(e));
+    if (pinch && pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const target = Math.min(3, Math.max(0.15, pinch.k * d / pinch.d));
+      zoomAt(target / state.view.k, (a.x + b.x) / 2, (a.y + b.y) / 2); return;
+    }
+    if (!drag) return;
+    const p = local(e), dx = p.x - drag.sx, dy = p.y - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+    drag.moved = true;
+    if (drag.type === "pan") { state.view.x = drag.vx + dx; state.view.y = drag.vy + dy; applyView(); }
+    else {
+      state.offset[drag.id] = { x: drag.start.x + dx / state.view.k, y: drag.start.y + dy / state.view.k };
+      render();
+    }
+  });
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    svg.classList.remove("panning");
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.moved && d.type === "node") activate(d.id);
+  }
+  svg.addEventListener("pointerup", endPointer);
+  svg.addEventListener("pointercancel", e => { pointers.delete(e.pointerId); pinch = null; drag = null; svg.classList.remove("panning"); });
+  svg.addEventListener("wheel", e => { e.preventDefault(); const p = local(e); zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+  svg.addEventListener("keydown", e => {
+    const nodeEl = e.target.closest && e.target.closest("[data-id]");
+    if (nodeEl && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(nodeEl.getAttribute("data-id"), true); }
+  });
+
+  function toggle(id) {
+    if (state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id);
+  }
+  function activate(id, keepFocus) {
+    const n = N[id];
+    if (n.kind === "module") {
+      const opening = !state.expanded.has(id);
+      if (state.selected === id || opening) toggle(id);
+      select(id, false);
+      if (opening) fitTo(["N010", id].concat(SUBS[id]), true);
+    } else select(id, false);
+    if (keepFocus) { const f = gNodes.querySelector(`[data-id="${id}"]`); if (f) f.focus(); }
+  }
+  function select(id, recenter) {
+    state.selected = id;
+    if (id && N[id].kind === "sub" && !state.expanded.has(N[id].parent)) state.expanded.add(N[id].parent);
+    render();
+    renderPanel();
+    setHash(id);
+    if (id) openSheet(true);
+    if (recenter && id) centerOn(id);
+  }
+  function setHash(id) {
+    try {
+      if (id) { if (location.hash !== "#" + id) history.replaceState(null, "", "#" + id); }
+      else if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    } catch (err) { /* el marco puede impedirlo */ }
+  }
+
+  // ---------- Panel / ficha ----------
+  const panel = document.getElementById("panel");
+  const inner = document.getElementById("panelInner");
+  const handle = document.getElementById("handle");
+  function openSheet(open) {
+    panel.dataset.open = open ? "true" : "false";
+    document.getElementById("handleState").textContent = open ? "Cerrar" : "Abrir";
+    handle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  handle.addEventListener("click", () => openSheet(panel.dataset.open !== "true"));
+
+  const TAG_RE = /^\[(R\/F|F\/P|P\/D|R|F|P|D|\?)\]\s*/;
+  const TAG_TITLE = { R: "Reunión del 29 oct 2026", F: "Especificación funcional", P: "Propuesta de diseño, por validar", D: "Por definir", Q: "Pregunta sugerida por Claude; no está en la guía" };
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+  function tagHTML(t) {
+    const parts = t.split("/");
+    return parts.map(p => { const c = p === "?" ? "Q" : p; return `<span class="tag ${c}" title="${TAG_TITLE[c]}">${p === "?" ? "?" : p}</span>`; }).join("");
+  }
+  function inlineTags(text) {
+    return esc(text).replace(/\[(R\/F|F\/P|P\/D|R|F|P|D|\?)\]\s*/g, (_, t) => `<span style="display:inline-flex;gap:3px;vertical-align:baseline">${tagHTML(t)}</span> `);
+  }
+  function item(s) {
+    const m = String(s).match(TAG_RE);
+    if (m) return `<span style="display:inline-flex;gap:3px">${tagHTML(m[1])}</span><span>${inlineTags(String(s).slice(m[0].length))}</span>`;
+    return `<span>${inlineTags(s)}</span>`;
+  }
+  function value(v) {
+    if (v == null || (Array.isArray(v) && !v.length)) return `<span class="missing">No documentado en la guía v1.0</span>`;
+    const arr = Array.isArray(v) ? v : [v];
+    return `<ul>${arr.map(s => `<li>${item(s)}</li>`).join("")}</ul>`;
+  }
+  function connectionsHTML(id) {
+    const rows = [];
+    const n = N[id];
+    if (n.parent) rows.push({ to: n.parent, kind: "Navegación", v: "pertenece a" });
+    if (n.kind === "module") SUBS[id].forEach(s => rows.push({ to: s, kind: "Navegación", v: "contiene" }));
+    if (n.kind === "center") MODULES.forEach(m => rows.push({ to: m.id, kind: "Navegación", v: "da acceso a" }));
+    LINKS.forEach(l => {
+      const k = l.kind === "seq" ? "Secuencia" : l.kind === "data" ? "Datos" : "Entrada";
+      if (l.a === id) rows.push({ to: l.b, kind: k, v: l.v + " →" });
+      if (l.b === id) rows.push({ to: l.a, kind: k, v: "← " + l.v });
+    });
+    if (["N810", "N820"].includes(id)) rows.push({ to: "N010", kind: "Datos", v: "limita todos los módulos" });
+    if (!rows.length) return value(null);
+    return `<div class="conn">${rows.map(r => `<button type="button" data-go="${r.to}"><span class="cid">${r.to}</span> ${esc(N[r.to].t)} <span class="kind">· ${esc(r.kind)}: ${esc(r.v)}</span></button>`).join("")}</div>`;
+  }
+  const FIELDS = [
+    ["tipo", "Tipo"], ["src", "Fuente / estado"], ["rol", "Rol y ámbito"], ["ent", "Entrada"], ["campos", "Campos"], ["acc", "Acciones"],
+    ["val", "Validaciones"], ["sal", "Salida"], ["con", "Conexiones"], ["err", "Errores"], ["datos", "Datos afectados"], ["prueba", "Prueba de aceptación"], ["pend", "Pendientes"]
+  ];
+  function renderPanel() {
+    const id = state.selected;
+    document.getElementById("handleTitle").textContent = id ? `${id} · ${N[id].t}` : "Cómo leer el mapa";
+    if (!id) { inner.innerHTML = introHTML(); bindGo(); return; }
+    const n = N[id];
+    const crumb = [];
+    let c = n.parent; while (c) { crumb.unshift(c); c = N[c].parent; }
+    if (id !== "N000" && id !== "N010") crumb.unshift("N000");
+    const isMod = n.kind === "module";
+    inner.innerHTML = `
+      <div class="f-head">
+        <div class="f-crumb">${crumb.map(x => `<button type="button" data-go="${x}">${x} ${esc(N[x].t)}</button><span>›</span>`).join("")}<span>${id}</span></div>
+        <div class="f-id">${id}${n.pending ? ' · <span class="tag D" title="Por definir">D</span> bloqueado por decisiones pendientes' : ""}</div>
+        <h2>${esc(n.t)}</h2>
+        <p class="f-fn">${esc(n.fn || "")}</p>
+      </div>
+      <div class="f-actions">
+        ${isMod ? `<button class="btn" type="button" id="tgl">${state.expanded.has(id) ? "Contraer submapa" : "Desplegar submapa"}</button>` : ""}
+        <button class="btn" type="button" id="ctr">Centrar en el mapa</button>
+        <button class="btn" type="button" id="back">Cómo leer el mapa</button>
+      </div>
+      ${isMod ? `<div class="links">${SUBS[id].map(s => `<button class="chip" type="button" data-go="${s}"><span class="cid">${s}</span>${esc(N[s].t)}</button>`).join("")}</div>` : ""}
+      <dl class="fields">
+        ${FIELDS.map(([k, label]) => `<div class="field"><dt>${label}</dt><dd>${k === "con" ? connectionsHTML(id) : value(n[k])}</dd></div>`).join("")}
+      </dl>
+      <p class="small">Los campos sin dato quedan marcados; no se completan con suposiciones. Una propuesta [P] pasa a aprobada cuando Eduardo la confirma.</p>`;
+    const tgl = document.getElementById("tgl");
+    if (tgl) tgl.addEventListener("click", () => { const opening = !state.expanded.has(id); toggle(id); render(); renderPanel(); if (opening) fitTo(["N010", id].concat(SUBS[id]), true); });
+    document.getElementById("ctr").addEventListener("click", () => centerOn(id));
+    document.getElementById("back").addEventListener("click", () => select(null));
+    bindGo();
+    inner.parentElement.scrollTop = 0;
+  }
+  function bindGo() {
+    inner.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.getAttribute("data-go"), true)));
+  }
+  function introHTML() {
+    const pendCount = Object.values(N).filter(n => n.pending).length;
+    return `
+      <div class="intro" style="display:grid;gap:14px">
+        <h2>Vista general del sistema nuevo</h2>
+        <p>Cada círculo es una pantalla o grupo de funciones. Desde <b>N010 Inicio</b> cada usuario ve sólo los módulos que su rol autoriza. Toca un módulo para desplegar sus círculos y toca cualquier círculo para abrir su ficha.</p>
+        <div class="box">
+          <h3>Módulos</h3>
+          <div class="mods">${["N000", "N010"].concat(MODULES.map(m => m.id)).map(x => `<button class="chip" type="button" data-go="${x}"><span class="cid">${x}</span>${esc(N[x].t)}</button>`).join("")}</div>
+        </div>
+        <div class="box">
+          <h3>Líneas y contornos</h3>
+          <div class="legend">
+            <div class="legend-row"><svg viewBox="0 0 52 22"><line x1="2" y1="11" x2="50" y2="11" class="edge-nav"/></svg><span>Navegación: acceso desde Inicio o desde el módulo</span></div>
+            <div class="legend-row"><svg viewBox="0 0 52 22"><line x1="2" y1="11" x2="44" y2="11" class="edge-seq" marker-end="url(#arSeq)"/></svg><span>Secuencia de negocio, con verbo: «aprueba», «registra», «transfiere»</span></div>
+            <div class="legend-row"><svg viewBox="0 0 52 22"><line x1="2" y1="11" x2="44" y2="11" class="edge-data" marker-end="url(#arData)"/></svg><span>Dependencia de datos o consulta</span></div>
+            <div class="legend-row"><svg viewBox="0 0 52 22"><circle cx="26" cy="11" r="9" fill="none" stroke="var(--rust)" stroke-width="2" stroke-dasharray="4 4"/><text x="26" y="15" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="600" fill="var(--rust)">D</text></svg><span>Contorno punteado: depende de decisiones prioritarias pendientes (${pendCount} círculos)</span></div>
+          </div>
+          <p class="small" style="margin:0">Por defecto se dibujan las conexiones del círculo elegido y de los módulos desplegados. «Todas las conexiones» las muestra todas.</p>
+        </div>
+        <div class="box">
+          <h3>Etiquetas de origen</h3>
+          <div class="tags-legend">
+            <div>${tagHTML("R")}<span>Reunión del 29 oct 2026</span></div>
+            <div>${tagHTML("F")}<span>Especificación funcional, consolidada el 30 oct 2026</span></div>
+            <div>${tagHTML("P")}<span>Propuesta de diseño; Eduardo y el cliente la validan</span></div>
+            <div>${tagHTML("D")}<span>Por definir; se pregunta y se documenta la respuesta</span></div>
+            <div>${tagHTML("?")}<span>Pregunta que sugiero agregar; no está en la guía</span></div>
+          </div>
+        </div>
+        <div class="box">
+          <h3>Decisiones que bloquean primero</h3>
+          <ol class="prio">
+            <li><b>Dinero.</b> Los dos productos, tasa, periodicidad, base de días, mora, orden de aplicación y redondeo, con ejemplos de pago parcial, atraso y liquidación.</li>
+            <li><b>Cajas.</b> Si se traslada todo el saldo o sólo lo cobrado, a qué hora y zona horaria, a qué gerente, y cómo se recibe y se resuelven faltantes.</li>
+            <li><b>Datos actuales.</b> Qué archivos se pueden exportar, si traen IDs, cuotas, pagos y saldos, cuántos registros hay y la fecha de corte.</li>
+          </ol>
+        </div>
+        <p class="small">Fuera de la versión inicial: IA operativa, telefonía, pasarela y conciliación bancaria, dispersión de préstamos, app nativa, CFDI, Buró de Crédito, PLD/KYC automatizado, OCR y firma electrónica.</p>
+      </div>`;
+  }
+
+  // ---------- Barra superior ----------
+  const q = document.getElementById("q"), results = document.getElementById("results");
+  let hits = [], hi = 0;
+  function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function runSearch() {
+    const s = norm(q.value.trim());
+    if (!s) { results.hidden = true; return; }
+    hits = Object.keys(N).filter(id => norm(id).includes(s) || norm(N[id].t).includes(s) || norm(N[id].fn || "").includes(s)).slice(0, 12);
+    hi = 0;
+    if (!hits.length) { results.innerHTML = `<div class="small" style="padding:8px">Sin coincidencias</div>`; results.hidden = false; return; }
+    results.innerHTML = hits.map((id, i) => `<button type="button" data-hit="${id}" class="${i === hi ? "on" : ""}"><span class="rid">${id}</span><span>${esc(N[id].t)}</span></button>`).join("");
+    results.hidden = false;
+    results.querySelectorAll("[data-hit]").forEach(b => b.addEventListener("click", () => pick(b.getAttribute("data-hit"))));
+  }
+  function pick(id) { results.hidden = true; q.value = ""; select(id, true); }
+  q.addEventListener("input", runSearch);
+  q.addEventListener("keydown", e => {
+    if (results.hidden || !hits.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault(); hi = (hi + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length;
+      results.querySelectorAll("[data-hit]").forEach((b, i) => b.classList.toggle("on", i === hi));
+    } else if (e.key === "Enter") { e.preventDefault(); pick(hits[hi]); }
+    else if (e.key === "Escape") { results.hidden = true; }
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".search")) results.hidden = true; });
+
+  document.getElementById("expandAll").addEventListener("click", () => { MODULES.forEach(m => state.expanded.add(m.id)); render(); renderPanel(); fitAll(true); });
+  document.getElementById("collapseAll").addEventListener("click", () => {
+    state.expanded.clear();
+    if (state.selected && N[state.selected].kind === "sub") state.selected = N[state.selected].parent;
+    render(); renderPanel(); setHash(state.selected); fitAll(true);
+  });
+  const allBtn = document.getElementById("allLinks");
+  allBtn.addEventListener("click", () => { state.allLinks = !state.allLinks; allBtn.setAttribute("aria-pressed", String(state.allLinks)); render(); });
+  document.getElementById("zin").addEventListener("click", () => { const { w, h } = stageBox(); zoomAt(1.25, w / 2, h / 2); });
+  document.getElementById("zout").addEventListener("click", () => { const { w, h } = stageBox(); zoomAt(0.8, w / 2, h / 2); });
+  document.getElementById("fit").addEventListener("click", () => fitAll(true));
+  document.getElementById("reset").addEventListener("click", () => { state.offset = {}; render(); fitAll(true); });
+
+  // ---------- Arranque ----------
+  function fromHash() {
+    const h = (location.hash || "").replace("#", "").toUpperCase();
+    if (h && N[h]) { select(h, false); fitAll(false); centerOn(h); return true; }
+    return false;
+  }
+  window.addEventListener("hashchange", () => { const h = location.hash.replace("#", "").toUpperCase(); if (N[h] && h !== state.selected) select(h, true); });
+  let resizeT;
+  window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => fitAll(false), 150); });
+
+  openSheet(!isSheet());
+  render();
+  renderPanel();
+  if (!fromHash()) requestAnimationFrame(() => fitAll(false));
+})();
+</script>
