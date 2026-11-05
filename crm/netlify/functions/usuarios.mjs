@@ -11,7 +11,7 @@ import { json, quien, sb } from '../lib/sb.mjs'
 import { CLAVE_MINIMA, DOMINIO_ENTRADA, claveReal, correoDeUsuario, normalizarUsuario, usuarioValido } from '../../public/acceso.js'
 
 const ROLES = new Set(['cliente', 'equipo'])
-const SECCIONES = ['ve_tareas', 've_biblioteca', 've_catalogos']
+const SECCIONES = ['ve_tareas', 've_biblioteca', 've_catalogos', 've_parrilla']
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const ID = /^[0-9a-f-]{36}$/i
 
@@ -102,6 +102,7 @@ export default async (req) => {
       }
       const perfil = { nombre, usuario, correo, rol: d.rol, activo: true, empresas, clave_temporal: true }
       for (const s of SECCIONES) perfil[s] = d[s] !== false
+      perfil.pide_extras = perfil.ve_parrilla && d.pide_extras === true
       perfil.ultron = d.rol === 'cliente' && d.ultron === true
       try {
         await sb(`/rest/v1/perfiles?id=eq.${user.id}`, { servicio: true, method: 'PATCH', body: perfil })

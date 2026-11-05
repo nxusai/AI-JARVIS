@@ -3,14 +3,30 @@
 // Nada sale a internet y al recargar la página vuelve a empezar.
 
 const EMPRESAS = [
-  { id: 'abuelito-cheese', nombre: 'Abuelito Cheese', grupo: 'Abuelito INC', orden: 1, activa: true },
-  { id: 'abuelito-meat', nombre: 'Abuelito Meat', grupo: 'Abuelito INC', orden: 2, activa: true },
-  { id: 'abuelito-corn', nombre: 'Abuelito Corn', grupo: 'Abuelito INC', orden: 3, activa: true },
-  { id: 'mi-semago', nombre: 'Mi Semago', grupo: null, orden: 4, activa: true },
-  { id: 'vayro', nombre: 'VAYRO', grupo: null, orden: 5, activa: false },
+  { id: 'abuelito-cheese', nombre: 'Abuelito Cheese', grupo: 'Abuelito INC', orden: 1, activa: true, marca: 'abuelito' },
+  { id: 'abuelito-meat', nombre: 'Abuelito Meat', grupo: 'Abuelito INC', orden: 2, activa: true, marca: 'abuelito' },
+  { id: 'abuelito-corn', nombre: 'Abuelito Corn', grupo: 'Abuelito INC', orden: 3, activa: true, marca: 'abuelito' },
+  { id: 'mi-semago', nombre: 'Mi Semago', grupo: null, orden: 4, activa: true, marca: 'mi-semago' },
+  { id: 'vayro', nombre: 'VAYRO', grupo: null, orden: 5, activa: false, marca: 'vayro' },
 ]
 
 import { CLAVE_MINIMA, normalizarUsuario, usuarioValido } from './acceso.js'
+
+/** El primer día del mes (local) en 'AAAA-MM-01', moviéndose n meses. */
+export function mesISO(n = 0, base = new Date()) {
+  const d = new Date(base.getFullYear(), base.getMonth() + n, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+const FIJOS = [
+  ['Stupid content', 1, '#2f9e44'],
+  ['Chef Saúl', 2, '#f08c00'],
+  ['Imágenes IA', 8, '#1c7ed6'],
+  ['Imágenes reales', 8, '#7048e8'],
+  ['Video IA', 1, '#e03131'],
+  ['ADS', 3, '#e8b100'],
+]
+const COLORES_FIJOS = ['#2f9e44', '#f08c00', '#1c7ed6', '#7048e8', '#e03131', '#e8b100', '#0c8599', '#d6336c']
+const COLORES_EXTRAS = ['#d6336c', '#0c8599', '#8d5a3b', '#5c940d', '#364fc7', '#ae3ec9', '#c2255c', '#087f5b']
 
 const PERSONAS = [
   { id: 'u-senen', nombre: 'Senen', correo: 'senen@ejemplo.com', rol: 'cliente', explica: 'Cliente (dueño): pide sus tareas, corrige, aprueba · tiene a Ultron' },
@@ -57,7 +73,14 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [] }
+  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [] }
+  // Lo que se espera cada mes, por marca (igual que en esquema.sql).
+  for (const marca of ['abuelito', 'mi-semago'])
+    FIJOS.forEach(([nombre, cantidad, color], i) => {
+      const id = uid()
+      db.plan.push({ id, clave: id, marca, fijo: true, nombre, detalle: '', cantidad, color, orden: i + 1, desde: mesISO(-1), hasta: null, pedido_por: null, creado: ahora() })
+    })
+  const clave = (marca, nombre) => db.plan.find((p) => p.marca === marca && p.nombre === nombre)?.clave ?? null
   {
     // Una parrilla de ejemplo para este mes.
     const d = (n) => {
@@ -65,13 +88,16 @@ export function crearMuestra() {
       x.setDate(x.getDate() + n)
       return x.toISOString().slice(0, 10)
     }
-    const c = (dia, empresa_id, canal, titulo, texto, hora, estado = 'listo') =>
-      db.contenidos.push({ id: uid(), empresa_id, fecha: d(dia), hora, canal, titulo, texto, enlace: '', estado, enviado: estado === 'enviado' ? ahora() : null, creado_por: 'u-equipo1', creada: ahora(), actualizada: ahora() })
-    c(-3, 'mi-semago', 'whatsapp', 'Lista de precios de la semana', 'Buen día. Les comparto los quesos disponibles esta semana. Pedidos antes del jueves para entrega el viernes.', '09:00', 'enviado')
-    c(-1, 'abuelito-cheese', 'estado', 'Receta: pupusas con quesillo', 'Hoy en casa: pupusas con quesillo Abuelito. ¿Ya lo probaste? Pídelo con tu vendedora.', '11:00', 'enviado')
-    c(0, 'abuelito-meat', 'instagram', 'Chorizo salvadoreño estilo casero', 'Nuevo empaque, mismo sabor de siempre. Disponible con tu distribuidor.', '10:00')
-    c(1, 'mi-semago', 'whatsapp', 'Promo cliente nuevo', 'Si tu tienda es nueva con nosotros, el primer pedido lleva 10% de descuento en quesos frescos.', '09:30')
-    c(3, 'abuelito-corn', 'estado', 'Tortillas recién hechas', 'Tortillas de maíz Abuelito, recién salidas. Pregunta por el paquete de 30.', '12:00', 'borrador')
+    const marcaDe = (e) => (e.startsWith('abuelito') ? 'abuelito' : e)
+    const c = (dia, empresa_id, canal, titulo, texto, hora, estado = 'listo', tipo = null) => {
+      // El punto solo si el día cae en un mes con ese plan (siempre, en la muestra).
+      db.contenidos.push({ id: uid(), empresa_id, fecha: d(dia), hora, canal, titulo, texto, enlace: '', estado, enviado: estado === 'enviado' ? ahora() : null, creado_por: 'u-equipo1', creada: ahora(), actualizada: ahora(), plan_clave: tipo ? clave(marcaDe(empresa_id), tipo) : null })
+    }
+    c(-3, 'mi-semago', 'whatsapp', 'Lista de precios de la semana', 'Buen día. Les comparto los quesos disponibles esta semana. Pedidos antes del jueves para entrega el viernes.', '09:00', 'enviado', 'Imágenes reales')
+    c(-1, 'abuelito-cheese', 'estado', 'Receta: pupusas con quesillo', 'Hoy en casa: pupusas con quesillo Abuelito. ¿Ya lo probaste? Pídelo con tu vendedora.', '11:00', 'enviado', 'Chef Saúl')
+    c(0, 'abuelito-meat', 'instagram', 'Chorizo salvadoreño estilo casero', 'Nuevo empaque, mismo sabor de siempre. Disponible con tu distribuidor.', '10:00', 'listo', 'Imágenes IA')
+    c(1, 'mi-semago', 'whatsapp', 'Promo cliente nuevo', 'Si tu tienda es nueva con nosotros, el primer pedido lleva 10% de descuento en quesos frescos.', '09:30', 'listo', 'ADS')
+    c(3, 'abuelito-corn', 'estado', 'Tortillas recién hechas', 'Tortillas de maíz Abuelito, recién salidas. Pregunta por el paquete de 30.', '12:00', 'borrador', 'Stupid content')
     c(6, 'abuelito-cheese', 'facebook', 'Queso fresco para el fin de semana', '¿Carne asada este fin? No olvides el queso fresco Abuelito.', '17:00', 'borrador')
   }
   const blobs = new Map()
@@ -79,31 +105,41 @@ export function crearMuestra() {
   let folio = 0
 
   const CABEZAS = ['u-senen', 'u-gerardo', 'u-marisol', 'u-miguel']
-  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ultron: CABEZAS.includes(p.id) })
+  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: ['u-senen', 'u-gerardo'].includes(p.id), ultron: CABEZAS.includes(p.id) })
   db.perfiles.find((p) => p.id === 'u-admin').dueno = true
+  // Un extra que pidió Senen para este mes.
+  {
+    const id = uid()
+    db.plan.push({ id, clave: id, marca: 'mi-semago', fijo: false, nombre: 'Promo Día de Muertos', detalle: 'Pan de muerto con queso fresco', cantidad: 1, color: COLORES_EXTRAS[0], orden: 0, desde: mesISO(0), hasta: mesISO(1), pedido_por: 'u-senen', pedido_nombre: 'Senen', creado: ahora() })
+  }
   // Miguel todavía tiene la contraseña que le puso el admin: al entrar se le ofrece cambiarla.
   db.perfiles.find((p) => p.id === 'u-miguel').clave_temporal = true
-  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', usuario: 'disenador2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true })
+  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', usuario: 'disenador2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: false })
 
   // -- reglas (las mismas que la base de datos) --------------------------------
   const perfil = () => db.perfiles.find((p) => p.id === yo && p.activo)
   const rol = () => perfil()?.rol
   const equipo = () => ['admin', 'equipo'].includes(rol())
   const admin = () => rol() === 'admin'
+  // El admin ve todo; el equipo y los clientes según sus empresas y secciones.
   const veo = (seccion, empresa) => {
     const p = perfil()
     if (!p) return false
-    if (equipo()) return true
-    return (!p.empresas || p.empresas.includes(empresa)) && p[`ve_${seccion}`]
+    if (admin()) return true
+    return (!p.empresas || p.empresas.includes(empresa)) && p[`ve_${seccion}`] !== false
   }
-  const veoTarea = (t) => equipo() || (t.cliente_id === yo && veo('tareas', t.empresa_id))
+  const veoTarea = (t) => veo('tareas', t.empresa_id) && (equipo() || t.cliente_id === yo)
+  const marcaDe = (empresa) => db.empresas.find((e) => e.id === empresa)?.marca
+  const veoMarca = (marca) => db.empresas.some((e) => e.marca === marca && e.activa && veo('parrilla', e.id))
+  const dueno = () => Boolean(perfil()?.dueno)
+  const enMes = (p, mes) => p.desde <= mes && (!p.hasta || p.hasta > mes)
   const veoArchivo = (a) =>
     a.tipo === 'biblioteca'
       ? veo('biblioteca', a.empresa_id)
       : a.tipo === 'catalogo'
         ? veo('catalogos', a.empresa_id)
         : a.tipo === 'contenido'
-          ? Boolean(perfil()) && (equipo() || !perfil().empresas || perfil().empresas.includes(a.empresa_id))
+          ? veo('parrilla', a.empresa_id)
           : veoTarea(db.tareas.find((t) => t.id === a.tarea_id) ?? {})
   const no = (m) => {
     throw new Error(m)
@@ -299,7 +335,7 @@ export function crearMuestra() {
       await espera(300)
       if (!empresa_id) no('Elige la empresa')
       if (!titulo) no('Escribe qué necesitas')
-      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente' && p.activo && !p.eliminado))) no('No tienes permiso para pedir esa tarea')
+      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && veo('tareas', empresa_id) && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente' && p.activo && !p.eliminado))) no('No tienes permiso para pedir esa tarea')
       const t = { id: uid(), folio: ++folio, cliente_id, empresa_id, titulo, descripcion, urgente, pedida: ahora(), creada_por: yo, estatus: 'recibida', compromiso: null, entregada: null, aprobada: null, actualizada: ahora() }
       db.tareas.push(t)
       anota('creó', 'tareas', t.id, { titulo })
@@ -404,7 +440,7 @@ export function crearMuestra() {
     },
     async subirBiblioteca({ empresa_id, carpeta_id, file, anterior_id }) {
       await espera(400)
-      if (!equipo()) no('Solo el equipo sube a la biblioteca')
+      if (!equipo() || !veo('biblioteca', empresa_id)) no('Solo el equipo sube a la biblioteca')
       nuevoArchivo({ tipo: 'biblioteca', empresa_id, carpeta_id, anterior_id, nombre: file.name }, file)
     },
     async cambiarArchivo(id, { nombre, carpeta_id, notas }) {
@@ -427,17 +463,75 @@ export function crearMuestra() {
     async catalogos() {
       return copia(db.archivos.filter((a) => a.tipo === 'catalogo' && veoArchivo(a)))
     },
+    // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
+    async plan() {
+      if (!perfil()) return []
+      return copia(db.plan.filter((p) => dueno() || veoMarca(p.marca)))
+    },
+    async pedirExtra({ marca, nombre, cantidad, detalle = '', desde }) {
+      await espera(300)
+      const p = perfil()
+      if (!dueno() && !(p?.pide_extras && veoMarca(marca))) no('No tienes permiso para pedir extras')
+      desde = mesISO(0, new Date(desde.slice(0, 7) + '-15T12:00'))
+      if (!dueno() && ![mesISO(0), mesISO(1)].includes(desde)) no('Los extras se piden para este mes o el siguiente')
+      nombre = String(nombre || '').trim()
+      if (!nombre) no('Falta qué quieres')
+      const usados = db.plan.filter((x) => x.marca === marca && !x.fijo && x.desde === desde).map((x) => x.color)
+      const id = uid()
+      db.plan.push({ id, clave: id, marca, fijo: false, nombre, detalle: String(detalle || '').trim(), cantidad: Math.max(1, Number(cantidad) || 1), color: COLORES_EXTRAS.find((c) => !usados.includes(c)) ?? '#868e96', orden: 0, desde, hasta: mesISO(1, new Date(desde + 'T12:00')), pedido_por: yo, pedido_nombre: p?.nombre ?? '', creado: ahora() })
+      anota('creó', 'plan', id, { nombre })
+    },
+    async guardarFijo({ clave: cl, marca, nombre, cantidad, detalle = '' }) {
+      await espera(300)
+      if (!dueno()) no('Solo el administrador principal cambia lo fijo')
+      const mes = mesISO(0)
+      cantidad = Number(cantidad)
+      if (!nombre?.trim() || !(cantidad >= 1)) no('Falta el nombre o la cantidad')
+      if (!cl) {
+        const usados = db.plan.filter((x) => x.marca === marca && x.fijo && !x.hasta).map((x) => x.color)
+        const id = uid()
+        db.plan.push({ id, clave: id, marca, fijo: true, nombre: nombre.trim(), detalle, cantidad, color: COLORES_FIJOS.find((c) => !usados.includes(c)) ?? '#868e96', orden: Math.max(0, ...db.plan.filter((x) => x.marca === marca && x.fijo).map((x) => x.orden)) + 1, desde: mes, hasta: null, pedido_por: null, creado: ahora() })
+        anota('creó', 'plan', id, { nombre })
+        return
+      }
+      const v = db.plan.filter((x) => x.clave === cl && x.fijo && (!x.hasta || x.hasta > mes)).sort((a, b) => b.desde.localeCompare(a.desde))[0]
+      if (!v) no('Eso ya no está en el plan')
+      if (v.desde >= mes) Object.assign(v, { nombre: nombre.trim(), detalle, cantidad })
+      else {
+        const hasta = v.hasta
+        v.hasta = mes
+        db.plan.push({ ...v, id: uid(), nombre: nombre.trim(), detalle, cantidad, desde: mes, hasta })
+      }
+      anota('cambió', 'plan', cl, { nombre })
+    },
+    async quitarFijo(cl) {
+      await espera(300)
+      if (!dueno()) no('Solo el administrador principal cambia lo fijo')
+      const sig = mesISO(1)
+      db.plan = db.plan.filter((x) => !(x.clave === cl && x.fijo && x.desde >= sig))
+      for (const x of db.plan) if (x.clave === cl && x.fijo && (!x.hasta || x.hasta > sig)) x.hasta = sig
+      anota('cambió', 'plan', cl, { quitado: true })
+    },
+    async borrarExtra(id) {
+      if (!dueno()) no('Solo el administrador principal borra extras')
+      const x = db.plan.find((p) => p.id === id && !p.fijo)
+      if (!x) no('Ese extra ya no está')
+      db.plan = db.plan.filter((p) => p.id !== id)
+      for (const c of db.contenidos) if (c.plan_clave === x.clave) c.plan_clave = null
+      anota('borró', 'plan', id, { nombre: x.nombre })
+    },
     async contenidos() {
       const p = perfil()
       if (!p) return []
       return copia(
         db.contenidos
-          .filter((c) => equipo() || !p.empresas || p.empresas.includes(c.empresa_id))
+          .filter((c) => veo('parrilla', c.empresa_id))
           .map((c) => ({ ...c, archivos: db.archivos.filter((a) => a.tipo === 'contenido' && a.contenido_id === c.id) })),
       )
     },
     async guardarContenido({ id, ...c }) {
-      if (!equipo()) no('Solo tu equipo llena la parrilla')
+      if (!equipo() || !veo('parrilla', c.empresa_id)) no('Solo tu equipo llena la parrilla')
+      if (c.plan_clave && !db.plan.some((p) => p.clave === c.plan_clave && p.marca === marcaDe(c.empresa_id) && enMes(p, c.fecha.slice(0, 8) + '01'))) no('Eso no está en lo que se espera de esa marca en ese mes')
       if (id) {
         const x = db.contenidos.find((v) => v.id === id)
         Object.assign(x, c, { actualizada: ahora() })
@@ -457,12 +551,12 @@ export function crearMuestra() {
     },
     async subirMaterial(contenido, file) {
       await espera(300)
-      if (!equipo()) no('Solo tu equipo sube material')
+      if (!equipo() || !veo('parrilla', contenido.empresa_id)) no('Solo tu equipo sube material')
       nuevoArchivo({ tipo: 'contenido', contenido_id: contenido.id, empresa_id: contenido.empresa_id, nombre: file.name }, file)
     },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       await espera(400)
-      if (!equipo()) no('Solo el equipo sube catálogos')
+      if (!equipo() || !veo('catalogos', empresa_id)) no('Solo el equipo sube catálogos')
       nuevoArchivo({ tipo: 'catalogo', empresa_id, anterior_id, nombre: file.name }, file)
     },
     async url(a) {

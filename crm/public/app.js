@@ -58,12 +58,15 @@ const S = {
   biblioteca: [],
   catalogos: [],
   contenidos: [],
+  plan: [],
   usuarios: [],
   parrillaMes: (() => {
     const x = new Date()
     return new Date(x.getFullYear(), x.getMonth(), 1)
   })(),
   parrillaEmpresa: '',
+  parrillaMarca: '',
+  parrillaTipo: '',
   vista: 'tareas',
   mes: 'pendientes',
   anio: new Date().getFullYear(),
@@ -122,12 +125,13 @@ function avisar(texto, mal = false) {
 }
 const falla = (err) => avisar(err?.message || String(err), true)
 
+/** Si veo una empresa en una sección (como veo() en la base de datos): el admin todo; los demás según sus permisos. */
+const veoEmpresa = (id, seccion) => esAdmin() || ((!S.yo.empresas || S.yo.empresas.includes(id)) && S.yo[`ve_${seccion}`] !== false)
 /** Las empresas que veo en una sección, activas y en orden. */
 function misEmpresas(seccion) {
-  const yo = S.yo
   return S.empresas
     .filter((e) => e.activa)
-    .filter((e) => esEquipo() || ((!yo.empresas || yo.empresas.includes(e.id)) && yo[`ve_${seccion}`] !== false))
+    .filter((e) => veoEmpresa(e.id, seccion))
     .sort((a, b) => a.orden - b.orden)
 }
 /** [{grupo, empresas}] respetando el orden. */
@@ -180,16 +184,17 @@ async function ocupado(boton, trabajo) {
 // -- cargar ------------------------------------------------------------------
 
 async function cargarTodo() {
-  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos] = await Promise.all([
+  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan] = await Promise.all([
     D.empresas(),
-    S.yo.ve_tareas !== false || esEquipo() ? D.tareas() : [],
+    S.yo.ve_tareas !== false || esAdmin() ? D.tareas() : [],
     D.carpetas(),
     D.biblioteca(),
     D.catalogos(),
     esEquipo() ? D.clientes() : [],
     D.contenidos ? D.contenidos() : [],
+    D.plan ? D.plan() : [],
   ])
-  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos })
+  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
 
@@ -300,11 +305,11 @@ async function empezar() {
 
 function vistasPermitidas() {
   const v = []
-  if (esEquipo() || S.yo.ve_tareas !== false) v.push('tareas')
-  // La parrilla la ven todos; solo el equipo la cambia.
-  v.push('parrilla')
-  if (esEquipo() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
-  if (esEquipo() || S.yo.ve_catalogos !== false) v.push('catalogos')
+  if (esAdmin() || S.yo.ve_tareas !== false) v.push('tareas')
+  // La parrilla: quien tenga el permiso; solo el equipo la llena.
+  if (esAdmin() || S.yo.ve_parrilla !== false) v.push('parrilla')
+  if (esAdmin() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
+  if (esAdmin() || S.yo.ve_catalogos !== false) v.push('catalogos')
   if (esAdmin()) v.push('usuarios', 'bitacora')
   return v
 }
@@ -926,22 +931,81 @@ const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const isoDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const horaCorta = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : '')
 
+const MARCAS = { abuelito: 'Abuelito', 'mi-semago': 'Mi Semago' }
+const marcaDe = (empresaId) => empresa(empresaId).marca ?? (String(empresaId).startsWith('abuelito') ? 'abuelito' : empresaId)
+/** El primer día de un mes en 'AAAA-MM-01'. */
+const mesISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+const mesDe = (fechaISO) => `${String(fechaISO).slice(0, 7)}-01`
+const nombreMes = (iso) => aFecha(iso).toLocaleDateString('es-MX', { month: 'long' })
+/** Las marcas cuya parrilla puedo ver. */
+const marcasParrilla = () => Object.keys(MARCAS).filter((m) => S.empresas.some((e) => e.activa && e.marca === m && veoEmpresa(e.id, 'parrilla')))
+function marcaActual() {
+  const ms = marcasParrilla()
+  if (!ms.includes(S.parrillaMarca)) S.parrillaMarca = ms[0] ?? ''
+  return S.parrillaMarca
+}
+/** Lo que se espera de una marca en un mes: primero lo fijo (en su orden), luego los extras. */
+const planDelMes = (marca, mes) =>
+  S.plan
+    .filter((p) => p.marca === marca && p.desde <= mes && (!p.hasta || p.hasta > mes))
+    .sort((a, b) => Number(b.fijo) - Number(a.fijo) || a.orden - b.orden || String(a.creado).localeCompare(String(b.creado)))
+/** La cosa del plan que cumple un contenido (la versión de su mes). */
+const tipoDe = (c) => (c.plan_clave ? planDelMes(marcaDe(c.empresa_id), mesDe(c.fecha)).find((p) => p.clave === c.plan_clave) ?? S.plan.find((p) => p.clave === c.plan_clave) : null)
+const nombreDe = (id) => (!id ? '' : id === S.yo.id ? S.yo.nombre : (S.usuarios.find((u) => u.id === id)?.nombre ?? S.clientes.find((u) => u.id === id)?.nombre ?? ''))
+const puedoPedirExtras = () => S.yo.dueno || (S.yo.pide_extras && S.yo.ve_parrilla !== false)
+
 function contenidosDelMes() {
   const m = S.parrillaMes
   const prefijo = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`
+  const marca = marcaActual()
   return S.contenidos
-    .filter((c) => c.fecha.startsWith(prefijo) && (!S.parrillaEmpresa || c.empresa_id === S.parrillaEmpresa))
+    .filter((c) => c.fecha.startsWith(prefijo) && marcaDe(c.empresa_id) === marca && (!S.parrillaEmpresa || c.empresa_id === S.parrillaEmpresa))
     .sort((a, b) => a.fecha.localeCompare(b.fecha) || String(a.hora ?? '').localeCompare(String(b.hora ?? '')))
 }
 
 function chipContenido(c) {
   const n = c.archivos?.length ?? 0
-  return `<button class="contenido c-${c.estado}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
-    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}${n ? ` · 📎${n}` : ''}</span><b>${h(c.titulo)}</b></button>`
+  const t = tipoDe(c)
+  const atenuado = S.parrillaTipo && (S.parrillaTipo === 'sin' ? Boolean(t) : t?.clave !== S.parrillaTipo)
+  return `<button class="contenido c-${c.estado}${atenuado ? ' atenuado' : ''}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(t ? `${t.nombre} · ` : '')}${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
+    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}${n ? ` · 📎${n}` : ''}</span><b><i class="punto-plan" style="background:${t ? t.color : '#adb5bd'}"></i>${h(c.titulo)}</b></button>`
+}
+
+/** Arriba del calendario: lo que se espera en el mes, con su punto y cuántos van. */
+function bloquePlan(marca, mes, delMes) {
+  const plan = planDelMes(marca, mes)
+  const sinTipo = delMes.filter((c) => !tipoDe(c)).length
+  const items = plan.map((p) => {
+    const van = delMes.filter((c) => c.plan_clave === p.clave).length
+    const pct = Math.min(100, Math.round((van / p.cantidad) * 100))
+    const quien = p.fijo ? '' : p.pedido_nombre || nombreDe(p.pedido_por)
+    return `<div class="plan-item ${van >= p.cantidad ? 'completo' : ''} ${S.parrillaTipo === p.clave ? 'activo' : ''}">
+      <button class="plan-boton" data-parrilla-tipo="${p.clave}" title="Ver solo esto en el calendario">
+        <i class="punto-plan grande" style="background:${p.color}"></i>
+        <span class="plan-nombre"><b>${h(p.nombre)}</b>${p.detalle ? `<small>${h(p.detalle)}</small>` : ''}${p.fijo ? '' : `<small class="plan-pidio">Extra · Pidió: <b>${h(quien || 'alguien')}</b></small>`}</span>
+        <span class="plan-cuenta"><b>${van}</b> de ${p.cantidad}${van >= p.cantidad ? ' ✓' : ''}<span class="barrita"><span style="width:${pct}%;background:${p.color}"></span></span></span>
+      </button>
+      ${!p.fijo && S.yo.dueno ? `<button class="btn chico peligro" data-borrar-extra="${p.id}" title="Borrar este extra">✕</button>` : ''}
+    </div>`
+  })
+  if (sinTipo) items.push(`<div class="plan-item ${S.parrillaTipo === 'sin' ? 'activo' : ''}"><button class="plan-boton" data-parrilla-tipo="sin"><i class="punto-plan grande" style="background:#adb5bd"></i><span class="plan-nombre"><b>Sin tipo</b><small>Contenidos que todavía no dicen qué son</small></span><span class="plan-cuenta"><b>${sinTipo}</b></span></button></div>`)
+  return `<section class="plan">
+    <div class="plan-cabeza">
+      <h3>Lo que se espera en ${h(nombreMes(mes))} · ${h(MARCAS[marca])}</h3>
+      <div class="plan-acciones">
+        ${S.parrillaTipo ? '<button class="btn chico" data-parrilla-tipo="">Ver todo</button>' : ''}
+        ${puedoPedirExtras() ? '<button class="btn chico" data-accion="pedir-extra">+ Pedir algo extra</button>' : ''}
+        ${S.yo.dueno ? '<button class="btn chico" data-accion="plan-fijo">⚙️ Lo fijo</button>' : ''}
+      </div>
+    </div>
+    ${items.length ? `<div class="plan-lista">${items.join('')}</div>` : '<p class="ayuda" style="margin:0">No hay nada esperado para este mes.</p>'}
+  </section>`
 }
 
 function vistaParrilla() {
   const m = S.parrillaMes
+  const marca = marcaActual()
+  if (!marca) return '<div class="vacio-msg">No tienes parrillas disponibles.</div>'
   const mes = contenidosDelMes()
   const hoy = isoDia(new Date())
   // La cuadrícula del mes, de lunes a domingo.
@@ -960,15 +1024,18 @@ function vistaParrilla() {
       ${delDia.map(chipContenido).join('')}
     </div>`)
   }
-  const emps = S.empresas.filter((e) => e.activa && (esEquipo() || !S.yo.empresas || S.yo.empresas.includes(e.id)))
+  const emps = S.empresas.filter((e) => e.activa && e.marca === marca && veoEmpresa(e.id, 'parrilla'))
   const titulo = m.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+  const marcas = marcasParrilla()
   return `
-    <p class="ayuda" style="margin-top:0">Lo que las vendedoras publican y mandan cada día. ${esEquipo() ? 'Tú y tu equipo la llenan; todos la ven.' : 'La prepara el equipo de NXUS.'}</p>
+    ${marcas.length > 1 ? `<div class="marcas" role="tablist">${marcas.map((k) => `<button class="marca-boton ${k === marca ? 'activa' : ''}" data-marca="${k}" role="tab" aria-selected="${k === marca}">Parrilla ${h(MARCAS[k])}</button>`).join('')}</div>` : ''}
+    <p class="ayuda" style="margin-top:0">Lo que las vendedoras publican y mandan cada día. ${esEquipo() ? 'Tú y tu equipo la llenan; al agregar un contenido elige en <b>¿Qué es?</b> para que salga su punto de color.' : 'La prepara el equipo de NXUS.'}</p>
     <div class="barra parrilla-barra">
       <div class="mes-nav"><button class="btn chico" data-parrilla-mes="-1" aria-label="Mes anterior">←</button><b>${h(titulo[0].toUpperCase() + titulo.slice(1))}</b><button class="btn chico" data-parrilla-mes="1" aria-label="Mes siguiente">→</button><button class="btn chico" data-parrilla-mes="0">Hoy</button></div>
-      <select data-filtro="parrillaEmpresa"><option value="">Todas las empresas</option>${opcionesEmpresa(emps, S.parrillaEmpresa)}</select>
+      ${emps.length > 1 ? `<select data-filtro="parrillaEmpresa" aria-label="Empresa"><option value="">Todas (${h(MARCAS[marca])})</option>${opcionesEmpresa(emps, S.parrillaEmpresa)}</select>` : ''}
       ${esEquipo() ? `<button class="btn principal" data-nuevo-contenido="">+ Contenido</button>` : ''}
     </div>
+    ${bloquePlan(marca, mesISO(m), mes)}
     <div class="calendario">
       ${DIAS_SEMANA.map((d) => `<div class="dia-nombre">${d}</div>`).join('')}
       ${celdas.join('')}
@@ -976,6 +1043,108 @@ function vistaParrilla() {
     <div class="parrilla-lista">
       ${mes.length ? mes.map((c) => `<div class="fila-contenido"><div class="fecha-contenido">${h(fecha(c.fecha))}</div>${chipContenido(c)}</div>`).join('') : '<div class="vacio-msg">No hay contenidos este mes.</div>'}
     </div>`
+}
+
+/** Pedir algo extra para este mes o el siguiente (queda quién lo pidió). */
+function formExtra() {
+  const marcas = marcasParrilla()
+  const hoy = new Date()
+  const este = mesISO(hoy)
+  const sig = mesISO(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1))
+  const visto = mesISO(S.parrillaMes)
+  abrirVentana(
+    'Pedir algo extra',
+    `<form id="form-extra">
+      <p style="margin-top:0" class="ayuda">Se suma a lo que se espera de ese mes, con tu nombre para que todos vean quién lo pidió. Ya no se puede cambiar ni borrar (solo el administrador).</p>
+      <div class="campo"><label for="x-nombre">¿Qué necesitas?</label><input id="x-nombre" maxlength="80" required placeholder="Ej. Promo Día de Muertos"></div>
+      <div class="dos-campos">
+        <div class="campo"><label for="x-cantidad">¿Cuántos?</label><input id="x-cantidad" type="number" min="1" max="100" value="1" required></div>
+        <div class="campo"><label for="x-mes">¿Para qué mes?</label><select id="x-mes"><option value="${este}" ${visto !== sig ? 'selected' : ''}>${h(nombreMes(este))} (este mes)</option><option value="${sig}" ${visto === sig ? 'selected' : ''}>${h(nombreMes(sig))} (el siguiente)</option></select></div>
+      </div>
+      ${marcas.length > 1 ? `<div class="campo"><label for="x-marca">¿De qué marca?</label><select id="x-marca">${marcas.map((k) => `<option value="${k}" ${k === S.parrillaMarca ? 'selected' : ''}>${h(MARCAS[k])}</option>`).join('')}</select></div>` : ''}
+      <div class="campo"><label for="x-detalle">Detalles (opcional)</label><textarea id="x-detalle" rows="3" maxlength="500" placeholder="Lo que deba saber el diseñador"></textarea></div>
+      <button class="btn principal" data-ocupado="Pidiendo…">Pedir</button>
+    </form>`,
+    { chica: true },
+  )
+  $('#form-extra').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        const marca = $('#x-marca')?.value ?? S.parrillaMarca
+        const desde = $('#x-mes').value
+        await D.pedirExtra({ marca, nombre: $('#x-nombre').value, cantidad: $('#x-cantidad').value, detalle: $('#x-detalle').value, desde })
+        S.parrillaMarca = marca
+        S.parrillaMes = aFecha(desde)
+        cerrarVentana()
+        avisar('Listo. Ya está en lo que se espera de ese mes.')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+/** Lo fijo de cada marca: solo el administrador principal lo cambia (cuenta desde este mes). */
+function formFijo() {
+  const marca = marcaActual()
+  const mes = mesISO(new Date())
+  const fijos = planDelMes(marca, mes).filter((p) => p.fijo)
+  abrirVentana(
+    `Lo fijo de ${h(MARCAS[marca])}`,
+    `<form id="form-fijo" novalidate>
+      <p style="margin-top:0" class="ayuda">Lo que se espera <b>cada mes</b>. Los cambios cuentan desde ${h(nombreMes(mes))}; los meses pasados se quedan como estaban. Si quitas algo, deja de salir desde el mes siguiente.</p>
+      <div class="fijos">
+        ${fijos
+          .map(
+            (p) => `<div class="fijo-fila" data-fijo="${p.clave}">
+          <i class="punto-plan grande" style="background:${p.color}"></i>
+          <input data-campo="nombre" maxlength="80" value="${h(p.nombre)}" aria-label="Nombre">
+          <input data-campo="cantidad" type="number" min="1" max="100" value="${p.cantidad}" aria-label="Cuántos al mes">
+          <button type="button" class="btn chico" data-guardar-fijo="${p.clave}">Guardar</button>
+          <button type="button" class="btn chico peligro" data-quitar-fijo="${p.clave}">Quitar</button>
+        </div>`,
+          )
+          .join('')}
+      </div>
+      <div class="etiqueta" style="margin-top:12px">Agregar otro fijo</div>
+      <div class="fijo-fila">
+        <i class="punto-plan grande" style="background:#dee2e6"></i>
+        <input id="f-nombre" maxlength="80" placeholder="Nombre">
+        <input id="f-cantidad" type="number" min="1" max="100" value="1" aria-label="Cuántos al mes">
+        <button type="button" class="btn chico principal" data-guardar-fijo="">Agregar</button>
+      </div>
+    </form>`,
+    { chica: true },
+  )
+  $('#form-fijo').addEventListener('click', async (e) => {
+    const b = e.target.closest('button')
+    if (!b) return
+    const guardar = b.dataset.guardarFijo
+    const quitar = b.dataset.quitarFijo
+    if (guardar === undefined && quitar === undefined) return
+    e.stopPropagation()
+    try {
+      if (quitar) {
+        const p = fijos.find((x) => x.clave === quitar)
+        if (!(await preguntar(`Quitar "${p.nombre}"`, `Deja de esperarse desde el mes siguiente. Este mes y los pasados se quedan como están. ¿Seguro?`, { boton: 'Quitar', peligro: true }))) return
+        await ocupado(b, () => D.quitarFijo(quitar))
+        avisar(`"${p.nombre}" ya no se espera desde el mes siguiente.`)
+      } else {
+        const fila = guardar ? b.closest('[data-fijo]') : null
+        const nombre = (fila ? fila.querySelector('[data-campo="nombre"]') : $('#f-nombre')).value.trim()
+        const cantidad = Number((fila ? fila.querySelector('[data-campo="cantidad"]') : $('#f-cantidad')).value)
+        if (!nombre || !(cantidad >= 1)) return falla(new Error('Falta el nombre o cuántos al mes'))
+        await ocupado(b, () => D.guardarFijo({ clave: guardar || null, marca, nombre, cantidad }))
+        avisar(guardar ? 'Guardado. Cuenta desde este mes.' : `Listo: "${nombre}" ya se espera cada mes.`)
+      }
+      await recargar()
+      formFijo()
+    } catch (err) {
+      falla(err)
+    }
+  })
 }
 
 /** El material de un contenido: una vista previa grande de cada imagen o video, con Ver y Descargar. */
@@ -1015,7 +1184,7 @@ function abrirContenido(id, fechaNueva = '') {
   if (!esEquipo()) {
     abrirVentana(
       h(c.titulo),
-      `<div class="barra" style="margin-top:0"><span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
+      `<div class="barra" style="margin-top:0">${tipoDe(c) ? `<span class="chip"><i class="punto-plan" style="background:${tipoDe(c).color}"></i>${h(tipoDe(c).nombre)}</span>` : ''}<span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
       ${c.texto ? `<div class="texto-contenido">${h(c.texto)}</div><button class="btn" data-copiar="${c.id}">Copiar texto</button>` : ''}
       ${c.enlace ? ` <a class="btn" href="${h(c.enlace)}" target="_blank" rel="noopener">Abrir link ↗</a>` : ''}
       ${bloqueMaterial(c) || (c.enlace ? '' : '<p class="ayuda">Este contenido todavía no tiene imagen ni video.</p>')}`,
@@ -1024,8 +1193,10 @@ function abrirContenido(id, fechaNueva = '') {
     cargarPrevias()
     return
   }
-  const emps = S.empresas.filter((e) => e.activa)
-  const v = c ?? { empresa_id: S.parrillaEmpresa || emps[0]?.id, fecha: fechaNueva || isoDia(new Date()), hora: '', canal: 'whatsapp', titulo: '', texto: '', enlace: '', estado: 'borrador' }
+  const marca = c ? marcaDe(c.empresa_id) : marcaActual()
+  const emps = S.empresas.filter((e) => (e.activa || e.id === c?.empresa_id) && e.marca === marca && veoEmpresa(e.id, 'parrilla'))
+  const enMes = S.parrillaMes.getMonth() === new Date().getMonth() && S.parrillaMes.getFullYear() === new Date().getFullYear()
+  const v = c ?? { empresa_id: S.parrillaEmpresa || emps[0]?.id, fecha: fechaNueva || (enMes ? isoDia(new Date()) : mesISO(S.parrillaMes)), hora: '', canal: 'whatsapp', titulo: '', texto: '', enlace: '', estado: 'borrador', plan_clave: S.parrillaTipo && S.parrillaTipo !== 'sin' ? S.parrillaTipo : null }
   abrirVentana(
     c ? 'Editar contenido' : 'Nuevo contenido',
     `<form id="form-contenido">
@@ -1035,6 +1206,7 @@ function abrirContenido(id, fechaNueva = '') {
         <div class="campo"><label for="ct-fecha">Día</label><input id="ct-fecha" type="date" required value="${h(v.fecha)}"></div>
         <div class="campo"><label for="ct-hora">Hora (opcional)</label><input id="ct-hora" type="time" value="${h(String(v.hora ?? '').slice(0, 5))}"></div>
       </div>
+      <div class="campo"><label for="ct-tipo">¿Qué es? <span class="ayuda">(de lo que se espera ese mes; le pone su punto de color)</span></label><div class="con-punto"><i class="punto-plan grande" id="ct-punto"></i><select id="ct-tipo"></select></div></div>
       <div class="campo"><label for="ct-titulo">Título</label><input id="ct-titulo" maxlength="200" required value="${h(v.titulo)}" placeholder="Promo de quesos frescos"></div>
       <div class="campo"><label for="ct-texto">Texto para las vendedoras</label><textarea id="ct-texto" rows="5" maxlength="4000" placeholder="Lo que van a publicar o mandar, tal cual">${h(v.texto)}</textarea></div>
       <div class="campo"><label for="ct-material">Imágenes o videos</label><input id="ct-material" type="file" multiple accept="image/*,video/*"><span class="ayuda">Hasta 50 MB cada uno. No se ven en el calendario: se abren al dar clic en el contenido.</span></div>
@@ -1050,6 +1222,19 @@ function abrirContenido(id, fechaNueva = '') {
     { alCerrar },
   )
   cargarPrevias()
+  // "¿Qué es?": lo que se espera de esa marca en el mes del día elegido.
+  const tipos = () => {
+    const mes = mesDe($('#ct-fecha').value || v.fecha)
+    const antes = $('#ct-tipo').value || v.plan_clave || ''
+    const plan = planDelMes(marca, mes)
+    const van = (p) => S.contenidos.filter((x) => x.plan_clave === p.clave && mesDe(x.fecha) === mes && x.id !== c?.id).length
+    $('#ct-tipo').innerHTML = `<option value="">— Sin tipo —</option>${plan.map((p) => `<option value="${p.clave}" ${p.clave === antes ? 'selected' : ''}>${h(p.nombre)}${p.fijo ? '' : ' (extra)'} · van ${van(p)} de ${p.cantidad}</option>`).join('')}`
+    const t = plan.find((p) => p.clave === $('#ct-tipo').value)
+    $('#ct-punto').style.background = t ? t.color : '#adb5bd'
+  }
+  tipos()
+  $('#ct-fecha').addEventListener('change', tipos)
+  $('#ct-tipo').addEventListener('change', tipos)
   $('#form-contenido').addEventListener('submit', async (e) => {
     e.preventDefault()
     await ocupado(e.submitter, async () => {
@@ -1067,6 +1252,8 @@ function abrirContenido(id, fechaNueva = '') {
           texto: $('#ct-texto').value.trim(),
           enlace: $('#ct-enlace').value.trim(),
           estado: $('#ct-estado').value,
+          // Si la base de datos todavía no tiene el plan (no han corrido el esquema), no se manda.
+          ...(S.plan.length ? { plan_clave: $('#ct-tipo').value || null } : {}),
         })
         for (const file of archivos) await D.subirMaterial(guardado, file)
         const f = aFecha($('#ct-fecha').value)
@@ -1109,8 +1296,11 @@ function vistaUsuarios() {
   const orden = { admin: 0, equipo: 1, cliente: 2 }
   const lista = S.usuarios.filter((u) => !u.eliminado).sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
   const eliminados = S.usuarios.filter((u) => u.eliminado).length
-  const nombresEmp = (u) => (u.rol !== 'cliente' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
-  const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos', u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada')
+  const nombresEmp = (u) => (u.rol === 'admin' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
+  const ve = (u) =>
+    u.rol === 'admin'
+      ? 'Todo'
+      : [u.ve_tareas !== false && (u.rol === 'cliente' ? 'Sus tareas' : 'Tareas'), u.ve_biblioteca !== false && 'Biblioteca', u.ve_catalogos !== false && 'Catálogos', u.ve_parrilla !== false && 'Parrilla', u.ve_parrilla !== false && u.pide_extras && 'Pide extras', u.rol === 'cliente' && u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada'
   return `
     <div class="barra"><button class="btn principal" data-accion="nuevo-usuario">+ Nuevo usuario</button></div>
     <div class="tabla-envoltura"><table class="tabla">
@@ -1159,25 +1349,41 @@ function formUsuario(id) {
         <option value="cliente" ${u?.rol === 'cliente' || !u ? 'selected' : ''}>Cliente (pide tareas, ve y descarga)</option>
         <option value="equipo" ${u?.rol === 'equipo' ? 'selected' : ''}>Equipo (trabaja las tareas, sube y organiza)</option>
       </select></div>
-      <div id="u-permisos">
+      <div id="u-permisos" class="seccion" style="padding:10px 12px;margin:4px 0 8px">
+        <div class="etiqueta" style="margin-top:0">Permisos · a qué tiene acceso</div>
         <div class="etiqueta">Empresas que ve</div>
         <label class="casilla"><input type="checkbox" id="u-todas" ${todas ? 'checked' : ''}> Todas</label>
         <div id="u-lista" ${todas ? 'hidden' : ''} style="padding-left:18px">${emps.map((e) => `<label class="casilla"><input type="checkbox" data-u-emp="${e.id}" ${u?.empresas?.includes(e.id) ? 'checked' : ''}> ${h(e.nombre)}</label>`).join('')}</div>
         <div class="etiqueta" style="margin-top:8px">Secciones</div>
-        <label class="casilla"><input type="checkbox" id="u-tareas" ${u?.ve_tareas !== false ? 'checked' : ''}> Sus tareas (pedir, corregir, aprobar)</label>
+        <label class="casilla"><input type="checkbox" id="u-tareas" ${u?.ve_tareas !== false ? 'checked' : ''}> <span id="u-tareas-txt">Tareas</span></label>
         <label class="casilla"><input type="checkbox" id="u-bib" ${u?.ve_biblioteca !== false ? 'checked' : ''}> Biblioteca</label>
         <label class="casilla"><input type="checkbox" id="u-cat" ${u?.ve_catalogos !== false ? 'checked' : ''}> Catálogos</label>
-        <div class="etiqueta" style="margin-top:8px">Dirección</div>
-        <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
+        <label class="casilla"><input type="checkbox" id="u-parrilla" ${u?.ve_parrilla !== false ? 'checked' : ''}> Parrilla de contenidos</label>
+        <label class="casilla" style="padding-left:22px"><input type="checkbox" id="u-extras" ${u?.pide_extras ? 'checked' : ''}> Puede pedir extras en la Parrilla (este mes y el siguiente)</label>
+        <div id="u-direccion">
+          <div class="etiqueta" style="margin-top:8px">Dirección</div>
+          <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
+        </div>
       </div>
       ${u ? `<label class="casilla" style="margin-top:8px"><input type="checkbox" id="u-activo" ${u.activo ? 'checked' : ''}> Puede entrar (desmárcalo para quitarle el acceso)</label>` : ''}
       <button class="btn principal" style="margin-top:12px" data-ocupado="Guardando…">${u ? 'Guardar' : 'Crear usuario'}</button>
     </form>`,
     { chica: true },
   )
-  const permisos = () => ($('#u-permisos').hidden = $('#u-rol').value !== 'cliente')
+  // Los permisos aplican a clientes y equipo; Ultron, solo a clientes (la dirección).
+  const permisos = () => {
+    const cliente = $('#u-rol').value === 'cliente'
+    $('#u-direccion').hidden = !cliente
+    $('#u-tareas-txt').textContent = cliente ? 'Sus tareas (pedir, corregir, aprobar)' : 'Tareas (trabajarlas: estatus, PDFs, actualizaciones)'
+  }
+  const extras = () => {
+    $('#u-extras').disabled = !$('#u-parrilla').checked
+    if (!$('#u-parrilla').checked) $('#u-extras').checked = false
+  }
   permisos()
+  extras()
   $('#u-rol').addEventListener('change', permisos)
+  $('#u-parrilla').addEventListener('change', extras)
   $('#u-todas').addEventListener('change', () => ($('#u-lista').hidden = $('#u-todas').checked))
   // El usuario sale solo del nombre ("Senén Ramos" → "senen") mientras no lo escriban a mano.
   let usuarioAMano = Boolean(u?.usuario)
@@ -1202,6 +1408,8 @@ function formUsuario(id) {
       ve_tareas: $('#u-tareas').checked,
       ve_biblioteca: $('#u-bib').checked,
       ve_catalogos: $('#u-cat').checked,
+      ve_parrilla: $('#u-parrilla').checked,
+      pide_extras: $('#u-parrilla').checked && $('#u-extras').checked,
       ultron: $('#u-rol').value === 'cliente' && $('#u-ultron').checked,
     }
     const usuario = normalizarUsuario($('#u-usuario').value)
@@ -1366,7 +1574,7 @@ function vistaBitacora() {
   return `<p class="ayuda" style="margin-top:0">Quién hizo qué y cuándo (lo último primero). Nadie la puede borrar ni cambiar.</p><div id="bitacora"><div class="cargando">Cargando…</div></div>`
 }
 
-const NOMBRE_TABLA = { tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
+const NOMBRE_TABLA = { plan: 'plan de la parrilla', contenidos: 'contenido', tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
 async function cargarBitacora() {
   try {
     const filas = await D.bitacora()
@@ -1537,6 +1745,26 @@ async function alClic(e) {
       const m = paso === 0 ? new Date() : new Date(S.parrillaMes.getFullYear(), S.parrillaMes.getMonth() + paso, 1)
       S.parrillaMes = new Date(m.getFullYear(), m.getMonth(), 1)
       pintarVista()
+      return
+    }
+    if (d.marca) {
+      S.parrillaMarca = d.marca
+      S.parrillaEmpresa = ''
+      S.parrillaTipo = ''
+      pintarVista()
+      return
+    }
+    if (d.parrillaTipo !== undefined) {
+      S.parrillaTipo = S.parrillaTipo === d.parrillaTipo ? '' : d.parrillaTipo
+      pintarVista()
+      return
+    }
+    if (d.borrarExtra) {
+      const x = S.plan.find((p) => p.id === d.borrarExtra)
+      if (!(await preguntar('Borrar extra', `Se quita "${x?.nombre}" de lo que se espera ese mes. Los contenidos que ya lo tenían se quedan sin tipo. ¿Seguro?`, { boton: 'Borrar', peligro: true }))) return
+      await ocupado(b, () => D.borrarExtra(d.borrarExtra))
+      avisar('Extra borrado')
+      await recargar()
       return
     }
     if (d.contenido) return abrirContenido(d.contenido)
@@ -1753,6 +1981,10 @@ async function alClic(e) {
         await recargar()
         return
       }
+      case 'pedir-extra':
+        return formExtra()
+      case 'plan-fijo':
+        return formFijo()
       case 'nuevo-usuario':
         return formUsuario(null)
     }

@@ -30,6 +30,7 @@ function claro(error) {
   if (/should be different from the old password/i.test(m)) return new Error('Esa es la misma contraseña que ya tenías. Escribe otra.')
   if (/Password should be at least|weak password|weak_password/i.test(m)) return new Error('El sistema no aceptó esa contraseña. Prueba con otra.')
   if (/reauthenticat/i.test(m)) return new Error('Por seguridad, sal y vuelve a entrar antes de cambiar tu contraseña.')
+  if (/Could not find the .* column|schema cache|does not exist/i.test(m)) return new Error('Falta actualizar la base de datos: corre el esquema en Supabase (SQL Editor) y vuelve a intentar.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -206,6 +207,29 @@ export function crearSupabase({ url, anon }) {
     },
     async catalogos() {
       return ok(await sb.from('archivos').select('*').eq('tipo', 'catalogo').limit(5000))
+    },
+    // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
+    async plan() {
+      const r = await sb.from('plan').select('*').order('orden').order('creado').limit(5000)
+      // Si todavía no corren el esquema nuevo, la parrilla funciona igual (sin plan).
+      if (r.error && /plan|schema cache|does not exist|PGRST205|42P01/i.test(`${r.error.code} ${r.error.message}`)) return []
+      return ok(r)
+    },
+    async pedirExtra({ marca, nombre, cantidad, detalle = '', desde }) {
+      ok(await sb.from('plan').insert({ marca, fijo: false, nombre: String(nombre || '').trim(), detalle: String(detalle || '').trim(), cantidad: Math.max(1, Number(cantidad) || 1), desde }))
+    },
+    async guardarFijo({ clave = null, marca, nombre, cantidad, detalle = '' }) {
+      ok(await sb.rpc('plan_fijo_guardar', { p_clave: clave, p_marca: marca, p_nombre: String(nombre || '').trim(), p_cantidad: Number(cantidad), p_detalle: detalle }))
+    },
+    async quitarFijo(clave) {
+      ok(await sb.rpc('plan_fijo_quitar', { p_clave: clave }))
+    },
+    async borrarExtra(id) {
+      const [x] = ok(await sb.from('plan').select('clave').eq('id', id).eq('fijo', false))
+      if (!x) throw new Error('Ese extra ya no está')
+      ok(await sb.from('contenidos').update({ plan_clave: null }).eq('plan_clave', x.clave))
+      const borrados = ok(await sb.from('plan').delete().eq('id', id).select('id'))
+      if (!borrados.length) throw new Error('No tienes permiso para hacer eso')
     },
     // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
     async contenidos() {

@@ -61,6 +61,9 @@ create table if not exists public.perfiles (
 
 -- Quién habla con Ultron (la dirección). Lo prende el admin en Usuarios.
 alter table public.perfiles add column if not exists ultron boolean not null default false;
+-- Parrilla: si la ve, y si puede pedir contenidos extra del mes (lo decide el admin).
+alter table public.perfiles add column if not exists ve_parrilla boolean not null default true;
+alter table public.perfiles add column if not exists pide_extras boolean not null default false;
 
 -- El dueño (Eduardo): a su perfil y a su acceso solo los toca él. Hay uno solo.
 alter table public.perfiles add column if not exists dueno boolean not null default false;
@@ -92,20 +95,23 @@ language sql stable security definer set search_path = public as $$
   select coalesce(yo_rol() = 'admin', false)
 $$;
 
--- Si puedo ver una empresa en una sección ('tareas', 'biblioteca', 'catalogos').
+-- Si puedo ver una empresa en una sección ('tareas', 'biblioteca', 'catalogos',
+-- 'parrilla'). El admin ve todo; el equipo y los clientes, según sus permisos
+-- (empresas y secciones que el admin les prende en Usuarios).
 create or replace function public.veo(seccion text, empresa text) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from perfiles p
     where p.id = auth.uid() and p.activo
       and (
-        p.rol in ('admin', 'equipo')
+        p.rol = 'admin'
         or (
           (p.empresas is null or empresa = any (p.empresas))
           and case seccion
             when 'tareas' then p.ve_tareas
             when 'biblioteca' then p.ve_biblioteca
             when 'catalogos' then p.ve_catalogos
+            when 'parrilla' then p.ve_parrilla
             else false
           end
         )
@@ -670,19 +676,19 @@ create policy perfiles_ver on public.perfiles for select to authenticated using 
 drop policy if exists perfiles_admin on public.perfiles;
 create policy perfiles_admin on public.perfiles for update to authenticated using (es_admin()) with check (es_admin());
 
--- Tareas: el cliente solo las suyas; el equipo todas.
+-- Tareas: el cliente solo las suyas; el equipo las de las empresas que le tocan.
 drop policy if exists tareas_ver on public.tareas;
 create policy tareas_ver on public.tareas for select to authenticated
-  using (es_equipo() or (cliente_id = auth.uid() and veo('tareas', empresa_id)));
+  using (veo('tareas', empresa_id) and (es_equipo() or cliente_id = auth.uid()));
 drop policy if exists tareas_pedir on public.tareas;
 create policy tareas_pedir on public.tareas for insert to authenticated
   with check (
     (cliente_id = auth.uid() and yo_rol() = 'cliente' and veo('tareas', empresa_id))
     -- El equipo registra a nombre de un cliente que pueda entrar (no apagado ni eliminado).
-    or (es_equipo() and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente' and p.activo and not p.eliminado))
+    or (es_equipo() and veo('tareas', empresa_id) and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente' and p.activo and not p.eliminado))
   );
 drop policy if exists tareas_equipo on public.tareas;
-create policy tareas_equipo on public.tareas for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy tareas_equipo on public.tareas for update to authenticated using (es_equipo() and veo('tareas', empresa_id)) with check (es_equipo() and veo('tareas', empresa_id));
 drop policy if exists tareas_borrar on public.tareas;
 create policy tareas_borrar on public.tareas for delete to authenticated using (es_admin());
 
@@ -728,9 +734,9 @@ create policy notas_borrar on public.notas for delete to authenticated using (es
 drop policy if exists carpetas_ver on public.carpetas;
 create policy carpetas_ver on public.carpetas for select to authenticated using (veo('biblioteca', empresa_id));
 drop policy if exists carpetas_crear on public.carpetas;
-create policy carpetas_crear on public.carpetas for insert to authenticated with check (es_equipo());
+create policy carpetas_crear on public.carpetas for insert to authenticated with check (es_equipo() and veo('biblioteca', empresa_id));
 drop policy if exists carpetas_cambiar on public.carpetas;
-create policy carpetas_cambiar on public.carpetas for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy carpetas_cambiar on public.carpetas for update to authenticated using (es_equipo() and veo('biblioteca', empresa_id)) with check (es_equipo() and veo('biblioteca', empresa_id));
 drop policy if exists carpetas_borrar on public.carpetas;
 create policy carpetas_borrar on public.carpetas for delete to authenticated using (es_admin());
 
@@ -750,7 +756,10 @@ create policy archivos_subir on public.archivos for insert to authenticated with
     when 'referencia' then
       exists (select 1 from tareas t where t.id = tarea_id and (t.cliente_id = auth.uid() or es_equipo()))
       and (es_equipo() or ruta like 'ref/' || auth.uid()::text || '/%')
-    else es_equipo()
+    when 'biblioteca' then es_equipo() and veo('biblioteca', empresa_id)
+    when 'catalogo' then es_equipo() and veo('catalogos', empresa_id)
+    when 'contenido' then es_equipo() and veo('parrilla', empresa_id)
+    else es_equipo() and exists (select 1 from tareas t where t.id = tarea_id)
   end
 );
 drop policy if exists archivos_cambiar on public.archivos;
@@ -952,17 +961,12 @@ alter table public.contenidos enable row level security;
 
 -- Los ve todo el que entra, de las empresas que le tocan.
 drop policy if exists contenidos_ver on public.contenidos;
-create policy contenidos_ver on public.contenidos for select to authenticated using (
-  es_equipo() or exists (
-    select 1 from public.perfiles p
-    where p.id = auth.uid() and p.activo and (p.empresas is null or contenidos.empresa_id = any (p.empresas))
-  )
-);
--- Solo el admin y el equipo los ponen y los cambian.
+create policy contenidos_ver on public.contenidos for select to authenticated using (veo('parrilla', empresa_id));
+-- Solo el admin y el equipo (de esas empresas) los ponen y los cambian.
 drop policy if exists contenidos_crear on public.contenidos;
-create policy contenidos_crear on public.contenidos for insert to authenticated with check (es_equipo());
+create policy contenidos_crear on public.contenidos for insert to authenticated with check (es_equipo() and veo('parrilla', empresa_id));
 drop policy if exists contenidos_cambiar on public.contenidos;
-create policy contenidos_cambiar on public.contenidos for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy contenidos_cambiar on public.contenidos for update to authenticated using (es_equipo() and veo('parrilla', empresa_id)) with check (es_equipo() and veo('parrilla', empresa_id));
 -- Borrar, solo el admin.
 drop policy if exists contenidos_borrar on public.contenidos;
 create policy contenidos_borrar on public.contenidos for delete to authenticated using (es_admin());
@@ -984,3 +988,182 @@ create policy archivos_ver on public.archivos for select to authenticated using 
     else exists (select 1 from tareas t where t.id = tarea_id)
   end
 );
+
+-- ---------------------------------------------------------------------------
+-- Lo que se espera cada mes en la Parrilla (el plan)
+-- ---------------------------------------------------------------------------
+-- Por marca: "abuelito" (Cheese, Meat y Corn juntas) y "mi-semago". Cada cosa
+-- del plan tiene su color; en el calendario, cada contenido lleva el punto de
+-- la cosa del plan que cumple (contenidos.plan_clave).
+-- · Fijos: los pone, cambia y quita solo el administrador principal. Cambiar
+--   uno cuenta desde el mes en curso; los meses pasados se quedan como
+--   estaban (cada cambio es una versión nueva con la misma "clave").
+-- · Extras: los pide quien tenga el permiso "pide extras", para este mes o el
+--   siguiente; queda quién lo pidió. Solo el administrador principal los cambia
+--   o los borra.
+
+alter table public.empresas add column if not exists marca text;
+update public.empresas set marca = case when id like 'abuelito-%' then 'abuelito' else id end where marca is null;
+
+create or replace function public.mes_actual() returns date
+language sql stable as $$
+  select date_trunc('month', now() at time zone 'America/New_York')::date
+$$;
+
+create table if not exists public.plan (
+  id uuid primary key default gen_random_uuid(),
+  clave uuid not null default gen_random_uuid(),
+  marca text not null check (marca in ('abuelito', 'mi-semago')),
+  fijo boolean not null default false,
+  nombre text not null check (char_length(nombre) between 1 and 80),
+  detalle text not null default '' check (char_length(detalle) <= 500),
+  cantidad int not null default 1 check (cantidad between 1 and 100),
+  color text not null default '#868e96' check (color ~ '^#[0-9a-f]{6}$'),
+  orden int not null default 0,
+  desde date not null,
+  hasta date,
+  pedido_por uuid references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now(),
+  check (hasta is null or hasta >= desde)
+);
+create index if not exists plan_marca on public.plan (marca, desde);
+-- El nombre de quien lo pidió, para que todos lo vean (los clientes no leen perfiles ajenos).
+alter table public.plan add column if not exists pedido_nombre text not null default '';
+
+-- Los colores: los fijos con los primeros; los extras con los que siguen.
+create or replace function public.plan_color(p_marca text, p_desde date, p_fijo boolean) returns text
+language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select c from unnest(case when p_fijo
+        then array['#2f9e44', '#f08c00', '#1c7ed6', '#7048e8', '#e03131', '#e8b100', '#0c8599', '#d6336c']
+        else array['#d6336c', '#0c8599', '#8d5a3b', '#5c940d', '#364fc7', '#ae3ec9', '#c2255c', '#087f5b'] end) with ordinality as x(c, n)
+     where not exists (
+       select 1 from plan p where p.marca = p_marca and p.color = x.c
+         and (case when p_fijo then p.fijo and p.hasta is null else not p.fijo and p.desde = p_desde end)
+     )
+     order by n limit 1),
+    '#868e96')
+$$;
+
+create or replace function public.antes_plan() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    new.desde := date_trunc('month', new.desde)::date;
+    if not new.fijo then
+      new.clave := new.id;
+      new.hasta := (new.desde + interval '1 month')::date;
+      if not es_consola() then
+        new.pedido_por := auth.uid();
+        new.pedido_nombre := coalesce((select nombre from perfiles where id = auth.uid()), '');
+      end if;
+      if not es_consola() and not es_dueno() and new.desde not in (mes_actual(), (mes_actual() + interval '1 month')::date) then
+        raise exception 'Los extras se piden para este mes o el siguiente';
+      end if;
+      if new.color = '#868e96' then new.color := plan_color(new.marca, new.desde, false); end if;
+    end if;
+  else
+    if not es_consola() then
+      new.id := old.id; new.clave := old.clave; new.marca := old.marca; new.fijo := old.fijo;
+      new.pedido_por := old.pedido_por; new.pedido_nombre := old.pedido_nombre; new.creado := old.creado;
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_plan on public.plan;
+create trigger crm_antes_plan before insert or update on public.plan
+  for each row execute function public.antes_plan();
+
+drop trigger if exists crm_bitacora on public.plan;
+create trigger crm_bitacora after insert or update or delete on public.plan
+  for each row execute function public.anotar_cambio();
+
+alter table public.plan enable row level security;
+
+create or replace function public.veo_marca(p_marca text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from empresas e where e.marca = p_marca and e.activa and veo('parrilla', e.id))
+$$;
+
+create or replace function public.pido_extras() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfiles where id = auth.uid() and activo and not eliminado and pide_extras)
+$$;
+
+drop policy if exists plan_ver on public.plan;
+create policy plan_ver on public.plan for select to authenticated using (veo_marca(marca));
+drop policy if exists plan_dueno on public.plan;
+create policy plan_dueno on public.plan for all to authenticated using (es_dueno()) with check (es_dueno());
+drop policy if exists plan_pedir on public.plan;
+create policy plan_pedir on public.plan for insert to authenticated with check (not fijo and pido_extras() and veo_marca(marca));
+
+-- El administrador principal pone o cambia un fijo (cuenta desde este mes).
+create or replace function public.plan_fijo_guardar(p_clave uuid, p_marca text, p_nombre text, p_cantidad int, p_detalle text default '')
+returns uuid language plpgsql as $$
+declare
+  mes date := mes_actual();
+  v public.plan;
+begin
+  if not es_dueno() then raise exception 'Solo el administrador principal cambia lo fijo'; end if;
+  if p_clave is null then
+    insert into plan (marca, fijo, nombre, detalle, cantidad, color, orden, desde)
+    values (p_marca, true, p_nombre, coalesce(p_detalle, ''), p_cantidad, plan_color(p_marca, mes, true),
+            coalesce((select max(orden) + 1 from plan where marca = p_marca and fijo), 1), mes)
+    returning * into v;
+    return v.clave;
+  end if;
+  select * into v from plan where clave = p_clave and fijo and (hasta is null or hasta > mes) order by desde desc limit 1;
+  if v.id is null then raise exception 'Eso ya no está en el plan'; end if;
+  if v.desde >= mes then
+    update plan set nombre = p_nombre, detalle = coalesce(p_detalle, ''), cantidad = p_cantidad where id = v.id;
+  else
+    update plan set hasta = mes where id = v.id;
+    insert into plan (clave, marca, fijo, nombre, detalle, cantidad, color, orden, desde, hasta)
+    values (v.clave, v.marca, true, p_nombre, coalesce(p_detalle, ''), p_cantidad, v.color, v.orden, mes, v.hasta);
+  end if;
+  return v.clave;
+end $$;
+
+-- Quitar un fijo: deja de salir desde el mes siguiente (este mes se queda,
+-- porque ya puede tener contenidos programados).
+create or replace function public.plan_fijo_quitar(p_clave uuid) returns void
+language plpgsql as $$
+declare
+  sig date := (mes_actual() + interval '1 month')::date;
+begin
+  if not es_dueno() then raise exception 'Solo el administrador principal cambia lo fijo'; end if;
+  delete from plan where clave = p_clave and fijo and desde >= sig;
+  update plan set hasta = sig where clave = p_clave and fijo and (hasta is null or hasta > sig);
+end $$;
+
+-- Lo fijo de cada marca, una sola vez (correr el esquema otra vez no lo repite).
+insert into public.plan (marca, fijo, nombre, cantidad, color, orden, desde)
+select m.marca, true, f.nombre, f.cantidad, f.color, f.orden, public.mes_actual()
+from (values ('abuelito'), ('mi-semago')) as m(marca),
+     (values ('Stupid content', 1, '#2f9e44', 1), ('Chef Saúl', 2, '#f08c00', 2), ('Imágenes IA', 8, '#1c7ed6', 3),
+             ('Imágenes reales', 8, '#7048e8', 4), ('Video IA', 1, '#e03131', 5), ('ADS', 3, '#e8b100', 6)) as f(nombre, cantidad, color, orden)
+where not exists (select 1 from public.plan p where p.marca = m.marca and p.fijo);
+
+-- Cada contenido puede decir qué cosa del plan cumple (su punto de color).
+alter table public.contenidos add column if not exists plan_clave uuid;
+
+create or replace function public.cuidar_plan_contenido() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.plan_clave is null then return new; end if;
+  if not exists (
+    select 1 from plan p join empresas e on e.marca = p.marca
+    where p.clave = new.plan_clave and e.id = new.empresa_id
+      and p.desde <= date_trunc('month', new.fecha)::date
+      and (p.hasta is null or p.hasta > date_trunc('month', new.fecha)::date)
+  ) then
+    raise exception 'Eso no está en lo que se espera de esa marca en ese mes';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_plan_contenido on public.contenidos;
+create trigger crm_plan_contenido before insert or update on public.contenidos
+  for each row execute function public.cuidar_plan_contenido();

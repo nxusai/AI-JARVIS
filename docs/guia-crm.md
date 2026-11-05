@@ -122,6 +122,16 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 
    Tú (el dueño) sigues entrando con tu correo. Los usuarios creados antes de esto entran con su correo hasta que les pongas un usuario en **Editar** (con una contraseña nueva).
 
+### Permisos
+En **Nuevo usuario** y **Editar** está el cuadro **Permisos · a qué tiene acceso**, para clientes y para tu equipo: qué empresas ve, qué secciones (Tareas, Biblioteca, Catálogos, Parrilla), si **puede pedir extras en la Parrilla** y, para clientes, si habla con Ultron. Lo que quitas ahí ya no lo ve (lo cuida la base de datos). En la tabla de Usuarios, la columna **Puede ver** lo resume.
+
+### Parrilla: lo que se espera cada mes
+- Arriba: **Parrilla Abuelito** (Cheese, Meat y Corn juntas) o **Parrilla Mi Semago**.
+- **Lo que se espera en <mes>**: cada cosa con su punto de color y cuántos van. Clic en una para ver solo esas en el calendario (**Ver todo** para regresar).
+- Tu diseñador, al agregar un contenido, elige en **¿Qué es?** qué cosa cumple: en el calendario sale con ese punto y el contador sube solo.
+- **⚙️ Lo fijo** (solo tú): cambia cuántos al mes, agrega o quita. Cuenta desde este mes; los meses pasados se quedan como estaban. Si quitas algo, deja de salir desde el mes siguiente.
+- **+ Pedir algo extra** (quien tenga el permiso): qué, cuántos, para este mes o el siguiente. Sale con **Pidió: <nombre>** para todos. Solo tú lo puedes borrar (✕).
+
 ### Cambios a los usuarios
 - **Cambiarle el usuario o corregir su correo:** Usuarios → **Editar** → **Guardar**. Si además escribes una contraseña nueva y tiene correo, se la puedes mandar.
 - **Reenviar acceso (si la olvidó o no le llegó):** Usuarios → **✉️ Reenviar acceso**. Lleva una contraseña nueva (la de antes nadie la conoce; puedes poner la que quieras) → **Reenviar acceso**. Si tiene correo se la manda; si no, te enseña sus datos con **📋 Copiar para WhatsApp**.
@@ -143,6 +153,8 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 | Aprobado | ✅ solo quien la pidió | ❌ | ❌ |
 | Biblioteca y catálogos | ver, descargar, a su correo | subir, carpetas, versiones | igual que el equipo |
 | Borrar (tareas, correcciones, actualizaciones, archivos, carpetas) | ❌ | ❌ | ✅ solo tú |
+| Parrilla: lo que se espera cada mes (lo fijo) | 👁️ | 👁️ | ✅ solo tú |
+| Parrilla: pedir extras (este mes o el siguiente) | si le das el permiso | si le das el permiso | ✅ (y solo tú los cambias o borras) |
 | Usuarios, empresas, bitácora | ❌ | ❌ | ✅ |
 | Cambiar su propia contraseña | ✅ | ✅ | ✅ |
 

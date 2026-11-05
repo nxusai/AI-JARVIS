@@ -685,3 +685,42 @@ select option, select optgroup { background: #fff; }
 /* El botón verde (Aprobado) conserva su color al pasar el mouse. */
 .btn.ok, .btn.ok:hover { background: var(--ok); color: var(--sobre-ok); border-color: var(--ok); }
 .btn.ok:hover { filter: brightness(1.07); }
+
+/* Parrilla: marcas y lo que se espera cada mes (el plan) */
+.marcas { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--linea); }
+.marca-boton { border: 0; background: none; font: inherit; font-weight: 700; font-size: 14px; color: var(--suave); padding: 8px 18px; border-radius: 999px; cursor: pointer; }
+.marca-boton.activa { background: var(--texto); color: #fff; }
+.punto-plan { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.punto-plan.grande { width: 12px; height: 12px; margin-right: 0; }
+.plan { background: var(--panel); border: 1px solid var(--linea); border-radius: 16px; padding: 12px 14px; margin-top: 12px; }
+.plan-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.plan-cabeza h3 { margin: 0; font-size: 16px; }
+.plan-cabeza h3::first-letter { text-transform: uppercase; }
+.plan-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.plan-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.plan-item { display: flex; align-items: stretch; gap: 4px; }
+.plan-boton { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--texto); background: color-mix(in srgb, var(--panel) 60%, #fff); border: 1px solid var(--linea); border-radius: 12px; padding: 8px 10px; cursor: pointer; }
+.plan-item.activo .plan-boton { border-color: var(--texto); box-shadow: inset 0 0 0 1px var(--texto); }
+.plan-item.completo .plan-cuenta b { color: var(--ok); }
+.plan-nombre { flex: 1; min-width: 0; display: grid; }
+.plan-nombre b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-nombre small { font-size: 11.5px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-pidio b { font-size: 11.5px; color: var(--texto); }
+.plan-cuenta { flex: none; display: grid; justify-items: end; gap: 3px; font-size: 12px; color: var(--suave); white-space: nowrap; }
+.plan-cuenta b { font-size: 15px; color: var(--texto); }
+.barrita { display: block; width: 54px; height: 4px; border-radius: 4px; background: var(--linea); overflow: hidden; }
+.barrita span { display: block; height: 100%; border-radius: 4px; }
+.contenido.atenuado { opacity: .25; }
+.con-punto { display: flex; align-items: center; gap: 8px; }
+.con-punto select { flex: 1; }
+.fijos { display: grid; gap: 6px; }
+.fijo-fila { display: grid; grid-template-columns: 14px 1fr 64px auto auto; align-items: center; gap: 6px; }
+.fijo-fila input { min-width: 0; }
+@media (max-width: 760px) {
+  .marcas { display: flex; }
+  .marca-boton { flex: 1; padding: 8px 10px; }
+  .plan-lista { grid-template-columns: 1fr; }
+  .fijo-fila { grid-template-columns: 14px 1fr 56px; }
+  .fijo-fila .btn { grid-column: span 1; }
+}
+input[type=number], input[type=time], input[type=url], input:not([type]), .fijo-fila input { width: 100%; padding: 8px 10px; border: 1px solid var(--linea-2); border-radius: 10px; background: rgba(255, 255, 255, .5); min-height: 38px; }
