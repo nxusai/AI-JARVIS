@@ -151,6 +151,78 @@ select.glass { appearance: none; background: var(--glass); border: 1px solid var
 .menu-btn { place-items: center; width: 40px; height: 40px; border-radius: 11px; background: var(--glass); border: 1px solid var(--stroke); cursor: pointer; }
 .menu-btn svg { width: 20px; height: 20px; stroke: var(--ink); fill: none; stroke-width: 2; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---- Vistas y componentes ---- */
+.view { min-height: 100%; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 20px; flex-wrap: wrap; }
+.page-head h1 { font-family: var(--font-d); font-size: 23px; font-weight: 700; margin: 0; }
+.page-head p { margin: 3px 0 0; color: var(--ink-2); font-size: 13px; max-width: 60ch; }
+.btn-ghost { background: var(--glass); border: 1px solid var(--stroke); }
+.btn-ghost:hover { border-color: var(--stroke-2); filter: none; }
+.btn[disabled], .btn-ghost[disabled] { opacity: .4; cursor: not-allowed; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.input { background: var(--glass); border: 1px solid var(--stroke); color: var(--ink); padding: 9px 12px; border-radius: 11px; min-width: 0; }
+.input::placeholder { color: var(--ink-3); }
+.search-in { flex: 1; min-width: 200px; }
+.tablewrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
+.tbl th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--stroke); font-weight: 600; white-space: nowrap; }
+.tbl td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13px; }
+.empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 42px 20px; color: var(--ink-3); }
+.empty .eico { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--glass); border: 1px solid var(--stroke); }
+.empty .eico svg { width: 25px; height: 25px; stroke: var(--ink-2); fill: none; stroke-width: 1.7; }
+.empty b { color: var(--ink); font-family: var(--font-d); font-weight: 600; font-size: 15px; }
+.empty span { max-width: 44ch; }
+.chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.chip2 { font-size: 12px; padding: 6px 11px; border-radius: 999px; background: var(--glass); border: 1px solid var(--stroke); color: var(--ink-2); }
+.statrow { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.statrow .card { padding: 14px 16px; }
+.statrow .lab { font-size: 12px; color: var(--ink-2); }
+.statrow .val { font-family: var(--font-d); font-size: 22px; font-weight: 700; }
+.pipe { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
+.pipe .col { padding: 14px; display: grid; gap: 10px; align-content: start; min-height: 210px; }
+.pipe .col .ch { display: flex; align-items: center; justify-content: space-between; }
+.pipe .col h4 { margin: 0; font-size: 13px; font-family: var(--font-d); }
+.pipe .col .cnt { font-family: var(--font-d); font-size: 24px; font-weight: 700; }
+.pipe .col .ph { border: 1px dashed var(--stroke-2); border-radius: 11px; padding: 16px; color: var(--ink-3); font-size: 12px; text-align: center; }
+.flowcard { display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap; }
+.flownode { flex: 1; min-width: 150px; padding: 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--stroke); text-align: center; display: grid; gap: 4px; align-content: center; }
+.flownode b { font-family: var(--font-d); font-size: 14px; }
+.flownode span { font-size: 11.5px; color: var(--ink-3); }
+.flowarrow { align-self: center; color: var(--teal); font-size: 22px; font-weight: 700; }
+.steps { display: flex; gap: 8px; flex-wrap: wrap; }
+.step { flex: 1; min-width: 160px; padding: 12px 14px; border-radius: 13px; background: var(--glass); border: 1px solid var(--stroke); display: flex; gap: 10px; align-items: center; }
+.step .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--glass-2); font-weight: 700; font-size: 13px; flex: none; }
+.step .st { font-size: 13px; font-weight: 600; } .step small { display: block; color: var(--ink-3); font-size: 11px; font-weight: 400; }
+.step.active { border-color: var(--teal); background: linear-gradient(135deg, rgba(40,224,200,.16), rgba(91,140,255,.14)); }
+.step.active .num { background: linear-gradient(135deg, var(--teal), var(--blue)); color: #06221f; }
+.drop { border: 1.5px dashed var(--stroke-2); border-radius: 16px; padding: 38px 20px; text-align: center; color: var(--ink-3); display: grid; gap: 10px; justify-items: center; }
+.drop .dico { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: linear-gradient(135deg, var(--teal), var(--blue)); }
+.drop .dico svg { width: 22px; height: 22px; stroke: #06221f; fill: none; stroke-width: 2; }
+.tabs2 { display: inline-flex; background: var(--glass); border: 1px solid var(--stroke); border-radius: 12px; padding: 3px; flex-wrap: wrap; }
+.tabs2 button { border: 0; background: none; color: var(--ink-2); padding: 8px 14px; border-radius: 9px; cursor: pointer; font-weight: 500; }
+.tabs2 button.on { background: var(--glass-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--stroke-2); }
+.rolerow { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 14px; border-radius: 13px; background: var(--glass); border: 1px solid var(--stroke); align-items: center; }
+.rolerow .rn { font-weight: 600; font-size: 13.5px; }
+.rolerow .rd { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.rolerow .cap { font-size: 11px; color: var(--ink-3); text-align: right; white-space: nowrap; }
+.tree { display: grid; gap: 6px; }
+.tree .tn { padding: 10px 12px; border-radius: 11px; background: var(--glass); border: 1px solid var(--stroke); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+.tree .lvl2 { margin-left: 18px; } .tree .lvl3 { margin-left: 36px; } .tree .lvl4 { margin-left: 54px; }
+.tree .mut { color: var(--ink-3); }
+.kv .r { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 11px 2px; border-bottom: 1px solid rgba(255,255,255,.06); align-items: center; }
+.kv .k { color: var(--ink-2); font-size: 13px; } .kv .v { color: var(--ink); font-weight: 600; font-size: 13px; }
+.pend { font-size: 11px; color: var(--amber); border: 1px dashed rgba(255,194,75,.5); border-radius: 6px; padding: 1px 7px; }
+.note-card { background: rgba(40,224,200,.08); border: 1px solid rgba(40,224,200,.28); border-radius: 14px; padding: 12px 14px; font-size: 12.5px; color: var(--ink-2); }
+.note-card b { color: var(--ink); }
+.grid-rep { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px,1fr)); gap: 12px; }
+.rep-card { padding: 14px; display: grid; gap: 10px; }
+.rep-card h4 { margin: 0; font-family: var(--font-d); font-size: 14px; }
+.rep-card .rl { font-size: 12px; color: var(--ink-3); }
+.sec-title { font-family: var(--font-d); font-size: 15px; font-weight: 600; margin: 2px 0; }
+@media (max-width: 1080px) { .statrow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .pipe { grid-template-columns: 1fr 1fr; } }
+
 </style>
 
 <div class="scene" aria-hidden="true">
@@ -166,16 +238,16 @@ select.glass { appearance: none; background: var(--glass); border: 1px solid var
     </div>
     <nav class="nav">
       <div class="nav-h">Operación</div>
-      <a class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg> Tablero</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Clientes</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Solicitudes</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg> Créditos</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Cobranza</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg> Cajas</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5M10 19V9M16 19v-7M22 19H2"/></svg> Reportes</a>
+      <a data-view="tablero" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg> Tablero</a>
+      <a data-view="clientes"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Clientes</a>
+      <a data-view="solicitudes"><svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Solicitudes</a>
+      <a data-view="creditos"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg> Créditos</a>
+      <a data-view="cobranza"><svg class="ic" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Cobranza</a>
+      <a data-view="cajas"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg> Cajas</a>
+      <a data-view="reportes"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5M10 19V9M16 19v-7M22 19H2"/></svg> Reportes</a>
       <div class="nav-h">Sistema</div>
-      <a><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Importar datos</a>
-      <a><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.3 1a7 7 0 00-1.7-1L16 2H8l-.9 3a7 7 0 00-1.7 1l-2.3-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.3-1a7 7 0 001.7 1L8 22h8l.9-3a7 7 0 001.7-1l2.3 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg> Administración</a>
+      <a data-view="importar"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Importar datos</a>
+      <a data-view="admin"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.3 1a7 7 0 00-1.7-1L16 2H8l-.9 3a7 7 0 00-1.7 1l-2.3-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.3-1a7 7 0 001.7 1L8 22h8l.9-3a7 7 0 001.7-1l2.3 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg> Administración</a>
     </nav>
     <a class="powered" href="https://nxusai.org" target="_blank" rel="noopener" title="nxusai.org">
       <img src="data:image/png;base64,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" alt="NXUS AI" width="26" height="17" />
@@ -189,179 +261,240 @@ select.glass { appearance: none; background: var(--glass); border: 1px solid var
       <button class="menu-btn" id="menuBtn" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
       <span><b>SIN DATOS</b> — el sistema está en ceros. Las cifras aparecerán cuando se importe la información del sistema actual.</span>
     </div>
-    <div class="wrap">
-      <div class="top">
-        <div class="hello">
-          <h1 id="greet">Buenas tardes</h1>
-          <p id="subgreet">Aún no hay información cargada. Usa «Importar datos» para comenzar.</p>
-        </div>
-        <div class="scope">
-          <div class="field"><label>Ámbito</label>
-            <select class="glass" id="scope">
-              <option value="emp">Toda la empresa</option>
-              <option value="reg">Región Norte</option>
-              <option value="ger">Gerencia Ecatepec</option>
-              <option value="ruta">Ruta Ecatepec Mañana</option>
-            </select>
-          </div>
-          <div class="seg" id="period">
-            <button data-p="sem" class="on">Semana</button>
-            <button data-p="mes">Mes</button>
-            <button data-p="anio">Año</button>
-          </div>
-          <button class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Exportar</button>
-        </div>
-      </div>
-
-      <section class="kpis" id="kpis"></section>
-
-      <div class="grid2">
-        <div class="card panel">
-          <div class="ph"><div><h3>Cartera por estado</h3><div class="sub" id="cartTotalSub">Total en dinero</div></div><span class="pill g" id="cartDelta">▲ 2.4%</span></div>
-          <div class="donut-wrap">
-            <div class="chart-box" style="height:180px"><canvas id="donut"></canvas></div>
-            <div class="legend" id="donutLegend"></div>
-          </div>
-          <div class="note"><span>Mostrado en pesos, no en número de clientes. Cambia el ámbito para desglosar por nivel.</span></div>
-        </div>
-        <div class="card panel">
-          <div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado vs meta por ruta</div></div></div>
-          <div class="list" id="cobranza"></div>
-        </div>
-      </div>
-
-      <div class="grid3">
-        <div class="card panel" style="grid-column: span 2;">
-          <div class="ph"><div><h3>Recaudo vs colocación</h3><div class="sub" id="trendSub">Últimas 7 jornadas</div></div></div>
-          <div class="chart-box" style="height:230px"><canvas id="trend"></canvas></div>
-        </div>
-        <div class="card panel">
-          <div class="ph"><div><h3>Cajas por gerente</h3><div class="sub">Cierre automático</div></div></div>
-          <div class="list" id="cajas"></div>
-          <div class="auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Traslado automático a las 18:00 · con bitácora</div>
-        </div>
-      </div>
-    </div>
+    <div class="view" id="view"></div>
   </main>
 </div>
 
 <script>
 (function () {
   "use strict";
+  const $ = (id)=>document.getElementById(id);
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pesoK = n => n>=1e6 ? "$"+(n/1e6).toFixed(1)+"M" : (n>=1000?"$"+Math.round(n/1000)+"k":"$"+Math.round(n));
   const C = { teal:"#28e0c8", blue:"#5b8cff", violet:"#a98bff", amber:"#ffc24b", rose:"#ff7a9c", green:"#4fe3a1", red:"#ff6b6b", ink2:"#c3ccde", grid:"rgba(255,255,255,.10)" };
 
-  // ---- Sistema sin datos: todo en ceros hasta importar ----
+  // ================= Datos (todo en ceros hasta importar) =================
   const estados = [
-    { k:"Al día",      c:C.green, s:"cuotas vigentes" },
-    { k:"Atrasado",    c:C.amber, s:"1 a 7 días" },
-    { k:"Alto riesgo", c:C.rose,  s:"8 a 30 días" },
-    { k:"Vencido",     c:C.red,   s:"+30 días" }
+    { k:"Al día", c:C.green, s:"cuotas vigentes" }, { k:"Atrasado", c:C.amber, s:"1 a 7 días" },
+    { k:"Alto riesgo", c:C.rose, s:"8 a 30 días" }, { k:"Vencido", c:C.red, s:"+30 días" }
   ];
   const kpis = [
-    { lab:"Cartera total",      ico:'<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>', grad:[C.teal,C.blue] },
-    { lab:"Cartera vencida",    ico:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>', grad:[C.rose,C.red] },
-    { lab:"Recaudo del día",    ico:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', grad:[C.blue,C.violet] },
+    { lab:"Cartera total", ico:'<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>', grad:[C.teal,C.blue] },
+    { lab:"Cartera vencida", ico:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>', grad:[C.rose,C.red] },
+    { lab:"Recaudo del día", ico:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', grad:[C.blue,C.violet] },
     { lab:"Colocación del mes", ico:'<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>', grad:[C.violet,C.teal] }
   ];
-  const rutas = [
-    { t:"Ecatepec Mañana", s:"Sin asignar" },
-    { t:"Coacalco Centro", s:"Sin asignar" },
-    { t:"Tecámac Sur",     s:"Sin asignar" },
-    { t:"Tultitlán 1",     s:"Sin asignar" }
-  ];
-  const cajas = [
-    { nm:"Gerente Norte",  sub:"Sin movimientos" },
-    { nm:"Gerente Centro", sub:"Sin movimientos" },
-    { nm:"Gerente Sur",    sub:"Sin movimientos" }
-  ];
-  let period = "sem";
-
-  function renderKpis(){
-    document.getElementById("kpis").innerHTML = kpis.map((k,i)=>`
-      <div class="card kpi">
-        <div class="row1">
-          <div class="ico" style="background:linear-gradient(135deg,${k.grad[0]},${k.grad[1]})"><svg viewBox="0 0 24 24">${k.ico}</svg></div>
-          <span class="chg flat">0.0%</span>
-        </div>
-        <div><div class="lab">${k.lab}</div><div class="val">$0</div></div>
-        <canvas class="spark" id="sp${i}" height="46"></canvas>
-      </div>`).join("");
-    kpis.forEach((k,i)=>sparkline("sp"+i, k.grad[0]));
-  }
-  function sparkline(id, color){
-    const el = document.getElementById(id); if(!el) return;
-    new Chart(el, { type:"line", data:{ labels:[0,1,2,3,4,5,6],
-      datasets:[{ data:[0,0,0,0,0,0,0], borderColor:color+"66", borderWidth:2, tension:.4, pointRadius:0 }]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false,min:0,max:1}} } });
-  }
-
-  let donut;
-  function renderDonut(){
-    document.getElementById("cartTotalSub").textContent = "Total: $0 · sin datos";
-    document.getElementById("cartDelta").textContent = "0.0%";
-    document.getElementById("cartDelta").classList.remove("g");
-    document.getElementById("donutLegend").innerHTML = estados.map(e=>`
-      <div class="li"><span class="dot" style="background:${e.c}"></span><span>${e.k}</span>
-      <span class="amt">$0</span><small>${e.s} · 0%</small></div>`).join("");
-    if(donut) donut.destroy();
-    donut = new Chart(document.getElementById("donut"), { type:"doughnut",
-      data:{ labels:["Sin datos"], datasets:[{ data:[1], backgroundColor:["rgba(255,255,255,.08)"], borderWidth:0, cutout:"72%" }]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{enabled:false}} } });
-  }
-
-  let trend;
+  const rutas = ["Ecatepec Mañana","Coacalco Centro","Tecámac Sur","Tultitlán 1"];
+  const gerentes = ["Gerente Norte","Gerente Centro","Gerente Sur"];
   const labelsBy = { sem:["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"], mes:["Sem 1","Sem 2","Sem 3","Sem 4"],
     anio:["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"] };
-  function renderTrend(){
-    const labs = labelsBy[period];
-    document.getElementById("trendSub").textContent = period==="sem"?"Sin movimientos esta semana":period==="mes"?"Sin movimientos este mes":"Sin movimientos este año";
-    const data = { labels:labs, datasets:[
-      { label:"Recaudo", data:labs.map(()=>0), borderColor:C.teal, borderWidth:2.5, tension:.4, pointRadius:0 },
-      { label:"Colocación", data:labs.map(()=>0), borderColor:C.violet, borderWidth:2.5, tension:.4, pointRadius:0 }
-    ]};
-    const opts = { responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ color:C.ink2, usePointStyle:true, pointStyleWidth:8, boxHeight:6 } }, tooltip:{enabled:false} },
-      scales:{ x:{ grid:{color:C.grid}, ticks:{color:C.ink2} },
-        y:{ grid:{color:C.grid}, ticks:{color:C.ink2, callback:v=>pesoK(v)}, suggestedMin:0, suggestedMax:1000 } } };
-    if(trend){ trend.data=data; trend.options=opts; trend.update(); }
-    else trend = new Chart(document.getElementById("trend"), {type:"line", data, options:opts});
+
+  // ================= Helpers =================
+  function emptyState(ico, title, sub, cta){
+    return '<div class="empty"><div class="eico"><svg viewBox="0 0 24 24">'+ico+'</svg></div><b>'+title+'</b><span>'+sub+'</span>'+(cta?'<div style="margin-top:6px">'+cta+'</div>':'')+'</div>';
+  }
+  function head(title, desc, actions){
+    return '<div class="page-head"><div><h1>'+title+'</h1><p>'+desc+'</p></div>'+(actions?'<div class="toolbar">'+actions+'</div>':'')+'</div>';
+  }
+  const ICO = {
+    users:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+    file:'<path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
+    card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
+    cash:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+    box:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    up:'<path d="M12 3v12M8 11l4 4 4-4M4 21h16"/>'
+  };
+
+  // ================= Vista: Tablero =================
+  let donut, trend, sparks=[];
+  function destroyCharts(){ [donut,trend,...sparks].forEach(c=>{try{c&&c.destroy()}catch(e){}}); donut=trend=null; sparks=[]; }
+  const tablero = { html(){ return `<div class="wrap">
+      <div class="top">
+        <div class="hello"><h1 id="greet">Tablero</h1><p id="subgreet">Aún no hay información cargada. Usa «Importar datos» para comenzar.</p></div>
+        <div class="scope">
+          <div class="field"><label>Ámbito</label>
+            <select class="glass" id="scope"><option>Toda la empresa</option><option>Región Norte</option><option>Gerencia Ecatepec</option><option>Ruta Ecatepec Mañana</option></select>
+          </div>
+          <div class="seg" id="period"><button data-p="sem" class="on">Semana</button><button data-p="mes">Mes</button><button data-p="anio">Año</button></div>
+          <button class="btn" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Exportar</button>
+        </div>
+      </div>
+      <section class="kpis" id="kpis"></section>
+      <div class="grid2">
+        <div class="card panel">
+          <div class="ph"><div><h3>Cartera por estado</h3><div class="sub" id="cartTotalSub">Total en dinero</div></div><span class="pill" id="cartDelta">0.0%</span></div>
+          <div class="donut-wrap"><div class="chart-box" style="height:180px"><canvas id="donut"></canvas></div><div class="legend" id="donutLegend"></div></div>
+          <div class="note"><span>Mostrado en pesos, no en número de clientes. Cambia el ámbito para desglosar por nivel.</span></div>
+        </div>
+        <div class="card panel"><div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado vs meta por ruta</div></div></div><div class="list" id="cobranza"></div></div>
+      </div>
+      <div class="grid3">
+        <div class="card panel" style="grid-column: span 2;"><div class="ph"><div><h3>Recaudo vs colocación</h3><div class="sub" id="trendSub">Sin movimientos</div></div></div><div class="chart-box" style="height:230px"><canvas id="trend"></canvas></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Cajas por gerente</h3><div class="sub">Cierre automático</div></div></div><div class="list" id="cajas"></div>
+          <div class="auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Traslado automático a las 18:00 · con bitácora</div></div>
+      </div></div>`; },
+    init(){
+      const h=new Date().getHours(); $("greet").textContent = h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
+      $("kpis").innerHTML = kpis.map((k,x)=>`<div class="card kpi"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${k.grad[0]},${k.grad[1]})"><svg viewBox="0 0 24 24">${k.ico}</svg></div><span class="chg flat">0.0%</span></div><div><div class="lab">${k.lab}</div><div class="val">$0</div></div><canvas class="spark" id="sp${x}" height="46"></canvas></div>`).join("");
+      kpis.forEach((k,x)=>{ const el=$("sp"+x); if(!el)return; sparks.push(new Chart(el,{type:"line",data:{labels:[0,1,2,3,4,5,6],datasets:[{data:[0,0,0,0,0,0,0],borderColor:k.grad[0]+"66",borderWidth:2,tension:.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false,min:0,max:1}}}})); });
+      $("cartTotalSub").textContent="Total: $0 · sin datos";
+      $("donutLegend").innerHTML = estados.map(e=>`<div class="li"><span class="dot" style="background:${e.c}"></span><span>${e.k}</span><span class="amt">$0</span><small>${e.s} · 0%</small></div>`).join("");
+      donut=new Chart($("donut"),{type:"doughnut",data:{labels:["Sin datos"],datasets:[{data:[1],backgroundColor:["rgba(255,255,255,.08)"],borderWidth:0,cutout:"72%"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+      $("cobranza").innerHTML = rutas.map(t=>`<div class="rowitem"><div><div class="t">${t}</div><div class="s">Sin asignar</div></div><div class="m">0%</div><div class="bar"><i style="width:0%"></i></div></div>`).join("");
+      $("cajas").innerHTML = gerentes.map(n=>`<div class="caja"><div><div class="nm">${n}</div><div class="sub">Sin movimientos</div></div><div class="mv">$0</div><span class="st wait">Sin datos</span></div>`).join("");
+      drawTrend("sem");
+      $("scope").addEventListener("change", reveal);
+      document.querySelectorAll("#period button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#period button").forEach(x=>x.classList.remove("on"));b.classList.add("on");reveal();drawTrend(b.dataset.p);}));
+    }
+  };
+  function drawTrend(period){
+    const labs=labelsBy[period];
+    $("trendSub").textContent= period==="sem"?"Sin movimientos esta semana":period==="mes"?"Sin movimientos este mes":"Sin movimientos este año";
+    const data={labels:labs,datasets:[{label:"Recaudo",data:labs.map(()=>0),borderColor:C.teal,borderWidth:2.5,tension:.4,pointRadius:0},{label:"Colocación",data:labs.map(()=>0),borderColor:C.violet,borderWidth:2.5,tension:.4,pointRadius:0}]};
+    const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:C.ink2,usePointStyle:true,pointStyleWidth:8,boxHeight:6}},tooltip:{enabled:false}},scales:{x:{grid:{color:C.grid},ticks:{color:C.ink2}},y:{grid:{color:C.grid},ticks:{color:C.ink2,callback:v=>pesoK(v)},suggestedMin:0,suggestedMax:1000}}};
+    if(trend){trend.data=data;trend.options=opts;trend.update();} else trend=new Chart($("trend"),{type:"line",data,options:opts});
   }
 
-  function renderLists(){
-    document.getElementById("cobranza").innerHTML = rutas.map(r=>`
-      <div class="rowitem"><div><div class="t">${r.t}</div><div class="s">${r.s}</div></div>
-      <div class="m">0%</div><div class="bar"><i style="width:0%"></i></div></div>`).join("");
-    document.getElementById("cajas").innerHTML = cajas.map(c=>`
-      <div class="caja"><div><div class="nm">${c.nm}</div><div class="sub">${c.sub}</div></div>
-      <div class="mv">$0</div><span class="st wait">Sin datos</span></div>`).join("");
-  }
+  // ================= Vista: Clientes =================
+  const clientes = { html(){ return `<div class="wrap">
+    ${head("Clientes","Un expediente por cliente: datos, contacto, documentos, referencias y garantías. Busca antes de crear para evitar duplicados.",'<button class="btn-ghost btn" disabled>Importar</button><button class="btn" disabled>+ Nuevo cliente</button>')}
+    <div class="toolbar"><input class="input search-in" placeholder="Buscar por nombre, documento o código…" disabled>
+      <div class="field"><label>Oficina</label><select class="glass" disabled><option>Todas</option></select></div>
+      <div class="field"><label>Ruta</label><select class="glass" disabled><option>Todas</option></select></div>
+      <div class="field"><label>Zona</label><select class="glass" disabled><option>Todas</option></select></div>
+    </div>
+    <div class="card panel"><div class="ph"><h3 class="sec-title">Listado de clientes</h3><span class="chip2">0 registros</span></div>
+      <div class="tablewrap"><table class="tbl"><thead><tr><th>Código</th><th>Documento</th><th>Nombre</th><th>Oficina / Ruta</th><th>Zona</th><th>Créditos</th><th>Estado</th></tr></thead>
+      <tbody><tr><td colspan="7" style="border:0">${emptyState(ICO.users,"Aún no hay clientes","Importa la cartera del sistema actual o registra el primer cliente para comenzar.")}</td></tr></tbody></table></div></div>
+    <div class="card panel"><h3 class="sec-title">La ficha del cliente tendrá estas secciones</h3>
+      <div class="chips"><span class="chip2">Datos personales</span><span class="chip2">Contacto y domicilio</span><span class="chip2">Actividad económica</span><span class="chip2">Información financiera</span><span class="chip2">Referencias</span><span class="chip2">Documentos y evidencias</span><span class="chip2">Garantías</span><span class="chip2">Avales / codeudores</span></div>
+    </div></div>`; } };
 
-  function greet(){
-    const h = new Date().getHours();
-    document.getElementById("greet").textContent = h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
-  }
+  // ================= Vista: Solicitudes =================
+  const solicitudes = { html(){ const cols=[["Borrador","Capturada por el asesor"],["En revisión","Mesa de control revisa documentos"],["Observada","Regresa al asesor para corregir"],["Aprobada","Lista para desembolsar"],["Rechazada","Con motivo y bitácora"]];
+    return `<div class="wrap">
+    ${head("Solicitudes","Cada crédito registrado pasa a mesa de control dentro del mismo sistema. Revisión humana que aprueba, rechaza o devuelve.","")}
+    <div class="note-card"><b>Mesa de control integrada.</b> Reemplaza el sistema externo que hoy usas para validar documentos. Todo queda en una sola plataforma.</div>
+    <div class="pipe">${cols.map(c=>`<div class="card col"><div class="ch"><h4>${c[0]}</h4><span class="cnt">0</span></div><div class="ph">${c[1]}</div></div>`).join("")}</div>
+    </div>`; } };
 
-  // ---- Parpadeo que revela el fondo en cada clic ----
-  const app = document.querySelector(".app");
-  function reveal(){ if(reduceMotion) return; app.classList.add("reveal"); clearTimeout(reveal._t); reveal._t = setTimeout(()=>app.classList.remove("reveal"), 210); }
+  // ================= Vista: Créditos =================
+  const creditos = { html(){ return `<div class="wrap">
+    ${head("Créditos","Cartera de créditos con condiciones versionadas, calendario de pagos y entrega con evidencia.",'<button class="btn-ghost btn" disabled>Exportar</button>')}
+    <div class="statrow"><div class="card"><div class="lab">Créditos activos</div><div class="val">0</div></div><div class="card"><div class="lab">Colocado (mes)</div><div class="val">$0</div></div><div class="card"><div class="lab">Saldo total</div><div class="val">$0</div></div><div class="card"><div class="lab">Por vencer hoy</div><div class="val">0</div></div></div>
+    <div class="card panel"><div class="ph"><h3 class="sec-title">Cartera</h3><span class="chip2">0 créditos</span></div>
+      <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Cliente</th><th>Monto</th><th>Saldo</th><th>Cuota</th><th>Modalidad</th><th>Forma de pago</th><th>Estado</th></tr></thead>
+      <tbody><tr><td colspan="8" style="border:0">${emptyState(ICO.card,"Sin créditos","Los créditos aparecerán al aprobar solicitudes o al importar la cartera.")}</td></tr></tbody></table></div></div>
+    <div class="card panel"><h3 class="sec-title">Reglas por definir con el cliente</h3>
+      <div class="chips"><span class="chip2">Cálculo de interés <span class="pend">por definir</span></span><span class="chip2">Plazo estándar <span class="pend">¿10 cuotas?</span></span><span class="chip2">Mora / penalización <span class="pend">por definir</span></span><span class="chip2">Días no laborables <span class="pend">por definir</span></span><span class="chip2">Liquidación anticipada <span class="pend">por definir</span></span></div></div>
+    </div>`; } };
 
-  document.getElementById("scope").addEventListener("change", reveal);
-  document.querySelectorAll("#period button").forEach(b=>b.addEventListener("click", ()=>{
-    document.querySelectorAll("#period button").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on"); period=b.dataset.p; reveal(); renderTrend();
-  }));
-  const side=document.getElementById("side"), scrim=document.getElementById("scrim");
-  document.getElementById("menuBtn").addEventListener("click", ()=>{ side.classList.add("open"); scrim.classList.add("on"); });
-  scrim.addEventListener("click", ()=>{ side.classList.remove("open"); scrim.classList.remove("on"); });
-  document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click", ()=>{
+  // ================= Vista: Cobranza =================
+  const cobranza = { html(){ return `<div class="wrap">
+    ${head("Cobranza","Ruta del día, registro de pago en efectivo, recibo e historial. Un pago es una sola operación, sin duplicados.",'<button class="btn-ghost btn" disabled>Planilla recaudador</button>')}
+    <div class="statrow"><div class="card"><div class="lab">Por cobrar hoy</div><div class="val">$0</div></div><div class="card"><div class="lab">Cobrado hoy</div><div class="val">$0</div></div><div class="card"><div class="lab">Clientes en ruta</div><div class="val">0</div></div><div class="card"><div class="lab">Cumplimiento</div><div class="val">0%</div></div></div>
+    <div class="card panel"><div class="ph"><h3 class="sec-title">Agenda del día</h3></div>
+      ${emptyState(ICO.cash,"No hay cobros programados","Al importar la cartera, aquí aparece la ruta de cobro del día por asesor.")}</div>
+    </div>`; } };
+
+  // ================= Vista: Cajas =================
+  const cajas = { html(){ return `<div class="wrap">
+    ${head("Cajas","El cambio más delicado: la cobranza del día pasa de la caja del asesor a la del gerente, automáticamente, con bitácora.","")}
+    <div class="card panel"><h3 class="sec-title">Flujo del efectivo</h3>
+      <div class="flowcard">
+        <div class="flownode"><b>Asesor cobra en ruta</b><span>entra a su caja</span></div>
+        <div class="flowarrow">→</div>
+        <div class="flownode"><b>Cierre 18:00</b><span>traslado automático</span></div>
+        <div class="flowarrow">→</div>
+        <div class="flownode"><b>Caja del gerente</b><span>recibe y resguarda</span></div>
+        <div class="flowarrow">→</div>
+        <div class="flownode"><b>Redistribución</b><span>reparte para colocar</span></div>
+      </div>
+      <div class="note-card"><b>Regla:</b> la suma de las cajas no cambia con un traslado, y un cierre que se ejecute dos veces genera un solo traslado. Toda diferencia queda visible y se investiga.</div>
+    </div>
+    <div class="grid3">${gerentes.map(n=>`<div class="card panel"><div class="ph"><div><h3 class="sec-title">${n}</h3><div class="sub">Caja consolidada</div></div><span class="st wait">18:00</span></div>
+      <div class="kv"><div class="r"><span class="k">Saldo inicial</span><span class="v">$0</span></div><div class="r"><span class="k">Ingresos del día</span><span class="v">$0</span></div><div class="r"><span class="k">Recibido de asesores</span><span class="v">$0</span></div><div class="r"><span class="k">Saldo en caja</span><span class="v">$0</span></div></div></div>`).join("")}</div>
+    </div>`; } };
+
+  // ================= Vista: Reportes =================
+  const reportes = { html(){ const grupos=[["Recaudador","Cuadre y planilla por recaudador"],["Caja","Cuadre, saldos y balance"],["Créditos","Cartera, solicitudes y facturación"],["Auditoría","Anulados, traslados y visitas"],["Operación","Utilidad, balance y estadística"]];
+    return `<div class="wrap">
+    ${head("Reportes","Un solo reporte con selector de alcance: ruta, oficina, gerencia, zona o empresa. Exporta a Excel o PDF respetando tu ámbito.","")}
+    <div class="grid-rep">${grupos.map(g=>`<div class="card rep-card"><h4>${g[0]}</h4><div class="rl">${g[1]}</div>
+      <div class="field"><label>Alcance</label><select class="glass" disabled><option>Empresa</option><option>Zona</option><option>Gerencia</option><option>Oficina</option><option>Ruta</option></select></div>
+      <div class="toolbar"><button class="btn-ghost btn" disabled>PDF</button><button class="btn" disabled>Excel</button></div></div>`).join("")}</div>
+    <div class="note-card">Los botones se activan cuando haya datos. Hoy todo está en ceros.</div>
+    </div>`; } };
+
+  // ================= Vista: Importar datos =================
+  const importar = { html(){ return `<div class="wrap">
+    ${head("Importar datos","Trae la cartera del sistema actual (Listo) mediante Excel o CSV. Se hace una carga de prueba y luego la final.","")}
+    <div class="steps">
+      <div class="step active"><div class="num">1</div><div><div class="st">Subir archivo</div><small>Excel o CSV exportado</small></div></div>
+      <div class="step"><div class="num">2</div><div><div class="st">Mapear columnas</div><small>Emparejar con el sistema</small></div></div>
+      <div class="step"><div class="num">3</div><div><div class="st">Validar</div><small>Duplicados y faltantes</small></div></div>
+      <div class="step"><div class="num">4</div><div><div class="st">Confirmar</div><small>Prueba o carga final</small></div></div>
+    </div>
+    <div class="card panel"><div class="drop"><div class="dico"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg></div>
+      <b style="color:var(--ink);font-family:var(--font-d)">Arrastra tu archivo aquí</b>
+      <span>Formatos: .xlsx, .xls, .csv — clientes, créditos, pagos y movimientos</span>
+      <button class="btn" disabled>Seleccionar archivo</button></div></div>
+    <div class="card panel"><h3 class="sec-title">Qué se importará</h3>
+      <div class="tablewrap"><table class="tbl"><thead><tr><th>Entidad</th><th>Columna del archivo</th><th>Campo del sistema</th><th>Registros</th><th>Estado</th></tr></thead>
+      <tbody><tr><td colspan="5" style="border:0">${emptyState(ICO.up,"Aún no hay archivo","Sube un Excel o CSV para ver el mapeo de columnas y la validación antes de cargar.")}</td></tr></tbody></table></div>
+      <div class="note-card">Referencia de volumen del sistema actual: hasta 5,000 clientes, 5,000 créditos y 50,000 movimientos. Primero una carga de prueba para conciliar; luego la final.</div></div>
+    </div>`; } };
+
+  // ================= Vista: Administración =================
+  const admin = { html(){ return `<div class="wrap">
+    ${head("Administración","Estructura, usuarios y roles, parámetros y bitácora. Las acciones sensibles quedan registradas.","")}
+    <div class="tabs2" id="adminTabs"><button data-t="usuarios" class="on">Usuarios y roles</button><button data-t="estructura">Estructura</button><button data-t="parametros">Parámetros</button><button data-t="bitacora">Bitácora</button></div>
+    <div id="adminBody"></div></div>`; },
+    init(){
+      const roles=[["Dirección","Ve todo; autoriza acciones financieras"],["Regional","Su región: gerencias, oficinas y rutas"],["Gerente","Sus oficinas; recibe y redistribuye caja"],["Asesor / cobrador","Su ruta: clientes, cobro y caja propia"],["Mesa de control","Revisa documentos; aprueba o rechaza"],["Consulta / auditoría","Sólo lectura en su ámbito"]];
+      const body=$("adminBody");
+      const parts={
+        usuarios(){ return `<div class="card panel"><div class="ph"><h3 class="sec-title">Roles del sistema</h3><span class="chip2">por ámbito: región → gerencia → oficina → ruta</span></div>
+          ${roles.map(r=>`<div class="rolerow"><div><div class="rn">${r[0]}</div><div class="rd">${r[1]}</div></div><div class="cap">Permisos en servidor y API</div></div>`).join("")}
+          <div class="note-card" style="margin-top:4px"><b>Cuenta de soporte NXUS.</b> Acceso del proveedor para mantenimiento. No aparece en la operación diaria de los empleados, pero es visible para el dueño y sus acciones quedan en la bitácora. El dueño la puede revocar.</div>
+          </div>
+          <div class="card panel"><div class="ph"><h3 class="sec-title">Usuarios</h3><button class="btn" disabled>+ Nuevo usuario</button></div>
+          ${emptyState(ICO.users,"Sin usuarios cargados","Crea los usuarios o impórtalos del sistema actual. Cada uno recibe un rol y un ámbito.")}</div>`; },
+        estructura(){ return `<div class="card panel"><div class="ph"><h3 class="sec-title">Jerarquía</h3><button class="btn" disabled>+ Agregar nivel</button></div>
+          <div class="tree">
+            <div class="tn">Empresa</div>
+            <div class="tn lvl2 mut">Región <span class="pend">por definir</span></div>
+            <div class="tn lvl3 mut">Gerencia <span class="pend">por definir</span></div>
+            <div class="tn lvl4 mut">Oficina → Ruta</div>
+          </div>
+          <div class="note-card">En el sistema actual sólo existen Oficina y Ruta; Región y Gerencia se agregan aquí. Hay que definir qué niveles son obligatorios.</div></div>`; },
+        parametros(){ const kv=[["Productos de préstamo","0 configurados"],["Hora de cierre de caja","18:00 (configurable)"],["Interés y base de días","por definir"],["Mora / penalización","por definir"],["Días no laborables","por definir"],["Documentos obligatorios","por definir"],["MFA de administradores","activado"],["Respaldos","diarios · 30 días"]];
+          return `<div class="card panel"><h3 class="sec-title">Parámetros</h3><div class="kv">${kv.map(r=>`<div class="r"><span class="k">${r[0]}</span><span class="v">${/definir/.test(r[1])?'<span class="pend">'+r[1]+'</span>':r[1]}</span></div>`).join("")}</div></div>`; },
+        bitacora(){ return `<div class="card panel"><div class="ph"><h3 class="sec-title">Bitácora</h3><span class="chip2">0 eventos</span></div>
+          ${emptyState(ICO.file,"Sin eventos todavía","Cada alta, cambio, pago, reverso o cierre quedará aquí: quién, cuándo, qué y por qué.")}</div>`; }
+      };
+      function paint(t){ body.innerHTML = parts[t](); }
+      paint("usuarios");
+      $("adminTabs").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{$("adminTabs").querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");paint(b.dataset.t);}));
+    }
+  };
+
+  // ================= Router =================
+  const VIEWS = { tablero, clientes, solicitudes, creditos, cobranza, cajas, reportes, importar, admin };
+  function go(key){ destroyCharts(); const v=VIEWS[key]||tablero; $("view").innerHTML=v.html(); if(v.init)v.init(); $("view").parentElement.scrollTop=0; }
+
+  const app=document.querySelector(".app");
+  function reveal(){ if(reduceMotion)return; app.classList.add("reveal"); clearTimeout(reveal._t); reveal._t=setTimeout(()=>app.classList.remove("reveal"),210); }
+
+  const side=$("side"), scrim=$("scrim");
+  $("menuBtn").addEventListener("click",()=>{side.classList.add("open");scrim.classList.add("on");});
+  scrim.addEventListener("click",()=>{side.classList.remove("open");scrim.classList.remove("on");});
+  document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{
     document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("on")); a.classList.add("on");
-    side.classList.remove("open"); scrim.classList.remove("on"); reveal();
+    side.classList.remove("open"); scrim.classList.remove("on"); reveal(); go(a.dataset.view);
   }));
 
-  Chart.defaults.font.family = "Inter, system-ui, sans-serif";
-  Chart.defaults.color = C.ink2;
-  greet(); renderKpis(); renderDonut(); renderTrend(); renderLists();
+  Chart.defaults.font.family="Inter, system-ui, sans-serif"; Chart.defaults.color=C.ink2;
+  go("tablero");
 })();
 </script>
