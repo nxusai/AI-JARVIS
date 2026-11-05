@@ -1,0 +1,409 @@
+<title>Tablero Crédito NXUS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Glassy dashboard · tema oscuro comprometido · fondo Santa Fe al atardecer (CSS, marcador para una foto con licencia) */
+:root {
+  color-scheme: dark;
+  --bg0: #0b0f1a;
+  --ink: #f3f6fc;
+  --ink-2: #aeb8cc;
+  --ink-3: #7c879e;
+  --glass: rgba(255,255,255,0.055);
+  --glass-2: rgba(255,255,255,0.09);
+  --stroke: rgba(255,255,255,0.12);
+  --stroke-2: rgba(255,255,255,0.18);
+  --teal: #28e0c8;
+  --blue: #5b8cff;
+  --violet: #a98bff;
+  --amber: #ffc24b;
+  --rose: #ff7a9c;
+  --green: #4fe3a1;
+  --red: #ff6b6b;
+  --shadow: 0 18px 50px rgba(0,0,0,.45);
+  --font-d: "Sora", system-ui, sans-serif;
+  --font-b: "Inter", system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; font-family: var(--font-b); color: var(--ink); background: var(--bg0); overflow: hidden; font-size: 14px; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ---- Fondo escénico ---- */
+.scene { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+.sky { position: absolute; inset: 0; background:
+  radial-gradient(120% 90% at 78% 8%, #ff9d5c 0%, rgba(255,157,92,0) 42%),
+  radial-gradient(120% 80% at 50% 0%, #ffd27a 0%, rgba(255,210,122,0) 38%),
+  linear-gradient(180deg, #1b2f6b 0%, #3a3f7d 30%, #7a4e86 55%, #b55a6e 74%, #e08a5a 100%); }
+.sun { position: absolute; left: 72%; top: 20%; width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, #fff3d6 0%, #ffd27a 40%, rgba(255,210,122,0) 70%); filter: blur(2px); }
+.city { position: absolute; left: 0; right: 0; bottom: 0; height: 56%; }
+.city span { position: absolute; bottom: 0; background: linear-gradient(180deg, #0f1733 0%, #0a0f22 100%); border-radius: 3px 3px 0 0;
+  box-shadow: inset 0 0 0 1px rgba(120,150,220,.07); }
+.city span::after { content: ""; position: absolute; inset: 8px 0 0; background-image:
+  radial-gradient(1px 1px at 20% 12%, rgba(255,210,150,.5) 50%, transparent 52%),
+  radial-gradient(1px 1px at 55% 30%, rgba(255,210,150,.4) 50%, transparent 52%),
+  radial-gradient(1px 1px at 80% 55%, rgba(255,210,150,.5) 50%, transparent 52%),
+  radial-gradient(1px 1px at 35% 70%, rgba(255,210,150,.35) 50%, transparent 52%);
+  background-size: 22px 34px; opacity: .8; }
+.haze { position: absolute; inset: 0; background:
+  linear-gradient(180deg, rgba(11,15,26,0) 30%, rgba(11,15,26,.55) 72%, rgba(11,15,26,.9) 100%),
+  radial-gradient(90% 60% at 50% 40%, rgba(11,15,26,0) 0%, rgba(11,15,26,.35) 100%); }
+.grain { position: absolute; inset: 0; opacity: .5; background:
+  radial-gradient(60% 50% at 20% 20%, rgba(91,140,255,.12), transparent 60%),
+  radial-gradient(50% 40% at 85% 75%, rgba(169,139,255,.12), transparent 60%); }
+
+/* ---- Estructura ---- */
+.app { height: 100%; display: grid; grid-template-columns: 248px 1fr; }
+.side { display: flex; flex-direction: column; gap: 6px; padding: 18px 14px;
+  padding-left: max(14px, env(safe-area-inset-left, 0px)); border-right: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(14,19,34,.72), rgba(10,14,26,.72)); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; }
+.logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-family: var(--font-d); font-weight: 700;
+  background: linear-gradient(135deg, var(--teal), var(--blue)); color: #06221f; box-shadow: 0 6px 18px rgba(40,224,200,.35); }
+.brand b { font-family: var(--font-d); font-size: 15px; letter-spacing: .2px; }
+.brand span { display: block; font-size: 11px; color: var(--ink-3); }
+.nav { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; }
+.nav-h { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); padding: 12px 10px 4px; }
+.nav a { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 11px; color: var(--ink-2); text-decoration: none; cursor: pointer; font-weight: 500; border: 1px solid transparent; }
+.nav a:hover { background: var(--glass); color: var(--ink); }
+.nav a.on { background: linear-gradient(135deg, rgba(40,224,200,.18), rgba(91,140,255,.16)); color: var(--ink); border-color: var(--stroke-2); }
+.nav a .ic { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.9; }
+.nav a .tag { margin-left: auto; font-size: 10px; background: var(--rose); color: #2a0712; border-radius: 999px; padding: 1px 7px; font-weight: 600; }
+.side-foot { margin-top: auto; padding: 10px; border-radius: 12px; background: var(--glass); border: 1px solid var(--stroke); font-size: 11.5px; color: var(--ink-3); }
+
+.main { min-width: 0; min-height: 0; overflow-y: auto; }
+.demo { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px max(16px, env(safe-area-inset-right,0px)) 7px max(16px, env(safe-area-inset-left,0px));
+  background: linear-gradient(90deg, rgba(255,194,75,.14), rgba(255,122,156,.12)); border-bottom: 1px solid var(--stroke); font-size: 12px; color: var(--ink-2); backdrop-filter: blur(10px); }
+.demo b { color: var(--amber); }
+.wrap { padding: 20px; padding-left: max(20px, env(safe-area-inset-left,0px)); padding-right: max(20px, env(safe-area-inset-right,0px)); display: grid; gap: 18px; }
+
+.top { display: flex; align-items: flex-end; gap: 16px 20px; flex-wrap: wrap; }
+.hello { flex: 1 1 260px; min-width: 0; }
+.hello h1 { margin: 0; font-family: var(--font-d); font-size: 23px; font-weight: 700; letter-spacing: .2px; }
+.hello p { margin: 3px 0 0; color: var(--ink-2); font-size: 13px; }
+.scope { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+.field { position: relative; }
+.field label { position: absolute; top: -8px; left: 10px; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); background: #141a2b; padding: 0 5px; border-radius: 4px; }
+select.glass { appearance: none; background: var(--glass); border: 1px solid var(--stroke); color: var(--ink); padding: 9px 30px 9px 12px; border-radius: 11px; cursor: pointer; min-width: 128px; }
+.field::after { content: "▾"; position: absolute; right: 11px; top: 50%; transform: translateY(-45%); color: var(--ink-3); pointer-events: none; font-size: 11px; }
+.seg { display: inline-flex; background: var(--glass); border: 1px solid var(--stroke); border-radius: 11px; padding: 3px; }
+.seg button { border: 0; background: none; color: var(--ink-2); padding: 7px 13px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.seg button.on { background: var(--glass-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--stroke-2); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 11px; border: 1px solid var(--stroke-2); cursor: pointer;
+  background: linear-gradient(135deg, rgba(40,224,200,.22), rgba(91,140,255,.2)); color: var(--ink); font-weight: 600; }
+.btn:hover { filter: brightness(1.08); }
+
+.card { background: var(--glass); border: 1px solid var(--stroke); border-radius: 18px; box-shadow: var(--shadow); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi { padding: 16px; display: grid; gap: 10px; position: relative; overflow: hidden; }
+.kpi .row1 { display: flex; align-items: center; justify-content: space-between; }
+.kpi .ico { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; }
+.kpi .ico svg { width: 20px; height: 20px; stroke: #06140f; fill: none; stroke-width: 2; }
+.kpi .lab { font-size: 12px; color: var(--ink-2); }
+.kpi .val { font-family: var(--font-d); font-size: 25px; font-weight: 700; letter-spacing: .3px; font-variant-numeric: tabular-nums; }
+.kpi .chg { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.kpi .chg.up { color: var(--green); } .kpi .chg.down { color: var(--red); }
+.kpi .spark { position: absolute; right: 0; bottom: 0; left: 0; height: 46px; opacity: .8; }
+
+.grid2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.panel { padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel .ph { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.panel .ph h3 { margin: 0; font-family: var(--font-d); font-size: 15px; font-weight: 600; }
+.panel .ph .sub { font-size: 11.5px; color: var(--ink-3); }
+.pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.pill.g { background: rgba(79,227,161,.16); color: var(--green); }
+.chart-box { position: relative; width: 100%; }
+.donut-wrap { display: grid; grid-template-columns: 180px 1fr; gap: 12px; align-items: center; }
+.legend { display: grid; gap: 9px; }
+.legend .li { display: grid; grid-template-columns: 12px 1fr auto; gap: 9px; align-items: center; font-size: 13px; }
+.legend .dot { width: 11px; height: 11px; border-radius: 4px; }
+.legend .amt { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+.legend .li small { grid-column: 2 / 4; color: var(--ink-3); font-size: 11px; margin-top: -4px; }
+
+.list { display: grid; gap: 8px; }
+.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 11px; border-radius: 13px; background: var(--glass); border: 1px solid var(--stroke); }
+.rowitem .t { font-weight: 600; font-size: 13px; }
+.rowitem .s { font-size: 11.5px; color: var(--ink-3); }
+.rowitem .m { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bar { grid-column: 1 / 3; height: 6px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), var(--blue)); }
+.bar.warn i { background: linear-gradient(90deg, var(--amber), var(--rose)); }
+
+.caja { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; padding: 11px; border-radius: 13px; background: var(--glass); border: 1px solid var(--stroke); }
+.caja .nm { font-weight: 600; font-size: 13px; }
+.caja .sub { font-size: 11px; color: var(--ink-3); }
+.caja .mv { font-variant-numeric: tabular-nums; font-weight: 700; font-family: var(--font-d); }
+.caja .st { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.st.ok { background: rgba(79,227,161,.16); color: var(--green); }
+.st.wait { background: rgba(255,194,75,.16); color: var(--amber); }
+
+.note { font-size: 11.5px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.auto { font-size: 11px; color: var(--teal); display:inline-flex; gap:5px; align-items:center; }
+
+@media (max-width: 1080px) { .grid2 { grid-template-columns: 1fr; } .grid3 { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 820px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: fixed; z-index: 30; inset: 0 auto 0 0; width: 250px; transform: translateX(-100%); transition: transform .25s ease; }
+  .side.open { transform: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 25; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  .menu-btn { display: inline-grid; }
+}
+@media (min-width: 821px) { .menu-btn { display: none; } .scrim { display: none; } }
+.menu-btn { place-items: center; width: 40px; height: 40px; border-radius: 11px; background: var(--glass); border: 1px solid var(--stroke); cursor: pointer; }
+.menu-btn svg { width: 20px; height: 20px; stroke: var(--ink); fill: none; stroke-width: 2; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="scene" aria-hidden="true">
+  <div class="sky"></div><div class="sun"></div>
+  <div class="city" id="city"></div>
+  <div class="haze"></div><div class="grain"></div>
+</div>
+
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div><b>NXUS Crédito</b><span>Financiera · Edo. de México</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-h">Operación</div>
+      <a class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg> Tablero</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Clientes</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Solicitudes <span class="tag">6</span></a>
+      <a><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg> Créditos</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Cobranza</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg> Cajas</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5M10 19V9M16 19v-7M22 19H2"/></svg> Reportes</a>
+      <div class="nav-h">Sistema</div>
+      <a><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Importar datos</a>
+      <a><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.3 1a7 7 0 00-1.7-1L16 2H8l-.9 3a7 7 0 00-1.7 1l-2.3-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.3-1a7 7 0 001.7 1L8 22h8l.9-3a7 7 0 001.7-1l2.3 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg> Administración</a>
+    </nav>
+    <div class="side-foot">Prototipo visual v0.1 · estilo glass · fondo Santa Fe al atardecer (marcador; se puede cambiar por una foto con licencia).</div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <div class="demo">
+      <button class="menu-btn" id="menuBtn" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <span><b>DATOS DE DEMOSTRACIÓN</b> — cifras de ejemplo para mostrar el diseño. No son datos reales ni cálculos financieros definitivos.</span>
+    </div>
+    <div class="wrap">
+      <div class="top">
+        <div class="hello">
+          <h1 id="greet">Buenas tardes</h1>
+          <p id="subgreet">Esto es lo que pasa en tu cartera hoy.</p>
+        </div>
+        <div class="scope">
+          <div class="field"><label>Ámbito</label>
+            <select class="glass" id="scope">
+              <option value="emp">Toda la empresa</option>
+              <option value="reg">Región Norte</option>
+              <option value="ger">Gerencia Ecatepec</option>
+              <option value="ruta">Ruta Ecatepec Mañana</option>
+            </select>
+          </div>
+          <div class="seg" id="period">
+            <button data-p="sem" class="on">Semana</button>
+            <button data-p="mes">Mes</button>
+            <button data-p="anio">Año</button>
+          </div>
+          <button class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg> Exportar</button>
+        </div>
+      </div>
+
+      <section class="kpis" id="kpis"></section>
+
+      <div class="grid2">
+        <div class="card panel">
+          <div class="ph"><div><h3>Cartera por estado</h3><div class="sub" id="cartTotalSub">Total en dinero</div></div><span class="pill g" id="cartDelta">▲ 2.4%</span></div>
+          <div class="donut-wrap">
+            <div class="chart-box" style="height:180px"><canvas id="donut"></canvas></div>
+            <div class="legend" id="donutLegend"></div>
+          </div>
+          <div class="note"><span>Mostrado en pesos, no en número de clientes. Cambia el ámbito para desglosar por nivel.</span></div>
+        </div>
+        <div class="card panel">
+          <div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado vs meta por ruta</div></div></div>
+          <div class="list" id="cobranza"></div>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card panel" style="grid-column: span 2;">
+          <div class="ph"><div><h3>Recaudo vs colocación</h3><div class="sub" id="trendSub">Últimas 7 jornadas</div></div></div>
+          <div class="chart-box" style="height:230px"><canvas id="trend"></canvas></div>
+        </div>
+        <div class="card panel">
+          <div class="ph"><div><h3>Cajas por gerente</h3><div class="sub">Cierre automático</div></div></div>
+          <div class="list" id="cajas"></div>
+          <div class="auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Traslado automático a las 18:00 · con bitácora</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // ---- Skyline procedural ----
+  (function city(){
+    const el = document.getElementById("city"); if(!el) return;
+    let x = 0; const W = Math.max(window.innerWidth, 1200);
+    while (x < W) { const w = 26 + Math.random()*46, h = 60 + Math.random()*240;
+      const s = document.createElement("span"); s.style.left = x+"px"; s.style.width = w+"px"; s.style.height = h+"px";
+      el.appendChild(s); x += w + 6 + Math.random()*10; }
+  })();
+
+  const peso = n => "$" + Math.round(n).toLocaleString("es-MX");
+  const pesoK = n => n>=1e6 ? "$"+(n/1e6).toFixed(2)+"M" : "$"+Math.round(n/1000)+"k";
+  const C = { teal:"#28e0c8", blue:"#5b8cff", violet:"#a98bff", amber:"#ffc24b", rose:"#ff7a9c", green:"#4fe3a1", red:"#ff6b6b", ink2:"#aeb8cc", grid:"rgba(255,255,255,.08)" };
+
+  // ---- Datos de demostración (claramente ficticios) ----
+  const base = {
+    emp:  { f:1,    nombre:"toda la empresa" },
+    reg:  { f:0.46, nombre:"la Región Norte" },
+    ger:  { f:0.21, nombre:"la Gerencia Ecatepec" },
+    ruta: { f:0.045,nombre:"la Ruta Ecatepec Mañana" }
+  };
+  const estados = [
+    { k:"Al día",      c:C.green,  v:3120000, s:"cuotas vigentes" },
+    { k:"Atrasado",    c:C.amber,  v:620000,  s:"1 a 7 días" },
+    { k:"Alto riesgo", c:C.rose,   v:310000,  s:"8 a 30 días" },
+    { k:"Vencido",     c:C.red,    v:237500,  s:"+30 días" }
+  ];
+  const kpis = [
+    { lab:"Cartera total",     base:4287500, chg:+2.4, ico:'<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>', grad:[C.teal,C.blue],  spark:[30,34,33,38,37,42,46] },
+    { lab:"Cartera vencida",   base:237500,  chg:-1.2, ico:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>', grad:[C.rose,C.red], spark:[40,38,39,36,34,33,31], down:true },
+    { lab:"Recaudo del día",   base:128400,  chg:+5.1, ico:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', grad:[C.blue,C.violet], spark:[18,22,20,26,24,30,33] },
+    { lab:"Colocación del mes",base:1240000, chg:+8.6, ico:'<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>', grad:[C.violet,C.teal], spark:[20,24,28,27,33,36,40] }
+  ];
+  const rutas = [
+    { t:"Ecatepec Mañana", s:"Asesor: ANA S.",   cobrado:0.92 },
+    { t:"Coacalco Centro", s:"Asesor: LUIS R.",  cobrado:0.78 },
+    { t:"Tecámac Sur",     s:"Asesor: MARIO V.", cobrado:0.61, warn:true },
+    { t:"Tultitlán 1",     s:"Asesor: ROSA M.",  cobrado:0.88 }
+  ];
+  const cajas = [
+    { nm:"Gerente Norte",  sub:"3 asesores · cerrada", mv:142300, st:"ok",   t:"Recibido" },
+    { nm:"Gerente Centro", sub:"4 asesores · cerrada", mv:118900, st:"ok",   t:"Recibido" },
+    { nm:"Gerente Sur",    sub:"2 asesores · 18:00",   mv:63700,  st:"wait", t:"Pendiente" }
+  ];
+
+  let scope = "emp", period = "sem";
+
+  // ---- KPIs ----
+  function renderKpis(){
+    const f = base[scope].f;
+    document.getElementById("kpis").innerHTML = kpis.map((k,i)=>{
+      const val = k.lab==="Colocación del mes" ? k.base*f : k.base*f;
+      const cls = k.down ? (k.chg<0?"up":"down") : (k.chg>=0?"up":"down");
+      const arrow = (k.down? k.chg<0 : k.chg>=0) ? "▲" : "▼";
+      return `<div class="card kpi">
+        <div class="row1">
+          <div class="ico" style="background:linear-gradient(135deg,${k.grad[0]},${k.grad[1]})"><svg viewBox="0 0 24 24">${k.ico}</svg></div>
+          <span class="chg ${cls}">${arrow} ${Math.abs(k.chg)}%</span>
+        </div>
+        <div><div class="lab">${k.lab}</div><div class="val">${peso(val)}</div></div>
+        <canvas class="spark" id="sp${i}" height="46"></canvas>
+      </div>`;
+    }).join("");
+    kpis.forEach((k,i)=>sparkline("sp"+i, k.spark, k.grad[0]));
+  }
+  function sparkline(id, data, color){
+    const el = document.getElementById(id); if(!el) return;
+    new Chart(el, { type:"line", data:{ labels:data.map((_,i)=>i),
+      datasets:[{ data, borderColor:color, borderWidth:2, tension:.4, pointRadius:0,
+        fill:true, backgroundColor:(ctx)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,46); g.addColorStop(0,color+"55"); g.addColorStop(1,color+"00"); return g; } }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} } });
+  }
+
+  // ---- Donut ----
+  let donut;
+  function renderDonut(){
+    const f = base[scope].f;
+    const vals = estados.map(e=>e.v*f), total = vals.reduce((a,b)=>a+b,0);
+    document.getElementById("cartTotalSub").textContent = "Total: " + peso(total) + " · " + base[scope].nombre;
+    document.getElementById("donutLegend").innerHTML = estados.map((e,i)=>`
+      <div class="li"><span class="dot" style="background:${e.c}"></span><span>${e.k}</span>
+      <span class="amt">${peso(vals[i])}</span><small>${e.s} · ${Math.round(vals[i]/total*100)}%</small></div>`).join("");
+    const cfg = { type:"doughnut", data:{ labels:estados.map(e=>e.k),
+      datasets:[{ data:vals, backgroundColor:estados.map(e=>e.c), borderWidth:0, cutout:"72%", hoverOffset:6 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+        tooltip:{ callbacks:{ label:(c)=>" "+peso(c.raw) } } } } };
+    if(donut){ donut.data.datasets[0].data = vals; donut.update(); }
+    else donut = new Chart(document.getElementById("donut"), cfg);
+  }
+
+  // ---- Trend ----
+  let trend;
+  const labelsBy = { sem:["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"],
+    mes:["Sem 1","Sem 2","Sem 3","Sem 4"],
+    anio:["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"] };
+  function seriesFor(p,f){
+    const n = labelsBy[p].length;
+    const rec = [], col = [];
+    for(let i=0;i<n;i++){ const w = 0.6+0.4*Math.sin(i/1.7); rec.push((95000+Math.random()*40000)*w*f); col.push((70000+Math.random()*55000)*w*f); }
+    return {rec,col};
+  }
+  function renderTrend(){
+    const f = base[scope].f, labs = labelsBy[period], {rec,col} = seriesFor(period,f);
+    document.getElementById("trendSub").textContent = period==="sem"?"Últimas 7 jornadas":period==="mes"?"Últimas 4 semanas":"Año en curso";
+    const mk = (ctx,color)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,230); g.addColorStop(0,color+"66"); g.addColorStop(1,color+"03"); return g; };
+    const data = { labels:labs, datasets:[
+      { label:"Recaudo", data:rec, borderColor:C.teal, borderWidth:2.5, tension:.4, pointRadius:0, fill:true, backgroundColor:(c)=>mk(c,C.teal) },
+      { label:"Colocación", data:col, borderColor:C.violet, borderWidth:2.5, tension:.4, pointRadius:0, fill:true, backgroundColor:(c)=>mk(c,C.violet) }
+    ]};
+    const opts = { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:C.ink2, usePointStyle:true, pointStyleWidth:8, boxHeight:6 } },
+        tooltip:{ callbacks:{ label:(c)=>" "+c.dataset.label+": "+peso(c.raw) } } },
+      scales:{ x:{ grid:{color:C.grid}, ticks:{color:C.ink2} },
+        y:{ grid:{color:C.grid}, ticks:{color:C.ink2, callback:v=>pesoK(v)} } } };
+    if(trend){ trend.data=data; trend.options=opts; trend.update(); }
+    else trend = new Chart(document.getElementById("trend"), {type:"line", data, options:opts});
+  }
+
+  // ---- Listas ----
+  function renderLists(){
+    document.getElementById("cobranza").innerHTML = rutas.map(r=>`
+      <div class="rowitem"><div><div class="t">${r.t}</div><div class="s">${r.s}</div></div>
+      <div class="m">${Math.round(r.cobrado*100)}%</div>
+      <div class="bar ${r.warn?"warn":""}"><i style="width:${r.cobrado*100}%"></i></div></div>`).join("");
+    document.getElementById("cajas").innerHTML = cajas.map(c=>`
+      <div class="caja"><div><div class="nm">${c.nm}</div><div class="sub">${c.sub}</div></div>
+      <div class="mv">${peso(c.mv)}</div><span class="st ${c.st}">${c.t}</span></div>`).join("");
+  }
+
+  // ---- Interacción ----
+  function greet(){
+    const h = new Date().getHours();
+    document.getElementById("greet").textContent = h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
+  }
+  function all(){ renderKpis(); renderDonut(); renderTrend(); renderLists(); }
+  document.getElementById("scope").addEventListener("change", e=>{ scope=e.target.value; all(); });
+  document.querySelectorAll("#period button").forEach(b=>b.addEventListener("click", ()=>{
+    document.querySelectorAll("#period button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); period=b.dataset.p; renderTrend();
+  }));
+  const side=document.getElementById("side"), scrim=document.getElementById("scrim");
+  document.getElementById("menuBtn").addEventListener("click", ()=>{ side.classList.add("open"); scrim.classList.add("on"); });
+  scrim.addEventListener("click", ()=>{ side.classList.remove("open"); scrim.classList.remove("on"); });
+  document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click", ()=>{
+    document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("on")); a.classList.add("on");
+    side.classList.remove("open"); scrim.classList.remove("on");
+  }));
+
+  Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+  Chart.defaults.color = C.ink2;
+  greet(); all();
+})();
+</script>
