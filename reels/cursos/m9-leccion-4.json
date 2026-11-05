@@ -1,0 +1,83 @@
+{
+  "id": "m9l4",
+  "curso": "Next Level IA",
+  "tomas": [],
+  "numero": "9.4",
+  "tituloIntro": "CRECER",
+  "tituloCorto": "Subir de paquete",
+  "bloques": [
+    "EL MOMENTO",
+    "LA OFERTA"
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección cuatro: subir de paquete. El cliente que ya confía en ti es el más fácil de crecer.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "El momento es después de un buen reporte, cuando los números ya hablaron. Por ejemplo: el agente contestó mil mensajes, pero muchos clientes prefieren llamar.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El momento",
+          "pregunta": "",
+          "respuesta": [
+            "# Después de un buen reporte",
+            "“El agente contestó 1,240 mensajes.",
+            "Y muchos clientes prefieren llamar.”",
+            "# Ahí ofreces el siguiente paso"
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Entonces ofreces el siguiente paquete: del Recomendado al Completo, que suma el agente de llamadas. No vendes algo nuevo, resuelves lo que ya viste en sus números.",
+      "pantallas": [
+        {
+          "resultado": "paquetes",
+          "etiqueta": "Del Recomendado al Completo",
+          "descripcion": "Resuelve lo que ya viste en sus números",
+          "paquetes": [
+            {
+              "nombre": "Recomendado",
+              "precio": "$9,500",
+              "incluye": [
+                "20 piezas de contenido",
+                "Agente de Instagram y WhatsApp",
+                "Reporte mensual"
+              ]
+            },
+            {
+              "nombre": "Completo",
+              "precio": "$14,000",
+              "incluye": [
+                "Todo lo del Recomendado",
+                "Agente de llamadas",
+                "Anuncios y reporte semanal"
+              ],
+              "destacado": true,
+            "insignia": "EL SIGUIENTE PASO"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "El momento correcto y una oferta basada en sus números. En la siguiente lección: testimonios y referidos.",
+      "marcas": [
+        "momento",
+        "oferta",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

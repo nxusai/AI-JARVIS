@@ -1,0 +1,78 @@
+{
+  "id": "m9l2",
+  "curso": "Next Level IA",
+  "tomas": [],
+  "numero": "9.2",
+  "tituloIntro": "REPORTE",
+  "tituloCorto": "El reporte mensual",
+  "bloques": [
+    "LOS NÚMEROS",
+    "LA REUNIÓN"
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección dos: el reporte mensual. Lo que no se ve, no se paga.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Cada mes, pásale a Claude los números del mes y pídele un reporte de una página: cuántos mensajes contestó el agente, cuántas reservas y cuánto dinero trajo.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Con estos números del mes, arma el reporte de una página para Cafetería Aurora.",
+          "respuesta": [
+            "# Reporte de octubre",
+            "✓ 1,240 mensajes contestados",
+            "✓ 86 reservas apartadas",
+            "✓ $38,000 en ventas del agente",
+            "# Siguiente mes: promoción de temporada"
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Y preséntalo en una llamada de quince minutos: lo que logramos, lo que mejoramos y lo que sigue. Así el cliente ve el valor antes de que llegue el siguiente cobro.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "La reunión de 15 minutos",
+          "nodos": [
+            {
+              "icono": "📈",
+              "titulo": "Lo que logramos",
+              "sub": "Los números"
+            },
+            {
+              "icono": "🛠️",
+              "titulo": "Lo que mejoramos",
+              "sub": "Este mes"
+            },
+            {
+              "icono": "🎯",
+              "titulo": "Lo que sigue",
+              "sub": "El siguiente mes"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Números claros cada mes y una llamada corta. En la siguiente lección: mantenimiento y mejoras.",
+      "marcas": [
+        "Números",
+        "llamada",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

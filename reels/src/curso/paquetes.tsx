@@ -23,7 +23,7 @@ export const Paquetes: React.FC<{ p: Pantalla; acento: string }> = ({ p, acento 
             <div key={i} style={{ width: 430, padding: '36px 34px 40px', borderRadius: 28, fontFamily: FUENTE, background: q.destacado ? '#121b38' : '#0d1428',
               border: `2px solid ${q.destacado ? acento : '#ffffff1f'}`, boxShadow: q.destacado ? `0 0 ${70 * top}px ${acento}88, 0 40px 80px rgba(0,0,0,.5)` : '0 30px 60px rgba(0,0,0,.45)',
               transform: `translateY(${(1 - s) * 260 - top * 40}px) rotateY(${(i - 1) * -10 * (1 - top * 0.6)}deg) scale(${1 + top * 0.08})`, opacity: s }}>
-              {q.destacado && <div style={{ display: 'inline-block', marginBottom: 14, padding: '6px 16px', borderRadius: 999, background: acento, color: '#06101e', fontWeight: 900, fontSize: 18, letterSpacing: '0.1em', opacity: top }}>RECOMENDADO</div>}
+              {q.destacado && <div style={{ display: 'inline-block', marginBottom: 14, padding: '6px 16px', borderRadius: 999, background: acento, color: '#06101e', fontWeight: 900, fontSize: 18, letterSpacing: '0.1em', opacity: top }}>{q.insignia ?? 'RECOMENDADO'}</div>}
               <div style={{ color: '#fff', fontWeight: 900, fontSize: 34 }}>{q.nombre}</div>
               <div style={{ marginTop: 10, color: q.destacado ? acento : '#fff', fontWeight: 900, fontSize: 56 }}>{q.precio}<span style={{ fontSize: 22, color: '#ffffff88', fontWeight: 500 }}> /mes</span></div>
               <div style={{ marginTop: 18, borderTop: '1px solid #ffffff1a', paddingTop: 18 }}>

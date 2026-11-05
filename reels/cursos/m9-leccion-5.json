@@ -1,0 +1,78 @@
+{
+  "id": "m9l5",
+  "curso": "Next Level IA",
+  "tomas": [],
+  "numero": "9.5",
+  "tituloIntro": "REFERIDOS",
+  "tituloCorto": "Testimonios y referidos",
+  "bloques": [
+    "EL TESTIMONIO",
+    "EL REFERIDO"
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección cinco: testimonios y referidos. Tus clientes contentos te consiguen los siguientes.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Pide el testimonio cuando el cliente está contento, justo después de un buen reporte. Un audio o un video corto de su celular: qué problema tenía, y qué cambió.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "El testimonio",
+          "descripcion": "Pídelo después de un buen reporte",
+          "cuenta": "Mi Agencia IA",
+          "subcuenta": "Cafetería Aurora",
+          "mensajes": [
+            {
+              "de": "agente",
+              "texto": "¿Me regalas un video corto contando qué cambió en tu negocio? 🙏"
+            },
+            {
+              "de": "cliente",
+              "texto": "¡Claro! Antes perdíamos mensajes, ahora el agente aparta las mesas solo."
+            },
+            {
+              "de": "cliente",
+              "texto": "🎥 Video · 0:32"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Y pide el referido: ¿conoces a otro negocio al que le sirva esto? Dale un mes gratis por cada cliente que te recomiende. Así tu cartera crece sola.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El referido",
+          "pregunta": "",
+          "respuesta": [
+            "# La pregunta",
+            "“¿Conoces a otro negocio",
+            "al que le sirva esto?”",
+            "# El premio",
+            "✓ Un mes gratis por cada referido"
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Testimonios y referidos. Con esto terminas el curso: ya sabes crear, vender, cerrar y retener. Nos vemos en el bonus.",
+      "marcas": [
+        "Testimonios",
+        "referidos.",
+        "Nos"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

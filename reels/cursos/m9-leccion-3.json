@@ -1,0 +1,83 @@
+{
+  "id": "m9l3",
+  "curso": "Next Level IA",
+  "tomas": [],
+  "numero": "9.3",
+  "tituloIntro": "MEJORAS",
+  "tituloCorto": "Mantenimiento y mejoras",
+  "bloques": [
+    "CADA SEMANA",
+    "UNA MEJORA AL MES"
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Lección tres: mantenimiento y mejoras. Lo que hace que tu servicio valga cada mes.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Cada semana, veinte minutos: lee las conversaciones del agente, encuentra las preguntas que no supo contestar, corrige sus respuestas, y pruébalo otra vez.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "La revisión semanal",
+          "nodos": [
+            {
+              "icono": "💬",
+              "titulo": "Lee",
+              "sub": "Las conversaciones"
+            },
+            {
+              "icono": "❓",
+              "titulo": "Encuentra",
+              "sub": "Lo que no supo"
+            },
+            {
+              "icono": "✏️",
+              "titulo": "Corrige",
+              "sub": "Sus respuestas"
+            },
+            {
+              "icono": "✅",
+              "titulo": "Prueba",
+              "sub": "Otra vez"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Y cada mes, una mejora visible: un menú nuevo, una promoción, una respuesta más rápida. Avísale al cliente. Así siente que su servicio crece.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Una mejora al mes",
+          "pregunta": "",
+          "respuesta": [
+            "# Ideas de mejora",
+            "✓ Menú de temporada",
+            "✓ Promoción del mes",
+            "✓ Respuestas más rápidas",
+            "# Y siempre avísale al cliente"
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Revisión cada semana y una mejora cada mes. En la siguiente lección: subir de paquete.",
+      "marcas": [
+        "semana",
+        "mes.",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}

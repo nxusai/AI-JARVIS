@@ -1,0 +1,82 @@
+{
+  "id": "m9l1",
+  "curso": "Next Level IA",
+  "tomas": [],
+  "numero": "9.1",
+  "tituloIntro": "ENTREGA",
+  "tituloCorto": "Entregar en una semana",
+  "bloques": [
+    "LA LISTA",
+    "LA PRUEBA"
+  ],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "guion": "Módulo nueve: entregar y retener. Porque un cliente que se queda años vale más que diez nuevos.",
+      "voz": "voz/0.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "guion": "Antes de entregar, revisa tu lista: el agente responde bien, los precios y horarios están correctos, los mensajes llegan a su WhatsApp, y el cliente sabe a quién escribirte.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "La lista de entrega",
+          "pregunta": "",
+          "respuesta": [
+            "# Antes de entregar",
+            "✓ El agente responde bien",
+            "✓ Precios y horarios correctos",
+            "✓ Los avisos llegan a su WhatsApp",
+            "✓ Sabe a quién escribirte"
+          ]
+        }
+      ],
+      "voz": "voz/1.wav"
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "guion": "Y entrega en vivo: con el cliente enfrente, escríbele al agente desde su propio celular. Cuando ve que contesta solo, ya no necesita más explicación.",
+      "pantallas": [
+        {
+          "resultado": "telefono",
+          "etiqueta": "La prueba en vivo",
+          "descripcion": "Que lo vea contestar solo",
+          "cuenta": "cafeteria.aurora",
+          "mensajes": [
+            {
+              "de": "cliente",
+              "texto": "Hola, ¿abren el domingo?"
+            },
+            {
+              "de": "agente",
+              "texto": "¡Hola! Sí, el domingo abrimos de 9 a 2 ☕"
+            },
+            {
+              "de": "cliente",
+              "texto": "¿Puedo apartar mesa para 4?"
+            },
+            {
+              "de": "agente",
+              "texto": "Claro, ¿a qué hora te la aparto?",
+              "boton": "Apartar mesa"
+            }
+          ]
+        }
+      ],
+      "voz": "voz/2.wav"
+    },
+    {
+      "tipo": "final",
+      "guion": "Una lista clara y una prueba en vivo. En la siguiente lección: el reporte mensual.",
+      "marcas": [
+        "lista",
+        "vivo.",
+        "En"
+      ],
+      "voz": "voz/3.wav"
+    }
+  ]
+}
