@@ -1,0 +1,113 @@
+{
+  "id": "m4l5",
+  "curso": "Next Level IA",
+  "numero": "4.5",
+  "tituloIntro": "RESULTADOS",
+  "tituloCorto": "Resultados, reglas y cómo cobrarlo",
+  "bloques": [
+    "RESULTADOS",
+    "REGLAS",
+    "COBRAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: resultados, reglas y cómo cobrar este servicio. Lo que convierte un agente en un negocio."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Cada llamada queda en el historial, con su transcripción, sus datos y si se logró el objetivo. Y con un webhook al terminar la llamada, mandas todo a tu CRM automáticamente.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "Después de cada llamada",
+          "nodos": [
+            {
+              "icono": "📞",
+              "titulo": "Llamada"
+            },
+            {
+              "icono": "📝",
+              "titulo": "Transcripción",
+              "sub": "Y resumen"
+            },
+            {
+              "icono": "📋",
+              "titulo": "Datos",
+              "sub": "Nombre, pedido, hora"
+            },
+            {
+              "icono": "🔗",
+              "titulo": "Webhook",
+              "sub": "A tu CRM"
+            }
+          ]
+        },
+        {
+          "toma": "postcall",
+          "etiqueta": "Post-call webhooks",
+          "descripcion": "Documentación de ElevenLabs",
+          "url": "elevenlabs.io/docs",
+          "clave": "Y"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Las reglas son importantes: llama solo a quien te dio permiso. En Estados Unidos, para llamar con inteligencia artificial, la ley pide permiso previo por escrito. Di siempre que es un asistente virtual, y si alguien pide no ser llamado, respétalo.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Reglas",
+          "pregunta": "",
+          "respuesta": [
+            "# Antes de llamar",
+            "✓ Solo a quien te dio permiso",
+            "✓ En EE. UU.: permiso previo por escrito",
+            "# En cada llamada",
+            "✓ Di que es un asistente virtual",
+            "✓ Si piden no ser llamados, respétalo"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "¿Y cómo lo cobras? Una instalación por construir el agente, y una mensualidad por operarlo, con los minutos de llamada incluidos en tu precio. Y cada mes, un reporte: cuántas llamadas hizo y cuántas ventas confirmó.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Cómo se cobra",
+          "pregunta": "",
+          "respuesta": [
+            "# Instalación (una vez)",
+            "Construir el agente y conectarlo",
+            "# Mensualidad",
+            "Operarlo, con los minutos incluidos",
+            "# El reporte",
+            "Llamadas hechas y ventas confirmadas"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Resultados, reglas y cobro mensual. Con esto terminas el módulo de agentes que llaman.",
+      "marcas": [
+        "Resultados,",
+        "reglas",
+        "cobro",
+        "Con"
+      ]
+    }
+  ]
+}

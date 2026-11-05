@@ -1,0 +1,79 @@
+{
+  "id": "m4l1",
+  "curso": "Next Level IA",
+  "numero": "4.1",
+  "tituloIntro": "LLAMADAS",
+  "tituloCorto": "Un agente que llama por teléfono",
+  "bloques": [
+    "QUÉ HACE",
+    "ESCÚCHALO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo cuatro: agentes que llaman. Un agente de voz habla por teléfono como una persona, y lo construyes con ElevenLabs."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Le das seguimiento a quien te escribió, confirmas citas y pedidos, y reactivas a clientes que no han vuelto. Todo con llamadas que hace la inteligencia artificial.",
+      "pantallas": [
+        {
+          "toma": "agents",
+          "etiqueta": "ElevenLabs Agents",
+          "descripcion": "Agentes de voz en más de 90 idiomas",
+          "url": "elevenlabs.io/es/agents"
+        },
+        {
+          "resultado": "flujo",
+          "etiqueta": "Para qué se usa",
+          "nodos": [
+            {
+              "icono": "📲",
+              "titulo": "Seguimiento",
+              "sub": "A quien te escribió"
+            },
+            {
+              "icono": "📅",
+              "titulo": "Confirmar",
+              "sub": "Citas y pedidos"
+            },
+            {
+              "icono": "🔁",
+              "titulo": "Reactivar",
+              "sub": "Clientes que no volvieron"
+            }
+          ],
+          "clave": "Todo"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Escucha cómo suena. Esta llamada la hizo un agente para una cafetería.",
+      "pantallas": [
+        {
+          "resultado": "audio",
+          "etiqueta": "Llamada de ejemplo",
+          "texto": "Agente de Cafetería Aurora confirmando un pedido"
+        }
+      ],
+      "sonido": "ejemplos/llamada.wav"
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Llamadas que dan seguimiento, confirman y venden. En la siguiente lección: crear tu agente.",
+      "marcas": [
+        "seguimiento,",
+        "confirman",
+        "En"
+      ]
+    }
+  ]
+}

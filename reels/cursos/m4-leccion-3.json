@@ -1,0 +1,71 @@
+{
+  "id": "m4l3",
+  "curso": "Next Level IA",
+  "numero": "4.3",
+  "tituloIntro": "GUION",
+  "tituloCorto": "El guion que hace que venda",
+  "bloques": [
+    "PROMPT",
+    "DATOS"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: el guion del agente. Un agente es tan bueno como sus instrucciones... y esas te las escribe Claude."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Le pides a Claude el prompt del sistema: quién es, a quién llama, qué debe lograr y qué no debe hacer nunca. Lo copias y lo pegas en ElevenLabs.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Escribe el prompt de un agente de voz que llama a clientes de Cafetería Aurora para confirmar pedidos.",
+          "respuesta": [
+            "# Quién eres",
+            "Ana, asistente virtual de Cafetería Aurora. Dilo al empezar.",
+            "# Tu objetivo",
+            "Confirmar qué quiere, cuándo y a qué hora.",
+            "# Reglas",
+            "Frases cortas y cálidas. Nunca inventes precios.",
+            "Si piden no ser llamados, discúlpate y despídete."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Después le dices qué datos sacar de cada llamada. En recolección de datos agregas el nombre, el pedido y la hora. Y en análisis, una pregunta: ¿se confirmó el pedido? Así cada llamada se resume sola.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Datos y análisis",
+          "pregunta": "",
+          "respuesta": [
+            "# Recolección de datos",
+            "nombre · pedido · hora_de_entrega",
+            "# Análisis",
+            "¿Se confirmó el pedido? › éxito o falla",
+            "✓ Cada llamada se resume sola"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un buen prompt y los datos correctos: así tu agente vende y te deja todo anotado. En la siguiente lección: conectar un número y hacer llamadas.",
+      "marcas": [
+        "prompt",
+        "datos",
+        "En"
+      ]
+    }
+  ]
+}

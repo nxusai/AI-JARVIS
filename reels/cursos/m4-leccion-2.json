@@ -1,0 +1,100 @@
+{
+  "id": "m4l2",
+  "curso": "Next Level IA",
+  "numero": "4.2",
+  "tituloIntro": "CREAR",
+  "tituloCorto": "Tu agente de voz en ElevenLabs",
+  "bloques": [
+    "CREAR",
+    "CONFIGURAR",
+    "PROBAR"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: crear tu agente de voz en ElevenLabs. En cinco minutos tienes uno funcionando."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Entra a ElevenLabs, abre la sección de agentes y crea uno nuevo con la plantilla en blanco. Ponle un nombre que identifique al cliente.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Crear el agente",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. ElevenLabs › Agents",
+            "2. Crea un agente nuevo",
+            "3. Plantilla en blanco (Blank)",
+            "4. Nombre: Ana · Cafetería Aurora"
+          ]
+        },
+        {
+          "toma": "quickstart",
+          "etiqueta": "Guía oficial",
+          "descripcion": "Documentación de ElevenLabs",
+          "url": "elevenlabs.io/docs",
+          "clave": "Ponle"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "En la pestaña del agente escribes el primer mensaje y el prompt del sistema. En voz eliges una en español, y en la base de conocimiento subes el menú, los precios y los horarios.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Configurar",
+          "pregunta": "",
+          "respuesta": [
+            "# Pestaña Agent",
+            "Primer mensaje: lo primero que dice",
+            "Prompt del sistema: cómo se comporta",
+            "# Voz",
+            "Elige una voz en español",
+            "# Base de conocimiento",
+            "Menú, precios y horarios"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "Y antes de conectarlo a un teléfono, lo pruebas: dale probar agente y habla con él desde tu computadora, como si fueras el cliente.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Probar",
+          "pregunta": "",
+          "respuesta": [
+            "# Antes de llamar a nadie",
+            "1. Dale Test AI agent",
+            "2. Háblale como si fueras el cliente",
+            "3. Corrige el prompt si algo no te gusta",
+            "✓ Listo para conectarlo a un número"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Crear, configurar y probar. En la siguiente lección: el guion que hace que tu agente venda.",
+      "marcas": [
+        "Crear,",
+        "configurar",
+        "probar.",
+        "En"
+      ]
+    }
+  ]
+}

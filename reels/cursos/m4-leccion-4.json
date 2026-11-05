@@ -1,0 +1,85 @@
+{
+  "id": "m4l4",
+  "curso": "Next Level IA",
+  "numero": "4.4",
+  "tituloIntro": "NÚMERO",
+  "tituloCorto": "Conectar un número y llamar",
+  "bloques": [
+    "NÚMERO",
+    "LLAMADAS"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: conectar un número de teléfono y hacer llamadas. Aquí tu agente sale a trabajar."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Compras un número en Twilio. En ElevenLabs entras a números de teléfono, importas desde Twilio con tu Account SID y tu Auth Token, y le asignas el agente. Listo: ya contesta y ya llama.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Conectar el número",
+          "pregunta": "",
+          "respuesta": [
+            "# Paso a paso",
+            "1. Compra un número en Twilio",
+            "2. ElevenLabs › Phone Numbers › Import",
+            "3. Elige Twilio: Account SID y Auth Token",
+            "4. Asigna tu agente al número",
+            "✓ Ya contesta y ya llama"
+          ]
+        },
+        {
+          "toma": "twilio",
+          "etiqueta": "Integración con Twilio",
+          "descripcion": "Documentación de ElevenLabs",
+          "url": "elevenlabs.io/docs",
+          "clave": "Listo:"
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Para llamar a muchos clientes, usas llamadas en lote. Creas un lote, eliges el número y el agente, subes un archivo con los teléfonos y los nombres, y lo programas. Haz primero una llamada de prueba.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Llamadas en lote",
+          "pregunta": "",
+          "respuesta": [
+            "# Batch Calling",
+            "1. Create a batch call",
+            "2. Elige el número y el agente",
+            "3. Sube tu archivo: phone_number, name",
+            "4. Envíalo ahora o prográmalo",
+            "5. Primero, una llamada de prueba"
+          ]
+        },
+        {
+          "toma": "batch",
+          "etiqueta": "Llamadas en lote",
+          "descripcion": "Documentación de ElevenLabs",
+          "url": "elevenlabs.io/docs",
+          "clave": "Haz"
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un número y tus llamadas en lote: tu agente ya trabaja solo. En la siguiente lección: resultados, reglas y cómo cobrarlo.",
+      "marcas": [
+        "número",
+        "llamadas",
+        "En"
+      ]
+    }
+  ]
+}
