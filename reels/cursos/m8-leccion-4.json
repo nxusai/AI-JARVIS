@@ -1,0 +1,83 @@
+{
+  "id": "m8l4",
+  "curso": "Next Level IA",
+  "numero": "8.4",
+  "tituloIntro": "COBRAR",
+  "tituloCorto": "Cobrar cada mes sin perseguir a nadie",
+  "bloques": [
+    "EL PRIMER PAGO",
+    "EL COBRO AUTOMÁTICO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cuatro: cobrar cada mes, sin perseguir a nadie."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Regla de oro: el primer pago va antes de empezar. La instalación y el primer mes, por adelantado. Así arrancas con el compromiso del cliente, y sin riesgo para ti.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El primer pago",
+          "pregunta": "",
+          "respuesta": [
+            "# Antes de empezar",
+            "✓ Instalación",
+            "✓ Primer mes",
+            "Por adelantado",
+            "# Sin pago, no hay arranque"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y después, cobro automático: una suscripción con Stripe o con Mercado Pago, que le cobra cada mes a su tarjeta. Tú no persigues pagos, y si un cobro falla, te avisa.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El cobro automático",
+          "nodos": [
+            {
+              "icono": "💳",
+              "titulo": "Suscripción",
+              "sub": "Stripe o Mercado Pago"
+            },
+            {
+              "icono": "🔁",
+              "titulo": "Cobra cada mes",
+              "sub": "A su tarjeta"
+            },
+            {
+              "icono": "🧾",
+              "titulo": "Factura",
+              "sub": "Automática"
+            },
+            {
+              "icono": "🔔",
+              "titulo": "Si falla",
+              "sub": "Te avisa"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Pago por adelantado y cobro automático. En la siguiente lección: el arranque con el cliente.",
+      "marcas": [
+        "adelantado",
+        "automático.",
+        "En"
+      ]
+    }
+  ]
+}

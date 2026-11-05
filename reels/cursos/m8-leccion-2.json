@@ -1,0 +1,91 @@
+{
+  "id": "m8l2",
+  "curso": "Next Level IA",
+  "numero": "8.2",
+  "tituloIntro": "OBJECIONES",
+  "tituloCorto": "Cómo responder las objeciones",
+  "bloques": [
+    "ESTÁ CARO",
+    "LO VOY A PENSAR",
+    "¿Y SI NO FUNCIONA?"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección dos: las objeciones. No son un no: son preguntas que todavía no has respondido."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Está caro. No bajes el precio: regresa al valor. ¿Cuánto vale un pedido? ¿Cuántos se pierden por no contestar? Si recupera diez al mes, el servicio se paga solo. Y si de verdad no alcanza, ofrécele el paquete básico.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "“Está caro”",
+          "pregunta": "",
+          "respuesta": [
+            "# No bajes el precio",
+            "Regresa al valor:",
+            "“Si recuperas 10 pedidos al mes, se paga solo.”",
+            "# Si de verdad no alcanza",
+            "Ofrece el paquete básico"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Lo voy a pensar. Pregunta con respeto qué parte le genera duda. Casi siempre es una sola cosa, y la puedes resolver en ese momento.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "“Lo voy a pensar”",
+          "pregunta": "",
+          "respuesta": [
+            "# Pregunta con respeto",
+            "“Claro. ¿Qué parte te genera duda?”",
+            "# Casi siempre es una sola cosa",
+            "El precio, el tiempo o la confianza",
+            "Resuélvela ahí mismo"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 3,
+      "voz": "voz/3.wav",
+      "guion": "¿Y si no funciona? Quítale el riesgo: un primer mes para probar, con resultados medibles, o el plazo mínimo más corto. Cuando el riesgo es tuyo, el sí es más fácil.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "“¿Y si no funciona?”",
+          "pregunta": "",
+          "respuesta": [
+            "# Quítale el riesgo",
+            "✓ Un primer mes para probar",
+            "✓ Resultados que se miden",
+            "✓ Plazo mínimo más corto",
+            "Cuando el riesgo es tuyo, el sí es más fácil"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/4.wav",
+      "guion": "Valor, una pregunta y menos riesgo. En la siguiente lección: propuesta y firma.",
+      "marcas": [
+        "Valor,",
+        "pregunta",
+        "riesgo.",
+        "En"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "id": "m8l1",
+  "curso": "Next Level IA",
+  "numero": "8.1",
+  "tituloIntro": "CIERRE",
+  "tituloCorto": "La reunión de cierre",
+  "bloques": [
+    "EL ORDEN",
+    "EL SIGUIENTE PASO"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Módulo ocho: cerrar el contrato. Aquí todo lo que hiciste se convierte en un cliente que paga cada mes."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "La reunión tiene un orden: primero repasas el diagnóstico, después enseñas la demo funcionando, luego presentas tus tres paquetes, y al final propones el siguiente paso. Media hora, no más.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "El orden de la reunión",
+          "nodos": [
+            {
+              "icono": "🔍",
+              "titulo": "Diagnóstico",
+              "sub": "Lo que le falta"
+            },
+            {
+              "icono": "👀",
+              "titulo": "Demo",
+              "sub": "Su negocio funcionando"
+            },
+            {
+              "icono": "📦",
+              "titulo": "3 paquetes",
+              "sub": "Que elija uno"
+            },
+            {
+              "icono": "✍️",
+              "titulo": "Siguiente paso",
+              "sub": "Firmar y arrancar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y nunca termines sin un siguiente paso concreto: “¿Te mando hoy la propuesta y arrancamos el lunes?”. Una pregunta clara, con fecha.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "El cierre",
+          "pregunta": "",
+          "respuesta": [
+            "# Nunca termines sin esto",
+            "“¿Te mando hoy la propuesta",
+            "y arrancamos el lunes?”",
+            "# Una pregunta clara, con fecha",
+            "Y luego te callas y escuchas."
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Un orden claro y un siguiente paso con fecha. En la siguiente lección: las objeciones.",
+      "marcas": [
+        "orden",
+        "paso",
+        "En"
+      ]
+    }
+  ]
+}

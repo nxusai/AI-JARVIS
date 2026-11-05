@@ -1,0 +1,78 @@
+{
+  "id": "m8l5",
+  "curso": "Next Level IA",
+  "numero": "8.5",
+  "tituloIntro": "ARRANQUE",
+  "tituloCorto": "El arranque con el cliente",
+  "bloques": [
+    "LO QUE NECESITAS",
+    "LA PRIMERA SEMANA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección cinco: el arranque. Los primeros siete días deciden si el cliente se queda contigo."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "En la junta de arranque pides todo de una vez: acceso a sus redes, su menú y sus precios, fotos, sus metas del mes y quién será tu contacto. Claude te arma la lista para no olvidar nada.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Lo que necesitas",
+          "pregunta": "",
+          "respuesta": [
+            "✓ Acceso a Instagram y WhatsApp",
+            "✓ Menú, precios y horarios",
+            "✓ Fotos del negocio",
+            "✓ Las metas del mes",
+            "✓ Tu contacto: quién responde"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y en la primera semana, entrega un resultado visible: el agente contestando, los primeros reels publicados. Que el cliente sienta desde el día siete que tomó la mejor decisión.",
+      "pantallas": [
+        {
+          "resultado": "flujo",
+          "etiqueta": "La primera semana",
+          "nodos": [
+            {
+              "icono": "📋",
+              "titulo": "Día 1",
+              "sub": "Junta de arranque"
+            },
+            {
+              "icono": "🛠️",
+              "titulo": "Días 2 a 5",
+              "sub": "Construyes"
+            },
+            {
+              "icono": "🚀",
+              "titulo": "Día 7",
+              "sub": "Primer resultado visible"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Todo de una vez y un resultado en siete días. Con esto terminas el módulo de cerrar el contrato.",
+      "marcas": [
+        "vez",
+        "resultado",
+        "Con"
+      ]
+    }
+  ]
+}

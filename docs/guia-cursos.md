@@ -36,6 +36,7 @@ Lecciones profesionales y breves (1920×1080), hechas completas por Claude: grab
 - Módulo 5 (Webs, portales y sistemas): 5.1 Qué construyes; 5.2 La página que vende; 5.3 Publicar con Netlify Drop y dominio; 5.4 Portales y formularios; 5.5 CRM, tablero y cobro. Ejemplos ficticios funcionando en `reels/cursos/ejemplos/` (aurora, portal, crm, tablero); tomas en `cursos/m5-tomas.json`. El grabador ya llena campos (`campo` + `texto`).
 - Módulo 6 (Servicios y precios): 6.1 Catálogo; 6.2 Costos; 6.3 Cuánto cobrar (mínimo 3× costo, y por valor); 6.4 Los 3 paquetes (`resultado: "paquetes"`); 6.5 Contrato mensual. Precios de ejemplo en MXN (6,000 / 9,500 / 14,000), los mismos de la 2.3.
 - Módulo 7 (Conseguir clientes): 7.1 Cliente ideal y lista; 7.2 Contenido que atrae; 7.3 Prospección directa y seguimiento; 7.4 La demo que vende; 7.5 Anuncios y referidos.
+- Módulo 8 (Cerrar el contrato): 8.1 Reunión de cierre; 8.2 Objeciones; 8.3 Propuesta y firma; 8.4 Cobrar cada mes (Stripe/Mercado Pago); 8.5 El arranque.
 - Ojo con el disco: cada render empaqueta todo public/ (casi 1 GB); `fabrica/render.mjs` ya borra ese paquete al terminar.
 - Estructura del curso: 0 Bienvenida (la graba Lalo), 1 Higgsfield ✅, 2 Claude, 3 Agentes que atienden (ManyChat), 4 Agentes que llaman (ElevenLabs), 5 Webs, portales y sistemas, 6 Servicios y precios, 7 Conseguir clientes, 8 Cerrar el contrato, 9 Entregar y retener, Bonus.
 - Nombre del curso: *Next Level IA* (nombre de trabajo; Lalo no lo ha confirmado).

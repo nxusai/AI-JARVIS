@@ -1,0 +1,69 @@
+{
+  "id": "m8l3",
+  "curso": "Next Level IA",
+  "numero": "8.3",
+  "tituloIntro": "FIRMA",
+  "tituloCorto": "Propuesta y firma el mismo día",
+  "bloques": [
+    "EL MISMO DÍA",
+    "LA FIRMA"
+  ],
+  "tomas": [],
+  "escenas": [
+    {
+      "tipo": "intro",
+      "voz": "voz/0.wav",
+      "guion": "Lección tres: propuesta y firma. La velocidad cierra más que cualquier argumento."
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 1,
+      "voz": "voz/1.wav",
+      "guion": "Manda la propuesta el mismo día de la reunión, mientras el entusiasmo está fresco. Claude te la arma en minutos con tus notas, como en la lección de la propuesta, con el paquete que eligió.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "Pídeselo a Claude",
+          "pregunta": "Con las notas de hoy, arma la propuesta de Cafetería Aurora con el paquete Recomendado, para mandarla hoy.",
+          "respuesta": [
+            "# Propuesta lista",
+            "✓ Diagnóstico de la reunión",
+            "✓ Paquete Recomendado · $9,500 al mes",
+            "✓ Qué incluye y fechas de arranque",
+            "✓ Contrato adjunto para firma"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "pantallas",
+      "bloque": 2,
+      "voz": "voz/2.wav",
+      "guion": "Y que firme en línea: usa una herramienta de firma electrónica, para que lo haga desde su celular en dos minutos. Pon una fecha límite: si firma esta semana, arrancan el lunes.",
+      "pantallas": [
+        {
+          "resultado": "chat",
+          "etiqueta": "La firma",
+          "pregunta": "",
+          "respuesta": [
+            "# Firma electrónica",
+            "Desde su celular, en dos minutos",
+            "# Fecha límite",
+            "“Si firmas esta semana, arrancamos el lunes.”",
+            "✓ Contrato firmado"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "final",
+      "voz": "voz/3.wav",
+      "guion": "Propuesta el mismo día y firma en línea. En la siguiente lección: cobrar cada mes sin perseguir a nadie.",
+      "marcas": [
+        "Propuesta",
+        "firma",
+        "En"
+      ]
+    }
+  ]
+}
