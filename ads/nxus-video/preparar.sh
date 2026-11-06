@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Baja las tomas y voces de Higgsfield y arma voz y música de cada versión (A, B, C).
-# Después: NODE_PATH=$(npm root -g) node capa.js A   y   bash armar.sh A   (igual B y C).
+# Después: NODE_PATH=$(npm root -g) node capa.cjs A   y   bash armar.sh A   (igual B y C).
 # Necesita ffmpeg, node con playwright y python con numpy, scipy y soundfile.
 set -e
 cd "$(dirname "$0")"; mkdir -p in

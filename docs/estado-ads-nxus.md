@@ -71,7 +71,7 @@
   - **Dónde están los archivos:** los mp4 no están en GitHub. Eduardo los tiene descargados.
   - **Cómo rehacerlos o editarlos:** con `ads/nxus-video/`.
     1. `bash preparar.sh`: baja las tomas y voces, y arma voz y música.
-    2. `node capa.js A`: gráficos animados.
+    2. `node capa.cjs A`: gráficos animados.
     3. `bash armar.sh A`: composición final.
     4. Repetir los pasos 2 y 3 con B y C.
     - Los textos y los tiempos están en `versiones.py` y `capa.html`.
