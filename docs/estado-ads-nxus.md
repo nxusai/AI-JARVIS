@@ -119,6 +119,13 @@
 - **Reglas aprendidas (lo que NO quiere Eduardo):** público abierto a todo el mundo, edad 18, radios gigantes, saludo en inglés o preguntas vacías/por defecto, meta que cuente cualquier respuesta como resultado, "Advantage+ leads campaign", mejoras automáticas del creativo, palabra clave "contiene INFO", videos de casi 1 minuto.
 
 
+## Videos a pautar (revisados el 6 nov 2026)
+- Eduardo mandó AD_1, AD_2 y AD_3: son los mismos A, B y C (34, 33 y 32 s, 1080×1920, audio completo y de la misma duración que el video). Eduardo los pausa él mismo.
+- Revisión: A es el mejor gancho (celular con mensajes a las 11:48 desde el segundo 0); B bien ("Este empleado nunca duerme"); C es el más débil ("¿Tienes un restaurante o una empresa?" sobre edificios: invita a cualquier negocio y "te está costando dinero" arriesga la política de atributos personales).
+- Los subtítulos grandes quedan a ~72% de la altura: dentro de la zona que tapan el nombre, el texto y el botón en Reels/Stories (35% de abajo). Arreglo sin créditos: subirlos en `capa.html` y volver a armar.
+- El cuerpo y el cierre dicen "para restaurantes y empresas que quieren crecer": abre la puerta a cualquier negocio.
+- Recomendación dada: 1 campaña MX, 1 conjunto, los 3 videos como 3 anuncios dentro (Meta reparte solo). Pendiente: zonas exactas y presupuesto.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
