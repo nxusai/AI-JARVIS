@@ -125,6 +125,12 @@
 - Los subtítulos grandes quedan a ~72% de la altura: dentro de la zona que tapan el nombre, el texto y el botón en Reels/Stories (35% de abajo). Arreglo sin créditos: subirlos en `capa.html` y volver a armar.
 - El cuerpo y el cierre dicen "para restaurantes y empresas que quieren crecer": abre la puerta a cualquier negocio.
 - Recomendación dada: 1 campaña MX, 1 conjunto, los 3 videos como 3 anuncios dentro (Meta reparte solo). Pendiente: zonas exactas y presupuesto.
+- **Videos corregidos (6 nov 2026, pendientes de aprobación de Eduardo):** `ads/nxus-video/NXUS-Ad-A/B/C.mp4` (no están en git).
+  - Todos los textos y tarjetas quedan entre los 290 y ~1260 px de alto: no los tapa la interfaz de Reels/Stories (35% de abajo) ni el recorte 4:5 del Feed (285 px arriba y abajo). Subtítulos a 1105 px y 70 px de letra; teléfono del chat al 74%.
+  - C: gancho nuevo con voz Mark (text2speech_v2 ElevenLabs, 0.15 créditos): "¿Tienes un restaurante con varias sucursales? Mira lo que se pierde cuando nadie contesta." y tarjeta "📵 Mira lo que se pierde". Dura 32.6 s.
+  - Se quiso cambiar también "para restaurantes y empresas" por "para cadenas de restaurantes…", pero no alcanzaron los créditos (Higgsfield en 0). Queda igual; el filtro va en el texto del anuncio y los botones del chat.
+  - Revisados completos: audio igual de largo que el video y la voz se oye hasta "30 minutos".
+
 
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
