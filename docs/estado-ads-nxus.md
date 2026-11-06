@@ -88,6 +88,17 @@
   - Para tomas nuevas hay que recargar.
 - **Bloom:** Eduardo dice que 5 imágenes cuestan 51 créditos. Le alcanza para unas 3 por semana.
 
+## Investigación de Meta Ads (6 de noviembre de 2026)
+- Reporte completo: `reports/Meta Ads para NXUS AI 2026.md` (notas en `research_notes/Meta Ads para NXUS AI 2026/`).
+- Lo más importante para el prompt v2:
+  - Apagar cada Advantage+ creative enhancement en cada anuncio (vuelven a prenderse al duplicar), bloquear Audience Network y Threads, poner Account spending limit, apagar Business Agent de Meta para que solo conteste ManyChat.
+  - Ubicación con pines por colonia (hard limit); intereses solo son sugerencia; sin filtro de idioma en MX.
+  - Los videos A/B/C son un solo concepto: hacen falta cortes de 12–15 s con subtítulos y 2+ conceptos distintos (demo en pantalla, Eduardo a cámara, estático).
+  - Gancho C ("esto te está costando dinero") arriesga la política de atributos personales.
+  - Mandar señales a Meta: LeadSubmitted desde ManyChat solo tras el filtro; QualifiedLead/Purchase desde HQ (CAPI for Business Messaging). Un Ads Trigger por anuncio para saber qué anuncio trajo cada cita.
+  - Decidir con costo por diagnóstico agendado; aceptar "Learning limited".
+- Quedaron 13 preguntas abiertas para Eduardo (al final del reporte).
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
