@@ -99,6 +99,13 @@
   - Decidir con costo por diagnóstico agendado; aceptar "Learning limited".
 - Quedaron 13 preguntas abiertas para Eduardo (al final del reporte).
 
+## Acuerdo de trabajo para los anuncios (6 de noviembre de 2026)
+- Claude construye los anuncios desde cero (estrategia, estructura, segmentación, textos, configuración) y entrega el prompt para Claude in Chrome. El reporte de investigación es para que Claude lo aplique, no para Eduardo.
+- Eduardo sube él mismo la foto o el video.
+- Presupuesto: Claude pide autorización o usa la cifra que Eduardo diga. Nunca la decide solo.
+- Zonas geográficas: las da Eduardo; Claude las configura de la mejor manera.
+- Eduardo sigue "entrenando" a Claude con más contexto antes del primer anuncio. El prompt se da hasta que él diga que empecemos con el primero.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
