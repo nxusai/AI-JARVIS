@@ -41,6 +41,7 @@ const ICONOS = {
   usuarios: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>',
   bitacora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 }
+ICONOS.fiesta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 9 9-14 5z"/><path d="M13 6c1-2 3-2 4-3M17 11c2-1 3 0 4-1M15 3l1 1M20 7l1 1M19 3l.5.5"/></svg>'
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
 import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
@@ -58,6 +59,9 @@ const S = {
   biblioteca: [],
   catalogos: [],
   contenidos: [],
+  fiesta: [],
+  fiestaBusca: '',
+  fiestaEmpresa: '',
   plan: [],
   usuarios: [],
   parrillaMes: (() => {
@@ -195,6 +199,7 @@ async function cargarTodo() {
     D.plan ? D.plan() : [],
   ])
   Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
+  S.fiesta = D.fiesta ? await D.fiesta().catch(() => null) : []
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
 
@@ -310,13 +315,15 @@ function vistasPermitidas() {
   if (esAdmin() || S.yo.ve_parrilla !== false) v.push('parrilla')
   if (esAdmin() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
   if (esAdmin() || S.yo.ve_catalogos !== false) v.push('catalogos')
+  // La fiesta de empleados: todos los usuarios del centro ven quién confirmó.
+  v.push('fiesta')
   if (esAdmin()) v.push('usuarios', 'bitacora')
   return v
 }
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -367,11 +374,76 @@ function pintarVista() {
     parrilla: vistaParrilla,
     biblioteca: vistaBiblioteca,
     catalogos: vistaCatalogos,
+    fiesta: vistaFiesta,
     usuarios: vistaUsuarios,
     bitacora: vistaBitacora,
   }[S.vista]
   el.innerHTML = v ? v() : ''
   if (S.vista === 'bitacora') cargarBitacora()
+}
+
+// -- fiesta de empleados -------------------------------------------------------
+
+const FIESTA_EMPRESAS = ['MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE']
+const FIESTA_URL = () => `${location.origin}/fiesta/`
+const telBonito = (t) => (t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : t)
+
+function invitadosFiltrados() {
+  const q = S.fiestaBusca.trim().toLowerCase()
+  return (S.fiesta || []).filter(
+    (x) => (!S.fiestaEmpresa || x.empresa === S.fiestaEmpresa) && (!q || x.nombre.toLowerCase().includes(q) || x.telefono.includes(q.replace(/\D/g, '') || '~')),
+  )
+}
+
+function vistaFiesta() {
+  if (S.fiesta === null) return '<div class="vacio-msg">Falta actualizar la base de datos para ver la fiesta: corre el esquema en Supabase (SQL Editor → Run).</div>'
+  const todos = S.fiesta
+  const lista = invitadosFiltrados()
+  const porEmpresa = FIESTA_EMPRESAS.map((e) => [e, todos.filter((x) => x.empresa === e).length])
+  const cerrado = Date.now() >= Date.parse('2026-11-17T05:00:00Z')
+  return `
+    <div class="fiesta-cabeza">
+      <div><h2>🎉 Fiesta de empleados</h2><p class="ayuda">Viernes 4 de diciembre de 2026 · 7:00 PM a 1:00 AM · Milan Banquets, 32 Passaic St, Garfield, NJ 07026 · ${cerrado ? '<b>La confirmación ya cerró</b>' : 'Confirman hasta el <b>16 de noviembre</b>'}</p></div>
+      <div class="fiesta-botones">
+        <a class="btn chico" href="/fiesta/" target="_blank" rel="noopener">Ver invitación ↗</a>
+        <button class="btn chico" data-accion="copiar-fiesta">🔗 Copiar enlace</button>
+        <button class="btn chico" data-accion="csv-fiesta" ${todos.length ? '' : 'disabled'}>⬇️ Descargar lista</button>
+      </div>
+    </div>
+    <div class="fiesta-cuentas">
+      <div class="fiesta-cuenta total"><b>${todos.length}</b><span>Confirmados</span></div>
+      ${porEmpresa.map(([e, n]) => `<button class="fiesta-cuenta ${S.fiestaEmpresa === e ? 'activa' : ''}" data-fiesta-empresa="${h(e)}"><b>${n}</b><span>${h(e)}</span></button>`).join('')}
+    </div>
+    <div class="barra">
+      <input type="search" data-filtro="fiestaBusca" value="${h(S.fiestaBusca)}" placeholder="Buscar por nombre o teléfono" aria-label="Buscar invitado">
+      ${S.fiestaEmpresa ? `<button class="btn chico" data-fiesta-empresa="">Ver todas las empresas</button>` : ''}
+    </div>
+    ${
+      !todos.length
+        ? '<div class="vacio-msg">Todavía nadie confirma. Comparte la invitación o pega el código QR en las empresas.</div>'
+        : !lista.length
+          ? '<div class="vacio-msg">Nadie coincide con esa búsqueda.</div>'
+          : `<div class="tabla-envoltura"><table class="tabla">
+      <thead><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Empresa</th><th>Confirmó</th>${esAdmin() ? '<th></th>' : ''}</tr></thead>
+      <tbody>${lista
+        .map(
+          (x, i) => `<tr><td>${lista.length - i}</td><td><b>${h(x.nombre)}</b></td><td><a href="tel:${h(x.telefono)}">${h(telBonito(x.telefono))}</a></td><td><span class="chip">${h(x.empresa)}</span></td><td>${fecha(x.actualizada || x.creada, true)}</td>${
+            esAdmin() ? `<td><button class="btn chico peligro" data-borrar-invitado="${x.id}" title="Borrar">✕</button></td>` : ''
+          }</tr>`,
+        )
+        .join('')}</tbody></table></div>`
+    }`
+}
+
+function csvFiesta() {
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const filas = [['Nombre', 'Teléfono', 'Empresa', 'Confirmó'], ...invitadosFiltrados().map((x) => [x.nombre, telBonito(x.telefono), x.empresa, fecha(x.actualizada || x.creada, true)])]
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['﻿' + filas.map((f) => f.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
+  a.download = 'fiesta-confirmados.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 // -- tareas ------------------------------------------------------------------
@@ -1891,6 +1963,19 @@ async function alClic(e) {
       campo.dispatchEvent(new Event('input'))
       return
     }
+    if (d.fiestaEmpresa !== undefined) {
+      S.fiestaEmpresa = d.fiestaEmpresa
+      pintarVista()
+      return
+    }
+    if (d.borrarInvitado) {
+      const x = S.fiesta.find((v) => v.id === d.borrarInvitado)
+      if (!x || !(await preguntar('Borrar confirmación', `¿Borrar a ${x.nombre} de la lista de la fiesta?`, { boton: 'Borrar', peligro: true }))) return
+      await D.borrarInvitado(x.id)
+      avisar('Borrado de la lista')
+      await recargar()
+      return
+    }
     if (d.editarUsuario) return formUsuario(d.editarUsuario)
     if (d.claveUsuario) return formClave(d.claveUsuario)
     if (d.eliminarUsuario) return eliminarUsuario(d.eliminarUsuario, b)
@@ -1910,6 +1995,16 @@ async function alClic(e) {
         desmontarUltron()
         S.yo = null
         return pintarEntrada()
+      case 'copiar-fiesta':
+        try {
+          await navigator.clipboard.writeText(FIESTA_URL())
+          avisar('Enlace copiado. Pégalo en WhatsApp.')
+        } catch {
+          avisar(`Cópialo a mano: ${FIESTA_URL()}`, true)
+        }
+        return
+      case 'csv-fiesta':
+        return csvFiesta()
       case 'nueva-tarea':
         return formNuevaTarea()
       case 'abrir-nota':
@@ -2003,7 +2098,7 @@ async function alCambiar(e) {
         if (S.mes === 'pendientes') S.mes = 0
       } else S[d.filtro] = el.value
       if (d.filtro === 'bibEmpresa') S.bibCarpeta = null
-      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca') {
+      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca') {
         const foco = document.activeElement === el
         const pos = el.selectionStart
         pintarVista()

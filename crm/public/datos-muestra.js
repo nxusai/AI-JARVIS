@@ -73,7 +73,12 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [] }
+  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], fiesta: [
+    { id: 'f1', nombre: 'María López', telefono: '9735550123', empresa: 'MI SEMAGO', creada: ahora(), actualizada: ahora() },
+    { id: 'f2', nombre: 'José Hernández', telefono: '2015550188', empresa: 'ABUELITO MEAT', creada: ahora(), actualizada: ahora() },
+    { id: 'f3', nombre: 'Ana Martínez', telefono: '9735550144', empresa: 'ABUELITO CHEESE', creada: ahora(), actualizada: ahora() },
+    { id: 'f4', nombre: 'Luis Ramírez', telefono: '8625550199', empresa: 'ABUELITO CORN', creada: ahora(), actualizada: ahora() },
+  ] }
   // Lo que se espera cada mes, por marca (igual que en esquema.sql).
   for (const marca of ['abuelito', 'mi-semago'])
     FIJOS.forEach(([nombre, cantidad, color], i) => {
@@ -519,6 +524,15 @@ export function crearMuestra() {
       db.plan = db.plan.filter((p) => p.id !== id)
       for (const c of db.contenidos) if (c.plan_clave === x.clave) c.plan_clave = null
       anota('borró', 'plan', id, { nombre: x.nombre })
+    },
+    async fiesta() {
+      if (!perfil()) return []
+      return copia(db.fiesta)
+    },
+    async borrarInvitado(id) {
+      if (!admin()) no('Solo el admin borra')
+      db.fiesta = db.fiesta.filter((x) => x.id !== id)
+      anota('borró', 'fiesta_asistentes', id)
     },
     async contenidos() {
       const p = perfil()

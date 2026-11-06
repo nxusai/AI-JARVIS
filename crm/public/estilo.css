@@ -724,3 +724,17 @@ select option, select optgroup { background: #fff; }
   .fijo-fila .btn { grid-column: span 1; }
 }
 input[type=number], input[type=time], input[type=url], input:not([type]), .fijo-fila input { width: 100%; padding: 8px 10px; border: 1px solid var(--linea-2); border-radius: 10px; background: rgba(255, 255, 255, .5); min-height: 38px; }
+
+/* ---------- Fiesta de empleados ---------- */
+.fiesta-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.fiesta-cabeza h2 { margin: 0 0 4px; }
+.fiesta-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.fiesta-cuentas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fiesta-cuenta { text-align: left; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--linea-2, rgba(0,0,0,.1)); background: var(--superficie, #fff); color: inherit; font: inherit; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.fiesta-cuenta:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0, 0, 0, .08); }
+.fiesta-cuenta b { display: block; font-size: 28px; line-height: 1.1; font-family: var(--display); }
+.fiesta-cuenta span { display: block; font-size: 12px; letter-spacing: .5px; opacity: .75; font-weight: 600; }
+.fiesta-cuenta.total { cursor: default; background: linear-gradient(160deg, #0b2050, #06122b); color: #fff; border-color: rgba(212, 175, 55, .6); }
+.fiesta-cuenta.total b { color: #f1d27a; }
+.fiesta-cuenta.activa { outline: 2px solid #d4af37; }
+@media (max-width: 760px) { .fiesta-cuentas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fiesta-cuenta.total { grid-column: 1 / -1; } }

@@ -231,6 +231,13 @@ export function crearSupabase({ url, anon }) {
       const borrados = ok(await sb.from('plan').delete().eq('id', id).select('id'))
       if (!borrados.length) throw new Error('No tienes permiso para hacer eso')
     },
+    // La fiesta de empleados: confirman desde /fiesta (función de Netlify); aquí solo se ve y el admin borra.
+    async fiesta() {
+      return ok(await sb.from('fiesta_asistentes').select('*').order('actualizada', { ascending: false }).limit(5000))
+    },
+    async borrarInvitado(id) {
+      ok(await sb.from('fiesta_asistentes').delete().eq('id', id))
+    },
     // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
     async contenidos() {
       return ok(await sb.from('contenidos').select('*, archivos(*)').order('fecha').order('hora', { nullsFirst: true }).limit(5000))

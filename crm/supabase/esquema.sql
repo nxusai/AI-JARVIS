@@ -1167,3 +1167,31 @@ end $$;
 drop trigger if exists crm_plan_contenido on public.contenidos;
 create trigger crm_plan_contenido before insert or update on public.contenidos
   for each row execute function public.cuidar_plan_contenido();
+
+-- ============================================================================
+-- Fiesta de empleados (4 de diciembre de 2026): quién confirmó asistencia.
+-- Los empleados confirman desde la invitación pública (/fiesta). Esa página no
+-- toca la base directo: manda los datos a la función de Netlify "fiesta", que
+-- revisa todo y guarda con la llave de servicio. Aquí, dentro del Centro de
+-- trabajo, cualquier usuario activo ve la lista; solo el admin borra.
+-- ============================================================================
+create table if not exists public.fiesta_asistentes (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null check (length(btrim(nombre)) between 2 and 80),
+  telefono text not null unique check (telefono ~ '^[0-9]{10,15}$'),
+  empresa text not null check (empresa in ('MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE')),
+  creada timestamptz not null default now(),
+  actualizada timestamptz not null default now()
+);
+create index if not exists fiesta_asistentes_creada on public.fiesta_asistentes (creada desc);
+
+alter table public.fiesta_asistentes enable row level security;
+drop policy if exists fiesta_ver on public.fiesta_asistentes;
+create policy fiesta_ver on public.fiesta_asistentes for select to authenticated using (yo_rol() is not null);
+drop policy if exists fiesta_borrar on public.fiesta_asistentes;
+create policy fiesta_borrar on public.fiesta_asistentes for delete to authenticated using (es_admin());
+-- Sin políticas de insert/update: nadie escribe directo, solo la función con la llave de servicio.
+
+drop trigger if exists crm_bitacora on public.fiesta_asistentes;
+create trigger crm_bitacora after insert or update or delete on public.fiesta_asistentes
+  for each row execute function public.anotar_cambio();
