@@ -106,6 +106,11 @@
 - Zonas geográficas: las da Eduardo; Claude las configura de la mejor manera.
 - Eduardo sigue "entrenando" a Claude con más contexto antes del primer anuncio. El prompt se da hasta que él diga que empecemos con el primero.
 
+## Problema: llegan mensajes de otros negocios (6 de noviembre de 2026)
+- En ManyChat llegan conversaciones de Instagram de negocios ajenos (ej. "Diablo Design", "Perritos y Gatitos Contentos") que solo traen su respuesta automática ("Gracias por contactarnos…"), como "Unassigned" con "Conversation was moved from Closed to Unassigned".
+- Hipótesis principal: el anuncio de mensajes le manda el saludo de NXUS a una cuenta de negocio, su respuesta automática contesta sola y Meta lo cuenta (y cobra) como conversación; con "Maximize number of conversations" Meta aprende a buscar más cuentas así. Falta confirmarlo.
+- Prompt de diagnóstico, solo lectura: `ads/prompt-chrome-analisis-v1.txt`. Pendiente: que Eduardo lo corra y pegue aquí el informe.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
