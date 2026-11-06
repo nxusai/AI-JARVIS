@@ -41,13 +41,13 @@ const GRUPOS = []
 { let g = []
   for (const p of PALABRAS) { g.push(p); if (g.length === 3 || p.fin || /[,.…:]$/.test(p.w)) { GRUPOS.push(g); g = [] } }
   if (g.length) GRUPOS.push(g) }
-const RESALTA = /^(nexus|info|gratis|24|veinticuatro|ia|inteligencia|whatsapp,?|instagram|cerrar\.?|dinero\.?|empresa\??|competencia\.?|nunca|cerrado\.*)/i
+const RESALTA = /^(nexus|sucursales\??|info|gratis|24|veinticuatro|ia|inteligencia|whatsapp,?|instagram|cerrar\.?|dinero\.?|empresa\??|competencia\.?|nunca|cerrado\.*)/i
 
 function subtitulos(t) {
   const g = GRUPOS.find((x) => t >= x[0].a - .02 && t < x[x.length - 1].b + .12)
   if (!g) return ''
   const k = ease(sal(t, g[0].a - .02, .12))
-  return `<div style="position:absolute;left:60px;right:60px;top:1330px;text-align:center;font-weight:800;font-size:76px;line-height:1.1;text-transform:uppercase;transform:scale(${.92 + .08 * k});opacity:${k}">
+  return `<div style="position:absolute;left:60px;right:60px;top:1105px;text-align:center;font-weight:800;font-size:70px;line-height:1.1;text-transform:uppercase;transform:scale(${.92 + .08 * k});opacity:${k}">
     ${g.map((p) => { const on = t >= p.a && t < p.b + .05, nx = /^nexus/i.test(p.w)
       const txt = nx ? 'NXUS' + p.w.slice(5) : p.w
       return `<span class="palabra" style="color:${on ? (RESALTA.test(p.w) ? '#00e5ff' : '#fff') : 'rgba(255,255,255,.86)'};${on ? 'transform:scale(1.03)' : ''};-webkit-text-stroke:3px rgba(0,0,0,.55);paint-order:stroke fill;text-shadow:0 8px 30px rgba(0,0,0,.7)">${txt}</span>` }).join(' ')}
@@ -55,7 +55,7 @@ function subtitulos(t) {
 }
 
 // El teléfono con el chat (gancho B y la demostración).
-function telefono(t, a, hora, top = 300, alto = 960) {
+function telefono(t, a, hora, top = 300, alto = 960, esc = 1) {
   const msgs = [
     ['cli', '¿Tienen mesa para 12 este sábado a las 9 pm? 🙏', a + .3],
     ['tip', '', a + 1.2],
@@ -64,7 +64,7 @@ function telefono(t, a, hora, top = 300, alto = 960) {
     ['ok', 'Reserva confirmada · Te mandé la ubicación 📍', a + 3.9],
   ]
   const k = ease(sal(t, a - .2, .45))
-  return `<div class="tel" style="top:${top + (1 - k) * 80}px;height:${alto}px;opacity:${k}">
+  return `<div class="tel" style="top:${top + (1 - k) * 80}px;height:${alto}px;opacity:${k};transform-origin:top center;transform:scale(${esc})">
     <div style="height:150px;padding:52px 34px 0;display:flex;align-items:center;gap:20px;background:#121a30;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#a01cff);display:grid;place-items:center;font:800 30px Sora">IA</div>
       <div><div style="font:700 34px Inter">Asistente IA · Tu restaurante</div><div style="font:500 26px Inter;color:#4ade80">● en línea · responde al instante</div></div>
@@ -90,23 +90,23 @@ function render(t) {
     if (CFG.gancho === 'A') {
       const n = Math.min(23, Math.floor(sal(t, .2, 3.2) * 23))
       h += `<div class="capa" style="opacity:${o}">
-        <div class="sombra" style="position:absolute;left:0;right:0;top:250px;text-align:center;font:300 210px Inter;letter-spacing:-.02em">11:48</div>
-        <div class="sombra" style="position:absolute;left:0;right:0;top:470px;text-align:center;font:600 40px Inter;opacity:.9">PM · Tu negocio cerró hace 2 horas</div>
+        <div class="sombra" style="position:absolute;left:0;right:0;top:270px;text-align:center;font:300 210px Inter;letter-spacing:-.02em">11:48</div>
+        <div class="sombra" style="position:absolute;left:0;right:0;top:500px;text-align:center;font:600 40px Inter;opacity:.9">PM · Tu negocio cerró hace 2 horas</div>
         ${[0, 1, 2, 3].map((i) => { const ta = .5 + i * .55; if (t < ta) return ''; const k = ease(sal(t, ta, .3))
-          return `<div style="position:absolute;left:80px;right:80px;top:${600 + i * 150}px;height:130px;border-radius:34px;background:rgba(30,36,56,.72);backdrop-filter:blur(20px);display:flex;align-items:center;gap:24px;padding:0 30px;opacity:${k};transform:translateY(${(1 - k) * -40}px)">
+          return `<div style="position:absolute;left:80px;right:80px;top:${680 + i * 105}px;height:95px;border-radius:34px;background:rgba(30,36,56,.72);backdrop-filter:blur(20px);display:flex;align-items:center;gap:24px;padding:0 30px;opacity:${k};transform:translateY(${(1 - k) * -40}px)">
             <div style="width:74px;height:74px;border-radius:18px;background:#25d366;display:grid;place-items:center;font:800 40px Inter">✆</div>
             <div style="font:500 32px Inter;line-height:1.3"><b>${['Cliente nuevo', 'Mesa para 8', 'Pedido para evento', 'Cotización'][i]}</b><br><span style="opacity:.8">${['¿Siguen abiertos mañana?', '¿Tienen lugar el sábado?', 'Somos 40 personas, ¿precio?', '¿Hacen catering corporativo?'][i]}</span></div></div>` }).join('')}
-        <div style="position:absolute;left:0;right:0;top:1210px;text-align:center"><span class="chip" style="background:rgba(220,38,38,.85);border-color:#fca5a5">${n} mensajes sin responder</span></div>
+        <div style="position:absolute;left:0;right:0;top:575px;text-align:center"><span class="chip" style="background:rgba(220,38,38,.85);border-color:#fca5a5">${n} mensajes sin responder</span></div>
       </div>`
     } else if (CFG.gancho === 'B') {
       h += `<div class="capa" style="opacity:${o}">
-        <div class="sombra" style="position:absolute;left:0;right:0;top:190px;text-align:center;font-weight:800;font-size:84px;line-height:1.05;${pop(t, .1)}">ESTE EMPLEADO<br><span class="g">NUNCA DUERME</span></div>
-        ${telefono(t, .45, '3:07 AM', 470, 820)}
+        <div class="sombra" style="position:absolute;left:0;right:0;top:300px;text-align:center;font-weight:800;font-size:84px;line-height:1.05;${pop(t, .1)}">ESTE EMPLEADO<br><span class="g">NUNCA DUERME</span></div>
+        ${telefono(t, .45, '3:07 AM', 500, 820, .74)}
       </div>`
     } else {
       h += `<div class="capa" style="opacity:${o}">
-        <div class="sombra" style="position:absolute;left:60px;right:60px;top:230px;text-align:center;font-weight:800;font-size:76px;line-height:1.1;${pop(t, .1)}">¿TIENES UN<br>RESTAURANTE<br>O UNA <span class="g">EMPRESA</span>?</div>
-        ${t < 2.6 ? '' : `<div style="position:absolute;left:0;right:0;top:880px;text-align:center;${pop(t, 2.6, .3)}"><span class="chip" style="font-size:50px;background:rgba(127,29,29,.8);border-color:#f87171">💸 Te está costando dinero</span></div>`}
+        <div class="sombra" style="position:absolute;left:60px;right:60px;top:300px;text-align:center;font-weight:800;font-size:72px;line-height:1.1;${pop(t, .1)}">¿TIENES UN<br>RESTAURANTE CON<br><span class="g">VARIAS SUCURSALES</span>?</div>
+        ${t < 2.75 ? '' : `<div style="position:absolute;left:0;right:0;top:880px;text-align:center;${pop(t, 2.75, .3)}"><span class="chip" style="font-size:50px;background:rgba(127,29,29,.8);border-color:#f87171">📵 Mira lo que se pierde</span></div>`}
       </div>`
     }
   }
@@ -125,10 +125,10 @@ function render(t) {
   if (t > b(5.1) && t < b(13.2)) {
     const o = vis(t, b(5.25), b(13.0), .2)
     h += `<div class="capa" style="opacity:${o}">
-      <div style="position:absolute;left:0;right:0;top:120px;display:flex;justify-content:center;${pop(t, b(5.3), .3)}">
+      <div style="position:absolute;left:0;right:0;top:290px;display:flex;justify-content:center;${pop(t, b(5.3), .3)}">
         <div class="chip" style="font-size:40px"><span style="width:70px;height:46px">${LOGO('ls')}</span>NXUS AI</div></div>
-      ${telefono(t, b(6.2), '11:52 PM', 250, 980)}
-      ${t > b(9.4) ? `<div style="position:absolute;right:60px;top:1130px;${pop(t, b(9.4), .3)}"><div class="chip" style="font-size:46px;background:linear-gradient(135deg,rgba(0,229,255,.35),rgba(160,28,255,.35))">24/7</div></div>` : ''}
+      ${telefono(t, b(6.2), '11:52 PM', 390, 980, .74)}
+      ${t > b(9.4) ? `<div style="position:absolute;right:150px;top:1000px;${pop(t, b(9.4), .3)}"><div class="chip" style="font-size:46px;background:linear-gradient(135deg,rgba(0,229,255,.35),rgba(160,28,255,.35))">24/7</div></div>` : ''}
     </div>`
   }
   // El lead listo para cerrar
@@ -137,14 +137,14 @@ function render(t) {
     const etapas = ['Nuevo lead', 'Calificado', 'Reunión agendada']
     const paso = t < b(14.2) ? 0 : t < b(15.2) ? 1 : 2
     h += `<div class="capa" style="opacity:${o};background:radial-gradient(circle at 50% 40%,rgba(12,31,74,.55),rgba(5,9,20,.78))">
-      <div class="sombra" style="position:absolute;left:0;right:0;top:250px;text-align:center;font-weight:800;font-size:66px">Te llega <span class="g">listo para cerrar</span></div>
-      <div style="position:absolute;left:90px;right:90px;top:420px;display:flex;gap:16px">${etapas.map((e, i) => `<div style="flex:1;padding:18px 10px;border-radius:22px;text-align:center;font:700 28px Inter;background:${i <= paso ? 'linear-gradient(135deg,#0a6cff,#7b2bff)' : 'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.18)">${e}</div>`).join('')}</div>
-      <div style="position:absolute;left:110px;right:110px;top:${560}px;padding:40px;border-radius:40px;background:rgba(16,24,52,.82);border:1.5px solid rgba(150,175,255,.25);box-shadow:0 30px 80px rgba(0,0,0,.5);font-family:Inter;${pop(t, b(13.2), .35)}">
+      <div class="sombra" style="position:absolute;left:0;right:0;top:300px;text-align:center;font-weight:800;font-size:66px">Te llega <span class="g">listo para cerrar</span></div>
+      <div style="position:absolute;left:90px;right:90px;top:440px;display:flex;gap:16px">${etapas.map((e, i) => `<div style="flex:1;padding:18px 10px;border-radius:22px;text-align:center;font:700 28px Inter;background:${i <= paso ? 'linear-gradient(135deg,#0a6cff,#7b2bff)' : 'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.18)">${e}</div>`).join('')}</div>
+      <div style="position:absolute;left:110px;right:110px;top:${580}px;padding:40px;border-radius:40px;background:rgba(16,24,52,.82);border:1.5px solid rgba(150,175,255,.25);box-shadow:0 30px 80px rgba(0,0,0,.5);font-family:Inter;${pop(t, b(13.2), .35)}">
         <div style="font:800 46px Sora">Grupo restaurantero</div>
         <div style="font:500 32px Inter;color:#b9c6e6;margin-top:8px">4 sucursales · Quiere IA + marketing</div>
         <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap">${['Decide: el dueño', 'Urgencia: alta', 'Presupuesto: sí'].map((x, i) => t < b(13.6 + i * .35) ? '' : `<span style="padding:12px 22px;border-radius:999px;background:rgba(74,222,128,.14);border:1.5px solid #4ade80;color:#bbf7d0;font:600 28px Inter">${x}</span>`).join('')}</div>
       </div>
-      ${t > b(15.3) ? `<div style="position:absolute;left:110px;right:110px;top:960px;padding:28px 34px;border-radius:30px;background:rgba(255,255,255,.95);color:#0b1020;display:flex;gap:22px;align-items:center;font-family:Inter;${pop(t, b(15.3), .3)}">
+      ${t > b(15.3) ? `<div style="position:absolute;left:110px;right:110px;top:900px;padding:28px 34px;border-radius:30px;background:rgba(255,255,255,.95);color:#0b1020;display:flex;gap:22px;align-items:center;font-family:Inter;${pop(t, b(15.3), .3)}">
         <div style="font-size:54px">📅</div><div><div style="font:800 36px Inter">Reunión con el dueño</div><div style="font:500 30px Inter;color:#475569">Martes 10:00 am · Google Meet</div></div></div>` : ''}
     </div>`
   }
@@ -166,7 +166,7 @@ function render(t) {
     const tecleo = 'INFO'.slice(0, Math.floor(sal(t, b(26.9), .7) * 4.99))
     const enviado = t > b(27.7)
     h += `<div class="capa" style="opacity:${o};background:radial-gradient(circle at 50% 38%,#0c1f4a 0%,#050914 70%)">
-      <div style="position:absolute;left:50%;top:200px;width:200px;height:132px;transform:translateX(-50%);filter:drop-shadow(0 0 40px rgba(10,108,255,.8))">${LOGO('lc')}</div>
+      <div style="position:absolute;left:50%;top:250px;width:200px;height:132px;transform:translateX(-50%);filter:drop-shadow(0 0 40px rgba(10,108,255,.8))">${LOGO('lc')}</div>
       ${oD > 0 ? `<div class="sombra" style="position:absolute;left:0;right:0;top:420px;text-align:center;font-weight:800;font-size:110px;line-height:1.05;opacity:${oD};${pop(t, b(23.5), .35)}">DIAGNÓSTICO<br><span style="color:#4ade80">GRATIS</span></div>
         <div style="position:absolute;left:0;right:0;top:720px;text-align:center;opacity:${oD};${pop(t, b(24.3), .3)}"><span class="chip" style="font-size:56px">⏱️ 30 minutos</span></div>
         <div style="position:absolute;left:0;right:0;top:880px;text-align:center;font:600 40px Inter;color:#cfe0ff;opacity:${oD * sal(t, b(25.0), .4)}">Cupos limitados este mes</div>` : ''}

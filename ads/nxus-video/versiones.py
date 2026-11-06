@@ -4,7 +4,7 @@ K = 1.07   # la voz va 7% más ágil, sin cambiar el tono
 GANCHOS = {
   'A': ([(0, 2.18, 'Son las 11:48 de la noche.'), (2.77, 4.03, 'Tu negocio está cerrado…'), (4.62, 6.65, 'y tus clientes te siguen escribiendo.')], 6.78),
   'B': ([(0, 3.34, 'Este empleado atiende a tus clientes a las 3 de la mañana…'), (3.82, 5.44, 'y nunca pide horas extra.')], 5.57),
-  'C': ([(0, 2.26, '¿Tienes un restaurante o una empresa?'), (2.89, 4.50, 'Esto te está costando dinero.')], 4.62),
+  'C': ([(0.16, 2.39, '¿Tienes un restaurante con varias sucursales?'), (2.80, 5.10, 'Mira lo que se pierde cuando nadie contesta.')], 5.2),
 }
 CUERPO = [(0, 1.47, 'Mensajes sin contestar,'), (1.83, 5.17, 'reservas que se pierden y clientes que se van con la competencia.'),
   (5.64, 6.59, 'Con Nexus AI,'), (6.80, 9.85, 'una inteligencia artificial atiende a tus clientes al instante,'),

@@ -142,70 +142,70 @@
  },
  "C": {
   "gancho": "C",
-  "H": 4.318,
-  "T": 32.05,
+  "H": 4.86,
+  "T": 32.59,
   "frases": [
    {
-    "a": 0.0,
-    "b": 2.112,
-    "txt": "¿Tienes un restaurante o una empresa?"
+    "a": 0.15,
+    "b": 2.234,
+    "txt": "¿Tienes un restaurante con varias sucursales?"
    },
    {
-    "a": 2.701,
-    "b": 4.206,
-    "txt": "Esto te está costando dinero."
+    "a": 2.617,
+    "b": 4.766,
+    "txt": "Mira lo que se pierde cuando nadie contesta."
    },
    {
-    "a": 4.318,
-    "b": 5.692,
+    "a": 4.86,
+    "b": 6.234,
     "txt": "Mensajes sin contestar,"
    },
    {
-    "a": 6.028,
-    "b": 9.15,
+    "a": 6.57,
+    "b": 9.692,
     "txt": "reservas que se pierden y clientes que se van con la competencia."
    },
    {
-    "a": 9.589,
-    "b": 10.477,
+    "a": 10.131,
+    "b": 11.019,
     "txt": "Con Nexus AI,"
    },
    {
-    "a": 10.673,
-    "b": 13.524,
+    "a": 11.215,
+    "b": 14.066,
     "txt": "una inteligencia artificial atiende a tus clientes al instante,"
    },
    {
-    "a": 13.711,
-    "b": 14.897,
+    "a": 14.253,
+    "b": 15.439,
     "txt": "las 24 horas,"
    },
    {
-    "a": 15.131,
-    "b": 17.047,
+    "a": 15.673,
+    "b": 17.589,
     "txt": "por WhatsApp, Instagram y teléfono."
    },
    {
-    "a": 17.365,
-    "b": 20.739,
+    "a": 17.907,
+    "b": 21.281,
     "txt": "Agenda, da seguimiento y te deja las ventas listas para cerrar."
    },
    {
-    "a": 21.131,
-    "b": 23.841,
+    "a": 21.673,
+    "b": 24.383,
     "txt": "Además, software a la medida y marketing que vende,"
    },
    {
-    "a": 24.075,
-    "b": 26.626,
+    "a": 24.617,
+    "b": 27.168,
     "txt": "para restaurantes y empresas que quieren crecer."
    },
    {
-    "a": 27.729,
-    "b": 30.253,
+    "a": 28.271,
+    "b": 30.795,
     "txt": "Agenda tu diagnóstico gratis de 30 minutos."
    }
   ],
-  "ganchoFin": 4.62
+  "ganchoFin": 5.2
  }
 }
