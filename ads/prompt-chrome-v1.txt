@@ -1,0 +1,108 @@
+Eres mi asistente experto en Meta Ads Manager. Vas a crear dos campañas para NXUS AI,
+mi agencia de inteligencia artificial, software a la medida y marketing (nacida en New
+Jersey, con presencia en USA y México). Trabaja en https://adsmanager.facebook.com
+con mi cuenta publicitaria de NXUS. Si la interfaz está en inglés o en español, adáptate.
+
+REGLAS DE SEGURIDAD (obligatorias)
+- NO publiques nada. Deja todo listo y DETENTE antes de dar clic en "Publicar/Publish";
+  yo lo reviso y publico.
+- NO toques, edites, pauses ni borres campañas que ya existan (sobre todo las que digan
+  "[NXUS HQ]"). Solo crea las nuevas.
+- NO cambies métodos de pago, límites de gasto de la cuenta ni datos de la empresa.
+- NO subas fotos ni videos: cuando llegues a esa parte, avísame y espera a que yo los suba.
+- Si algo no coincide con estas instrucciones o Meta te pide algo que no está aquí,
+  detente y pregúntame.
+
+ESTRUCTURA
+Crea DOS campañas separadas, una por país:
+
+CAMPAÑA 1: "NXUS | MX | Mensajes | Diagnóstico"
+CAMPAÑA 2: "NXUS | USA | Mensajes | Diagnóstico"
+
+Para cada campaña:
+1. Objetivo: "Interacción / Engagement" → conversión en "Apps de mensajes / Messaging apps"
+   (que el anuncio abra un chat). Sin categoría especial de anuncio.
+2. Presupuesto: a nivel de conjunto de anuncios (no Advantage campaign budget), diario.
+   ✏️ MX: 12 USD por día. ✏️ USA: 20 USD por día. (Si la cuenta usa otra moneda, convierte
+   y avísame.) Sin fecha de fin.
+3. Conjunto de anuncios "MX | Amplio | ES" / "USA | Amplio | EN+ES":
+   - Destino del mensaje: Messenger + Instagram (ambos). Si aparece WhatsApp, NO lo marques.
+   - Ubicación: MX → todo México. USA → todo Estados Unidos.
+   - Edad 25 a 65+, todos los géneros.
+   - Público Advantage+ (amplio). Como sugerencia de público (no restricción) agrega
+     intereses de: dueños de pequeñas empresas, emprendedores, administración de empresas,
+     marketing digital, inteligencia artificial.
+   - Idiomas: MX → español. USA → inglés y español.
+   - Ubicaciones (placements): Advantage+ (automáticas).
+   - Meta de rendimiento: maximizar conversaciones.
+4. Plantilla de mensaje (lo que el cliente ve al abrir el chat):
+   - Tipo: preguntas frecuentes / mensaje con botones.
+   - Saludo MX: "¡Hola! Soy del equipo de NXUS AI. Toca un botón y te ayudo en segundos 👇"
+   - Saludo USA: "Hi! This is the NXUS AI team. Tap a button and I'll help you right away 👇"
+   - Botones (cada uno manda exactamente este texto, que activa mi automatización):
+     MX: "INFO" · "Quiero mi diagnóstico gratis" · "¿Qué hacen?"
+     USA: "INFO" · "I want my free assessment" · "What do you do?"
+   - El primer botón DEBE mandar la palabra "INFO" tal cual (mi ManyChat se activa con ella).
+5. Anuncios: crea 3 anuncios por conjunto (A, B y C) con los textos de abajo. En cada uno:
+   - Formato: un solo video o imagen (yo subo el archivo; avísame y espera).
+   - Llamado a la acción: "Enviar mensaje / Send message".
+   - Activa las mejoras de creatividad de Advantage+ solo para texto y brillo/contraste;
+     desactiva música automática, plantillas, y cualquier cambio de imagen generado por IA.
+   - Nombre: "MX | A | Hook dolor", "MX | B | Hook IA", "MX | C | Hook México"
+     (y "USA | A | Pain", "USA | B | AI", "USA | C | Local").
+
+TEXTOS MÉXICO (español)
+A) Texto principal:
+"¿Tu negocio depende de que TÚ estés en todo? 😮‍💨
+En NXUS AI creamos inteligencia artificial y software a la medida que contestan a tus
+clientes, organizan tus ventas y te avisan lo importante… aunque no estés.
+✅ IA que atiende WhatsApp, Instagram y llamadas
+✅ Sistemas a la medida (ventas, inventario, tareas)
+✅ Marketing que vende
+Escríbenos "INFO" y agenda tu diagnóstico GRATIS de 30 minutos. 👇"
+Título: "Tu negocio, en piloto automático" · Descripción: "Diagnóstico gratis de 30 min"
+
+B) Texto principal:
+"Imagina un asistente de IA que conoce tu empresa: responde clientes, da seguimiento y te
+deja las ventas listas para cerrar. 🤖
+Eso hacemos en NXUS AI: tecnología de Estados Unidos, ahora en México, hecha a la medida de
+tu negocio. Nada de plantillas.
+Toca "Enviar mensaje" y te contamos cómo aplicaría en tu negocio. 👇"
+Título: "IA hecha a la medida de tu empresa" · Descripción: "Nacida en New Jersey · Ya en México"
+
+C) Texto principal:
+"NXUS AI ya está en México 🇲🇽
+Ayudamos a negocios como el tuyo a vender más y trabajar menos con inteligencia artificial,
+software a la medida y marketing.
+Cupo limitado para diagnósticos gratis este mes. Escríbenos "INFO". 👇"
+Título: "Llegamos a México" · Descripción: "Agenda tu diagnóstico gratis"
+
+TEXTOS USA (inglés)
+A) Primary text:
+"Does your business only run when YOU are there? 😮‍💨
+NXUS AI builds custom AI and software that answers your customers, organizes your sales and
+flags what matters — even when you're not around.
+✅ AI that handles WhatsApp, Instagram and calls
+✅ Custom systems (sales, inventory, tasks)
+✅ Marketing that sells
+Message us "INFO" to book your FREE 30-minute assessment. 👇"
+Headline: "Put your business on autopilot" · Description: "Free 30-min assessment"
+
+B) Primary text:
+"Picture an AI assistant that knows your business: it answers customers, follows up and
+hands you deals ready to close. 🤖
+That's what we build at NXUS AI — born in New Jersey, tailored to your company. No templates.
+Tap "Send message" and we'll show you how it would work for you. 👇"
+Headline: "AI built around your business" · Description: "New Jersey based · Bilingual team"
+
+C) Primary text:
+"¿Tienes negocio en USA y prefieres hablar en español? 🇺🇸🇲🇽
+NXUS AI te atiende en inglés y español: inteligencia artificial, software a la medida y
+marketing para negocios que quieren crecer.
+Escríbenos "INFO" para tu diagnóstico gratis. 👇"
+Headline: "Your bilingual AI partner" · Description: "Free assessment · Español / English"
+
+AL TERMINAR
+Antes de publicar, muéstrame un resumen: nombre de cada campaña, conjunto y anuncio;
+presupuesto diario; ubicación; edad; idiomas; destino del mensaje; los botones de la
+plantilla; y qué anuncios esperan mi foto o video. Luego espera mis instrucciones.

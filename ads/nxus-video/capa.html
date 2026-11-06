@@ -1,0 +1,192 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:transparent}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Sora,sans-serif;color:#fff}
+.capa{position:absolute;inset:0}
+.g{background:linear-gradient(100deg,#00e5ff,#0a6cff 50%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sombra{text-shadow:0 6px 34px rgba(0,0,0,.6)}
+.chip{display:inline-flex;align-items:center;gap:16px;padding:18px 30px;border-radius:999px;background:rgba(8,12,30,.62);border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(14px);font-weight:700;font-size:44px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.tel{position:absolute;left:190px;width:700px;border-radius:64px;background:#0b0f1c;border:10px solid #1c2236;box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 2px rgba(255,255,255,.08);overflow:hidden;font-family:Inter,sans-serif}
+.burbuja{max-width:82%;padding:22px 28px;border-radius:30px;font-size:34px;line-height:1.3;margin:14px 0}
+.cli{background:#1f2a44;color:#fff;border-bottom-left-radius:8px}
+.ia{background:linear-gradient(135deg,#0a6cff,#7b2bff);color:#fff;margin-left:auto;border-bottom-right-radius:8px}
+.palabra{display:inline-block;margin:0 14px;transition:none}
+</style></head>
+<body><div id="st"></div>
+<script>
+const LOGO = (id) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const back = (k) => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const vis = (t, a, b, f = .2) => cl(Math.min((t - a) / f, (b - t) / f))
+const pop = (t, a, d = .35) => { const k = sal(t, a, d); return `opacity:${ease(k)};transform:translateY(${(1 - ease(k)) * 40}px) scale(${.9 + .1 * back(k)})` }
+
+// CFG llega desde afuera: { gancho:'A'|'B'|'C', H: duración del gancho, frases:[{a,b,txt}] en tiempo del video, T }
+const CFG = window.CFG
+
+// Subtítulos palabra por palabra (de 1 a 3 palabras en pantalla, la que suena resaltada).
+const PALABRAS = []
+for (const f of CFG.frases) {
+  const ws = f.txt.split(/\s+/).filter(Boolean)
+  const peso = ws.map((w) => w.replace(/[^\wáéíóúñü]/gi, '').length + 2)
+  const total = peso.reduce((s, x) => s + x, 0)
+  let t = f.a
+  ws.forEach((w, i) => { const d = (f.b - f.a) * peso[i] / total; PALABRAS.push({ w, a: t, b: t + d, fin: i === ws.length - 1 }); t += d })
+}
+const GRUPOS = []
+{ let g = []
+  for (const p of PALABRAS) { g.push(p); if (g.length === 3 || p.fin || /[,.…:]$/.test(p.w)) { GRUPOS.push(g); g = [] } }
+  if (g.length) GRUPOS.push(g) }
+const RESALTA = /^(nexus|info|gratis|24|veinticuatro|ia|inteligencia|whatsapp,?|instagram|cerrar\.?|dinero\.?|empresa\??|competencia\.?|nunca|cerrado\.*)/i
+
+function subtitulos(t) {
+  const g = GRUPOS.find((x) => t >= x[0].a - .02 && t < x[x.length - 1].b + .12)
+  if (!g) return ''
+  const k = ease(sal(t, g[0].a - .02, .12))
+  return `<div style="position:absolute;left:60px;right:60px;top:1330px;text-align:center;font-weight:800;font-size:76px;line-height:1.1;text-transform:uppercase;transform:scale(${.92 + .08 * k});opacity:${k}">
+    ${g.map((p) => { const on = t >= p.a && t < p.b + .05, nx = /^nexus/i.test(p.w)
+      const txt = nx ? 'NXUS' + p.w.slice(5) : p.w
+      return `<span class="palabra" style="color:${on ? (RESALTA.test(p.w) ? '#00e5ff' : '#fff') : 'rgba(255,255,255,.86)'};${on ? 'transform:scale(1.03)' : ''};-webkit-text-stroke:3px rgba(0,0,0,.55);paint-order:stroke fill;text-shadow:0 8px 30px rgba(0,0,0,.7)">${txt}</span>` }).join(' ')}
+  </div>`
+}
+
+// El teléfono con el chat (gancho B y la demostración).
+function telefono(t, a, hora, top = 300, alto = 960) {
+  const msgs = [
+    ['cli', '¿Tienen mesa para 12 este sábado a las 9 pm? 🙏', a + .3],
+    ['tip', '', a + 1.2],
+    ['ia', '¡Claro! Sábado 9:00 pm, mesa para 12 ✅ ¿A nombre de quién la aparto?', a + 2.0],
+    ['cli', 'Familia Hernández', a + 3.1],
+    ['ok', 'Reserva confirmada · Te mandé la ubicación 📍', a + 3.9],
+  ]
+  const k = ease(sal(t, a - .2, .45))
+  return `<div class="tel" style="top:${top + (1 - k) * 80}px;height:${alto}px;opacity:${k}">
+    <div style="height:150px;padding:52px 34px 0;display:flex;align-items:center;gap:20px;background:#121a30;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#a01cff);display:grid;place-items:center;font:800 30px Sora">IA</div>
+      <div><div style="font:700 34px Inter">Asistente IA · Tu restaurante</div><div style="font:500 26px Inter;color:#4ade80">● en línea · responde al instante</div></div>
+      <div style="margin-left:auto;font:600 28px Inter;color:#9fb0d6">${hora}</div></div>
+    <div style="padding:20px 30px">
+      ${msgs.map(([tipo, txt, ta]) => {
+        if (t < ta) return ''
+        const kk = ease(sal(t, ta, .3))
+        if (tipo === 'tip') return t < a + 2.0 ? `<div class="burbuja ia" style="width:150px;opacity:${kk}">${[0, 1, 2].map((i) => `<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#fff;margin:0 6px;opacity:${.35 + .65 * Math.abs(Math.sin(t * 6 + i))}"></span>`).join('')}</div>` : ''
+        if (tipo === 'ok') return `<div style="margin:26px auto 0;width:max-content;padding:18px 28px;border-radius:999px;background:rgba(74,222,128,.15);border:2px solid #4ade80;color:#bbf7d0;font:700 30px Inter;opacity:${kk};transform:scale(${.8 + .2 * back(kk)})">${txt}</div>`
+        return `<div class="burbuja ${tipo}" style="opacity:${kk};transform:translateY(${(1 - kk) * 30}px)">${txt}</div>`
+      }).join('')}
+    </div></div>`
+}
+
+function render(t) {
+  let h = ''
+  const H = CFG.H, T = CFG.T, b = (x) => H + x   // b(): tiempo del cuerpo → tiempo del video
+
+  // ── Ganchos ─────────────────────────────────────────
+  if (t < H + .1) {
+    const o = 1 - sal(t, H - .15, .2)
+    if (CFG.gancho === 'A') {
+      const n = Math.min(23, Math.floor(sal(t, .2, 3.2) * 23))
+      h += `<div class="capa" style="opacity:${o}">
+        <div class="sombra" style="position:absolute;left:0;right:0;top:250px;text-align:center;font:300 210px Inter;letter-spacing:-.02em">11:48</div>
+        <div class="sombra" style="position:absolute;left:0;right:0;top:470px;text-align:center;font:600 40px Inter;opacity:.9">PM · Tu negocio cerró hace 2 horas</div>
+        ${[0, 1, 2, 3].map((i) => { const ta = .5 + i * .55; if (t < ta) return ''; const k = ease(sal(t, ta, .3))
+          return `<div style="position:absolute;left:80px;right:80px;top:${600 + i * 150}px;height:130px;border-radius:34px;background:rgba(30,36,56,.72);backdrop-filter:blur(20px);display:flex;align-items:center;gap:24px;padding:0 30px;opacity:${k};transform:translateY(${(1 - k) * -40}px)">
+            <div style="width:74px;height:74px;border-radius:18px;background:#25d366;display:grid;place-items:center;font:800 40px Inter">✆</div>
+            <div style="font:500 32px Inter;line-height:1.3"><b>${['Cliente nuevo', 'Mesa para 8', 'Pedido para evento', 'Cotización'][i]}</b><br><span style="opacity:.8">${['¿Siguen abiertos mañana?', '¿Tienen lugar el sábado?', 'Somos 40 personas, ¿precio?', '¿Hacen catering corporativo?'][i]}</span></div></div>` }).join('')}
+        <div style="position:absolute;left:0;right:0;top:1210px;text-align:center"><span class="chip" style="background:rgba(220,38,38,.85);border-color:#fca5a5">${n} mensajes sin responder</span></div>
+      </div>`
+    } else if (CFG.gancho === 'B') {
+      h += `<div class="capa" style="opacity:${o}">
+        <div class="sombra" style="position:absolute;left:0;right:0;top:190px;text-align:center;font-weight:800;font-size:84px;line-height:1.05;${pop(t, .1)}">ESTE EMPLEADO<br><span class="g">NUNCA DUERME</span></div>
+        ${telefono(t, .45, '3:07 AM', 470, 820)}
+      </div>`
+    } else {
+      h += `<div class="capa" style="opacity:${o}">
+        <div class="sombra" style="position:absolute;left:60px;right:60px;top:230px;text-align:center;font-weight:800;font-size:76px;line-height:1.1;${pop(t, .1)}">¿TIENES UN<br>RESTAURANTE<br>O UNA <span class="g">EMPRESA</span>?</div>
+        ${t < 2.6 ? '' : `<div style="position:absolute;left:0;right:0;top:880px;text-align:center;${pop(t, 2.6, .3)}"><span class="chip" style="font-size:50px;background:rgba(127,29,29,.8);border-color:#f87171">💸 Te está costando dinero</span></div>`}
+      </div>`
+    }
+  }
+
+  // ── Cuerpo ──────────────────────────────────────────
+  // Problema
+  if (t > b(-.05) && t < b(5.4)) {
+    const o = vis(t, b(0), b(5.3), .15)
+    const malos = [['Mensajes sin contestar', 0.05], ['Reservas perdidas', 1.75], ['Clientes con la competencia', 3.4]]
+    h += `<div class="capa" style="opacity:${o}">
+      ${malos.map(([txt, a], i) => t < b(a) ? '' : `<div style="position:absolute;left:0;right:0;top:${330 + i * 150}px;text-align:center;${pop(t, b(a), .3)}">
+        <span class="chip" style="background:rgba(127,29,29,.78);border-color:#f87171"><span style="color:#fca5a5">✕</span>${txt}</span></div>`).join('')}
+    </div>`
+  }
+  // Solución: el chat
+  if (t > b(5.1) && t < b(13.2)) {
+    const o = vis(t, b(5.25), b(13.0), .2)
+    h += `<div class="capa" style="opacity:${o}">
+      <div style="position:absolute;left:0;right:0;top:120px;display:flex;justify-content:center;${pop(t, b(5.3), .3)}">
+        <div class="chip" style="font-size:40px"><span style="width:70px;height:46px">${LOGO('ls')}</span>NXUS AI</div></div>
+      ${telefono(t, b(6.2), '11:52 PM', 250, 980)}
+      ${t > b(9.4) ? `<div style="position:absolute;right:60px;top:1130px;${pop(t, b(9.4), .3)}"><div class="chip" style="font-size:46px;background:linear-gradient(135deg,rgba(0,229,255,.35),rgba(160,28,255,.35))">24/7</div></div>` : ''}
+    </div>`
+  }
+  // El lead listo para cerrar
+  if (t > b(12.9) && t < b(17.1)) {
+    const o = vis(t, b(13.0), b(16.9), .2)
+    const etapas = ['Nuevo lead', 'Calificado', 'Reunión agendada']
+    const paso = t < b(14.2) ? 0 : t < b(15.2) ? 1 : 2
+    h += `<div class="capa" style="opacity:${o};background:radial-gradient(circle at 50% 40%,rgba(12,31,74,.55),rgba(5,9,20,.78))">
+      <div class="sombra" style="position:absolute;left:0;right:0;top:250px;text-align:center;font-weight:800;font-size:66px">Te llega <span class="g">listo para cerrar</span></div>
+      <div style="position:absolute;left:90px;right:90px;top:420px;display:flex;gap:16px">${etapas.map((e, i) => `<div style="flex:1;padding:18px 10px;border-radius:22px;text-align:center;font:700 28px Inter;background:${i <= paso ? 'linear-gradient(135deg,#0a6cff,#7b2bff)' : 'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.18)">${e}</div>`).join('')}</div>
+      <div style="position:absolute;left:110px;right:110px;top:${560}px;padding:40px;border-radius:40px;background:rgba(16,24,52,.82);border:1.5px solid rgba(150,175,255,.25);box-shadow:0 30px 80px rgba(0,0,0,.5);font-family:Inter;${pop(t, b(13.2), .35)}">
+        <div style="font:800 46px Sora">Grupo restaurantero</div>
+        <div style="font:500 32px Inter;color:#b9c6e6;margin-top:8px">4 sucursales · Quiere IA + marketing</div>
+        <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap">${['Decide: el dueño', 'Urgencia: alta', 'Presupuesto: sí'].map((x, i) => t < b(13.6 + i * .35) ? '' : `<span style="padding:12px 22px;border-radius:999px;background:rgba(74,222,128,.14);border:1.5px solid #4ade80;color:#bbf7d0;font:600 28px Inter">${x}</span>`).join('')}</div>
+      </div>
+      ${t > b(15.3) ? `<div style="position:absolute;left:110px;right:110px;top:960px;padding:28px 34px;border-radius:30px;background:rgba(255,255,255,.95);color:#0b1020;display:flex;gap:22px;align-items:center;font-family:Inter;${pop(t, b(15.3), .3)}">
+        <div style="font-size:54px">📅</div><div><div style="font:800 36px Inter">Reunión con el dueño</div><div style="font:500 30px Inter;color:#475569">Martes 10:00 am · Google Meet</div></div></div>` : ''}
+    </div>`
+  }
+  // Servicios y zonas
+  if (t > b(16.8) && t < b(23.6)) {
+    const o = vis(t, b(16.9), b(23.4), .2)
+    const serv = [['🤖', 'IA a la medida', 17.1], ['🧩', 'Software para tu operación', 17.9], ['📈', 'Marketing que vende', 18.8]]
+    const zonas = ['🍴 Restaurantes', '🏢 Empresas']
+    h += `<div class="capa" style="opacity:${o}">
+      ${serv.map(([ic, txt, a], i) => t < b(a) ? '' : `<div style="position:absolute;left:80px;top:${300 + i * 150}px;${pop(t, b(a), .3)}"><span class="chip">${ic} ${txt}</span></div>`).join('')}
+      ${t > b(19.9) ? `<div style="position:absolute;left:60px;right:60px;top:800px;display:flex;flex-wrap:wrap;gap:24px;justify-content:center">${zonas.map((z, i) => t < b(19.9 + i * .4) ? '' : `<span style="padding:12px 24px;border-radius:999px;background:rgba(0,229,255,.16);border:1.5px solid rgba(0,229,255,.6);font:700 40px Inter;${pop(t, b(19.9 + i * .4), .25)}">${z}</span>`).join('')}</div>` : ''}
+    </div>`
+  }
+  // Llamado a la acción: primero el diagnóstico gratis, y lo ÚLTIMO que se ve y se oye es «ESCRÍBENOS INFO».
+  if (t > b(23.3)) {
+    const o = sal(t, b(23.4), .25)
+    const fin = 1e9                           // sin «Escríbenos INFO»: el cierre es solo el diagnóstico gratis
+    const oD = 1 - sal(t, fin - .2, .2), oI = sal(t, fin - .05, .2)
+    const tecleo = 'INFO'.slice(0, Math.floor(sal(t, b(26.9), .7) * 4.99))
+    const enviado = t > b(27.7)
+    h += `<div class="capa" style="opacity:${o};background:radial-gradient(circle at 50% 38%,#0c1f4a 0%,#050914 70%)">
+      <div style="position:absolute;left:50%;top:200px;width:200px;height:132px;transform:translateX(-50%);filter:drop-shadow(0 0 40px rgba(10,108,255,.8))">${LOGO('lc')}</div>
+      ${oD > 0 ? `<div class="sombra" style="position:absolute;left:0;right:0;top:420px;text-align:center;font-weight:800;font-size:110px;line-height:1.05;opacity:${oD};${pop(t, b(23.5), .35)}">DIAGNÓSTICO<br><span style="color:#4ade80">GRATIS</span></div>
+        <div style="position:absolute;left:0;right:0;top:720px;text-align:center;opacity:${oD};${pop(t, b(24.3), .3)}"><span class="chip" style="font-size:56px">⏱️ 30 minutos</span></div>
+        <div style="position:absolute;left:0;right:0;top:880px;text-align:center;font:600 40px Inter;color:#cfe0ff;opacity:${oD * sal(t, b(25.0), .4)}">Cupos limitados este mes</div>` : ''}
+      ${oI > 0 ? `<div class="sombra" style="position:absolute;left:0;right:0;top:380px;text-align:center;font-weight:800;font-size:100px;line-height:1;opacity:${oI};${pop(t, fin, .35)}">ESCRÍBENOS<br><span style="font-size:190px;color:#fff;text-shadow:0 0 30px rgba(0,229,255,.95),0 0 70px rgba(10,108,255,.8),0 0 120px rgba(160,28,255,.6)">INFO</span></div>
+        <div style="position:absolute;left:150px;right:150px;top:760px;height:120px;border-radius:999px;background:#1c2236;border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;padding:0 20px 0 44px;font:600 48px Inter;opacity:${oI};${pop(t, b(26.6), .3)}">
+          <span style="flex:1">${enviado ? '' : tecleo}<span style="opacity:${!enviado && Math.floor(t * 3) % 2 ? 1 : 0}">|</span></span>
+          <span style="width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#a01cff);display:grid;place-items:center;font-size:40px;transform:scale(${enviado ? 1.15 : 1})">➤</span></div>
+        ${enviado ? `<div style="position:absolute;right:150px;top:920px;padding:22px 34px;border-radius:30px 30px 8px 30px;background:linear-gradient(135deg,#0a6cff,#7b2bff);font:700 46px Inter;${pop(t, b(27.7), .25)}">INFO</div>` : ''}
+        <div style="position:absolute;left:0;right:0;top:1100px;text-align:center;opacity:${oI}"><div class="chip" style="font-size:42px;background:rgba(74,222,128,.16);border-color:#4ade80">✅ Diagnóstico GRATIS · 30 min</div></div>` : ''}
+    </div>`
+  }
+
+  // Destello en cada corte y viñeta para que el texto se lea.
+  for (const c of [H, b(5.3), b(13.0), b(16.9), b(23.4)]) {
+    const f = cl(1 - Math.abs(t - c) / .1)
+    if (f > 0) h += `<div class="capa" style="background:linear-gradient(115deg,rgba(0,229,255,${.5 * f}),rgba(255,255,255,${.7 * f}) 45%,rgba(160,28,255,${.5 * f}))"></div>`
+  }
+  if (t < b(23.4)) h = `<div class="capa" style="background:linear-gradient(180deg,rgba(5,9,20,.5),rgba(5,9,20,0) 28%,rgba(5,9,20,0) 58%,rgba(5,9,20,.72))"></div>` + h
+  if (t < b(23.4)) h += subtitulos(t)   // en el cierre la tarjeta ya dice todo
+  document.getElementById('st').innerHTML = h
+}
+window.render = render
+</script></body></html>
