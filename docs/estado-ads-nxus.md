@@ -109,7 +109,15 @@
 ## Problema: llegan mensajes de otros negocios (6 de noviembre de 2026)
 - En ManyChat llegan conversaciones de Instagram de negocios ajenos (ej. "Diablo Design", "Perritos y Gatitos Contentos") que solo traen su respuesta automática ("Gracias por contactarnos…"), como "Unassigned" con "Conversation was moved from Closed to Unassigned".
 - Hipótesis principal: el anuncio de mensajes le manda el saludo de NXUS a una cuenta de negocio, su respuesta automática contesta sola y Meta lo cuenta (y cobra) como conversación; con "Maximize number of conversations" Meta aprende a buscar más cuentas así. Falta confirmarlo.
-- Prompt de diagnóstico, solo lectura: `ads/prompt-chrome-analisis-v1.txt`. Pendiente: que Eduardo lo corra y pegue aquí el informe.
+- Prompt de diagnóstico, solo lectura: `ads/prompt-chrome-analisis-v1.txt`. Eduardo lo corrió (informe PDF del 6 nov).
+- **Resultado del diagnóstico (6 nov 2026):**
+  - Anuncios activos "Video Rest MX 1" y "Video Rest 2 MX": objetivo Leads con "Advantage+ leads campaign", destino DM de Instagram, ~$25 USD/día cada uno (~$50/día en total, no $12). $210.35 gastados, 0 leads, 0 personas reales, ~25 respuestas automáticas de negocios (estéticas, veterinarias, dentistas, florerías…), todas "replied to an ad" de "video rest 2 MX".
+  - Público Advantage+ sin intereses, edad desde 18, sin exclusiones (16.7–19.6 millones). Radios de 10 millas (16 km) en Roma, Clavería, Ecatepec, Zona Esmeralda, Ojo de Agua, Coyoacán, Lindavista, La Cúspide (+ Interlomas, Santa Fe, Roma Sur): en la práctica casi todo el Valle de México.
+  - Saludo de la plantilla en inglés ("Hi [nombre]! Please let us know how we can help you."), preguntas vacías. Video de 59 s. Mejoras prendidas: Video touch-ups, Relevant comments, Enhance CTA.
+  - ManyChat: Filtro NXUS se dispara con "contiene INFO" → "información" lo activa → bot contra bot.
+  - Promoción de octubre (Mensajes/conversaciones): $120.55, 27 conversaciones a $4.46, solo 2–3 personas reales.
+- **Reglas aprendidas (lo que NO quiere Eduardo):** público abierto a todo el mundo, edad 18, radios gigantes, saludo en inglés o preguntas vacías/por defecto, meta que cuente cualquier respuesta como resultado, "Advantage+ leads campaign", mejoras automáticas del creativo, palabra clave "contiene INFO", videos de casi 1 minuto.
+
 
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
