@@ -158,10 +158,8 @@
 - Si se agrega una palabra nueva a un video, primero hay que agregarla al disparador en ManyChat (regla "Message is").
 
 ## Campaña NY (8 nov 2026)
-- Eduardo pidió NY enfocado a empresas (no restaurantes) con clientes que hablan inglés y español.
-- Videos sin voz (Higgsfield en 0.07 créditos): `ads/nxus-video/ny/` (`capa-ny.html`, `capa-ny.cjs`, `armar-ny.sh en|es 1|2`; `musica.py` acepta cortes a la medida). 19 s, fondo animado NXUS, música propia. NXUS-NY-1-EN/ES (gancho "Your customers speak English AND Spanish" + 9:47 PM con mensajes) y NXUS-NY-2-EN/ES (gancho "Contractors. Clinics. Law offices. Insurance. Real estate. Does your phone ring in two languages?"). Luego problema → chat que cambia de inglés a español y agenda → lead listo (constructora, 3 cuadrillas) → "Free assessment / Diagnóstico gratis · 30 min · English & Español · NY · NJ · Tap Send message". Revisados: audio = video = 19 s.
-- Prompt: `ads/prompt-chrome-campana-ny-v1.txt` (correr después de publicar MX). ManyChat: Condición "idioma has any value" antes del mensaje de idioma; 8 automatizaciones "Anuncio NY · 1/2 EN/ES · IG/FB" con botones English/Español que fijan idioma, fuente, canal, etiqueta anuncio-ny y Start Automation al Filtro. Campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, sin idiomas ni intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 4 anuncios.
-- Pendiente: versión con voz o Eduardo a cámara en inglés cuando haya créditos.
+- Se hicieron videos de NY sin voz para empresas bilingües; a Eduardo NO le gustaron y se borraron. Decisión: NY usa los MISMOS 3 videos de México (A, B, C, en español, de restaurantes), dirigidos a dueños hispanos en NYC y norte de NJ, como el plan original. Cuando recargue Higgsfield se pueden hacer versiones nuevas.
+- Prompt: `ads/prompt-chrome-campana-ny-v2.txt` (correr después de publicar MX): 6 automatizaciones "Anuncio NY · Video A/B/C · IG/FB" (saludo de sucursales, fuente "Anuncio NY · Video X", etiqueta anuncio-ny, Start Automation al Filtro); campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, idioma español, sin intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 3 anuncios con los textos de MX + línea de NY/NJ.
 
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
