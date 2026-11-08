@@ -1344,3 +1344,62 @@ drop policy if exists leads_notas_agregar on public.leads_notas;
 create policy leads_notas_agregar on public.leads_notas for insert to authenticated with check (veo_leads());
 drop policy if exists leads_notas_borrar on public.leads_notas;
 create policy leads_notas_borrar on public.leads_notas for delete to authenticated using (es_dueno());
+
+-- ---------------------------------------------------------------------------
+-- Website leads: las solicitudes del formulario «Cotizar / Get a quote» de
+-- misemago.com (aparte de los Leads de WhatsApp que llama Ana Sofi).
+-- ---------------------------------------------------------------------------
+-- El sitio no toca la base directo: manda los datos a la función de Netlify
+-- "leads", que revisa todo y guarda con la llave de servicio. Los ve quien ve
+-- Leads (el admin y quien tenga "Ve Leads"); ellos cambian el estatus y las
+-- notas. Lo que escribió la persona en el sitio no se cambia. Solo el admin borra.
+
+create table if not exists public.website_leads (
+  id uuid primary key default gen_random_uuid(),
+  folio serial unique,
+  creada timestamptz not null default now(),
+  nombre text not null check (length(btrim(nombre)) between 2 and 80),
+  empresa text not null default '' check (char_length(empresa) <= 120),
+  correo text not null check (char_length(correo) <= 160),
+  telefono text not null default '' check (char_length(telefono) <= 40),
+  tipo text,
+  intereses text[] not null default '{}',
+  mensaje text not null default '' check (char_length(mensaje) <= 4000),
+  propuesta text not null default '' check (char_length(propuesta) <= 2000),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  origen text not null default '',
+  estatus text not null default 'nuevo' check (estatus in ('nuevo', 'contactado', 'cotizado', 'ganado', 'perdido')),
+  notas text not null default '' check (char_length(notas) <= 5000),
+  actualizada timestamptz not null default now()
+);
+create index if not exists website_leads_creada on public.website_leads (creada desc);
+
+create or replace function public.cuidar_website_lead() returns trigger
+language plpgsql as $$
+begin
+  if not es_sistema()
+    and row(new.folio, new.creada, new.nombre, new.empresa, new.correo, new.telefono, new.tipo, new.intereses, new.mensaje, new.propuesta, new.idioma, new.origen)
+      is distinct from row(old.folio, old.creada, old.nombre, old.empresa, old.correo, old.telefono, old.tipo, old.intereses, old.mensaje, old.propuesta, old.idioma, old.origen) then
+    raise exception 'Lo que escribió la persona en el sitio no se puede cambiar';
+  end if;
+  new.actualizada := now();
+  return new;
+end $$;
+
+drop trigger if exists crm_cuidar_website_lead on public.website_leads;
+create trigger crm_cuidar_website_lead before update on public.website_leads
+  for each row execute function public.cuidar_website_lead();
+
+alter table public.website_leads enable row level security;
+drop policy if exists website_leads_ver on public.website_leads;
+create policy website_leads_ver on public.website_leads for select to authenticated using (veo_leads());
+drop policy if exists website_leads_cambiar on public.website_leads;
+create policy website_leads_cambiar on public.website_leads for update to authenticated using (veo_leads()) with check (veo_leads());
+drop policy if exists website_leads_borrar on public.website_leads;
+create policy website_leads_borrar on public.website_leads for delete to authenticated using (es_admin());
+-- Sin política de insert: nadie escribe directo, solo la función con la llave de servicio.
+revoke all on public.website_leads from anon;
+
+drop trigger if exists crm_bitacora on public.website_leads;
+create trigger crm_bitacora after insert or update or delete on public.website_leads
+  for each row execute function public.anotar_cambio();

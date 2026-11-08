@@ -255,6 +255,17 @@ export function crearSupabase({ url, anon }) {
     async borrarInvitado(id) {
       ok(await sb.from('fiesta_asistentes').delete().eq('id', id))
     },
+    // Website leads: llegan del formulario de misemago.com (función de Netlify "leads").
+    async webLeads() {
+      return ok(await sb.from('website_leads').select('*').order('creada', { ascending: false }).limit(5000))
+    },
+    async cambiarWebLead(id, cambios) {
+      const filas = ok(await sb.from('website_leads').update(cambios).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('No tienes permiso para hacer eso')
+    },
+    async borrarWebLead(id) {
+      ok(await sb.from('website_leads').delete().eq('id', id))
+    },
     // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
     async contenidos() {
       return ok(await sb.from('contenidos').select('*, archivos(*)').order('fecha').order('hora', { nullsFirst: true }).limit(5000))
