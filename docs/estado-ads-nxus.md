@@ -146,6 +146,17 @@
 - Conversions API (Settings → cada canal → Ads Optimization): Messenger conectado al Dataset 1452542343485219 con envío automático (LeadSubmitted cuando un Data Collection guarda teléfono o correo). Instagram NO conectado (botón Connect). También existe la acción "Ads Optimization → Send event to Meta Conversions API".
 - Pendiente en el prompt de campaña: en el Filtro, si `sucursales` ya tiene valor (viene del anuncio), saltar la pregunta de sucursales.
 
+## Campaña MX v2 (8 nov 2026)
+- Eduardo autorizó $20 USD/día para MX (y $20 para NY después), todas las zonas propuestas, y ya pausó "Video Rest MX 1" y "Video Rest 2 MX".
+- Prompt: `ads/prompt-chrome-campana-mx-v2.txt`. Parte A ManyChat (Condición "sucursales has any value" en los Filtros; 6 automatizaciones "Anuncio MX · Video A/B/C · IG/FB" con Ads trigger, saludo con botones de sucursales, fuente por video, etiqueta anuncio-mx, Start Automation al Filtro; conectar Instagram al Dataset 1452542343485219). Parte B campaña "NXUS | MX | Mensajes | Diagnóstico v2": Engagement → Messenger + Instagram, Maximize conversations, Highest volume, $20/día en el conjunto, límite de campaña $300, público original 30–65+, sin idiomas ni intereses, 15 zonas con pin (1–2 km), placements manuales (Feeds, Stories, Reels de FB e IG), cero mejoras Advantage+, 3 anuncios A/B/C ligados a ManyChat como Partner app, sin pedir "INFO" en el texto. Se detiene antes de publicar.
+
+## Palabras que activan el Filtro NXUS (para el CTA de videos futuros) — RECORDAR SIEMPRE
+- Disparador en ManyChat (Instagram y Messenger), regla "Message is" (palabra exacta, sin importar mayúsculas): **INFO**, **OPERACIONES**, **RESTAURANTES**, **RESTAURANTE**. En comentarios de publicaciones: **INFO** (INFO comentarios).
+- Al hacer videos nuevos, el CTA puede pedir escribir una de estas palabras (por ejemplo "Escríbenos RESTAURANTES" en uno dirigido a restaurantes, "OPERACIONES" para empresas, "INFO" general). Ojo: "INFO" sonaba pegado en la voz ("agenda la palainfo"); si se usa, que vaya en una frase aparte, con pausa y en pantalla.
+- La palabra debe mandarse SOLA (exacta): "quiero info" no activa. Decirlo así en el video o en el texto ("Escribe solo RESTAURANTES").
+- En anuncios de mensajes conectados a ManyChat (Ads trigger) no hace falta palabra: el chat empieza con botones. La palabra sirve para orgánico, historias, Reels sin pauta y comentarios.
+- Si se agrega una palabra nueva a un video, primero hay que agregarla al disparador en ManyChat (regla "Message is").
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.

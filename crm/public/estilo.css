@@ -779,3 +779,28 @@ h3.sub { font-size: 14px; margin: 16px 0 6px; }
   .resumen-leads { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .tablero-leads { grid-auto-columns: 78%; }
 }
+
+/* ---------- Website leads (formulario de misemago.com) ---------- */
+.pestana-num { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #e5484d; color: #fff; font-size: 11px; font-weight: 800; }
+.wl-cuentas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.wl-cuentas .fiesta-cuenta.total { cursor: pointer; }
+.fiesta-cuenta.wl-nuevo b { color: #e5484d; }
+.fiesta-cuenta.wl-ganado b { color: #1f9d55; }
+.wl-lista { display: grid; gap: 12px; }
+.wl { border: 1px solid var(--linea-2); border-left: 5px solid #8a96a8; border-radius: 18px; background: var(--panel); padding: 16px 18px; display: grid; gap: 10px; }
+.wl-nuevo { border-left-color: #e5484d; }
+.wl-contactado { border-left-color: #2f7bff; }
+.wl-cotizado { border-left-color: #d4af37; }
+.wl-ganado { border-left-color: #1f9d55; }
+.wl-perdido { border-left-color: #8a96a8; opacity: .8; }
+.wl-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.wl-nombre { font-size: 17px; }
+.wl-empresa { opacity: .8; font-weight: 600; }
+.wl-estatus { width: auto; font-weight: 700; }
+.wl-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.wl-mensaje { margin: 0; white-space: pre-wrap; line-height: 1.5; }
+.wl-propuesta summary { cursor: pointer; font-weight: 700; }
+.wl-propuesta pre { white-space: pre-wrap; font: inherit; font-size: 13px; margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--gris-fondo); }
+.wl-pie { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; border-top: 1px dashed var(--linea-2); padding-top: 10px; }
+.wl-notas { margin: 0; flex: 1 1 260px; white-space: pre-wrap; }
+@media (max-width: 760px) { .wl-cuentas { grid-template-columns: repeat(3, minmax(0, 1fr)); } .wl-cuentas .fiesta-cuenta.total { grid-column: auto; } }

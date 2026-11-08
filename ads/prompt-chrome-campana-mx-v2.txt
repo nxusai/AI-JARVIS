@@ -1,0 +1,192 @@
+Eres mi experto en Meta Ads y ManyChat. Soy Eduardo, dueño de NXUS AI (inteligencia artificial, software a la
+medida y marketing para restaurantes y empresas). Vas a armar mi campaña de México desde cero, en mi Chrome, con
+mis sesiones abiertas de ManyChat (https://app.manychat.com) y Meta Ads Manager
+(https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563). Yo te estoy viendo.
+Si la interfaz está en inglés o en español, adáptate.
+
+CONTEXTO (lo que ya aprendimos y NO queremos repetir)
+Mis anuncios anteriores gastaron $210 USD y trajeron 0 personas reales: solo respuestas automáticas de otros
+negocios (estéticas, veterinarias, dentistas). Causas: público abierto a todo el mundo desde 18 años, radios de
+10 millas, saludo del chat en inglés y sin botones, mejoras automáticas de Meta prendidas, y un bot que
+contestaba a robots. Ya arreglé ManyChat: el "Filtro NXUS" solo arranca con la palabra exacta y tiene una
+pregunta de sucursales con botones que un robot no puede contestar.
+Ahora: el saludo del anuncio lo maneja ManyChat (con botones), público solo en mis zonas, desde 30 años,
+ubicaciones manuales, cero mejoras automáticas, y cada lead marcado con el video que lo trajo.
+
+REGLAS (obligatorias)
+- NO publiques la campaña: deja todo listo y DETENTE antes de "Publish/Publicar". Yo reviso y publico.
+- En ManyChat no publiques nada ("Set Live", "Publish", "Update") sin pedirme permiso en este chat y esperar
+  mi "sí".
+- La cuenta de anuncios es compartida con mis otros negocios. NO toques, pauses, edites ni borres ninguna
+  campaña existente. Solo crea la nueva.
+- NO cambies métodos de pago, límites de la cuenta, usuarios ni datos de la empresa.
+- NO subas videos: cuando llegues a esa parte, dime cuál archivo subir y espera a que yo lo suba.
+- Presupuesto: exactamente el que dice aquí. No lo cambies.
+- Si Meta o ManyChat piden algo que no está aquí, o algo no coincide, DETENTE y pregúntame. No adivines.
+- Copia los textos exactamente, con acentos y emojis.
+- Si Meta crea borradores solos al abrir algo, avísame; no publiques borradores.
+- Al terminar cada parte, dime en una o dos líneas qué hiciste.
+
+======================================================================
+PARTE A. MANYCHAT: LA ENTRADA DE CADA ANUNCIO
+======================================================================
+A1. En "Filtro NXUS" (Instagram) y en "Filtro NXUS · Facebook": justo antes del mensaje de sucursales, agrega
+una Condición: User Field "sucursales" has any value (o "is not empty" / "is known").
+  - Si SÍ tiene valor → ve directo al mensaje de idioma (salta la pregunta de sucursales).
+  - Si NO → al mensaje de sucursales, como ahora.
+  Las dos salidas de la Condición "fuente is unknown" deben llegar a esta Condición nueva. No cambies nada más.
+  No publiques: lo publico yo junto con los cambios que ya estaban en borrador.
+
+A2. Crea 6 automatizaciones nuevas (Automation → + New Automation → Start From Scratch → blank canvas):
+
+  Instagram (trigger: + New Trigger → "Instagram Ads – User clicks an Instagram Ad"):
+    1) Nombre: Anuncio MX · Video A · IG    → fuente: Anuncio MX · Video A
+    2) Nombre: Anuncio MX · Video B · IG    → fuente: Anuncio MX · Video B
+    3) Nombre: Anuncio MX · Video C · IG    → fuente: Anuncio MX · Video C
+  Messenger (trigger: + New Trigger → "Facebook Ads – User clicks a Facebook Ad"):
+    4) Nombre: Anuncio MX · Video A · FB    → fuente: Anuncio MX · Video A
+    5) Nombre: Anuncio MX · Video B · FB    → fuente: Anuncio MX · Video B
+    6) Nombre: Anuncio MX · Video C · FB    → fuente: Anuncio MX · Video C
+
+  Cada una igual, solo cambia la fuente y el canal:
+  a) Primer mensaje (Instagram o Messenger según el canal): UN SOLO bloque de texto, sin variables, con 3 botones:
+
+¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar tu diagnóstico gratis, ¿cuántas sucursales tiene tu negocio?
+
+     Botones: 1   ·   2 a 5   ·   6 o más
+  b) Cada botón lleva a su propio paso de Actions:
+     - Set User Field sucursales = el texto del botón (1 / 2 a 5 / 6 o más)
+     - Set User Field fuente = la fuente de esa automatización (por ejemplo: Anuncio MX · Video A)
+     - Set User Field canal = instagram (en las IG) o facebook (en las FB)
+     - Add Tag: anuncio-mx
+     - Después: Start Automation → "Filtro NXUS" (en las IG) o "Filtro NXUS · Facebook" (en las FB).
+  c) No agregues nada más. Si ManyChat exige otra cosa para el primer mensaje de un anuncio, dime qué.
+
+A3. Para que Ads Manager las encuentre, estas 6 automatizaciones probablemente deben estar publicadas. Solo
+tienen disparador de anuncio, así que no le contestan a nadie más. PÍDEME PERMISO antes de publicarlas y
+espera mi "sí".
+
+A4. Señal a Meta desde Instagram: ve a Settings → Instagram → Ads Optimization. Si hay botón "Connect", dime qué
+pide. Si se puede conectar al MISMO Dataset que ya usa Messenger (1452542343485219) sin escribir contraseñas,
+pídeme permiso y hazlo conmigo. Si pide iniciar sesión o permisos de Meta, detente: lo hago yo.
+
+======================================================================
+PARTE B. META ADS MANAGER: LA CAMPAÑA
+======================================================================
+B1. Campaña
+  - + Create → objetivo: Engagement / Interacción.
+  - Nombre: NXUS | MX | Mensajes | Diagnóstico v2
+  - Sin categoría especial de anuncio.
+  - Advantage campaign budget (presupuesto de campaña): APAGADO. El presupuesto va en el conjunto.
+  - Campaign spending limit / Límite de gasto de la campaña: 300 USD (protección: la campaña nunca gasta más).
+    Si no aparece, dímelo.
+  - Si te ofrece "Advantage+ campaign" o una configuración "recomendada", elige la manual.
+
+B2. Conjunto de anuncios
+  - Nombre: MX | Zonas premium | 30+
+  - Conversion location / Ubicación de la conversión: Messaging apps / Apps de mensajes → marca Messenger e
+    Instagram. WhatsApp DESMARCADO.
+  - Performance goal: Maximize number of conversations. Sin costo objetivo. Puja: Highest volume.
+  - Presupuesto: Daily budget 20 USD. Sin fecha de fin.
+  - Público: si aparece "Advantage+ audience", busca "Switch to original audience options" y úsalo. Si no se
+    puede, usa "Audience controls" para fijar la ubicación y la edad mínima de 30.
+  - Edad: 30 a 65+. Todos los géneros. Idiomas: NINGUNO (no pongas filtro de idioma).
+  - Intereses / Detailed targeting: NINGUNO. Ni sugerencias de público. Sin públicos personalizados.
+  - Ubicaciones geográficas: quita "México" si viene puesto. Agrega SOLO estas zonas. Busca cada nombre; si
+    Meta la ofrece como colonia/barrio (Neighborhood), úsala tal cual. Si no, usa "Drop Pin" en el punto
+    indicado con el radio indicado (si el mínimo de Meta es mayor, usa el mínimo y avísame):
+     1. Polanco, CDMX — pin en Parque Lincoln — 1 km
+     2. Roma Norte, CDMX — pin en Plaza Río de Janeiro — 1 km
+     3. Roma Sur, CDMX — pin en Parque Ramón López Velarde — 1 km
+     4. Condesa, CDMX — pin en Parque México — 1 km
+     5. Juárez, CDMX — pin en la calle Havre esquina Hamburgo — 1 km
+     6. Santa Fe, CDMX — pin en Centro Santa Fe (zona corporativa) — 2 km
+     7. Lomas de Chapultepec, CDMX — pin en Paseo de la Reforma y Prado Norte — 1.5 km
+     8. Bosques de las Lomas, CDMX — pin en Bosque de Duraznos — 1 km
+     9. Interlomas, Huixquilucan, Edo. Méx. — pin en Paseo Interlomas — 1.5 km
+    10. Zona Esmeralda, Atizapán de Zaragoza, Edo. Méx. — pin en el centro de Zona Esmeralda — 2 km
+    11. Ciudad Satélite, Naucalpan, Edo. Méx. — pin en Plaza Satélite — 1.5 km
+    12. Lindavista, CDMX — pin en Av. Montevideo y Av. Instituto Politécnico Nacional — 1.5 km
+    13. Clavería, Azcapotzalco, CDMX — pin en el Parque Clavería (Jardín Clavería) — 1 km
+    14. Del Valle, CDMX — pin en Parque San Lorenzo — 1.5 km
+    15. Coyoacán, CDMX — pin en el Jardín Centenario (centro de Coyoacán) — 1.5 km
+    NO incluyas Ecatepec, Ojo de Agua ni "todo México". Dime el tamaño de público estimado que muestra Meta.
+  - Placements / Ubicaciones: Manual placements. Deja SOLO: Facebook Feed, Facebook Stories, Facebook Reels,
+    Instagram Feed, Instagram Stories, Instagram Reels (e Instagram Profile feed si viene junto).
+    QUITA: Audience Network, Messenger (inbox y stories), Threads, Marketplace, Right column, Search,
+    In-stream, Facebook Notifications, Explore y cualquier otra. Si aparece la casilla "Allow limited spending
+    to excluded placements", DESMÁRCALA.
+  - Si te pide nombre de Page/Instagram: Página de Facebook Nxus.AI e Instagram @nxusai.
+
+B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
+  - Identidad: Página Nxus.AI e Instagram @nxusai.
+  - Formato: Single image or video.
+  - Video: DETENTE y dime "Sube el archivo NXUS-Ad-A.mp4" (o B, o C). Espero a que yo lo suba. No uses
+    "Create video", plantillas ni videos de la biblioteca.
+  - Llamado a la acción / CTA: Send message / Enviar mensaje.
+  - Advantage+ creative / Mejoras de creatividad: APAGA TODAS, una por una (Text improvements, Visual touch-ups,
+    Enhance CTA, Relevant comments, Music, Add overlays, Image/Video animation, Video filters, Expand/Uncrop,
+    Translate, Site links, Catalog items, 3D, etc.). Si hay una opción general "Test new creative features" o
+    "Standard enhancements", desactívala. Apaga también "Multi-advertiser ads".
+  - Plantilla de mensaje / Message template: elige la opción de app de socio ("Partner app" / "Use a partner
+    app") → ManyChat → la automatización de ESE video:
+       Instagram → Anuncio MX · Video X · IG     Messenger → Anuncio MX · Video X · FB
+    Si Ads Manager solo deja elegir UNA automatización para los dos canales, o no muestra ManyChat, DETENTE y
+    dime exactamente qué opciones ves. No uses la plantilla de Meta en inglés.
+  - NO pidas en el texto que escriban "INFO" ni ninguna palabra: el chat empieza con botones.
+
+  Anuncio A
+  - Nombre: MX | A | 11:48
+  - Video: NXUS-Ad-A.mp4
+  - Texto principal:
+Son las 11:48 de la noche. Tu restaurante ya cerró… y los mensajes siguen llegando. 📲
+Reservas, eventos, cotizaciones: si nadie contesta, ese cliente se va con otro.
+En NXUS AI creamos un asistente de inteligencia artificial hecho a la medida de tu negocio: contesta WhatsApp, Instagram y llamadas al instante, agenda y te deja las ventas listas para cerrar.
+Para cadenas de restaurantes y empresas con varias sucursales.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: Tu restaurante, atendido 24/7
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+  Anuncio B
+  - Nombre: MX | B | Empleado
+  - Video: NXUS-Ad-B.mp4
+  - Texto principal:
+Este empleado atiende a tus clientes a las 3 de la mañana. 🤖
+Conoce tu menú, tus horarios y tus sucursales, y nunca deja un mensaje sin contestar.
+Es un asistente de inteligencia artificial hecho a la medida por NXUS AI: contesta WhatsApp, Instagram y teléfono, aparta reservas, da seguimiento y le avisa a tu equipo lo importante.
+Para restaurantes y empresas con varias sucursales.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: Tu mejor empleado nunca duerme
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+  Anuncio C
+  - Nombre: MX | C | Sucursales
+  - Video: NXUS-Ad-C.mp4
+  - Texto principal:
+¿Tienes un restaurante con varias sucursales? 🍽️
+Cada mensaje sin contestar es una reserva, un evento o un pedido que se va con la competencia.
+En NXUS AI conectamos tus sucursales con inteligencia artificial: atiende al instante, las 24 horas, y tu equipo recibe a los clientes listos para cerrar. Además, software a la medida y marketing que vende.
+👇 Toca "Enviar mensaje" y te hacemos un diagnóstico gratis de 30 minutos.
+  - Título: Hecho para cadenas de restaurantes
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+B4. Revisa la vista previa (Advanced preview) de cada anuncio en Instagram Reels, Instagram Feed y Facebook
+Feed: que el video no se vea cortado en lo importante y que no aparezca música ni texto que yo no puse.
+
+======================================================================
+PARTE C. RESUMEN FINAL (antes de publicar)
+======================================================================
+NO publiques. Dame este informe en español y marca cada punto con ✅ (hecho), ⚠️ (hecho distinto) o ❌ (no
+hecho):
+1. ManyChat: Condición nueva en los dos Filtros; las 6 automatizaciones (nombre, disparador, botones, fuente,
+   etiqueta, Start Automation); cuáles publicaste con mi permiso; si Instagram quedó conectado a Ads Optimization.
+2. Campaña: nombre, objetivo, límite de gasto de la campaña.
+3. Conjunto: ubicación de la conversión, meta de rendimiento, puja, presupuesto, tipo de público (original o
+   Advantage+), edad, idiomas, intereses, las 15 zonas con su radio (y cuáles no se pudieron poner igual),
+   tamaño de público estimado, ubicaciones (placements) que quedaron y si quedó desmarcado "Allow limited
+   spending".
+4. Anuncios A, B y C: nombre, video subido (sí/no), textos, CTA, mejoras de Advantage+ (todas apagadas sí/no),
+   y a qué automatización de ManyChat quedó ligado cada canal.
+5. Cualquier cosa que Meta haya cambiado solo, advertencias o errores que aparecieron.
+6. Lo que yo tengo que hacer: publicar en ManyChat (lista) y dar clic en "Publish" en Ads Manager.
+Luego espera mis instrucciones.

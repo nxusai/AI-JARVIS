@@ -73,7 +73,13 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], leads: [], leads_notas: [], fiesta: [
+  const haceWeb = (dias) => new Date(Date.now() - dias * 864e5).toISOString()
+  const web = [
+    { id: 'w3', folio: 3, creada: haceWeb(0.2), nombre: 'Carlos Méndez', empresa: 'Supermercados La Placita', correo: 'compras@laplacita.example', telefono: '(201) 555-0142', tipo: 'Cadena de supermercados', intereses: ['Fresco', 'Oaxaca'], mensaje: 'Tenemos 6 tiendas en NJ y queremos sacar queso fresco y Oaxaca con nuestra marca.', propuesta: 'Propuesta del Estudio de Marca\n- Marca: La Placita\n- Queso: Queso Fresco con Hoja de Plátano 4" · 12 oz\n- Volumen: 300 cajas/semana de 6 (1,800 piezas, 1,350 lb, 1.7 tarimas)\n- Destino: New Jersey (~1 día en camino)', idioma: 'es', origen: 'misemago.com', estatus: 'nuevo', notas: '', actualizada: haceWeb(0.2) },
+    { id: 'w2', folio: 2, creada: haceWeb(2), nombre: 'Rosa Alvarado', empresa: 'Alvarado Foods', correo: 'rosa@alvaradofoods.example', telefono: '(713) 555-0199', tipo: 'Distribuidor', intereses: ['Panela', 'Canastón'], mensaje: 'We distribute in Houston and need panela and canastón for food service.', propuesta: '', idioma: 'en', origen: 'misemago.com', estatus: 'contactado', notas: 'Le llamé el martes. Manda muestras a Houston.', actualizada: haceWeb(1) },
+    { id: 'w1', folio: 1, creada: haceWeb(6), nombre: 'Luis Ortega', empresa: 'Sabor Catracho', correo: 'luis@saborcatracho.example', telefono: '', tipo: 'Marca propia nueva', intereses: ['Fresco'], mensaje: 'Quiero lanzar mi marca de queso hondureño.', propuesta: '', idioma: 'es', origen: 'misemago.com', estatus: 'cotizado', notas: 'Cotización enviada el lunes.', actualizada: haceWeb(3) },
+  ]
+  const db = { web, empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], leads: [], leads_notas: [], fiesta: [
     { id: 'f1', nombre: 'María López', telefono: '9735550123', empresa: 'MI SEMAGO', creada: ahora(), actualizada: ahora() },
     { id: 'f2', nombre: 'José Hernández', telefono: '2015550188', empresa: 'ABUELITO MEAT', creada: ahora(), actualizada: ahora() },
     { id: 'f3', nombre: 'Ana Martínez', telefono: '9735550144', empresa: 'ABUELITO CHEESE', creada: ahora(), actualizada: ahora() },
@@ -578,6 +584,24 @@ export function crearMuestra() {
       if (!admin()) no('Solo el admin borra')
       db.fiesta = db.fiesta.filter((x) => x.id !== id)
       anota('borró', 'fiesta_asistentes', id)
+    },
+    async webLeads() {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) return []
+      return copia(db.web)
+    },
+    async cambiarWebLead(id, cambios) {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) no('No tienes permiso para ver leads')
+      const x = db.web.find((l) => l.id === id)
+      if (!x) no('Ese lead ya no está')
+      Object.assign(x, { estatus: cambios.estatus ?? x.estatus, notas: cambios.notas ?? x.notas, actualizada: ahora() })
+      anota('cambió', 'website_leads', id, cambios)
+    },
+    async borrarWebLead(id) {
+      if (!admin()) no('Solo el admin borra')
+      db.web = db.web.filter((x) => x.id !== id)
+      anota('borró', 'website_leads', id)
     },
     async contenidos() {
       const p = perfil()

@@ -43,6 +43,7 @@ const ICONOS = {
 }
 ICONOS.leads = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'
 ICONOS.fiesta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 9 9-14 5z"/><path d="M13 6c1-2 3-2 4-3M17 11c2-1 3 0 4-1M15 3l1 1M20 7l1 1M19 3l.5.5"/></svg>'
+ICONOS.web = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>'
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
 import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
@@ -65,6 +66,9 @@ const S = {
   leadsBusca: '',
   leadAbierto: null,
   fiestaBusca: '',
+  web: [],
+  webBusca: '',
+  webEstatus: '',
   fiestaEmpresa: '',
   plan: [],
   usuarios: [],
@@ -204,6 +208,7 @@ async function cargarTodo() {
   ])
   Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
   S.fiesta = D.fiesta ? await D.fiesta().catch(() => null) : []
+  S.web = D.webLeads && veoLeads() ? await D.webLeads().catch(() => null) : []
   S.leads = D.leads && veoLeads() ? await D.leads() : []
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
@@ -323,6 +328,8 @@ function vistasPermitidas() {
   if (esAdmin() || S.yo.ve_catalogos !== false) v.push('catalogos')
   // Los leads de Mi Semago que llama Ana Sofi: el admin y quien tenga el permiso.
   if (veoLeads()) v.push('leads')
+  // Website leads: las solicitudes del formulario de misemago.com. Los ve quien ve Leads.
+  if (veoLeads()) v.push('web')
   // La fiesta de empleados: todos los usuarios del centro ven quién confirmó.
   v.push('fiesta')
   if (esAdmin()) v.push('usuarios', 'bitacora')
@@ -331,7 +338,7 @@ function vistasPermitidas() {
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', web: 'WEBSITE LEADS', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -347,7 +354,7 @@ function pintar() {
       </div>
       <nav class="pestanas">
         ${vistasPermitidas()
-          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${ICONOS[v]}${NOMBRES_VISTA[v]}</button>`)
+          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${ICONOS[v]}${NOMBRES_VISTA[v]}${v === 'web' && webNuevos() ? `<span class="pestana-num">${webNuevos()}</span>` : ''}</button>`)
           .join('')}
       </nav>
     </header>
@@ -382,6 +389,7 @@ function pintarVista() {
     parrilla: vistaParrilla,
     biblioteca: vistaBiblioteca,
     catalogos: vistaCatalogos,
+    web: vistaWeb,
     fiesta: vistaFiesta,
     leads: vistaLeads,
     usuarios: vistaUsuarios,
@@ -389,6 +397,118 @@ function pintarVista() {
   }[S.vista]
   el.innerHTML = v ? v() : ''
   if (S.vista === 'bitacora') cargarBitacora()
+}
+
+// -- website leads ------------------------------------------------------------
+// Las solicitudes del formulario «Cotizar / Get a quote» de misemago.com (función
+// de Netlify «leads»). Aparte de los Leads de WhatsApp que llama Ana Sofi.
+
+const ESTATUS_WEB = { nuevo: 'Nuevo', contactado: 'Contactado', cotizado: 'Cotizado', ganado: 'Ganado', perdido: 'Perdido' }
+const webNuevos = () => (S.web || []).filter((x) => x.estatus === 'nuevo').length
+
+function webFiltrados() {
+  const q = sinAcentos(S.webBusca)
+  return (S.web || []).filter((x) => (!S.webEstatus || x.estatus === S.webEstatus) && (!q || sinAcentos([x.nombre, x.empresa, x.correo, x.telefono, x.mensaje].join(' ')).includes(q)))
+}
+
+function vistaWeb() {
+  if (S.web === null) return '<div class="vacio-msg">Falta actualizar la base de datos para ver los website leads: corre el esquema en Supabase (SQL Editor → Run).</div>'
+  const todos = S.web
+  const lista = webFiltrados()
+  return `
+    <div class="fiesta-cabeza">
+      <div><h2>🌐 Website leads</h2><p class="ayuda">Las solicitudes de cotización que llegan del formulario de <b>misemago.com</b>. Mueve el estatus conforme avanzas y deja notas para el equipo.</p></div>
+      <div class="fiesta-botones">
+        <a class="btn chico" href="https://misemago.com/#contacto" target="_blank" rel="noopener">Ver formulario ↗</a>
+        <button class="btn chico" data-accion="recargar-web">↻ Actualizar</button>
+        <button class="btn chico" data-accion="csv-web" ${todos.length ? '' : 'disabled'}>⬇️ Descargar lista</button>
+      </div>
+    </div>
+    <div class="fiesta-cuentas wl-cuentas">
+      <button class="fiesta-cuenta total ${S.webEstatus ? '' : 'activa'}" data-web-filtro=""><b>${todos.length}</b><span>Todos</span></button>
+      ${Object.entries(ESTATUS_WEB)
+        .map(([k, n]) => `<button class="fiesta-cuenta wl-${k} ${S.webEstatus === k ? 'activa' : ''}" data-web-filtro="${k}"><b>${todos.filter((x) => x.estatus === k).length}</b><span>${n}</span></button>`)
+        .join('')}
+    </div>
+    <div class="barra">
+      <input type="search" class="crece" data-filtro="webBusca" value="${h(S.webBusca)}" placeholder="Buscar por nombre, empresa, correo o mensaje" aria-label="Buscar website lead">
+    </div>
+    ${
+      !todos.length
+        ? '<div class="vacio-msg">Todavía no llega ningún website lead. Aquí aparece cada solicitud que manden desde misemago.com.</div>'
+        : !lista.length
+          ? '<div class="vacio-msg">Ningún lead coincide.</div>'
+          : `<div class="wl-lista">${lista.map(tarjetaWeb).join('')}</div>`
+    }`
+}
+
+function tarjetaWeb(x) {
+  return `<article class="wl wl-${x.estatus}">
+    <header class="wl-cabeza">
+      <div>
+        <b class="wl-nombre">${h(x.nombre)}</b>${x.empresa ? ` <span class="wl-empresa">· ${h(x.empresa)}</span>` : ''}
+        <div class="ayuda">#${x.folio} · ${fecha(x.creada, true)}${x.idioma === 'en' ? ' · en inglés' : ''}</div>
+      </div>
+      <select class="wl-estatus" data-web-estatus="${x.id}" aria-label="Estatus del lead">
+        ${Object.entries(ESTATUS_WEB).map(([k, n]) => `<option value="${k}" ${x.estatus === k ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>
+    </header>
+    <div class="wl-botones">
+      <a class="btn chico" href="mailto:${h(x.correo)}">✉️ ${h(x.correo)}</a>
+      ${x.telefono ? `<a class="btn chico" href="tel:${h(x.telefono.replace(/[^\d+]/g, ''))}">📞 ${h(x.telefono)}</a>` : ''}
+    </div>
+    ${x.tipo || x.intereses?.length ? `<div class="chips">${x.tipo ? `<span class="chip">${h(x.tipo)}</span>` : ''}${(x.intereses || []).map((i) => `<span class="chip">🧀 ${h(i)}</span>`).join('')}</div>` : ''}
+    ${x.mensaje ? `<p class="wl-mensaje">${h(x.mensaje)}</p>` : ''}
+    ${x.propuesta ? `<details class="wl-propuesta"><summary>✦ Diseño del Estudio de Marca</summary><pre>${h(x.propuesta)}</pre></details>` : ''}
+    <footer class="wl-pie">
+      ${x.notas ? `<p class="wl-notas"><b>Notas:</b> ${h(x.notas)}</p>` : '<span class="ayuda">Sin notas</span>'}
+      <div class="wl-botones">
+        <button class="btn chico" data-notas-web="${x.id}">📝 ${x.notas ? 'Editar notas' : 'Agregar nota'}</button>
+        ${esAdmin() ? `<button class="btn chico peligro" data-borrar-web="${x.id}" title="Borrar">✕</button>` : ''}
+      </div>
+    </footer>
+  </article>`
+}
+
+function formNotasWeb(id) {
+  const x = S.web.find((l) => l.id === id)
+  if (!x) return
+  abrirVentana(
+    `Notas · ${h(x.nombre)}`,
+    `<form id="form-notas-web">
+      <div class="campo"><label for="nw-notas">Lo que se habló, siguientes pasos, precios cotizados…</label><textarea id="nw-notas" rows="6" maxlength="5000">${h(x.notas)}</textarea></div>
+      <button class="btn principal" data-ocupado="Guardando…">Guardar notas</button>
+    </form>`,
+    { chica: true },
+  )
+  $('#nw-notas').focus()
+  $('#form-notas-web').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.cambiarWebLead(x.id, { notas: $('#nw-notas').value.trim() })
+        cerrarVentana()
+        avisar('Notas guardadas')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+function csvWeb() {
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const filas = [
+    ['Folio', 'Fecha', 'Estatus', 'Nombre', 'Empresa', 'Correo', 'Teléfono', 'Tipo de negocio', 'Le interesa', 'Mensaje', 'Diseño del Estudio', 'Notas'],
+    ...webFiltrados().map((x) => [x.folio, fecha(x.creada, true), ESTATUS_WEB[x.estatus], x.nombre, x.empresa, x.correo, x.telefono, x.tipo, (x.intereses || []).join(', '), x.mensaje, x.propuesta, x.notas]),
+  ]
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + filas.map((f) => f.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
+  a.download = 'website-leads.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 // -- fiesta de empleados -------------------------------------------------------
@@ -2135,6 +2255,20 @@ async function alClic(e) {
       campo.dispatchEvent(new Event('input'))
       return
     }
+    if (d.webFiltro !== undefined) {
+      S.webEstatus = d.webFiltro
+      pintarVista()
+      return
+    }
+    if (d.notasWeb) return formNotasWeb(d.notasWeb)
+    if (d.borrarWeb) {
+      const x = S.web.find((v) => v.id === d.borrarWeb)
+      if (!x || !(await preguntar('Borrar website lead', `¿Borrar la solicitud de ${x.nombre}? No se puede deshacer.`, { boton: 'Borrar', peligro: true }))) return
+      await D.borrarWebLead(x.id)
+      avisar('Lead borrado')
+      await recargar()
+      return
+    }
     if (d.fiestaEmpresa !== undefined) {
       S.fiestaEmpresa = d.fiestaEmpresa
       pintarVista()
@@ -2174,6 +2308,12 @@ async function alClic(e) {
         } catch {
           avisar(`Cópialo a mano: ${FIESTA_URL()}`, true)
         }
+        return
+      case 'csv-web':
+        return csvWeb()
+      case 'recargar-web':
+        await recargar()
+        avisar('Website leads al día')
         return
       case 'csv-fiesta':
         return csvFiesta()
@@ -2270,7 +2410,7 @@ async function alCambiar(e) {
         if (S.mes === 'pendientes') S.mes = 0
       } else S[d.filtro] = el.value
       if (d.filtro === 'bibEmpresa') S.bibCarpeta = null
-      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca' || d.filtro === 'leadsBusca') {
+      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca' || d.filtro === 'leadsBusca' || d.filtro === 'webBusca') {
         const foco = document.activeElement === el
         const pos = el.selectionStart
         pintarVista()
@@ -2283,6 +2423,12 @@ async function alCambiar(e) {
       return
     }
     if (e.type !== 'change') return
+    if (d.webEstatus) {
+      await D.cambiarWebLead(d.webEstatus, { estatus: el.value })
+      avisar(`Estatus: ${ESTATUS_WEB[el.value]}`)
+      await recargar()
+      return
+    }
     if (d.cambiarTarea) {
       await D.cambiarTarea(S.abierta, { [d.cambiarTarea]: el.value || null })
       avisar('Guardado')
