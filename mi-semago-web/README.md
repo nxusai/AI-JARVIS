@@ -24,7 +24,7 @@ el comprador **vea su marca sobre el producto**, calcule tarimas ni sepa cuándo
 | **La planta** | El video de la planta (`public/video/planta.mp4` y `.webm`) corre fluido; al bajar cambia con un fundido entre 6 capítulos (cuajada, hilado, bola, empaque, moldeado y reposo) y cada uno se repite en bucle. El segundo de inicio de cada capítulo está en `PLANT_CHAPTERS` de `src/data.js` |
 | **Equipo** | Fotos reales del equipo y la planta con revelado animado |
 | **Distribución** | Mapa de EE. UU. coloreado por días de tránsito. Tocas un estado y un camión refrigerado viaja desde Paterson; muestra días y millas |
-| **Por qué Mi Semago, FAQ, Contacto** | Línea directa de marca privada, oficina, correo y bodega. El formulario arma el correo listo (y si vienes del Estudio, incluye tu propuesta) |
+| **Por qué Mi Semago, FAQ, Contacto** | Línea directa de marca privada, oficina, correo y bodega. El formulario «Cotizar» manda cada solicitud a la pestaña **WEBSITE LEADS** del Centro de trabajo (CRM), con la propuesta del Estudio si la armaron. Si el CRM no responde, abre el correo con todo escrito |
 | **Semago IA** | Chat flotante: asesor de marca privada. Conoce todo el catálogo, fichas, tarimas, tiempos y días de envío por estado. Muestra tarjetas de producto y un botón para abrir el queso en el Estudio |
 
 También: SEO (datos estructurados, imagen para compartir), accesibilidad (teclado, «reducir movimiento»),

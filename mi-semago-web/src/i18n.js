@@ -79,7 +79,7 @@ export const STRINGS = {
     'ct.name': 'Tu nombre', 'ct.company': 'Empresa', 'ct.email': 'Correo', 'ct.phone': 'Teléfono', 'ct.type': 'Tipo de negocio',
     'ct.t1': 'Cadena de supermercados', 'ct.t2': 'Distribuidor', 'ct.t3': 'Marca propia nueva', 'ct.t4': 'Restaurante / food service', 'ct.t5': 'Otro',
     'ct.interest': '¿Qué quesos te interesan?', 'ct.msg': 'Cuéntanos tu proyecto', 'ct.send': 'Enviar solicitud',
-    'ct.studioNote': 'Incluiremos el diseño que armaste en el Estudio.', 'ct.sent': 'Se abrió tu correo con la solicitud lista. Si no se abrió, escríbenos a',
+    'ct.studioNote': 'Incluiremos el diseño que armaste en el Estudio.', 'ct.sending': 'Enviando…', 'ct.thanks': '¡Gracias! Recibimos tu solicitud y te contactamos muy pronto.', 'ct.sent': 'Se abrió tu correo con la solicitud lista. Si no se abrió, escríbenos a',
     'ct.map': 'Cómo llegar',
 
     'ft.tag': 'The Better Latin Dairy Company', 'ft.rights': 'Todos los derechos reservados.', 'ft.follow': 'Síguenos', 'ft.made': 'Hecho en Paterson, Nueva Jersey',
@@ -168,7 +168,7 @@ export const STRINGS = {
     'ct.name': 'Your name', 'ct.company': 'Company', 'ct.email': 'Email', 'ct.phone': 'Phone', 'ct.type': 'Type of business',
     'ct.t1': 'Supermarket chain', 'ct.t2': 'Distributor', 'ct.t3': 'New private brand', 'ct.t4': 'Restaurant / food service', 'ct.t5': 'Other',
     'ct.interest': 'Which cheeses interest you?', 'ct.msg': 'Tell us about your project', 'ct.send': 'Send request',
-    'ct.studioNote': 'We’ll include the design you built in the Studio.', 'ct.sent': 'Your email app opened with the request ready. If it didn’t, write to',
+    'ct.studioNote': 'We’ll include the design you built in the Studio.', 'ct.sending': 'Sending…', 'ct.thanks': 'Thank you! We got your request and will contact you very soon.', 'ct.sent': 'Your email app opened with the request ready. If it didn’t, write to',
     'ct.map': 'Directions',
 
     'ft.tag': 'The Better Latin Dairy Company', 'ft.rights': 'All rights reserved.', 'ft.follow': 'Follow us', 'ft.made': 'Made in Paterson, New Jersey',

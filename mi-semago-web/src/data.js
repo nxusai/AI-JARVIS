@@ -13,6 +13,8 @@ export const BRAND = {
   phone: '(973) 626-4057',
   phoneHref: '+19736264057',
   email: 'contacto@misemagolp.com',
+  // Cada solicitud del formulario «Cotizar» cae en la pestaña WEBSITE LEADS del Centro de trabajo (CRM).
+  leadsUrl: 'https://centro-misemago-abuelito.netlify.app/.netlify/functions/leads',
   office: '98 2nd Ave, Paterson, NJ 07514',
   shipping: '51 E 23rd St, Paterson, NJ 07514',
   instagram: 'https://www.instagram.com/misemago.cheese/',

@@ -388,22 +388,50 @@ function sendStudio(s) {
   scrollToEl('#contacto');
   setTimeout(() => $('#contactForm [name=name]').focus({ preventScroll: true }), 1400);
 }
-function submitContact(e) {
+// La solicitud va al CRM (pestaña WEBSITE LEADS). Si el CRM no responde, se abre el correo con todo
+// escrito para que ningún cliente se pierda.
+async function submitContact(e) {
   e.preventDefault();
   const f = e.target; const name = f.name.value.trim(); const email = f.email.value.trim();
   if (!name) { f.name.focus(); f.name.reportValidity?.(); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { f.email.focus(); f.email.reportValidity?.(); return; }
   const en = LANG === 'en';
+  const typeName = (lang) => (contact.type == null ? '' : STRINGS[lang][`ct.t${contact.type + 1}`]);
+  const interest = (lang) => [...contact.interest].map((c) => CATEGORIES.find((x) => x.id === c).name[lang]);
+  const btn = f.querySelector('button[type=submit]'); const label = btn.querySelector('span');
+  const ok = $('#ctOk');
+  btn.disabled = true; label.textContent = t('ct.sending'); ok.hidden = true;
+  let saved = false;
+  try {
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 15000);
+    const res = await fetch(BRAND.leadsUrl, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, signal: ctl.signal,
+      body: JSON.stringify({
+        nombre: name, empresa: f.company.value.trim(), correo: email, telefono: f.phone.value.trim(),
+        tipo: typeName('es'), intereses: interest('es'), mensaje: f.msg.value.trim(),
+        propuesta: studioProposal ? studioProposal.text : '', idioma: LANG, origen: location.hostname, sitio: f.sitio.value,
+      }),
+    });
+    clearTimeout(timer);
+    saved = res.ok && (await res.json().catch(() => ({}))).ok === true;
+  } catch { saved = false; }
+  btn.disabled = false; label.textContent = t('ct.send');
+  if (saved) {
+    ok.textContent = t('ct.thanks'); ok.hidden = false;
+    f.reset(); contact.type = null; contact.interest.clear(); studioProposal = null;
+    $$('#ctType button').forEach((x) => x.classList.remove('on')); contactChips(); $('#ctStudio').hidden = true;
+    return;
+  }
   const lines = [
     `${en ? 'Name' : 'Nombre'}: ${name}`, `${en ? 'Company' : 'Empresa'}: ${f.company.value.trim() || '—'}`, `Email: ${email}`, `${en ? 'Phone' : 'Teléfono'}: ${f.phone.value.trim() || '—'}`,
-    `${en ? 'Business' : 'Negocio'}: ${contact.type || '—'}`,
-    `${en ? 'Interested in' : 'Le interesa'}: ${[...contact.interest].map((c) => CATEGORIES.find((x) => x.id === c).name[LANG]).join(', ') || '—'}`,
+    `${en ? 'Business' : 'Negocio'}: ${typeName(LANG) || '—'}`,
+    `${en ? 'Interested in' : 'Le interesa'}: ${interest(LANG).join(', ') || '—'}`,
     '', f.msg.value.trim(),
   ];
   if (studioProposal) lines.push('', studioProposal.text);
   const subject = `${en ? 'Private label request' : 'Solicitud de marca privada'} · ${f.company.value.trim() || name}`;
   location.href = `mailto:${BRAND.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`;
-  $('#ctOk').hidden = false;
+  ok.innerHTML = `${esc(t('ct.sent'))} <a href="mailto:${BRAND.email}">${BRAND.email}</a>`; ok.hidden = false;
 }
 
 // ───────── Navegación, hilo, cursor ─────────
@@ -495,7 +523,7 @@ function init() {
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
   $('#faqList').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) toggleQa(b); });
-  $('#ctType').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; contact.type = b.textContent; $$('#ctType button').forEach((x) => x.classList.toggle('on', x === b)); });
+  $('#ctType').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const all = $$('#ctType button'); contact.type = all.indexOf(b); all.forEach((x) => x.classList.toggle('on', x === b)); });
   $('#ctInterest').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; const c = b.dataset.cat; contact.interest.has(c) ? contact.interest.delete(c) : contact.interest.add(c); b.classList.toggle('on'); });
   $('#contactForm').addEventListener('submit', submitContact);
 

@@ -356,10 +356,11 @@
             <fieldset class="field"><legend data-i18n="ct.interest">¿Qué quesos te interesan?</legend>
               <div class="chips chips--sm" id="ctInterest"></div>
             </fieldset>
-            <label class="field"><span data-i18n="ct.msg">Cuéntanos tu proyecto</span><textarea name="msg" rows="4"></textarea></label>
+            <label class="field"><span data-i18n="ct.msg">Cuéntanos tu proyecto</span><textarea name="msg" rows="4" maxlength="4000"></textarea></label>
+            <input class="trampa" name="sitio" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <p class="cform__studio" id="ctStudio" hidden>✦ <span data-i18n="ct.studioNote"></span> <b id="ctStudioTxt"></b></p>
             <button class="btn btn--gold btn--block magnetic" type="submit"><span data-i18n="ct.send">Enviar solicitud</span> <i class="arrow">→</i></button>
-            <p class="cform__ok" id="ctOk" hidden><span data-i18n="ct.sent"></span> <a href="mailto:contacto@misemagolp.com">contacto@misemagolp.com</a></p>
+            <p class="cform__ok" id="ctOk" role="status" hidden></p>
           </form>
         </div>
       </div>

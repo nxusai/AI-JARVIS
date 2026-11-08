@@ -533,3 +533,6 @@ input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border-radius
   .arch__city { display: none; }
   .hero__ticket { left: -4%; bottom: 4%; transform: rotate(-6deg) scale(0.82); transform-origin: left bottom; }
 }
+
+/* Campo trampa para robots en el formulario: nadie lo ve ni lo llena. */
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
