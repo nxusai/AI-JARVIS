@@ -72,7 +72,8 @@ export function fila(b) {
     correo: correo(b.correo),
     ciudad: texto(b.ciudad, 80),
     pais: p,
-    servicio: texto(b.servicio, 200),
+    // Cuántas sucursales dijo en el botón de ManyChat: va al inicio de lo que necesita.
+    servicio: [texto(b.sucursales, 20) && `Sucursales: ${texto(b.sucursales, 20)}`, texto(b.servicio, 200)].filter(Boolean).join(' · ').slice(0, 200),
   }
   // Si no dijo el país (u "Otro"), se deduce del número y de su ciudad o dirección.
   if ((!f.pais || f.pais === 'otro') && f.telefono) {

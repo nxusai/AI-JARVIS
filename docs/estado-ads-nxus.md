@@ -139,6 +139,13 @@
 - Orden acordado: 1) arreglar ManyChat → `ads/prompt-chrome-manychat-v1.txt` (palabra exacta INFO, sin disparador por intención, pregunta de sucursales con botones antes del idioma, campo `sucursales`, etiqueta robot-autorespuesta, investigar Ads trigger y Conversions API sin conectar); 2) campaña MX; 3) campaña NY.
 - HQ ya acepta `fuente` (hasta 200 caracteres) y `anuncio_id`; `sucursales` se manda en el cuerpo pero HQ todavía no lo guarda (va dentro de `servicio` vía el AI Step).
 
+## ManyChat arreglado (8 nov 2026, informe de la extensión)
+- Filtro NXUS y Filtro NXUS · Facebook: disparadores EN VIVO con "Message is" (INFO, OPERACIONES, RESTAURANTES, RESTAURANTE; no distingue mayúsculas); intención apagada (guardada). No hay Default Reply ni Welcome Message; solo Main Menu de Messenger y "Opt-in Automation" (Start/Subscribe).
+- En BORRADOR (Eduardo prueba con Preview y publica con "Update"): mensaje de sucursales (1 · 2 a 5 · 6 o más, sin texto libre, campo `sucursales`, reintento, 23 h, sin Skip) antes del idioma; `"sucursales"` en el cuerpo de Aviso 1 y 2; etiqueta `robot-autorespuesta` en "If contact has not responded" (23 h). Un robot que contesta texto recibe el reintento y se queda atorado. AI Step sin tocar.
+- Ads trigger: "+ New Trigger" → "Instagram Ads – User clicks an Instagram Ad" / "Facebook Ads – User clicks a Facebook Ad". Se activa en ManyChat y en Ads Manager se elige Send message → Partner app → ManyChat → la automatización (sirve antes de publicar). Instagram solo con objetivo Interacción (Engagement); Facebook con Tráfico, Interacción y Ventas. Primer mensaje: un solo bloque, con al menos un botón, sin variables. Mientras el anuncio está activo, ManyChat no deja editar esa automatización → una automatización por video (fuente = "Anuncio · Video A/B/C") que luego entra al filtro.
+- Conversions API (Settings → cada canal → Ads Optimization): Messenger conectado al Dataset 1452542343485219 con envío automático (LeadSubmitted cuando un Data Collection guarda teléfono o correo). Instagram NO conectado (botón Connect). También existe la acción "Ads Optimization → Send event to Meta Conversions API".
+- Pendiente en el prompt de campaña: en el Filtro, si `sucursales` ya tiene valor (viene del anuncio), saltar la pregunta de sucursales.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
