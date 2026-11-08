@@ -3,7 +3,7 @@ import './style.css';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { FEATURES, BRAND, PRODUCTS, CATEGORIES, PROCESS, PLANT_CHAPTERS, PLANT_FRAMES, FAQ, transitDays } from './data.js';
+import { FEATURES, BRAND, PRODUCTS, CATEGORIES, PROCESS, PLANT_CHAPTERS, PLANT_VIDEO_END, FAQ, transitDays } from './data.js';
 import { STRINGS } from './i18n.js';
 import { STATES, ORIGIN } from './states.js';
 import { initStudio, refreshStudio, setProduct } from './studio.js';
@@ -83,8 +83,8 @@ function preload(srcs, onProgress) {
   })));
 }
 async function boot() {
-  const heroItems = PRODUCTS.filter((p) => p.hero || ['panela', 'queso-chile-rojo', 'fresco-6'].includes(p.id)).slice(0, 6);
-  const srcs = ['./img/ui/knot.png', './img/ui/logo-white.png', ...heroItems.map((p) => `./img/p/${p.img}.webp`), frameSrc(0)];
+  const heroItems = TRIO.map((x) => PRODUCTS.find((p) => p.id === x.id));
+  const srcs = ['./img/ui/knot.png', './img/ui/logo-white.png', ...heroItems.map((p) => `./img/p/${p.img}.webp`)];
   let shown = 0; const pct = $('#loaderPct');
   const msgs = ['load.1', 'load.2', 'load.3']; let mi = 0;
   const msgTimer = setInterval(() => { mi = (mi + 1) % msgs.length; $('#loaderMsg').textContent = t(msgs[mi]); }, 900);
@@ -95,7 +95,7 @@ async function boot() {
   await new Promise((r) => setTimeout(r, wait));
   gsap.to(counter, { v: 100, duration: 0.3, onUpdate: () => { pct.textContent = Math.round(counter.v); } });
   clearInterval(msgTimer);
-  buildOrbit(heroItems);
+  buildTrio();
   await new Promise((r) => setTimeout(r, 300));
   document.body.classList.remove('is-loading');
   const loader = $('#loader');
@@ -110,8 +110,8 @@ function heroIntro() {
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
   tl.from('.hero__title .line > *', { yPercent: 120, duration: 1.3, stagger: 0.1 })
     .from('.hero .kicker, .hero__sub, .hero__ctas', { y: 30, opacity: 0, duration: 1, stagger: 0.1 }, '-=1')
-    .from('.orbit__item', { scale: 0, opacity: 0, duration: 1.4, stagger: 0.08, ease: 'elastic.out(1, 0.6)' }, '-=1.2')
-    .from('.hero__knot', { scale: 0, rotate: -180, duration: 1.4 }, '<')
+    .from('.plate', { scale: 0.6, opacity: 0, duration: 1.4 }, '-=1.2')
+    .from('.trio__item', { y: 80, opacity: 0, duration: 1.3, stagger: 0.12 }, '-=1.1')
     .from('.hero__ticket', { y: 60, rotate: 20, opacity: 0, duration: 1 }, '-=0.9')
     .from('.stat', { y: 30, opacity: 0, duration: 0.8, stagger: 0.07 }, '-=1')
     .add(countUp, '-=0.8');
@@ -131,9 +131,12 @@ function rotateWords() {
   let i = 0;
   setInterval(() => {
     const words = t('hero.words').split('|'); i = (i + 1) % words.length;
-    const old = box.querySelector('em'); const em = document.createElement('em'); em.textContent = words[i]; box.append(em);
-    gsap.fromTo(em, { yPercent: 100, rotateX: -80, opacity: 0 }, { yPercent: 0, rotateX: 0, opacity: 1, duration: 0.9, ease: 'expo.out' });
-    gsap.to(old, { yPercent: -100, rotateX: 80, opacity: 0, duration: 0.7, ease: 'expo.in', onComplete: () => old.remove() });
+    // Primero sale la palabra anterior y luego entra la nueva: nunca se enciman.
+    const old = box.querySelector('em');
+    gsap.timeline()
+      .to(old, { yPercent: -105, opacity: 0, duration: 0.45, ease: 'power3.in' })
+      .add(() => { old.textContent = words[i]; })
+      .fromTo(old, { yPercent: 105, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.75, ease: 'expo.out' });
   }, 2800);
 }
 const SAMPLE_BRANDS = ['La Abuela Rosa', 'Don Chuy', 'Sabor Catracho', 'Rancho Los Altos', 'Doña Lupita', 'Mi Tierra'];
@@ -152,29 +155,27 @@ function ticketCycle() {
   }, 3200);
 }
 
-let orbitItems = [];
-function buildOrbit(items) {
-  const o = $('#orbit');
-  o.innerHTML = items.map((p) => `<div class="orbit__item"><img src="./img/p/${p.img}.webp" alt="" /></div>`).join('');
-  orbitItems = $$('.orbit__item', o);
+// Tres quesos sobre un plato de luz: flotan despacio y se mueven en profundidad con el cursor, sin encimarse.
+const TRIO = [
+  { id: 'fresco-hoja-4', x: 2, y: 30, w: 44, depth: 0.6, z: 1 },
+  { id: 'canaston', x: 54, y: 20, w: 42, depth: 0.4, z: 1 },
+  { id: 'oaxaca-retail', x: 22, y: 44, w: 54, depth: 1, z: 2 },
+];
+function buildTrio() {
+  const box = $('#heroTrio');
+  box.innerHTML = TRIO.map((x) => { const p = PRODUCTS.find((q) => q.id === x.id); return `<div class="trio__item" style="left:${x.x}%;top:${x.y}%;width:${x.w}%;z-index:${x.z}"><img src="./img/p/${p.img}.webp" alt="" /></div>`; }).join('');
+  if (reduced) return;
+  const items = $$('.trio__item', box);
+  items.forEach((el, k) => gsap.to($('img', el), { y: -10 - k * 3, duration: 2.6 + k * 0.5, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: k * 0.4 }));
   const mouse = { x: 0, y: 0 }; const cur = { x: 0, y: 0 };
   addEventListener('pointermove', (e) => { mouse.x = e.clientX / innerWidth - 0.5; mouse.y = e.clientY / innerHeight - 0.5; });
   let visible = true;
-  ScrollTrigger.create({ trigger: '.hero', start: 'top bottom', end: 'bottom top', onToggle: (s) => { visible = s.isActive; } });
-  const N = orbitItems.length;
-  gsap.ticker.add((time) => {
+  ScrollTrigger.create({ trigger: '.hero', start: 'top bottom', end: 'bottom top', onToggle: (st) => { visible = st.isActive; } });
+  gsap.ticker.add(() => {
     if (!visible) return;
-    cur.x += (mouse.x - cur.x) * 0.05; cur.y += (mouse.y - cur.y) * 0.05;
-    const R = o.clientWidth * 0.36;
-    orbitItems.forEach((el, k) => {
-      const a = (reduced ? 0 : time * 0.22) + (k / N) * Math.PI * 2 + cur.x * 1.2;
-      const x = Math.cos(a) * R; const z = Math.sin(a) * R;
-      const y = Math.sin(a * 2 + k) * R * 0.08 + Math.sin(a) * R * (0.28 + cur.y * 0.4);
-      const s = 0.62 + ((z / R) + 1) * 0.28;
-      el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${s}) rotate(${Math.cos(a) * 8}deg)`;
-      el.style.zIndex = Math.round(z + R);
-      el.style.opacity = 0.45 + ((z / R) + 1) * 0.275;
-    });
+    cur.x += (mouse.x - cur.x) * 0.06; cur.y += (mouse.y - cur.y) * 0.06;
+    items.forEach((el, k) => { const d = TRIO[k].depth; el.style.transform = `translate3d(${cur.x * 26 * d}px, ${cur.y * 18 * d}px, 0)`; });
+    $('.plate').style.transform = `translate3d(${cur.x * -10}px, ${cur.y * -8}px, 0)`;
   });
 }
 
@@ -296,54 +297,45 @@ function printSpec(id) {
 }
 
 // ───────── La planta: video cuadro por cuadro con el scroll ─────────
-const frameSrc = (i) => `./frames/f${String(i + 1).padStart(3, '0')}.webp`;
-const frames = [];
-let framesRequested = false;
-function loadFrames() {
-  if (framesRequested) return;
-  framesRequested = true;
-  for (let i = 0; i < PLANT_FRAMES; i++) { if (frames[i]) continue; const img = new Image(); img.decoding = 'async'; img.src = frameSrc(i); frames[i] = img; }
-}
+// La planta: el video corre fluido y, al bajar, salta con un fundido a cada capítulo y lo repite en bucle.
 function plant() {
-  const cv = $('#plantCanvas'); const g = cv.getContext('2d');
-  let cur = -1; let w = 0, h = 0;
-  const size = () => { const dpr = Math.min(devicePixelRatio || 1, 1.6); w = cv.clientWidth; h = cv.clientHeight; cv.width = w * dpr; cv.height = h * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); draw(Math.max(cur, 0), true); };
-  const draw = (i, force) => {
-    if (i === cur && !force) return;
-    // Si el cuadro todavía no carga, usa el más cercano que ya esté listo.
-    let k = i; while (k > 0 && !(frames[k] && frames[k].complete && frames[k].naturalWidth)) k--;
-    const img = frames[k]; if (!img || !img.naturalWidth) return;
-    cur = i;
-    const s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-    const iw = img.naturalWidth * s, ih = img.naturalHeight * s;
-    g.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
-  };
+  const video = $('#plantVideo');
+  const N = PLANT_CHAPTERS.length;
+  const range = (c) => [PLANT_CHAPTERS[c].at, c + 1 < N ? PLANT_CHAPTERS[c + 1].at : PLANT_VIDEO_END];
   $('#plantDots').innerHTML = PLANT_CHAPTERS.map(() => '<li></li>').join('');
-  let chap = -1;
-  const setChapter = (c) => {
-    if (c === chap) return; chap = c; const ch = PLANT_CHAPTERS[c];
+  let chap = -1; let visible = false;
+  const seek = (c) => {
+    const [start] = range(c);
+    if (reduced || video.readyState < 1) { try { video.currentTime = start; } catch { /* aún sin datos */ } return; }
+    gsap.killTweensOf(video);
+    gsap.to(video, { opacity: 0.25, duration: 0.25, ease: 'power1.in', onComplete: () => {
+      video.currentTime = start;
+      if (visible) video.play().catch(() => {});
+      gsap.to(video, { opacity: 1, duration: 0.6, ease: 'power1.out' });
+    } });
+  };
+  const setChapter = (c, force) => {
+    if (c === chap && !force) return;
+    const changed = c !== chap; chap = c; const ch = PLANT_CHAPTERS[c];
     $('#plantNum').textContent = String(c + 1).padStart(2, '0'); $('#plantName').textContent = ch.name[LANG]; $('#plantText').textContent = ch.text[LANG];
     $$('#plantDots li').forEach((li, i) => li.classList.toggle('on', i === c));
-    if (!reduced) gsap.fromTo('#plantChapter > *', { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.06, ease: 'expo.out' });
+    if (changed) seek(c);
+    if (!reduced) gsap.fromTo('#plantChapter > *', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.07, ease: 'expo.out' });
   };
-  plant.setChapter = () => { const c = chap; chap = -1; setChapter(Math.max(c, 0)); };
+  plant.setChapter = () => setChapter(Math.max(chap, 0), true);
+  // Cada capítulo se repite en bucle mientras el visitante lo está viendo.
+  video.addEventListener('timeupdate', () => { if (chap < 0) return; const [start, end] = range(chap); if (video.currentTime >= end - 0.05) video.currentTime = start; });
+  video.addEventListener('loadedmetadata', () => { video.currentTime = range(Math.max(chap, 0))[0]; });
   setChapter(0);
-  ScrollTrigger.create({ trigger: '#planta', start: 'top 200%', once: true, onEnter: loadFrames });
+  ScrollTrigger.create({ trigger: '#planta', start: 'top 250%', once: true, onEnter: () => { video.preload = 'auto'; video.load(); } });
+  ScrollTrigger.create({ trigger: '#planta', start: 'top bottom', end: 'bottom top', onToggle: (st) => { visible = st.isActive; if (visible && !reduced) video.play().catch(() => {}); else video.pause(); } });
   ScrollTrigger.create({
-    trigger: '#planta', start: 'top top', end: 'bottom bottom', scrub: true,
-    onUpdate: (s) => {
-      const i = Math.min(PLANT_FRAMES - 1, Math.floor(s.progress * PLANT_FRAMES));
-      draw(i);
-      let c = 0; PLANT_CHAPTERS.forEach((ch, k) => { if (i >= ch.from) c = k; }); setChapter(c);
-      $('#plantProgress').style.transform = `scaleX(${s.progress})`;
+    trigger: '#planta', start: 'top top', end: 'bottom bottom',
+    onUpdate: (st) => {
+      setChapter(Math.min(N - 1, Math.floor(st.progress * N)));
+      $('#plantProgress').style.transform = `scaleX(${st.progress})`;
     },
   });
-  const first = new Image(); first.onload = () => { frames[0] = frames[0] || first; size(); }; first.src = frameSrc(0);
-  addEventListener('resize', size);
-  // Si un cuadro carga tarde, vuelve a pintar el actual.
-  let plantVisible = false;
-  ScrollTrigger.create({ trigger: '#planta', start: 'top bottom', end: 'bottom top', onToggle: (s) => { plantVisible = s.isActive; } });
-  setInterval(() => { if (plantVisible && cur >= 0) draw(cur, true); }, 700);
 }
 
 // ───────── Mapa de distribución ─────────
@@ -460,18 +452,17 @@ function cursor() {
 function reveals() {
   if (reduced) { $$('.split').forEach((el) => { el.dataset.shown = 1; }); return; }
   $$('.split').forEach((el) => ScrollTrigger.create({ trigger: el, start: 'top 88%', once: true, onEnter: () => { el.dataset.shown = 1; gsap.to($$('.sw > span', el), { yPercent: 0, duration: 1.1, stagger: 0.05, ease: 'expo.out' }); } }));
-  $$('.reveal').forEach((el, i) => gsap.to(el, { opacity: 1, y: 0, duration: 1, delay: (i % 4) * 0.08, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 90%' } }));
+  $$('.reveal').forEach((el, i) => gsap.to(el, { opacity: 1, y: 0, duration: 0.8, delay: (i % 4) * 0.06, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 95%' } }));
   $$('.reveal-img').forEach((el) => {
     gsap.to(el, { clipPath: 'inset(0% 0 0 0)', duration: 1.4, ease: 'expo.inOut', scrollTrigger: { trigger: el, start: 'top 85%' } });
     gsap.to($('img', el), { scale: 1, duration: 1.8, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 85%' } });
     gsap.to($('img', el), { yPercent: -8, ease: 'none', scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true } });
   });
-  ScrollTrigger.create({ trigger: '#manifesto', start: 'top 80%', end: 'bottom 45%', scrub: true, onUpdate: (s) => manifestoProgress(s.progress) });
+  ScrollTrigger.create({ trigger: '#manifesto', start: 'top 88%', end: 'center 55%', scrub: true, onUpdate: (s) => manifestoProgress(s.progress) });
   ScrollTrigger.create({ trigger: '#timeline', start: 'top 75%', once: true, onEnter: () => { timelineShown = true; gsap.to('.tstep__bar i', { scaleX: 1, duration: 0.9, stagger: 0.5, ease: 'power2.inOut' }); } });
-  ScrollTrigger.create({ trigger: '#catGrid', start: 'top 85%', once: true, onEnter: () => { catalogShown = true; gsap.to('#catGrid .card', { y: 0, opacity: 1, duration: 0.9, stagger: 0.05, ease: 'expo.out' }); } });
-  gsap.from('.studio__stage', { y: 80, opacity: 0, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.studio__grid', start: 'top 80%' } });
-  gsap.from('.step', { x: -40, opacity: 0, duration: 0.9, stagger: 0.08, ease: 'expo.out', scrollTrigger: { trigger: '.studio__grid', start: 'top 80%' } });
-  gsap.to('.hero__inner', { yPercent: 18, opacity: 0.2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+  ScrollTrigger.create({ trigger: '#catGrid', start: 'top 95%', once: true, onEnter: () => { catalogShown = true; gsap.to('#catGrid .card', { y: 0, opacity: 1, duration: 0.7, stagger: 0.03, ease: 'power3.out' }); } });
+  gsap.from('.studio__stage', { y: 40, opacity: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: '.studio__grid', start: 'top 90%' } });
+  gsap.from('.step', { y: 24, opacity: 0, duration: 0.7, stagger: 0.06, ease: 'power3.out', scrollTrigger: { trigger: '.studio__grid', start: 'top 90%' } });
   gsap.from('.footer__big', { xPercent: -20, ease: 'none', scrollTrigger: { trigger: '.footer', start: 'top bottom', end: 'bottom bottom', scrub: true } });
 }
 

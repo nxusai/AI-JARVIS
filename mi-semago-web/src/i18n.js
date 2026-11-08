@@ -35,7 +35,7 @@ export const STRINGS = {
     'st.launch': 'Si hoy empezamos, tu queso podría estar en tu almacén alrededor del',
     'st.launchNote': 'Estimado con los tiempos de nuestro proceso. La fecha real se confirma al cotizar.',
     'st.download': 'Descargar etiqueta', 'st.send': 'Enviar mi propuesta', 'st.ask': 'Preguntarle a la IA',
-    'st.tilt': 'Mueve el cursor sobre el queso',
+    'st.tilt': 'Mueve el cursor sobre el queso', 'st.live': 'Vista previa en vivo',
     'st.defaultBrand': 'Tu Marca', 'st.keep': 'Mantener refrigerado a 40 °F', 'st.madeFor': 'Hecho para', 'st.net': 'Peso neto',
 
     'cat.kicker': '03 · Los quesos', 'cat.title': '16 presentaciones listas para tu marca.',
@@ -46,7 +46,7 @@ export const STRINGS = {
     'cat.design': 'Diseñar con mi marca', 'cat.askAi': 'Preguntarle a la IA', 'cat.print': 'Imprimir ficha', 'cat.close': 'Cerrar',
     'cat.perCase': 'por caja', 'cat.perPallet': 'cajas por tarima',
 
-    'pt.kicker': '04 · La planta', 'pt.title': 'Así se hace, cuadro por cuadro.', 'pt.hint': 'Sigue deslizando: el video avanza contigo.',
+    'pt.kicker': '04 · La planta', 'pt.title': 'Así se hace, paso a paso.', 'pt.hint': 'Sigue bajando para ver cada paso.',
     'pt.people': 'Las manos detrás de tu marca',
     'pt.peopleText': 'Nuestro equipo trabaja bajo los más estrictos estándares de sanidad, con maquinaria de última generación y el oficio de quien ha hecho queso latino toda la vida.',
     'pt.q1': 'Creamos más que queso: creamos historias de éxito.',
@@ -123,7 +123,7 @@ export const STRINGS = {
     'st.launch': 'If we started today, your cheese could reach your warehouse around',
     'st.launchNote': 'Estimated from our process times. The real date is confirmed with your quote.',
     'st.download': 'Download label', 'st.send': 'Send my proposal', 'st.ask': 'Ask the AI',
-    'st.tilt': 'Move your cursor over the cheese',
+    'st.tilt': 'Move your cursor over the cheese', 'st.live': 'Live preview',
     'st.defaultBrand': 'Your Brand', 'st.keep': 'Keep refrigerated at 40 °F', 'st.madeFor': 'Made for', 'st.net': 'Net wt',
 
     'cat.kicker': '03 · The cheeses', 'cat.title': '16 SKUs ready for your brand.',
@@ -134,7 +134,7 @@ export const STRINGS = {
     'cat.design': 'Design with my brand', 'cat.askAi': 'Ask the AI', 'cat.print': 'Print spec sheet', 'cat.close': 'Close',
     'cat.perCase': 'per case', 'cat.perPallet': 'cases per pallet',
 
-    'pt.kicker': '04 · The plant', 'pt.title': 'How it’s made, frame by frame.', 'pt.hint': 'Keep scrolling: the video moves with you.',
+    'pt.kicker': '04 · The plant', 'pt.title': 'How it’s made, step by step.', 'pt.hint': 'Keep scrolling to see each step.',
     'pt.people': 'The hands behind your brand',
     'pt.peopleText': 'Our team works under the strictest sanitation standards, with state-of-the-art machinery and the craft of people who have made Latin cheese all their lives.',
     'pt.q1': 'We make more than cheese: we make success stories.',

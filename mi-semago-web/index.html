@@ -97,8 +97,8 @@
           </div>
         </div>
         <div class="hero__stage" id="heroStage" aria-hidden="true">
-          <div class="orbit" id="orbit"></div>
-          <div class="hero__knot"><img src="./img/ui/knot.png" alt="" /></div>
+          <div class="plate" aria-hidden="true"><i></i></div>
+          <div class="trio" id="heroTrio"></div>
           <div class="hero__ticket" id="heroTicket">
             <span class="hero__ticket-k">PRIVATE LABEL</span>
             <b id="heroTicketName">Tu Marca</b>
@@ -186,6 +186,7 @@
                 <div class="mock__shine" aria-hidden="true"></div>
               </div>
               <p class="mock__hint" data-i18n="st.tilt">Mueve el cursor sobre el queso</p>
+              <span class="mock__live"><i></i><span data-i18n="st.live">Vista previa en vivo</span></span>
             </div>
             <div class="calc">
               <div class="calc__cell"><b id="oUnits">0</b><span data-i18n="st.o.units">piezas / semana</span></div>
@@ -223,14 +224,14 @@
       </div>
     </section>
 
-    <!-- ───────── LA PLANTA (video cuadro por cuadro con el scroll) ───────── -->
+    <!-- ───────── LA PLANTA (video por capítulos que cambian con el scroll) ───────── -->
     <section class="plant" id="planta">
       <div class="plant__pin" id="plantPin">
-        <canvas id="plantCanvas" aria-label="Video de la planta de Mi Semago"></canvas>
+        <video id="plantVideo" class="plant__video" muted playsinline preload="none" poster="./video/planta.jpg" aria-label="Video de la planta de Mi Semago"><source src="./video/planta.mp4" type="video/mp4" /><source src="./video/planta.webm" type="video/webm" /></video>
         <div class="plant__shade" aria-hidden="true"></div>
         <div class="plant__head">
           <p class="kicker kicker--gold" data-i18n="pt.kicker">04 · La planta</p>
-          <h2 class="h2" data-i18n="pt.title">Así se hace, cuadro por cuadro.</h2>
+          <h2 class="h2" data-i18n="pt.title">Así se hace, paso a paso.</h2>
         </div>
         <div class="plant__chapter" id="plantChapter" aria-live="polite">
           <span class="plant__num" id="plantNum">01</span>
@@ -239,7 +240,7 @@
         </div>
         <ol class="plant__dots" id="plantDots" aria-hidden="true"></ol>
         <div class="plant__progress" aria-hidden="true"><i id="plantProgress"></i></div>
-        <p class="plant__hint" data-i18n="pt.hint">Sigue deslizando: el video avanza contigo.</p>
+        <p class="plant__hint" data-i18n="pt.hint">Sigue bajando para ver cada paso.</p>
       </div>
     </section>
 

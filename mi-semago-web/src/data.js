@@ -203,16 +203,16 @@ export const PROCESS = [
   { id: 'ship', days: [1, 5], name: { es: 'Envío refrigerado', en: 'Refrigerated shipping' }, dur: { es: '1 a 5 días según el estado', en: '1 to 5 days by state' }, text: { es: 'Recibes tu producto terminado, a 40 °F, con tu marca y calidad Mi Semago.', en: 'You receive the finished product at 40 °F, with your brand and Mi Semago quality.' } },
 ];
 
-// Capítulos del video de la planta (cuadro inicial a 4 cuadros por segundo).
+// Capítulos del video de la planta (public/video/planta.mp4): segundo en que empieza cada uno.
 export const PLANT_CHAPTERS = [
-  { from: 0, name: { es: 'La cuajada', en: 'The curd' }, text: { es: 'Todo empieza con leche pasteurizada que se vuelve cuajada, a mano y con paciencia.', en: 'It all starts with pasteurized milk turned into curd, by hand and with patience.' } },
-  { from: 9, name: { es: 'El hilado', en: 'The stretch' }, text: { es: 'El Oaxaca se estira en tiras largas, como se ha hecho siempre. Así se forma el hilo que se deshebra en tu cocina.', en: 'Oaxaca is stretched into long ribbons, the way it has always been done. That is the string you pull apart at home.' } },
-  { from: 26, name: { es: 'La bola', en: 'The ball' }, text: { es: 'Las tiras se enrollan en bolas y pasan a los carritos, listas para empacar.', en: 'The ribbons are wound into balls and loaded onto carts, ready to pack.' } },
-  { from: 38, name: { es: 'El empaque', en: 'Packing' }, text: { es: 'Cada pieza se empaca con la etiqueta de la marca que la va a vender. Puede ser la tuya.', en: 'Each piece is packed under the label of the brand that will sell it. It can be yours.' } },
-  { from: 54, name: { es: 'El moldeado', en: 'Molding' }, text: { es: 'El queso fresco se llena en moldes, cientos a la vez, sobre mesas de acero inoxidable.', en: 'Fresh cheese is filled into molds, hundreds at a time, on stainless steel tables.' } },
-  { from: 78, name: { es: 'El reposo', en: 'Resting' }, text: { es: 'Prensado y reposo en frío hasta que el queso toma su forma. Luego, a 40 °F hasta tu almacén.', en: 'Pressed and rested cold until it holds its shape. Then kept at 40 °F all the way to your warehouse.' } },
+  { at: 0, name: { es: 'La cuajada', en: 'The curd' }, text: { es: 'Todo empieza con leche pasteurizada que se vuelve cuajada, a mano y con paciencia.', en: 'It all starts with pasteurized milk turned into curd, by hand and with patience.' } },
+  { at: 2.25, name: { es: 'El hilado', en: 'The stretch' }, text: { es: 'El Oaxaca se estira en tiras largas, como se ha hecho siempre. Así se forma el hilo que se deshebra en tu cocina.', en: 'Oaxaca is stretched into long ribbons, the way it has always been done. That is the string you pull apart at home.' } },
+  { at: 6.5, name: { es: 'La bola', en: 'The ball' }, text: { es: 'Las tiras se enrollan en bolas y pasan a los carritos, listas para empacar.', en: 'The ribbons are wound into balls and loaded onto carts, ready to pack.' } },
+  { at: 9.5, name: { es: 'El empaque', en: 'Packing' }, text: { es: 'Cada pieza se empaca con la etiqueta de la marca que la va a vender. Puede ser la tuya.', en: 'Each piece is packed under the label of the brand that will sell it. It can be yours.' } },
+  { at: 13.5, name: { es: 'El moldeado', en: 'Molding' }, text: { es: 'El queso fresco se llena en moldes, cientos a la vez, sobre mesas de acero inoxidable.', en: 'Fresh cheese is filled into molds, hundreds at a time, on stainless steel tables.' } },
+  { at: 19.5, name: { es: 'El reposo', en: 'Resting' }, text: { es: 'Prensado y reposo en frío hasta que el queso toma su forma. Luego, a 40 °F hasta tu almacén.', en: 'Pressed and rested cold until it holds its shape. Then kept at 40 °F all the way to your warehouse.' } },
 ];
-export const PLANT_FRAMES = 96;
+export const PLANT_VIDEO_END = 24;
 
 export const FAQ = [
   { q: { es: '¿Cuánto tarda en salir mi marca al mercado?', en: 'How long until my brand is on the market?' }, a: { es: 'Cuatro semanas o menos: una semana de plática, de 3 a 5 días para la etiqueta, una semana de producción y de 1 a 5 días de envío según el estado.', en: 'Four weeks or less: one week of talks, 3 to 5 days for the label, one week of production and 1 to 5 days of shipping depending on the state.' } },
