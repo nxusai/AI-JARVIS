@@ -132,6 +132,13 @@
   - Revisados completos: audio igual de largo que el video y la voz se oye hasta "30 minutos".
 
 
+## Plan de lanzamiento (8 nov 2026)
+- Recomendado (falta que Eduardo autorice): MX $20 USD/día + NY $20 USD/día, prueba de 14 días sin tocar los primeros 7, medir por cita agendada.
+- Zonas MX que pidió: Zona Esmeralda, Roma Norte, Roma Sur, Santa Fe, Polanco, Lindavista, Clavería. Propuestas extra: Condesa, Juárez, Lomas de Chapultepec/Bosques/Interlomas, Ciudad Satélite, Del Valle, Coyoacán. Fuera Ecatepec y Ojo de Agua. Pines con el radio mínimo.
+- NY: arrancar con dueños hispanos (Manhattan, Queens, Bronx, norte de NJ) con los videos en español; versión en inglés después (Eduardo a cámara o recargar créditos).
+- Orden acordado: 1) arreglar ManyChat → `ads/prompt-chrome-manychat-v1.txt` (palabra exacta INFO, sin disparador por intención, pregunta de sucursales con botones antes del idioma, campo `sucursales`, etiqueta robot-autorespuesta, investigar Ads trigger y Conversions API sin conectar); 2) campaña MX; 3) campaña NY.
+- HQ ya acepta `fuente` (hasta 200 caracteres) y `anuncio_id`; `sucursales` se manda en el cuerpo pero HQ todavía no lo guarda (va dentro de `servicio` vía el AI Step).
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.

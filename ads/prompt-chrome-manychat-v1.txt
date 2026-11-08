@@ -1,0 +1,125 @@
+Eres mi experto en ManyChat. Soy Eduardo, dueño de NXUS AI. Vas a trabajar en mi cuenta de
+ManyChat "NXUS AI" (https://app.manychat.com), en mi Chrome, con mi sesión abierta. Yo te estoy viendo.
+
+POR QUÉ HACEMOS ESTO
+Una revisión de mis anuncios encontró que mi bot le está contestando a ROBOTS de otros negocios.
+El flujo "Filtro NXUS" arranca cuando un mensaje CONTIENE "INFO", y "infor-MACIÓN" lo contiene. Cuando la
+respuesta automática de otro negocio dice algo como "con gusto te damos más información", mi bot cree que es
+un cliente y le pregunta "¿En qué idioma prefieres?". Ya pasó con Elixires Aztecas, AmbarCenter, Médica San
+Francisco, Dr. Yayo y Alquiladora y Banquetes Tlalpan. Además, el disparador por "intención" también puede
+confundir esas respuestas automáticas con un cliente.
+Objetivo: que SOLO personas reales entren al filtro, que un robot nunca pueda pasar del primer mensaje, y
+dejar todo listo para saber de qué anuncio viene cada lead.
+
+REGLAS (obligatorias)
+- NO publiques: no des clic en "Set Live", "Publish" ni "Update" en ninguna automatización. Deja los cambios
+  como borrador. Yo reviso y publico.
+- Solo toca lo que dice este documento, en estas automatizaciones: "Filtro NXUS", "INFO comentarios" y, si
+  existen, "Filtro NXUS · Facebook" e "INFO comentarios · Facebook". No toques otras automatizaciones,
+  contactos, conversaciones, ajustes de la cuenta, pagos ni integraciones.
+- No borres pasos, campos (User Fields) ni etiquetas que ya existan. Puedes CREAR el campo y las etiquetas
+  que se piden aquí.
+- No cambies los textos de las preguntas, del permiso de llamada ni de los mensajes finales. No toques
+  los dos "Make External Request" (Aviso 1 a HQ y Aviso 2 a HQ) salvo agregar UNA línea al cuerpo, como se
+  indica en la Parte 3. Nunca escribas claves ni contraseñas; si ves el encabezado x-manychat-clave, no
+  lo toques.
+- No contestes, archives ni cierres conversaciones.
+- Copia los textos exactamente como vienen, con acentos y emojis.
+- Si algo no coincide con lo que ves, o ManyChat te pide confirmar algo que no está aquí, DETENTE y
+  pregúntame. No adivines.
+- Al terminar cada parte, dime en una o dos líneas qué hiciste.
+
+PARTE 0. FOTO DE CÓMO ESTÁ HOY (solo mirar)
+Abre Automation y anota, para "Filtro NXUS" (Instagram) y, si existe, "Filtro NXUS · Facebook":
+- Cada disparador (trigger): tipo, palabras clave y regla (Message is / contains / begins with), y si
+  hay uno de "Recognize intention of a message" (intención).
+- Cuál es el primer paso después de los disparadores.
+- Si está publicada (Live) o en borrador.
+Revisa también si existen y están prendidas (solo anota, no cambies):
+- Default Reply de Instagram y de Messenger (qué contesta y cada cuánto).
+- Welcome Message / Conversation Starters / Ice Breakers de Instagram y de Messenger.
+- Cualquier otra automatización con disparador de palabra clave que pueda contestar mensajes de DM.
+Muéstrame ese resumen antes de seguir.
+
+PARTE 1. LOS DISPARADORES: SOLO LA PALABRA EXACTA
+En "Filtro NXUS" (y en "Filtro NXUS · Facebook" si existe):
+1. Disparador de palabra clave: cambia la regla a "Message is" (el mensaje ES exactamente la palabra),
+   NO "contains" ni "begins with". Palabras: INFO. Si ManyChat distingue mayúsculas, agrega también
+   Info e info como variantes.
+2. Disparador "Recognize intention of a message": APÁGALO (o quítalo del flujo si no se puede apagar).
+   No lo borres de la cuenta si ManyChat lo guarda aparte. Explícame qué hiciste.
+3. No cambies nada de "INFO comentarios": esa entra cuando una persona toca un botón, y eso un robot
+   no lo puede hacer.
+
+PARTE 2. LA PUERTA: UNA PREGUNTA CON BOTONES QUE UN ROBOT NO PUEDE CONTESTAR
+1. Crea un User Field nuevo, tipo Text, llamado: sucursales
+2. En "Filtro NXUS", justo después de la Condición "fuente is unknown" y del paso de Actions (canal y
+   fuente), y ANTES del mensaje de idioma, agrega un mensaje de Instagram (Send Message) con este texto:
+
+¡Hola! 👋 Soy el asistente de NXUS AI. Para ayudarte mejor, ¿cuántas sucursales o ubicaciones tiene tu negocio?
+
+Hi! 👋 How many locations does your business have?
+
+   Con un Data Collection:
+   - Reply Type: Multiple Choice
+   - Opciones (con el + Quick Reply que pertenece al Data Collection): 1   ·   2 a 5   ·   6 o más
+   - "Also allow free text input": DESACTIVADO
+   - Save Response to a Custom Field: sucursales
+   - Retry message: Toca una opción 👇 / Tap an option 👇
+   - Data Collection expires in: 23 horas (o lo más alto debajo de 24 h)
+   - Si hay botón "Skip", quítalo. Si no se puede quitar, avísame.
+3. Conecta: el camino que hoy llega al mensaje de idioma ahora llega a este mensaje, y el "Next Step" de
+   este mensaje va al mensaje de idioma. Revisa que las dos salidas de la Condición "fuente is unknown"
+   (la que pasa por Actions y la que no) terminen en este mensaje nuevo, no en el de idioma.
+4. Si existe "Filtro NXUS · Facebook", haz lo mismo con un mensaje de Messenger (mismo texto y opciones).
+
+PARTE 3. QUE LA IA Y HQ SEPAN CUÁNTAS SUCURSALES TIENE
+1. Abre el AI Step, edita Context (lápiz) y agrega al final esta línea, insertando la variable
+   sucursales con el botón {·}:
+   - The business has this many locations: {{sucursales}}. Start the summary you save to servicio with "Sucursales: {{sucursales}} · ".
+   No cambies Goal ni las tareas.
+2. En "Aviso 1 a HQ" y "Aviso 2 a HQ" (Make External Request), en el cuerpo JSON agrega UNA línea, antes de
+   "completo", insertando la variable con el selector de variables:
+   "sucursales": "{{sucursales}}",
+   No cambies nada más de esas dos peticiones (ni la URL, ni el encabezado, ni el mapeo de respuesta).
+3. Lo mismo en "Filtro NXUS · Facebook" si existe.
+
+PARTE 4. ETIQUETA PARA LOS ROBOTS QUE SE CUELEN
+1. Crea la etiqueta (Tag): robot-autorespuesta
+2. En el mensaje nuevo de sucursales, si ManyChat permite una acción cuando la persona NO elige una opción
+   (por ejemplo, cuando el Data Collection expira o falla el reintento), haz que ponga la etiqueta
+   robot-autorespuesta. Si ManyChat no lo permite, no inventes nada: solo dime qué opciones hay.
+
+PARTE 5. ANUNCIOS: CÓMO SABER QUÉ ANUNCIO TRAJO A CADA QUIEN (solo investigar, no crear)
+Mis próximos anuncios serán de mensajes (Messenger + Instagram) en Meta Ads, con 3 videos: A, B y C.
+Quiero que cada lead quede marcado con su anuncio (por ejemplo, fuente = "Anuncio · Video A") y que el
+saludo con botones del anuncio lo maneje ManyChat. Investiga en mi cuenta, SIN crear nada:
+- Si existe el disparador de anuncios ("Ads trigger" / "Facebook Ads" / "Instagram Ads" / "JSON
+  growth tool") para Messenger y para Instagram, y dónde está.
+- Cómo se conecta con un anuncio de Ads Manager (JSON que se pega en el anuncio, elegir el anuncio desde
+  ManyChat, plantilla de mensaje, etc.), con qué objetivos de campaña funciona y si sirve para un anuncio
+  nuevo antes de publicarlo.
+- Si cada anuncio necesita su propia automatización.
+Dime en pasos claros cómo lo haríamos. Los armamos en el siguiente paso, junto con la campaña.
+
+PARTE 6. AVISAR A META CUÁNDO UN LEAD ES BUENO (solo revisar, no conectar)
+Ve a Settings y busca la sección de Meta Conversions API / Ads Optimization / "Send event to Meta".
+Dime: si existe, si está conectada, qué Dataset/Pixel usa, qué eventos manda (por ejemplo LeadSubmitted o
+Purchase) y en qué momento los manda (¿automático al guardar teléfono o correo?). NO conectes nada ni
+cambies ajustes: si pide permisos o iniciar sesión en Meta, detente y avísame.
+
+PARTE 7. PRUEBA (conmigo)
+Con los cambios aún en borrador, dime cómo puedo probarlo sin publicar (vista previa o "Preview" de
+ManyChat, si existe). Si solo se puede probar publicado, dímelo y no publiques: yo decido.
+La prueba que quiero hacer después:
+- Escribir "Hola, quiero más información" → NO debe arrancar el filtro.
+- Escribir "INFO" → SÍ debe arrancar y mostrar la pregunta de sucursales con botones.
+- Contestar con texto en vez de tocar un botón → debe pedir "Toca una opción 👇" y no avanzar.
+
+PARTE 8. TU INFORME
+En español, corto:
+1. Cómo estaba (Parte 0) y qué cambiaste en cada automatización.
+2. Lo que no pudiste hacer o que se veía distinto.
+3. Lo que encontraste de anuncios (Parte 5) y de Conversions API (Parte 6).
+4. Qué tengo que revisar y publicar yo (lista de automatizaciones con cambios en borrador).
+Luego espera mis instrucciones.
