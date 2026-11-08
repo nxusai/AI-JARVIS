@@ -32,8 +32,17 @@ import { runJob } from './routines.mjs'
  * for the owner's tap like any invitation) — goes to NEX as a job, the way a
  * routine does.
  *
- *   ~/.nexy/ventas.json         { sheetUrl, token, agentId, phoneId }
+ *   ~/.nexy/ventas.json         { sheetUrl, token, agentId, phoneId, fuente, centroUrl, centroKey }
  *   ~/.nexy/ventas-estado.json  what happened to each lead so far
+ *
+ * The leads can come from the Sheet (fuente "sheet", the first way) or from
+ * the client's work center (fuente "centro": the Centro de trabajo Mi Semago ·
+ * Abuelito, its "leads" table in Supabase, reached with its service key). With
+ * the work center, ManyChat only asks name, business, city, the time to call
+ * and the written permission; Ana Sofi gets the rest on the call (email,
+ * cheeses, pounds, rating), so everyone who gave the written permission is
+ * called (US numbers only), and the owner hears about meetings by phone: when
+ * one is booked, in the morning of a day with one, and an hour before it.
  */
 
 const DIR = join(homedir(), '.nexy')
@@ -97,8 +106,14 @@ export function readSalesConfig() {
     // moved, cancelled) and the 8:00 call rings only on days with one.
     // 'todo': every lead, call and outcome, as before.
     avisos: c.avisos === 'todo' ? 'todo' : 'meetings',
+    fuente: c.fuente === 'centro' ? 'centro' : 'sheet',
+    centroUrl: String(c.centroUrl ?? '').trim().replace(/\/+$/, ''),
+    centroKey: String(c.centroKey ?? '').trim(),
   }
 }
+
+/** The leads live in the work center (not the Sheet). */
+export const fromCentro = (cfg = readSalesConfig()) => cfg.fuente === 'centro'
 
 /** Only meetings reach the owner (see avisos above). */
 const quiet = () => readSalesConfig().avisos !== 'todo'
@@ -110,8 +125,13 @@ export function writeSalesConfig(next) {
 /** What is still missing before Ana Sofi can work, in words for the owner. */
 export function salesMissing(cfg = readSalesConfig()) {
   const out = []
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(cfg.sheetUrl)) out.push('el link del Sheet')
-  if (cfg.token.length < 24) out.push('la llave del Sheet')
+  if (fromCentro(cfg)) {
+    if (!/^https:\/\/[\w-]+\.supabase\.co$/.test(cfg.centroUrl)) out.push('el Project URL del Centro de trabajo')
+    if (cfg.centroKey.length < 30) out.push('la llave del Centro de trabajo')
+  } else {
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(cfg.sheetUrl)) out.push('el link del Sheet')
+    if (cfg.token.length < 24) out.push('la llave del Sheet')
+  }
   if (!/^agent_\w+$/.test(cfg.agentId)) out.push('el Agent ID de Ana Sofi')
   if (!/^phnum_\w+$/.test(cfg.phoneId)) out.push('el Phone number ID de Ana Sofi')
   return out
@@ -176,8 +196,12 @@ export function leadFrom(raw) {
   return lead
 }
 
-/** caliente or medio: the leads the funnel told "una asesora te va a llamar". */
-export const wantsCall = (lead) => /caliente|medio/.test(fold(lead.calificacion))
+/**
+ * Who asked to be called. From the Sheet: rated caliente or medio (the leads
+ * the funnel told "una asesora te va a llamar"). From the work center: gave
+ * the written permission in the chat (the rating comes later, from the call).
+ */
+export const wantsCall = (lead) => (lead.centro ? lead.permiso === true && lead.etapa !== 'no_llamar' : /caliente|medio/.test(fold(lead.calificacion)))
 
 /** A US or Canadian number in E.164, or null for anything else. */
 export function usPhone(raw) {
@@ -213,12 +237,28 @@ export async function sheetVersion(cfg = readSalesConfig()) {
 }
 
 export async function readLeads(cfg = readSalesConfig()) {
+  if (fromCentro(cfg)) {
+    const rows = await centro(cfg, '/rest/v1/leads?select=*&order=creado.asc&limit=2000')
+    return (rows ?? []).map(leadFromCentro)
+  }
   const data = await sheetCall(cfg, { action: 'leads' })
   return (data.rows ?? []).map(leadFrom).filter((l) => Number.isInteger(l.row) && l.row >= 2)
 }
 
-/** Write NEX's columns on one lead's row; the script checks the row is still that lead. */
-async function writeLead(cfg, lead, fields) {
+/**
+ * Write what NEX learned about a lead. To the Sheet: its own columns (the
+ * script checks the row is still that lead). To the work center: the fields
+ * given as `centroPatch` (columns of "leads"), and `nota` as a note signed by
+ * Ana Sofi.
+ */
+async function writeLead(cfg, lead, fields, centroPatch) {
+  if (fromCentro(cfg)) {
+    if (!centroPatch || !lead.id) return
+    const { nota, ...patch } = centroPatch
+    if (Object.keys(patch).length) await centro(cfg, `/rest/v1/leads?id=eq.${encodeURIComponent(lead.id)}`, { method: 'PATCH', body: patch })
+    if (nota) await centro(cfg, '/rest/v1/leads_notas', { method: 'POST', body: { lead_id: lead.id, texto: String(nota).slice(0, 2000), autor_nombre: 'Ana Sofi' } })
+    return
+  }
   await sheetCall(cfg, {
     action: 'update',
     row: lead.row,
@@ -226,6 +266,82 @@ async function writeLead(cfg, lead, fields) {
     fields: JSON.stringify(fields),
   })
 }
+
+// ── the work center (Centro de trabajo Mi Semago · Abuelito) ─────────────
+
+/** Ask the work center's database, with its service key (it only ever reaches the leads tables). */
+export async function centro(cfg, path, { method = 'GET', body, prefer } = {}) {
+  const key = cfg.centroKey
+  const res = await fetch(`${cfg.centroUrl}${path}`, {
+    method,
+    headers: {
+      apikey: key,
+      ...(/^eyJ/.test(key) ? { authorization: `Bearer ${key}` } : {}),
+      'content-type': 'application/json',
+      ...(prefer ? { prefer } : method === 'POST' ? { prefer: 'return=representation' } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  })
+  const text = await res.text()
+  let data = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = text
+  }
+  if (!res.ok) throw new Error(`the work center refused (${res.status}): ${String(data?.message ?? text).slice(0, 200)}`)
+  return data
+}
+
+const ETAPA_TEXTO = {
+  nuevo: '',
+  programada: 'Llamada programada',
+  no_contesto: 'No contestó',
+  hablo: 'Ya habló con Ana Sofi',
+  meet: 'Videollamada agendada',
+  cerrado: 'Cerrado',
+  no_califica: 'No califica',
+  no_llamar: 'No llamar',
+}
+
+/** One "leads" row of the work center, with the same field names as a Sheet row. */
+export function leadFromCentro(r, i = 0) {
+  const meet = r.meet_inicio ? Date.parse(r.meet_inicio) : 0
+  return {
+    centro: true,
+    row: i + 2,
+    id: r.id,
+    contacto: r.id,
+    key: `id:${r.id}`,
+    nombre: r.nombre ?? '',
+    empresa: r.negocio ?? '',
+    telefono: r.telefono ?? '',
+    correo: r.correo ?? '',
+    idioma: r.idioma === 'en' ? 'English' : 'Español',
+    tipo: r.tipo_negocio ?? '',
+    ciudad: r.ciudad ?? '',
+    quesos: r.quesos ?? '',
+    libras: r.libras ?? '',
+    frecuencia: r.frecuencia ?? '',
+    marca: r.marca_propia ?? '',
+    horario: r.hora_pedida ?? '',
+    calificacion: r.calificacion ?? '',
+    permiso: r.permiso_llamada === true,
+    etapa: r.etapa,
+    estado: ETAPA_TEXTO[r.etapa] ?? r.etapa,
+    llamada: r.llamada_programada ? when(Date.parse(r.llamada_programada), validZone(r.zona) ? r.zona : OWNER_ZONE_MEETINGS) : '',
+    resultado: '',
+    reunion: meet ? `${when(meet, OWNER_ZONE_MEETINGS)}${r.meet_link ? ` · ${r.meet_link}` : ''}` : '',
+    meetInicio: meet,
+    meetLink: r.meet_link ?? '',
+    notas: [r.precios && `Precios: ${r.precios}`, r.resumen].filter(Boolean).join('\n'),
+    intentos: r.intentos ?? 0,
+  }
+}
+
+const iso = (ms) => (ms ? new Date(ms).toISOString() : null)
+const isEmail = (v) => /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(String(v ?? '').trim())
 
 // ── time ─────────────────────────────────────────────────────────────────
 
@@ -389,7 +505,23 @@ async function callOutcome(key, entry) {
     let resultado = fold(valueOf(dc, 'resultado')).replace(/\s+/g, '_')
     if (!OUTCOMES[resultado]) resultado = secs < 20 ? 'no_contesto' : 'otro'
     const accepted = valueOf(dc, 'precio_aceptado')
+    const get = (k) => String(valueOf(dc, k) ?? '').trim()
+    const turns = Array.isArray(c.data.transcript) ? c.data.transcript : []
     return {
+      // What Ana Sofi gets on the call when the leads come from the work center
+      // (empty when her agent does not collect it yet).
+      nombre: get('nombre'),
+      correo: get('correo'),
+      tipoNegocio: get('tipo_negocio'),
+      quesos: get('quesos'),
+      frecuencia: get('frecuencia'),
+      marcaPropia: get('marca_propia'),
+      calificacion: /caliente|medio|frio/.exec(fold(get('calificacion')))?.[0] ?? '',
+      resumen: String(c.data.analysis?.transcript_summary ?? '').trim(),
+      transcripcion: turns
+        .map((t) => `${t.role === 'agent' ? 'Ana Sofi' : 'Cliente'}: ${String(t.message ?? '').trim()}`)
+        .filter((l) => !/:\s*$/.test(l))
+        .join('\n'),
       resultado,
       conversationId: convId,
       videollamada: String(valueOf(dc, 'videollamada') ?? '').trim(),
@@ -439,7 +571,7 @@ function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
   const intro =
     why === 'callback'
       ? `A lead asked Ana Sofi, on her call, to be called again later. When they asked for: "${lead.llamarDespues ?? ''}" (said on the call, ${when(seenAt, ownerZone)} in the owner's zone).`
-      : `A new qualified lead came in through the Mi Semago WhatsApp funnel and asked to be called. It reached the Sheet around ${when(seenAt, ownerZone)} (owner's zone).`
+      : `A new lead came in through the Mi Semago WhatsApp funnel and asked to be called. It reached NEX around ${when(seenAt, ownerZone)} (owner's zone).`
   return (
     JOB_HEADER +
     `${intro}\n\n<lead>\n${leadData(lead)}\n</lead>\n\n` +
@@ -460,7 +592,7 @@ function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
 function meetingJob(lead, outcome, horarios) {
   return (
     JOB_HEADER +
-    'Ana Sofi just finished a call: the lead ACCEPTED the price and chose a video call with the owner (the head of sales).\n\n' +
+    'Ana Sofi just finished a call: the lead chose a video call with the owner (the head of sales), after hearing the prices.\n\n' +
     `<lead>\n${leadData(lead)}\nslot they chose (as said on the call): ${outcome.videollamada}\n` +
     `slots that were offered: ${horarios || '-'}\nprices discussed: ${outcome.precioOfrecido || '-'}\n` +
     `pounds confirmed: ${outcome.volumen || '-'}\ninterest: ${outcome.interes || '-'}\ncall notes: ${outcome.notas || '-'}\n</lead>\n\n` +
@@ -470,12 +602,12 @@ function meetingJob(lead, outcome, horarios) {
     `"Mi Semago · ${(lead.empresa || lead.nombre || 'cliente').replace(/"/g, '')} · videollamada", a Google Meet link, the lead's email as attendee ` +
     '(only if it is a real address), sendUpdates "all", and in the description the lead\'s details, the prices discussed and the call notes. ' +
     'It goes out at once: the lead was promised this meeting on the call, so it is not held for the owner.\n' +
-    '3. Then call log_sales_meeting with contacto_id, cuando (the day and time in words, Eastern) and link (the Meet link).\n' +
-    `4. If the meeting is TODAY (Eastern), phone the owner right away with call_me (no time, so it rings now). Message, in Spanish, spoken: ` +
-    '"Boss tiene un meeting hoy a las …" with the time, the company, who they are, the pounds, the cheeses, the prices agreed and anything from the call ' +
-    'they should know, so they are ready.\n' +
+    '3. Then call log_sales_meeting with contacto_id, cuando (the day and time in words, Eastern), inicio (the start as YYYY-MM-DDTHH:MM, Eastern) and link (the Meet link).\n' +
+    `4. Phone the owner right away with call_me (no time, so it rings now): the owner wants every new meeting by phone. Message, in Spanish, spoken: ` +
+    '"Boss, Ana Sofi te agendó un meeting el … a las …" with the day and time, the company, who they are, the pounds, the cheeses, the prices discussed and anything from the call ' +
+    'they should know.\n' +
     '5. If the slot is no longer free or the email is missing: create nothing, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
-    'Report: company, pounds, prices agreed, the meeting time, and that the invitation went out.'
+    'Report: company, pounds, prices discussed, the meeting time, and that the invitation went out.'
   )
 }
 
@@ -599,7 +731,7 @@ export function startSales({ elevenKey, zone }) {
   }
   const eyes = setInterval(look, LIVE_MS)
   eyes.unref?.()
-  console.log('[jarvis] ventas Mi Semago on: Ana Sofi calls the leads in the Sheet')
+  console.log(`[jarvis] ventas Mi Semago on: Ana Sofi calls the leads in ${fromCentro() ? 'the Centro de trabajo' : 'the Sheet'}`)
 }
 
 export async function salesTick({ elevenKey, zone }) {
@@ -619,6 +751,8 @@ export async function salesTick({ elevenKey, zone }) {
     }
     writeState(state)
   }
+
+  if (fromCentro(cfg)) meetingReminders(leads, now)
 
   try {
     await whatsappTick({ cfg, leads, state, zone, now })
@@ -655,7 +789,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
         state[lead.key] = { stage: 'fuera', row: lead.row }
         writeState(state)
         tell(`📋 Lead nuevo de Mi Semago con número fuera de EE.UU.: ${lead.nombre || '-'} (${lead.empresa || '-'}), ${lead.telefono || 'sin número'}. Ana Sofi no lo llama; quedó en el Sheet.`)
-        await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' })
+        await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' }, { etapa: 'no_califica', nota: `Su número (${lead.telefono || 'vacío'}) no es de EE.UU.: Ana Sofi no lo llama. Hay que llamarle a mano.` })
         return
       }
       const handed = routine('Ana Sofi · lead nuevo', scheduleJob(lead, now, zone), `📋 Lead nuevo de Mi Semago: ${lead.empresa || lead.nombre || 'sin nombre'}. Programo la llamada de Ana Sofi.`)
@@ -665,7 +799,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
       }
       state[lead.key] = { stage: 'nuevo', row: lead.row, since: now, jobAt: now, jobTries: 1, attempts: 0 }
       writeState(state)
-      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — NEX programa la llamada' })
+      await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Nuevo — NEX programa la llamada' }, {})
       return
     }
     if (!s) return
@@ -681,7 +815,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
       } else {
         s.stage = 'atorado'
         writeState(state)
-        await writeLead(cfg, lead, { Estado: 'Sin programar — revisar' })
+        await writeLead(cfg, lead, { Estado: 'Sin programar — revisar' }, { nota: 'No pude programar la llamada. Hay que revisarlo.' })
         tell(`⚠️ No pude programar la llamada de Ana Sofi para ${lead.empresa || lead.nombre || 'un lead'} de Mi Semago. Quedó marcado en el Sheet para revisarlo.`)
       }
       return
@@ -710,36 +844,92 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
       const phone = usPhone(lead.telefono)
       const booked = phone && (await bookCall({ key, cfg, lead, phone, at, zona: s.zona, horarios: s.horarios, attempt: (s.attempts ?? 1) + 1 }))
       if (booked?.id) {
+        const tried = s.at
         Object.assign(s, { batchId: booked.id, at, attempts: (s.attempts ?? 1) + 1 })
-        await writeLead(cfg, lead, { Estado: 'No contestó — segundo intento', 'Llamada programada': when(at, s.zona) })
+        await writeLead(cfg, lead, { Estado: 'No contestó — segundo intento', 'Llamada programada': when(at, s.zona) }, { etapa: 'no_contesto', intentos: s.attempts - 1, ultima_llamada: iso(tried), llamada_programada: iso(at), llamada_estado: 'termino' })
         return
       }
     }
     s.stage = 'cerrado'
-    await writeLead(cfg, lead, { Estado: 'No contestó', Resultado: label })
+    await writeLead(cfg, lead, { Estado: 'No contestó', Resultado: label }, { etapa: 'no_contesto', intentos: s.attempts ?? 1, ultima_llamada: iso(s.at), llamada_programada: null, llamada_estado: 'termino', nota: `No contestó después de ${s.attempts ?? 1} llamada(s). Ana Sofi ya no le vuelve a llamar.` })
     tell(`📞 Ana Sofi no localizó a ${who} (Mi Semago) después de ${s.attempts ?? 1} intento(s). Quedó en el Sheet.`)
     return
   }
 
-  await writeLead(cfg, lead, { Resultado: details ? `${label} · ${details}` : label, Notas: notes.slice(0, 1800) })
+  // What the call told us, for the lead's card in the work center.
+  const datos = {
+    intentos: s.attempts ?? 1,
+    ultima_llamada: iso(s.at),
+    llamada_programada: null,
+    llamada_estado: 'termino',
+    resumen: [outcome.notas, outcome.resumen && outcome.resumen !== outcome.notas ? outcome.resumen : ''].filter(Boolean).join('\n\n').slice(0, 4000),
+    ...(outcome.transcripcion ? { transcripcion: outcome.transcripcion.slice(0, 60000) } : {}),
+    ...(outcome.precioOfrecido ? { precios: outcome.precioOfrecido.slice(0, 500) } : {}),
+    ...(outcome.volumen ? { libras: outcome.volumen.slice(0, 120) } : {}),
+    ...(outcome.calificacion ? { calificacion: outcome.calificacion } : {}),
+    ...(outcome.tipoNegocio ? { tipo_negocio: outcome.tipoNegocio.slice(0, 200) } : {}),
+    ...(outcome.quesos ? { quesos: outcome.quesos.slice(0, 300) } : {}),
+    ...(outcome.frecuencia ? { frecuencia: outcome.frecuencia.slice(0, 120) } : {}),
+    ...(outcome.marcaPropia ? { marca_propia: outcome.marcaPropia.slice(0, 200) } : {}),
+    ...(isEmail(outcome.correo) ? { correo: outcome.correo.toLowerCase() } : {}),
+    ...(outcome.nombre && !lead.nombre ? { nombre: outcome.nombre.slice(0, 80) } : {}),
+  }
+  if (isEmail(outcome.correo)) lead.correo = outcome.correo.toLowerCase()
+  if (outcome.nombre && !lead.nombre) lead.nombre = outcome.nombre
+  const etapa =
+    outcome.resultado === 'no_interesado' || outcome.calificacion === 'frio' ? 'no_califica' : outcome.resultado === 'llamar_despues' ? 'programada' : 'hablo'
+  await writeLead(cfg, lead, { Resultado: details ? `${label} · ${details}` : label, Notas: notes.slice(0, 1800) }, { ...datos, etapa })
 
   if (outcome.resultado === 'videollamada_agendada' && outcome.videollamada) {
     Object.assign(s, { stage: 'reunion_pendiente', correo: String(lead.correo ?? '').trim().toLowerCase(), meetingSince: now })
-    await writeLead(cfg, lead, { Estado: 'Aceptó precio — agendando videollamada' })
-    // The one thing the owner always hears about: its report is the meeting notice.
-    const handed = runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), quiet() ? '' : `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. La agendo y te aviso.`)
-    if (!handed) tell(`🎉 ${who} aceptó el precio y eligió videollamada: ${outcome.videollamada}. Agéndala tú; no pude prepararla.`, { meeting: true })
+    await writeLead(cfg, lead, { Estado: 'Aceptó precio — agendando videollamada' }, { etapa: 'hablo', nota: `Quiere videollamada con Eduardo: ${outcome.videollamada}. NEX la agenda.` })
+    // The one thing the owner always hears about: with the work center, by phone (the job calls them), not Telegram.
+    const handed = fromCentro(cfg)
+      ? runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), undefined, { silent: true })
+      : runJob('Ana Sofi · videollamada', 'mi-semago', meetingJob(lead, outcome, s.horarios), quiet() ? '' : `🎉 ${who} aceptó el precio de Mi Semago y eligió videollamada contigo: ${outcome.videollamada}. La agendo y te aviso.`)
+    if (!handed) tell(`🎉 ${who} eligió videollamada: ${outcome.videollamada}. Agéndala tú; no pude prepararla.`, { meeting: true })
     return
   }
   if (outcome.resultado === 'llamar_despues' && outcome.llamarDespues) {
     Object.assign(s, { stage: 'callback', since: now, jobAt: now, jobTries: 1, llamarDespues: outcome.llamarDespues, attempts: 0 })
-    await writeLead(cfg, lead, { Estado: 'Pidió otra llamada — reprogramando' })
+    await writeLead(cfg, lead, { Estado: 'Pidió otra llamada — reprogramando' }, { nota: `Pidió que le llamen otra vez: ${outcome.llamarDespues}.` })
     routine('Ana Sofi · reprogramar', scheduleJob({ ...lead, llamarDespues: outcome.llamarDespues }, now, zone, 'callback'))
     return
   }
   s.stage = 'cerrado'
-  await writeLead(cfg, lead, { Estado: label })
+  await writeLead(cfg, lead, { Estado: label }, {})
   tell(`📞 Llamada de Ana Sofi con ${who} (Mi Semago): ${label}${details ? ` · ${details}` : ''}.${outcome.notas ? `\n${outcome.notas.slice(0, 600)}` : ''}`)
+}
+
+// ── an hour before each meeting ──────────────────────────────────────────
+
+const REMINDERS_FILE = join(DIR, 'ventas-recordatorios.json')
+
+/**
+ * The owner gets a phone call about an hour before each video call booked
+ * through the work center (the morning call covers the day). Each meeting is
+ * called about once: what was called is remembered by lead and start time.
+ */
+export function meetingReminders(leads, now = Date.now()) {
+  const done = readJson(REMINDERS_FILE, {})
+  for (const l of leads) {
+    if (l.etapa !== 'meet' || !l.meetInicio) continue
+    const id = `${l.id}@${l.meetInicio}`
+    const left = l.meetInicio - now
+    if (done[id] || left > 70 * 60_000 || left < 10 * 60_000) continue
+    done[id] = now
+    writeJson(REMINDERS_FILE, done) // noted first, so a crash never phones twice
+    const job =
+      JOB_HEADER +
+      'A video call with a Mi Semago lead starts in about an hour. Phone the owner now with call_me (no time, so it rings now) to remind them.\n\n' +
+      `<lead>\n${leadData(l)}\nmeeting: ${when(l.meetInicio, OWNER_ZONE_MEETINGS)} (Eastern)\nprices discussed and call notes: ${l.notas || '-'}\n</lead>\n\n` +
+      'The message, in Spanish, spoken, under a minute: "Boss, en una hora tienes tu meeting con …" with the time, the company and who they are, ' +
+      'what they buy (cheeses, pounds, how often, own brand), the prices discussed and anything from the call they should know. ' +
+      'Tell them the Google Meet link is in their calendar and in the Centro de trabajo, in Leads. Do not read the link out.\n\n' +
+      'Report: one line.'
+    runJob('Ana Sofi · meeting en una hora', 'mi-semago', job, undefined, { silent: true })
+  }
+  for (const [k, t] of Object.entries(done)) if (now - t > 3 * 24 * 60 * 60_000) delete done[k]
 }
 
 // ── calls as they happen ─────────────────────────────────────────────────
@@ -1029,7 +1219,7 @@ function changeJob(lead, kind, horario, correo, resumen, via = 'call') {
       ? '3. Move that event there (update-event, sendUpdates "all", same Meet link). It goes out at once, without the owner\'s tap.\n'
       : `3. Create the event: one hour, title "Mi Semago · ${clean(lead.empresa || lead.nombre || 'cliente')} · videollamada", a Google Meet link, their email as guest, ` +
         'sendUpdates "all", and their details and the call summary in the description. It goes out at once, without the owner\'s tap.\n') +
-    '4. Call log_sales_meeting with contacto_id, cuando (day and time in words, Eastern) and link.\n' +
+    '4. Call log_sales_meeting with contacto_id, cuando (day and time in words, Eastern), inicio (YYYY-MM-DDTHH:MM, Eastern) and link.\n' +
     '5. If the new time is TODAY (Eastern), phone the owner now with call_me: "Boss tiene un meeting hoy a las …" and everything to be ready.\n' +
     'If nothing is free that week or there is no email, change nothing and say what is needed.\n\n' +
     `Report: who ${via === 'whatsapp' ? 'wrote' : 'called'}, what they asked, and the new meeting time.`
@@ -1079,7 +1269,7 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
     // The invitation this produces goes out without the owner's tap (salesMeetingInvite).
     Object.assign(s, { stage: 'reunion_pendiente', correo: correo || String(lead.correo ?? '').trim().toLowerCase(), meetingSince: now })
     writeState(state)
-    await writeLead(cfg, lead, { Estado: tipo === 'cambio_reunion' ? 'Pidió cambiar la videollamada' : 'Pidió videollamada', Notas: notes })
+    await writeLead(cfg, lead, { Estado: tipo === 'cambio_reunion' ? 'Pidió cambiar la videollamada' : 'Pidió videollamada', Notas: notes }, { ...(correo ? { correo } : {}), nota: `Llamó a Ana Sofi: ${tipo === 'cambio_reunion' ? 'quiere mover su videollamada' : 'quiere videollamada'} (${horario}). ${resumen}`.trim() })
     const ok = runJob(
       'Ana Sofi · cambio de videollamada',
       'mi-semago',
@@ -1092,12 +1282,12 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
   if (tipo === 'cancelar_reunion') {
     s.stage = 'cerrado'
     writeState(state)
-    await writeLead(cfg, lead, { Estado: 'Canceló la videollamada', Notas: notes })
+    await writeLead(cfg, lead, { Estado: 'Canceló la videollamada', Notas: notes }, { etapa: 'hablo', meet_inicio: null, meet_link: '', nota: `Llamó y canceló su videollamada. ${resumen}`.trim() })
     const ok = runJob('Ana Sofi · videollamada cancelada', 'mi-semago', cancelJob(lead, resumen), `📞 ${who} canceló su videollamada. La marco en tu calendario.`)
     if (!ok) tell(`📞 ${who} canceló su videollamada.${resumen ? ` ${resumen.slice(0, 400)}` : ''}`, { meeting: true })
     return
   }
-  await writeLead(cfg, lead, { Notas: notes })
+  await writeLead(cfg, lead, { Notas: notes }, { ...(correo ? { correo } : {}), nota: `Llamó a Ana Sofi. ${resumen}`.trim() })
   tell(`📞 ${who} llamó a Ana Sofi.${resumen ? `\n${resumen.slice(0, 700)}` : ''}`)
 }
 
@@ -1109,6 +1299,7 @@ async function handleInbound({ cfg, conv, leads, state, zone, now }) {
  * takes note of what is already there.
  */
 export async function whatsappTick({ cfg, leads, state, zone, now }) {
+  if (fromCentro(cfg)) return // the work center has no Solicitud / Nuevo horario columns (yet)
   const seen = readJson(WHATSAPP_FILE, {})
   const sig = (l) => [l.solicitud, l.nuevoHorario, l.motivo].map((v) => String(v ?? '').trim()).join(' | ')
   if (!seen.__desde) {
@@ -1266,7 +1457,7 @@ export function salesServer(elevenKey, zone) {
             return refuse(`The Sheet could not be read: ${err.message}`)
           }
           if (!lead) return refuse('That lead is not in the Sheet. Only leads from the Sheet can be called.')
-          if (!wantsCall(lead)) return refuse('That lead was not rated caliente or medio, so they were not promised a call.')
+          if (!wantsCall(lead)) return refuse(lead.centro ? 'That lead did not give the written permission to be called.' : 'That lead was not rated caliente or medio, so they were not promised a call.')
           const phone = usPhone(lead.telefono)
           if (!phone) return refuse('That lead has no US phone number in the Sheet; Ana Sofi does not call it.')
 
@@ -1290,7 +1481,7 @@ export function salesServer(elevenKey, zone) {
           state[lead.key] = { ...(prev ?? {}), stage: 'programada', row: lead.row, batchId: booked.id, at, zona: args.zona, horarios: args.horarios_videollamada, attempts: 1 }
           writeState(state)
           try {
-            await writeLead(cfg, lead, { Estado: 'Llamada programada', 'Llamada programada': when(at, args.zona) })
+            await writeLead(cfg, lead, { Estado: 'Llamada programada', 'Llamada programada': when(at, args.zona) }, { etapa: 'programada', llamada_programada: iso(at), llamada_estado: '', zona: args.zona })
           } catch (err) {
             console.log(`[jarvis] ventas: booked but the Sheet was not updated: ${err.message}`)
           }
@@ -1304,9 +1495,10 @@ export function salesServer(elevenKey, zone) {
         {
           contacto_id: z.string().describe('The lead\'s Contacto ID.'),
           cuando: z.string().max(120).describe('Day and time of the video call, in words, Eastern time.'),
+          inicio: z.string().optional().describe('When it starts, YYYY-MM-DDTHH:MM in Eastern time (America/New_York). Needed for the reminder call an hour before.'),
           link: z.string().max(200).optional().describe('The Google Meet link.'),
         },
-        async ({ contacto_id, cuando, link }) => {
+        async ({ contacto_id, cuando, inicio, link }) => {
           const cfg = readSalesConfig()
           let lead
           try {
@@ -1316,13 +1508,15 @@ export function salesServer(elevenKey, zone) {
           }
           if (!lead) return refuse('That lead is not in the Sheet.')
           const meet = /^https:\/\/meet\.google\.com\/[\w-]+$/.test(link ?? '') ? link : ''
-          await writeLead(cfg, lead, { Estado: 'Videollamada agendada ✅', 'Reunión': meet ? `${cuando} · ${meet}` : cuando })
+          const start = inicio ? resolveWhen({ at: inicio }, OWNER_ZONE_MEETINGS, Date.now()) : {}
+          if (fromCentro(cfg) && (!inicio || start.error)) return refuse('Pass inicio, the start as YYYY-MM-DDTHH:MM in Eastern time, so the work center can show it and the owner gets a call an hour before.')
+          await writeLead(cfg, lead, { Estado: 'Videollamada agendada ✅', 'Reunión': meet ? `${cuando} · ${meet}` : cuando }, { etapa: 'meet', meet_inicio: iso(start.when), meet_link: meet, meet_evento: String(cuando).slice(0, 200) })
           const state = readState()
           if (state[lead.key]) {
             state[lead.key].stage = 'cerrado'
             writeState(state)
           }
-          return ok('Written in the Sheet.')
+          return ok(fromCentro(cfg) ? 'Written in the work center (Leads): the owner and Senen see it with the Join button.' : 'Written in the Sheet.')
         },
       ),
 
@@ -1347,7 +1541,7 @@ export function salesServer(elevenKey, zone) {
           if (r.error) return refuse(`The call could not be cancelled (error ${r.error}).`)
           s.stage = 'cerrado'
           writeState(state)
-          await writeLead(cfg, lead, { Estado: 'Llamada cancelada' })
+          await writeLead(cfg, lead, { Estado: 'Llamada cancelada' }, { etapa: 'no_llamar', llamada_programada: null, nota: 'Eduardo canceló la llamada de Ana Sofi.' })
           return ok('The call is cancelled.')
         },
       ),
