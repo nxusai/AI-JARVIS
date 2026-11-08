@@ -8,7 +8,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import { json, sb } from '../lib/sb.mjs'
 
-const texto = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n)
+// Un campo vacío en ManyChat puede llegar como la variable sin reemplazar ("{{cuf_123}}", "{{phone}}"): eso cuenta como vacío.
+const texto = (v, n) => String(v ?? '').replace(/\{\{[^{}]*\}\}/g, '').replace(/\s+/g, ' ').trim().slice(0, n)
 const SI = /^(s[ií]+|yes|y|ok|okay|claro|dale|va|por favor|sure|yeah|yep|1|true)(?=$|[\s,.!¡?¿])/i
 
 function claveBuena(dada) {

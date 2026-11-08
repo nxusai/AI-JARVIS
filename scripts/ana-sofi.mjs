@@ -12,6 +12,8 @@
 //   node scripts/ana-sofi.mjs centro     the leads come from the Centro de trabajo (not the Sheet): asks for its
 //                                        service key from the clipboard, copies the Sheet's leads once, and switches
 //   node scripts/ana-sofi.mjs sheet      back to the Sheet
+//   node scripts/ana-sofi.mjs ver        copies Ana Sofi's current instructions (prompt, first message, the data
+//                                        she collects, her variables) to the clipboard and the Desktop, to review
 //
 // The Sheet script answers only to a long random key made here, kept in
 // ~/.nexy/ventas.json (readable by this user only) and inside the script in
@@ -395,6 +397,41 @@ async function entrantes() {
   say('\nReinicia a NEX (Ctrl + C y npm start) para que empiece a leer esas llamadas.\n')
 }
 
+/** Ana Sofi's instructions as they are in ElevenLabs: only text, never keys or tool settings. */
+async function ver() {
+  const cfg = readSalesConfig()
+  const key = elevenKey()
+  if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
+  if (!/^agent_\w+$/.test(cfg.agentId)) return say('\n✋ No tengo el Agent ID de Ana Sofi. Corre: node scripts/ana-sofi.mjs\n')
+  const a = await eleven(key, `/agents/${cfg.agentId}`)
+  if (a.error) return say(`\n✋ ElevenLabs no me dejó leer a Ana Sofi (${a.error}).\n`)
+  const agent = a.data.conversation_config?.agent ?? {}
+  const dc = a.data.platform_settings?.data_collection ?? {}
+  const vars = agent.dynamic_variables?.dynamic_variable_placeholders ?? {}
+  const texto = [
+    `# Ana Sofi tal como está hoy en ElevenLabs (${new Date().toLocaleString('es-MX')})`,
+    `Agente: ${a.data.name ?? cfg.agentId}`,
+    `Idioma: ${agent.language ?? '-'}`,
+    '',
+    '## Primer mensaje',
+    agent.first_message ?? '(vacío)',
+    '',
+    '## Variables que recibe',
+    Object.keys(vars).join(', ') || '(ninguna)',
+    '',
+    '## Datos que recolecta al final de la llamada (Data collection)',
+    ...Object.entries(dc).map(([k, v]) => `- ${k} (${v?.type ?? '-'}): ${v?.description ?? ''}`),
+    '',
+    '## Instrucciones (prompt)',
+    agent.prompt?.prompt ?? '(vacío)',
+  ].join('\n')
+  const archivo = join(homedir(), 'Desktop', 'ana-sofi-actual.txt')
+  writeFileSync(archivo, texto, { mode: 0o600 })
+  const copiado = process.platform === 'darwin' && spawnSync('pbcopy', { input: texto }).status === 0
+  say(`\n✅ ${copiado ? 'Copié las instrucciones de Ana Sofi (ya las puedes pegar con Cmd + V).' : 'Listo.'} También quedaron en: ${archivo}`)
+  say('   Son solo textos: no incluye llaves ni números de teléfono de clientes.\n')
+}
+
 async function estado() {
   const cfg = readSalesConfig()
   const missing = salesMissing(cfg)
@@ -416,6 +453,7 @@ else if (cmd === 'script') {
 else if (cmd === 'revisar') await revisar()
 else if (cmd === 'entrantes') await entrantes()
 else if (cmd === 'centro') await aCentro()
+else if (cmd === 'ver') await ver()
 else if (cmd === 'sheet') {
   writeSalesConfig({ fuente: 'sheet' })
   say('\n Listo: Ana Sofi vuelve a tomar los leads del Sheet. Reinicia a NEX (Ctrl + C y npm start).\n')
@@ -430,4 +468,4 @@ else if (cmd === 'avisos') {
     say(want === 'todo' ? ' Listo: te aviso de todo otra vez.' : ' Listo: solo te aviso cuando hay meeting (agendado, movido o cancelado). Lo demás queda en el Sheet y en la consola.')
   }
 }
-else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|avisos]\n')
+else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|avisos]\n')
