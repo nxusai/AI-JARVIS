@@ -1260,6 +1260,8 @@ create table if not exists public.leads_notas (
   creada timestamptz not null default now()
 );
 create index if not exists leads_notas_lead on public.leads_notas (lead_id, creada);
+-- De qué anuncio o campaña llegó (lo marca ManyChat, p. ej. "Anuncio · Capacidad").
+alter table public.leads add column if not exists fuente text not null default '' check (char_length(fuente) <= 120);
 
 create or replace function public.antes_lead() returns trigger
 language plpgsql as $$

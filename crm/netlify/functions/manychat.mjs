@@ -58,7 +58,10 @@ export default async (req) => {
     telefono: texto(d.telefono, 30),
     hora_pedida: texto(d.hora, 200),
     idioma: /^en/i.test(String(d.idioma ?? '')) ? 'en' : 'es',
+    // De qué anuncio llegó (campo "MS Fuente" en ManyChat).
+    fuente: texto(d.fuente, 120),
   }
+  if (!datos.fuente) delete datos.fuente
   // Lo que venga vacío no borra lo que ya había.
   const lleno = Object.fromEntries(Object.entries(datos).filter(([, v]) => v))
   const permisoTexto = texto(d.permiso_texto, 300) || `Respondió "${respuesta || 'sí'}" a: ¿Te podemos llamar para darte precios?`
@@ -66,7 +69,7 @@ export default async (req) => {
   try {
     const [antes] = await sb(`/rest/v1/leads?manychat_id=eq.${encodeURIComponent(manychat_id)}&select=id,etapa,permiso_llamada`, { servicio: true })
     if (!antes) {
-      const [nuevo] = await sb('/rest/v1/leads', {
+      const [nuevo] = await sinFuenteSiFalta('/rest/v1/leads', {
         servicio: true,
         method: 'POST',
         body: {
@@ -83,7 +86,7 @@ export default async (req) => {
     }
     // Ya existía: se actualizan sus datos; si vuelve a pedir llamada, se le llama otra vez.
     const otraVez = permiso && TERMINADAS.has(antes.etapa)
-    await sb(`/rest/v1/leads?id=eq.${antes.id}`, {
+    await sinFuenteSiFalta(`/rest/v1/leads?id=eq.${antes.id}`, {
       servicio: true,
       method: 'PATCH',
       body: {
@@ -96,6 +99,17 @@ export default async (req) => {
     return json({ ok: true, id: antes.id, llamar: permiso })
   } catch (err) {
     return json({ ok: false, error: err.message }, err.status || 500)
+  }
+}
+
+/** Si la base de datos todavía no tiene la columna "fuente" (falta correr el esquema), se guarda sin ella: nunca se pierde un lead. */
+async function sinFuenteSiFalta(path, opts) {
+  try {
+    return await sb(path, opts)
+  } catch (err) {
+    if (!/fuente/i.test(err.message) || !opts.body || !('fuente' in opts.body)) throw err
+    const { fuente: _f, ...body } = opts.body
+    return sb(path, { ...opts, body })
   }
 }
 

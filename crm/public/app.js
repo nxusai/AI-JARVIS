@@ -1585,7 +1585,7 @@ function abrirLead(id) {
       ${dato('Nombre', l.nombre)}${dato('Negocio', l.negocio)}${dato('Ciudad', l.ciudad)}
       ${l.telefono ? `<div class="dato"><span>Teléfono</span><b><a href="tel:${h(l.telefono.replace(/[^\d+]/g, ''))}">${h(l.telefono)}</a></b></div>` : ''}
       ${l.correo ? `<div class="dato"><span>Correo</span><b><a href="mailto:${h(l.correo)}">${h(l.correo)}</a></b></div>` : ''}
-      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}${l.origen === 'web' ? dato('Llegó por', 'misemago.com (WEBSITE LEADS)') : ''}
+      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}${dato('De qué anuncio', l.fuente)}${l.origen === 'web' ? dato('Llegó por', 'misemago.com (WEBSITE LEADS)') : ''}
     </div>
     ${
       l.tipo_negocio || l.quesos || l.libras || l.frecuencia || l.marca_propia || l.precios

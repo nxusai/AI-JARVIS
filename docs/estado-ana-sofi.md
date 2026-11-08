@@ -37,6 +37,9 @@ Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama gen
 ## Relacionado (otro chat)
 El ecosistema autónomo de leads de **NXUS** (ManyChat → NXUS HQ → llamada → Cartera de prospectos) se diseña en otro chat con `docs/estado-nxus.md`. Este modelo de Ana Sofi es la referencia.
 
+## Anuncios de Mi Semago (9 de nov de 2026)
+Campaña "Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días": `docs/ads/mi-semago-distribuidores-oeste/` (imágenes y prompts para Claude in Chrome, v2). Se arma con `docs/lecciones-anuncios-mensajes.md`: campaña manual, presupuesto en el conjunto ($25/día, tope $175), 30–65 sin intereses, códigos postales de zonas de bodegas y mayoreo del oeste + Chicago, ubicaciones manuales, mejoras de IA apagadas, un mensaje prellenado distinto por anuncio y ManyChat con disparadores de frase EXACTA que guardan "MS Fuente" → `leads.fuente` (en la ficha: "De qué anuncio"). WhatsApp de los anuncios: +1 484-969-8507 (el de ManyChat; estaba ligado por error a la página de El Abuelito).
+
 ## Decisión del 8 de noviembre de 2026: solo el Centro de trabajo
 Eduardo: "enfócate en que funcione en el CRM, ya no en Google Sheet". Todo trabajo nuevo de Ana Sofi y de los leads de Mi Semago es para el Centro de trabajo (fuente "centro"). El modo Sheet de `bridge/ventas.mjs` no se mejora ni se usa para probar; se queda sin tocar solo como regreso de emergencia (`node scripts/ana-sofi.mjs sheet`) hasta que Eduardo archive el Sheet (recomendado tras una semana estable, con copia en Excel); entonces se quita el modo Sheet del código.
 
