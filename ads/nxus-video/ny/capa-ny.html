@@ -1,0 +1,157 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#050914}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Sora,sans-serif;color:#fff;overflow:hidden}
+.capa{position:absolute;inset:0}
+.g{background:linear-gradient(100deg,#00e5ff,#0a6cff 50%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sombra{text-shadow:0 6px 34px rgba(0,0,0,.6)}
+.chip{display:inline-flex;align-items:center;gap:16px;padding:18px 30px;border-radius:999px;background:rgba(8,12,30,.7);border:1.5px solid rgba(255,255,255,.22);font-weight:700;font-size:44px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.tel{position:absolute;left:190px;width:700px;border-radius:64px;background:#0b0f1c;border:10px solid #1c2236;box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 2px rgba(255,255,255,.08);overflow:hidden;font-family:Inter,sans-serif}
+.burbuja{max-width:86%;padding:20px 26px;border-radius:30px;font-size:36px;line-height:1.3;margin:14px 0}
+.cli{background:#1f2a44;color:#fff;border-bottom-left-radius:8px}
+.ia{background:linear-gradient(135deg,#0a6cff,#7b2bff);color:#fff;margin-left:auto;border-bottom-right-radius:8px}
+.tit{position:absolute;left:70px;right:70px;text-align:center;font-weight:800;line-height:1.08}
+</style></head>
+<body><div id="st"></div>
+<script>
+// Videos para NY: empresas bilingües. Sin voz: todo se lee en pantalla (zona segura 290–1250 px).
+// CFG = { lang: 'en' | 'es', hook: 1 | 2, T }
+const LOGO = (id) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const back = (k) => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const vis = (t, a, b, f = .2) => cl(Math.min((t - a) / f, (b - t) / f))
+const pop = (t, a, d = .35) => { const k = sal(t, a, d); return `opacity:${ease(k)};transform:translateY(${(1 - ease(k)) * 40}px) scale(${.9 + .1 * back(k)})` }
+const CFG = window.CFG
+const EN = CFG.lang === 'en'
+const L = (en, es) => (EN ? en : es)
+
+// Cortes: gancho | problema | demostración | lead listo | llamado a la acción
+const C = [3.6, 7.0, 12.6, 15.6]
+
+function fondo(t) {
+  const a = t * 0.25
+  return `<div class="capa" style="background:radial-gradient(circle at ${50 + 30 * Math.sin(a)}% ${30 + 10 * Math.cos(a * 1.3)}%,rgba(10,108,255,.32),transparent 45%),radial-gradient(circle at ${40 - 25 * Math.cos(a * .8)}% ${78 + 8 * Math.sin(a)}%,rgba(160,28,255,.26),transparent 50%),linear-gradient(180deg,#071026,#050914 60%,#07081a)"></div>
+  <div class="capa" style="opacity:.16;background-image:linear-gradient(rgba(120,160,255,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(120,160,255,.35) 1px,transparent 1px);background-size:90px 90px;background-position:0 ${(t * 30) % 90}px;mask-image:radial-gradient(circle at 50% 45%,#000 30%,transparent 75%);-webkit-mask-image:radial-gradient(circle at 50% 45%,#000 30%,transparent 75%)"></div>`
+}
+
+function telefono(t, a, top, esc) {
+  const msgs = [
+    ['cli', 'Hi! Estimates on Saturday?', a + .2],
+    ['ia', 'Yes! Sat 10 AM or 1 PM? 🙂', a + 1.0],
+    ['cli', 'Hola, ¿me atienden en español?', a + 2.2],
+    ['ia', '¡Claro! Sábado 10 am. ¿A nombre de quién?', a + 3.0],
+    ['ok', L('Booked · Sat 10:00 AM ✅', 'Cita agendada · sáb 10:00 am ✅'), a + 4.2],
+  ]
+  const k = ease(sal(t, a - .3, .4))
+  return `<div class="tel" style="top:${top + (1 - k) * 80}px;height:900px;opacity:${k};transform-origin:top center;transform:scale(${esc})">
+    <div style="height:150px;padding:52px 34px 0;display:flex;align-items:center;gap:20px;background:#121a30;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#a01cff);display:grid;place-items:center;font:800 30px Sora">IA</div>
+      <div><div style="font:700 34px Inter">${L('AI Assistant · Your business', 'Asistente IA · Tu empresa')}</div><div style="font:500 26px Inter;color:#4ade80">● ${L('online · EN / ES', 'en línea · ES / EN')}</div></div>
+      <div style="margin-left:auto;font:600 28px Inter;color:#9fb0d6">9:47 PM</div></div>
+    <div style="padding:20px 30px">
+      ${msgs.map(([tipo, txt, ta]) => {
+        if (t < ta) return ''
+        const kk = ease(sal(t, ta, .3))
+        if (tipo === 'ok') return `<div style="margin:26px auto 0;width:max-content;padding:18px 28px;border-radius:999px;background:rgba(74,222,128,.15);border:2px solid #4ade80;color:#bbf7d0;font:700 32px Inter;opacity:${kk};transform:scale(${.8 + .2 * back(kk)})">${txt}</div>`
+        return `<div class="burbuja ${tipo}" style="opacity:${kk};transform:translateY(${(1 - kk) * 30}px)">${txt}</div>`
+      }).join('')}
+    </div></div>`
+}
+
+function render(t) {
+  let h = fondo(t)
+  const T = CFG.T
+
+  // ── Gancho ─────────────────────────────
+  if (t < C[0] + .1) {
+    const o = 1 - sal(t, C[0] - .15, .2)
+    if (CFG.hook === 1) {
+      const notis = [
+        ['💬', 'Hi! Do you do estimates on Saturday?', .7],
+        ['💬', 'Hola, ¿pueden venir mañana a revisar?', 1.2],
+        ['📞', L('Missed call (3)', 'Llamada perdida (3)'), 1.7],
+        ['💬', 'Quote for a new office? / ¿Cotización?', 2.2],
+      ]
+      const n = Math.min(12, Math.floor(sal(t, .7, 2.4) * 12))
+      h += `<div class="capa" style="opacity:${o}">
+        <div class="tit sombra" style="top:300px;font-size:74px;${pop(t, .05)}">${L('Your customers speak<br><span class="g">English AND Spanish</span>', 'Tus clientes hablan<br><span class="g">inglés Y español</span>')}</div>
+        <div style="position:absolute;left:0;right:0;top:520px;text-align:center;font:300 120px Inter;opacity:${ease(sal(t, .3, .3))}">9:47 PM</div>
+        ${notis.map(([ic, txt, ta], i) => t < ta ? '' : `<div style="position:absolute;left:80px;right:80px;top:${700 + i * 112}px;height:100px;border-radius:30px;background:rgba(30,36,56,.85);display:flex;align-items:center;gap:22px;padding:0 28px;font:500 34px Inter;${pop(t, ta, .3)}"><span style="font-size:44px">${ic}</span>${txt}</div>`).join('')}
+        ${t < 1.0 ? '' : `<div style="position:absolute;left:0;right:0;top:1160px;text-align:center;${pop(t, 1.0, .3)}"><span class="chip" style="background:rgba(220,38,38,.85);border-color:#fca5a5">${n} ${L('unanswered', 'sin responder')}</span></div>`}
+      </div>`
+    } else {
+      const giros = EN ? ['Contractors.', 'Clinics.', 'Law offices.', 'Insurance.', 'Real estate.'] : ['Contratistas.', 'Clínicas.', 'Despachos.', 'Seguros.', 'Bienes raíces.']
+      h += `<div class="capa" style="opacity:${o}">
+        ${giros.map((g, i) => { const a = .1 + i * .38; return t < a ? '' : `<div class="tit sombra" style="top:${300 + i * 118}px;font-size:92px;${pop(t, a, .25)};color:${i % 2 ? '#fff' : '#cfe0ff'}">${g}</div>` }).join('')}
+        ${t < 2.2 ? '' : `<div class="tit sombra" style="top:930px;font-size:70px;${pop(t, 2.2, .3)}">${L('Does your phone ring<br>in <span class="g">two languages</span>?', '¿Tu teléfono suena<br>en <span class="g">dos idiomas</span>?')}</div>`}
+      </div>`
+    }
+  }
+
+  // ── Problema ───────────────────────────
+  if (t > C[0] - .05 && t < C[1] + .1) {
+    const o = vis(t, C[0], C[1], .15)
+    const malos = EN ? [['Missed calls', .35], ['Unanswered messages', 1.0], ['Jobs that go to the competition', 1.65]]
+                     : [['Llamadas perdidas', .35], ['Mensajes sin contestar', 1.0], ['Trabajos que se van con la competencia', 1.65]]
+    h += `<div class="capa" style="opacity:${o}">
+      <div class="tit sombra" style="top:330px;font-size:80px;${pop(t, C[0] + .05)}">${L('Who answers them<br><span class="g">after hours?</span>', '¿Quién les contesta<br><span class="g">fuera de horario?</span>')}</div>
+      ${malos.map(([txt, a], i) => t < C[0] + a ? '' : `<div style="position:absolute;left:0;right:0;top:${640 + i * 150}px;text-align:center;${pop(t, C[0] + a, .3)}">
+        <span class="chip" style="background:rgba(127,29,29,.8);border-color:#f87171;font-size:42px"><span style="color:#fca5a5">✕</span>${txt}</span></div>`).join('')}
+    </div>`
+  }
+
+  // ── Demostración ───────────────────────
+  if (t > C[1] - .05 && t < C[2] + .1) {
+    const o = vis(t, C[1], C[2], .2)
+    h += `<div class="capa" style="opacity:${o}">
+      <div style="position:absolute;left:0;right:0;top:290px;display:flex;justify-content:center;${pop(t, C[1] + .05, .3)}">
+        <div class="chip" style="font-size:40px"><span style="width:70px;height:46px">${LOGO('ls')}</span>NXUS AI</div></div>
+      <div class="tit sombra" style="top:395px;font-size:54px;${pop(t, C[1] + .2, .3)}">${L('One AI assistant.<br><span class="g">Both languages.</span> 24/7.', 'Un asistente de IA.<br><span class="g">Dos idiomas.</span> 24/7.')}</div>
+      ${telefono(t, C[1] + .5, 540, .78)}
+    </div>`
+  }
+
+  // ── El lead listo para cerrar ──────────
+  if (t > C[2] - .05 && t < C[3] + .1) {
+    const o = vis(t, C[2], C[3], .2)
+    const tags = EN ? ['Owner decides', 'Urgent', 'Bilingual'] : ['Decide el dueño', 'Urgente', 'Bilingüe']
+    const serv = EN ? ['🌐 Bilingual AI', '🧩 Custom software', '📈 Marketing'] : ['🌐 IA bilingüe', '🧩 Software a la medida', '📈 Marketing']
+    h += `<div class="capa" style="opacity:${o}">
+      <div class="tit sombra" style="top:310px;font-size:68px;${pop(t, C[2] + .05)}">${L('Leads arrive<br><span class="g">ready to close</span>', 'Te llegan listos<br><span class="g">para cerrar</span>')}</div>
+      <div style="position:absolute;left:110px;right:110px;top:540px;padding:40px;border-radius:40px;background:rgba(16,24,52,.88);border:1.5px solid rgba(150,175,255,.25);box-shadow:0 30px 80px rgba(0,0,0,.5);font-family:Inter;${pop(t, C[2] + .3, .35)}">
+        <div style="font:800 46px Sora">${L('Remodeling company', 'Constructora')}</div>
+        <div style="font:500 32px Inter;color:#b9c6e6;margin-top:8px">${L('3 crews · Wants AI + marketing', '3 cuadrillas · Quiere IA + marketing')}</div>
+        <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap">${tags.map((x, i) => t < C[2] + .6 + i * .3 ? '' : `<span style="padding:12px 22px;border-radius:999px;background:rgba(74,222,128,.14);border:1.5px solid #4ade80;color:#bbf7d0;font:600 30px Inter">${x}</span>`).join('')}</div>
+      </div>
+      ${t < C[2] + 1.5 ? '' : `<div style="position:absolute;left:110px;right:110px;top:880px;padding:28px 34px;border-radius:30px;background:rgba(255,255,255,.95);color:#0b1020;display:flex;gap:22px;align-items:center;font-family:Inter;${pop(t, C[2] + 1.5, .3)}">
+        <div style="font-size:54px">📅</div><div><div style="font:800 36px Inter">${L('Meeting with the owner', 'Reunión con el dueño')}</div><div style="font:500 30px Inter;color:#475569">${L('Tue 10:00 AM · Google Meet', 'Mar 10:00 am · Google Meet')}</div></div></div>`}
+      ${t < C[2] + 2.0 ? '' : `<div style="position:absolute;left:40px;right:40px;top:1080px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">${serv.map((s, i) => `<span style="padding:12px 22px;border-radius:999px;background:rgba(0,229,255,.14);border:1.5px solid rgba(0,229,255,.55);font:700 32px Inter;${pop(t, C[2] + 2.0 + i * .2, .25)}">${s}</span>`).join('')}</div>`}
+    </div>`
+  }
+
+  // ── Llamado a la acción ────────────────
+  if (t > C[3] - .05) {
+    const o = sal(t, C[3], .25)
+    h += `<div class="capa" style="opacity:${o};background:radial-gradient(circle at 50% 38%,#0c1f4a 0%,#050914 70%)">
+      <div style="position:absolute;left:50%;top:300px;width:190px;height:125px;transform:translateX(-50%);filter:drop-shadow(0 0 40px rgba(10,108,255,.8))">${LOGO('lc')}</div>
+      <div class="tit sombra" style="top:470px;font-size:${EN ? 108 : 104}px;${pop(t, C[3] + .1, .35)}">${L('FREE<br><span style="color:#4ade80">ASSESSMENT</span>', 'DIAGNÓSTICO<br><span style="color:#4ade80">GRATIS</span>')}</div>
+      <div style="position:absolute;left:0;right:0;top:740px;text-align:center;${pop(t, C[3] + .5, .3)}"><span class="chip" style="font-size:52px">⏱️ ${L('30 minutes', '30 minutos')}</span></div>
+      <div style="position:absolute;left:0;right:0;top:880px;text-align:center;font:600 40px Inter;color:#cfe0ff;opacity:${sal(t, C[3] + .8, .4)}">English & Español · NY · NJ</div>
+      ${t < C[3] + 1.2 ? '' : `<div style="position:absolute;left:0;right:0;top:1000px;text-align:center;${pop(t, C[3] + 1.2, .3)}"><span class="chip" style="font-size:46px;background:linear-gradient(135deg,rgba(0,229,255,.35),rgba(160,28,255,.4))">👇 ${L('Tap “Send message”', 'Toca “Enviar mensaje”')}</span></div>`}
+    </div>`
+  }
+
+  // Destello en cada corte
+  for (const c of C) {
+    const f = cl(1 - Math.abs(t - c) / .1)
+    if (f > 0) h += `<div class="capa" style="background:linear-gradient(115deg,rgba(0,229,255,${.45 * f}),rgba(255,255,255,${.6 * f}) 45%,rgba(160,28,255,${.45 * f}))"></div>`
+  }
+  document.getElementById('st').innerHTML = h
+}
+window.render = render
+</script></body></html>

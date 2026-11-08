@@ -1,0 +1,165 @@
+Eres mi experto en Meta Ads y ManyChat. Soy Eduardo, dueño de NXUS AI (inteligencia artificial, software a la
+medida y marketing; con base en New Jersey). Vas a armar mi campaña de Nueva York desde cero, en mi Chrome, con mis
+sesiones abiertas de ManyChat (https://app.manychat.com) y Meta Ads Manager
+(https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563). Yo te estoy viendo.
+Si la interfaz está en inglés o en español, adáptate.
+
+CONTEXTO
+La campaña de México ya está armada: el saludo del anuncio lo maneja ManyChat con botones (un robot no los puede
+tocar), cada lead queda marcado con su video, público solo en las zonas elegidas, desde 30 años, ubicaciones
+manuales y cero mejoras automáticas de Meta. Esta campaña es igual, pero para NY y norte de NJ, y NO es para
+restaurantes: es para empresas cuyos clientes hablan inglés Y español (contratistas, clínicas, despachos de
+abogados, seguros, bienes raíces). Hay 4 videos, sin voz, con texto y música:
+  NXUS-NY-1-EN.mp4 · NXUS-NY-1-ES.mp4 (idea 1: "tus clientes hablan inglés y español")
+  NXUS-NY-2-EN.mp4 · NXUS-NY-2-ES.mp4 (idea 2: "contratistas, clínicas, despachos…")
+
+REGLAS (obligatorias)
+- NO publiques la campaña: deja todo listo y DETENTE antes de "Publish/Publicar". Yo reviso y publico.
+- En ManyChat no publiques nada ("Set Live", "Publish", "Update") sin pedirme permiso en este chat y esperar mi "sí".
+- La cuenta de anuncios es compartida. NO toques, pauses, edites ni borres ninguna campaña existente (tampoco la
+  de México). Solo crea la nueva.
+- NO cambies métodos de pago, límites de la cuenta, usuarios ni datos de la empresa.
+- NO subas videos: cuando llegues a esa parte, dime cuál archivo subir y espera a que yo lo suba.
+- Presupuesto: exactamente el que dice aquí.
+- Si Meta o ManyChat piden algo que no está aquí, o algo no coincide, DETENTE y pregúntame. No adivines.
+- Copia los textos exactamente, con acentos y emojis.
+- Al terminar cada parte, dime en una o dos líneas qué hiciste.
+
+======================================================================
+PARTE A. MANYCHAT
+======================================================================
+A1. En "Filtro NXUS" (Instagram) y en "Filtro NXUS · Facebook": justo antes del mensaje de idioma ("¿En qué idioma
+prefieres? / Which language do you prefer?"), agrega una Condición: User Field "idioma" has any value.
+  - Si SÍ tiene valor → salta el mensaje de idioma y sigue a lo que hoy viene después de él (el AI Step).
+  - Si NO → al mensaje de idioma, como ahora.
+  Todo lo que hoy llega al mensaje de idioma debe llegar a esta Condición. No cambies nada más. No publiques.
+
+A2. Lee (sin cambiar) el Context del AI Step de los dos Filtros y dime si habla SOLO de restaurantes. Si es así,
+avísame; no lo edites.
+
+A3. Crea 8 automatizaciones nuevas (Automation → + New Automation → Start From Scratch → blank canvas):
+  Instagram (trigger: "Instagram Ads – User clicks an Instagram Ad"):
+    Anuncio NY · 1 EN · IG   (fuente: Anuncio NY · Video 1 EN)
+    Anuncio NY · 1 ES · IG   (fuente: Anuncio NY · Video 1 ES)
+    Anuncio NY · 2 EN · IG   (fuente: Anuncio NY · Video 2 EN)
+    Anuncio NY · 2 ES · IG   (fuente: Anuncio NY · Video 2 ES)
+  Messenger (trigger: "Facebook Ads – User clicks a Facebook Ad"):
+    Anuncio NY · 1 EN · FB   (fuente: Anuncio NY · Video 1 EN)
+    Anuncio NY · 1 ES · FB   (fuente: Anuncio NY · Video 1 ES)
+    Anuncio NY · 2 EN · FB   (fuente: Anuncio NY · Video 2 EN)
+    Anuncio NY · 2 ES · FB   (fuente: Anuncio NY · Video 2 ES)
+
+  a) Primer mensaje: UN SOLO bloque de texto, sin variables, con 2 botones: English · Español
+     - En las automatizaciones "EN":
+Hi! 👋 Thanks for reaching out to NXUS AI. To prepare your free assessment, which language do you prefer? / ¿En qué idioma prefieres?
+     - En las automatizaciones "ES":
+¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar tu diagnóstico gratis, ¿en qué idioma prefieres que te atendamos? / Which language do you prefer?
+  b) Cada botón lleva a su paso de Actions:
+     - Set User Field idioma = English (botón English) o Español (botón Español). Usa EXACTAMENTE el mismo valor
+       que guarda hoy el mensaje de idioma del Filtro (revísalo antes; si allí es distinto, usa el de allí).
+     - Set User Field fuente = la fuente de esa automatización.
+     - Set User Field canal = instagram (IG) o facebook (FB).
+     - Add Tag: anuncio-ny
+     - Start Automation → "Filtro NXUS" (IG) o "Filtro NXUS · Facebook" (FB).
+  c) Nada más. Si ManyChat exige otra cosa para el primer mensaje de un anuncio, dime qué.
+
+A4. Pídeme permiso para publicar estas 8 automatizaciones (solo responden a clics de anuncios) y espera mi "sí".
+
+======================================================================
+PARTE B. META ADS MANAGER
+======================================================================
+B1. Campaña
+  - + Create → objetivo: Engagement / Interacción. Nombre: NXUS | NY | Mensajes | Diagnóstico
+  - Sin categoría especial de anuncio (no es vivienda, empleo ni crédito: son servicios para empresas).
+  - Advantage campaign budget: APAGADO. Campaign spending limit: 300 USD.
+  - Si ofrece "Advantage+ campaign" o configuración recomendada, elige la manual.
+
+B2. Conjunto de anuncios
+  - Nombre: NY-NJ | Empresas bilingües | 30+
+  - Conversion location: Messaging apps → Messenger e Instagram. WhatsApp DESMARCADO.
+  - Performance goal: Maximize number of conversations. Puja: Highest volume. Daily budget: 20 USD. Sin fecha fin.
+  - Público: "Switch to original audience options" si aparece Advantage+ audience; si no, Audience controls con
+    ubicación y edad mínima 30.
+  - Edad 30 a 65+. Todos los géneros. Idiomas: NINGUNO. Intereses / detailed targeting: NINGUNO.
+  - Ubicaciones (quita "United States" si viene puesto; agrega SOLO estas):
+      New York, New York (la ciudad: los 5 boroughs)
+      Hudson County, New Jersey
+      Bergen County, New Jersey
+      Passaic County, New Jersey
+      Essex County, New Jersey
+      Union County, New Jersey
+    Si Meta no ofrece algún condado, usa sus ciudades principales y dime cuáles. Dime el público estimado.
+  - Placements: Manual. SOLO Facebook Feed, Facebook Stories, Facebook Reels, Instagram Feed, Instagram Stories,
+    Instagram Reels (e Instagram Profile feed si viene junto). Quita todo lo demás (Audience Network, Messenger,
+    Threads, Marketplace, Right column, Search, In-stream, Explore, etc.). Desmarca "Allow limited spending to
+    excluded placements" si aparece.
+
+B3. Cuatro anuncios en el mismo conjunto. En cada uno:
+  - Identidad: Página Nxus.AI e Instagram @nxusai. Formato: Single image or video.
+  - Video: DETENTE y dime "Sube el archivo NXUS-NY-…mp4". Espero a que yo lo suba.
+  - CTA: Send message / Enviar mensaje.
+  - Advantage+ creative: APAGA TODAS las mejoras una por una (texto, visuales, música, overlays, animación,
+    filtros, expandir, traducir, relevant comments, enhance CTA, site links, etc.) y "Multi-advertiser ads".
+  - Message template: Partner app → ManyChat → Instagram: "Anuncio NY · X · IG"; Messenger: "Anuncio NY · X · FB".
+    Si no deja elegir una por canal o no aparece ManyChat, DETENTE y dime qué ves.
+  - No pidas en el texto que escriban ninguna palabra.
+
+  Anuncio 1 EN
+  - Nombre: NY | 1 EN | Bilingual    - Video: NXUS-NY-1-EN.mp4
+  - Primary text:
+Your customers call and message you in English AND Spanish. 📲
+After hours, every missed call is a job that goes to someone else.
+NXUS AI builds a bilingual AI assistant for your business: it answers WhatsApp, Instagram and phone calls 24/7, books appointments and hands your team leads ready to close.
+Built for contractors, clinics, law offices, insurance and real estate teams in NY & NJ.
+👇 Tap "Send message" for your free 30-minute assessment.
+  - Headline: A bilingual AI that never misses a call
+  - Description: Free 30-minute assessment
+
+  Anuncio 1 ES
+  - Nombre: NY | 1 ES | Bilingüe    - Video: NXUS-NY-1-ES.mp4
+  - Texto principal:
+Tus clientes te llaman y te escriben en inglés Y en español. 📲
+Fuera de horario, cada llamada perdida es un trabajo que se va con otro.
+En NXUS AI creamos un asistente de inteligencia artificial bilingüe para tu empresa: contesta WhatsApp, Instagram y teléfono 24/7, agenda citas y le pasa a tu equipo los clientes listos para cerrar.
+Para contratistas, clínicas, despachos, seguros y bienes raíces en NY y NJ.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: IA bilingüe que nunca pierde una llamada
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+  Anuncio 2 EN
+  - Nombre: NY | 2 EN | Industries    - Video: NXUS-NY-2-EN.mp4
+  - Primary text:
+Contractors. Clinics. Law offices. Insurance. Real estate. 🏢
+If your phone rings in two languages, you need someone who answers in both — even at 10 PM.
+NXUS AI: a bilingual AI assistant, custom software and marketing, built around your company. Based in New Jersey.
+👇 Tap "Send message" for your free 30-minute assessment.
+  - Headline: Your bilingual front desk, 24/7
+  - Description: Free 30-minute assessment
+
+  Anuncio 2 ES
+  - Nombre: NY | 2 ES | Giros    - Video: NXUS-NY-2-ES.mp4
+  - Texto principal:
+Contratistas. Clínicas. Despachos. Seguros. Bienes raíces. 🏢
+Si tu teléfono suena en dos idiomas, necesitas quien conteste en los dos, aunque sean las 10 de la noche.
+NXUS AI: asistente de inteligencia artificial bilingüe, software a la medida y marketing, hecho para tu empresa. Con base en New Jersey.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: Tu recepción bilingüe, 24/7
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+B4. Revisa la vista previa (Advanced preview) de cada anuncio en Instagram Reels, Instagram Feed y Facebook Feed:
+que no se corte lo importante y que no aparezca música ni texto que yo no puse.
+
+======================================================================
+PARTE C. RESUMEN FINAL (antes de publicar)
+======================================================================
+NO publiques. Informe en español, cada punto con ✅ (hecho), ⚠️ (distinto) o ❌ (no hecho):
+1. ManyChat: Condición de idioma en los dos Filtros; si el AI Step habla solo de restaurantes; las 8
+   automatizaciones (nombre, disparador, botones, valores de idioma, fuente, etiqueta, Start Automation); cuáles
+   publicaste con mi permiso.
+2. Campaña: nombre, objetivo, límite de gasto.
+3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idiomas, intereses, las
+   ubicaciones geográficas que quedaron, público estimado, placements y "Allow limited spending".
+4. Los 4 anuncios: nombre, video subido, textos, CTA, mejoras apagadas y automatización ligada por canal.
+5. Advertencias, errores o cambios que Meta hizo solo.
+6. Lo que yo tengo que hacer (publicar en ManyChat y "Publish" en Ads Manager).
+Luego espera mis instrucciones.
