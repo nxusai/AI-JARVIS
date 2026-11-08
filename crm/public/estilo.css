@@ -738,3 +738,44 @@ input[type=number], input[type=time], input[type=url], input:not([type]), .fijo-
 .fiesta-cuenta.total b { color: #f1d27a; }
 .fiesta-cuenta.activa { outline: 2px solid #d4af37; }
 @media (max-width: 760px) { .fiesta-cuentas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fiesta-cuenta.total { grid-column: 1 / -1; } }
+
+/* Leads de Mi Semago */
+.resumen-leads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.resumen-leads div { background: var(--panel); border: 1px solid var(--linea); border-radius: 14px; padding: 10px 12px; display: grid; }
+.resumen-leads b { font-size: 22px; font-family: var(--display); }
+.resumen-leads span { font-size: 12px; color: var(--suave); }
+.tablero-leads { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-top: 10px; }
+.col-lead { background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--linea); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.col-lead h3 { margin: 0 0 2px; font-size: 13px; display: flex; justify-content: space-between; color: var(--suave); }
+.col-lead h3 span { color: var(--texto); }
+.col-lead .vacia { margin: 0; text-align: center; }
+.lead-tarjeta { display: grid; gap: 3px; text-align: left; font: inherit; color: var(--texto); background: rgba(255, 255, 255, .7); border: 1px solid var(--linea); border-radius: 12px; padding: 9px 10px; cursor: pointer; min-width: 0; }
+.lead-tarjeta:hover { border-color: var(--texto); }
+.lead-tarjeta b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-tarjeta > span { font-size: 12px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-tarjeta small { font-size: 12px; font-weight: 600; }
+.lead-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lead-chips:empty { display: none; }
+.lead-chips .chip { font-size: 11px; padding: 1px 7px; }
+.chip.cal-caliente { background: #ffe3e3; color: #c92a2a; }
+.chip.cal-medio { background: #fff3bf; color: #9c6b00; }
+.chip.cal-frio { background: #e7f5ff; color: #1864ab; }
+.chip.vivo { background: #d3f9d8; color: #2b8a3e; }
+.chip.etapa-meet { background: #e5dbff; color: #5f3dc4; }
+.chip.etapa-cerrado { background: #d3f9d8; color: #2b8a3e; }
+.aviso-meet { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; background: #f3f0ff; border: 1px solid #d0bfff; border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; }
+.meet-caja { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: #f3f0ff; border: 1px solid #d0bfff; border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.meet-caja span { display: block; font-size: 12px; color: var(--suave); }
+h3.sub { font-size: 14px; margin: 16px 0 6px; }
+.datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; }
+.dato { display: grid; gap: 1px; min-width: 0; }
+.dato span { font-size: 12px; color: var(--suave); }
+.dato b { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.notas-lead { display: grid; gap: 8px; margin-bottom: 8px; }
+.nota-lead { background: var(--panel); border: 1px solid var(--linea); border-radius: 12px; padding: 8px 12px; }
+.nota-lead p { margin: 4px 0 0; white-space: pre-wrap; }
+.conversacion summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
+@media (max-width: 760px) {
+  .resumen-leads { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tablero-leads { grid-auto-columns: 78%; }
+}

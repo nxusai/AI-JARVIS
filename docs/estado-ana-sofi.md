@@ -1,6 +1,6 @@
 # Estado: Ana Sofi y la línea de ventas de Mi Semago
 
-Última actualización: 2 de noviembre de 2026. Para retomar en un chat nuevo dedicado a este tema.
+Última actualización: 8 de noviembre de 2026. Para retomar en un chat nuevo dedicado a este tema.
 Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama general) y **`docs/estado-crm.md`** (el Centro de trabajo Mi Semago · Abuelito, el CRM del cliente: este chat también lo modifica, y ahí llegarán eventualmente los leads de Mi Semago).
 
 ## Cómo trabajar con Eduardo (resumen)
@@ -37,5 +37,21 @@ Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama gen
 ## Relacionado (otro chat)
 El ecosistema autónomo de leads de **NXUS** (ManyChat → NXUS HQ → llamada → Cartera de prospectos) se diseña en otro chat con `docs/estado-nxus.md`. Este modelo de Ana Sofi es la referencia.
 
-## Pendiente
-Eduardo va a explicar qué quiere cambiar, mejorar o agregar. Escuchar primero, opinar y recomendar, y esperar su luz verde antes de construir.
+## En marcha: los leads pasan al Centro de trabajo (luz verde del 8 de noviembre de 2026)
+Decisiones de Eduardo:
+- Los leads llegan al **Centro de trabajo** (`docs/estado-crm.md`, sección **Leads**), no al Sheet. **Ana Sofi sigue corriendo en una computadora** (hoy la Mac con NEX; después una computadora de la empresa de Senen, siempre prendida). **No en la nube.** Solo la puerta que recibe el lead de ManyChat vive en Netlify (la página del Centro de trabajo ya está ahí).
+- **ManyChat corto**, 3 preguntas: nombre; negocio y ciudad; ¿te podemos llamar para darte precios? ¿a qué hora? (el número llega solo por WhatsApp). Sin calificar en el chat: la gente se aburre de tantas preguntas.
+- **Ana Sofi saca todo en la llamada**: nombre, correo, confirma teléfono, tipo de negocio, quesos, libras, cada cuánto, marca propia; **califica** (caliente / medio / frío); **da precios** con el catálogo (solo para que los conozca, no tiene que aceptarlos); y **si el lead quiere, agenda el Google Meet** con Eduardo.
+- **Regla nueva:** se llama a **todos los que den permiso por escrito** (ya no solo caliente/medio). Siguen: solo EE.UU., la IA nunca pone un número, reintento una vez.
+- **Meet:** con Eduardo, en **su** calendario de Google (el que ya está conectado), 1 hora, 10 am–4 pm hora del Este, cualquier día, al menos 3 h después de la llamada y dentro de 5 días. La invitación al lead sale sola.
+- **Avisos a Eduardo: por llamada de NEX, no por Telegram.** Los días con meeting, **llamada en la mañana** con el reporte del día, y **llamada una hora antes de cada meeting**. Además el evento queda en su calendario.
+- **En el Centro de trabajo** ven Leads Eduardo y quien tenga el permiso "Ve Leads" (Senen): ven todo, el link para unirse al Meet y agregan notas; solo Eduardo (administrador principal) cambia la etapa o borra.
+
+Fases:
+1. ✅ **Sección Leads** en el Centro de trabajo: tablas `leads` y `leads_notas` (`crm/supabase/esquema.sql`), tablero por etapas, ficha con datos, lo que contó en la llamada, resumen, llamadas, permiso por escrito, Meet con botón **Unirse al meeting**, notas; permiso **Ve Leads** en Usuarios. Falta correr el esquema en Supabase.
+2. Entrada: función de ManyChat en el Centro de trabajo (clave en Netlify y en ManyChat) y pasar una vez los leads del Sheet.
+3. NEX (`bridge/ventas.mjs`) lee y escribe los leads en el Centro de trabajo (llave de servicio guardada en la Mac) en vez del Sheet; regla nueva de a quién llamar.
+4. ManyChat corto (guía o prompt para Claude in Chrome) y las instrucciones nuevas de Ana Sofi en ElevenLabs (pasos clic por clic).
+5. Avisos por llamada (mañana de días con meeting y una hora antes).
+6. Prueba con el número de Eduardo; el mismo día se apaga la vigilancia del Sheet (para que nadie reciba dos llamadas).
+Después: la gemela de entrada y lo de WhatsApp de NEX, y mover todo a la computadora de la empresa.

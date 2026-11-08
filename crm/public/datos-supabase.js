@@ -208,6 +208,23 @@ export function crearSupabase({ url, anon }) {
     async catalogos() {
       return ok(await sb.from('archivos').select('*').eq('tipo', 'catalogo').limit(5000))
     },
+    // Leads de Mi Semago (los llama Ana Sofi; los candados: esquema.sql, "leads").
+    async leads() {
+      const r = await sb.from('leads').select('*, leads_notas(*)').order('creado', { ascending: false }).limit(2000)
+      if (r.error && /leads|schema cache|does not exist|PGRST205|42P01/i.test(`${r.error.code} ${r.error.message}`)) return []
+      return ok(r)
+    },
+    async notaLead(lead_id, texto) {
+      ok(await sb.from('leads_notas').insert({ lead_id, texto: String(texto || '').trim() }))
+    },
+    async etapaLead(id, etapa) {
+      const filas = ok(await sb.from('leads').update({ etapa }).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('Solo el administrador principal cambia la etapa')
+    },
+    async borrarLead(id) {
+      const filas = ok(await sb.from('leads').delete().eq('id', id).select('id'))
+      if (!filas.length) throw new Error('Solo el administrador principal borra leads')
+    },
     // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
     async plan() {
       const r = await sb.from('plan').select('*').order('orden').order('creado').limit(5000)

@@ -41,6 +41,7 @@ const ICONOS = {
   usuarios: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>',
   bitacora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 }
+ICONOS.leads = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'
 ICONOS.fiesta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 9 9-14 5z"/><path d="M13 6c1-2 3-2 4-3M17 11c2-1 3 0 4-1M15 3l1 1M20 7l1 1M19 3l.5.5"/></svg>'
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
@@ -60,6 +61,9 @@ const S = {
   catalogos: [],
   contenidos: [],
   fiesta: [],
+  leads: [],
+  leadsBusca: '',
+  leadAbierto: null,
   fiestaBusca: '',
   fiestaEmpresa: '',
   plan: [],
@@ -200,6 +204,7 @@ async function cargarTodo() {
   ])
   Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
   S.fiesta = D.fiesta ? await D.fiesta().catch(() => null) : []
+  S.leads = D.leads && veoLeads() ? await D.leads() : []
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
 
@@ -207,7 +212,8 @@ async function recargar() {
   try {
     await cargarTodo()
     pintar()
-    if (S.abierta) abrirTarea(S.abierta)
+    if (S.leadAbierto) abrirLead(S.leadAbierto)
+    else if (S.abierta) abrirTarea(S.abierta)
     else if (S.contenidoAbierto) abrirContenido(S.contenidoAbierto)
   } catch (err) {
     falla(err)
@@ -315,6 +321,8 @@ function vistasPermitidas() {
   if (esAdmin() || S.yo.ve_parrilla !== false) v.push('parrilla')
   if (esAdmin() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
   if (esAdmin() || S.yo.ve_catalogos !== false) v.push('catalogos')
+  // Los leads de Mi Semago que llama Ana Sofi: el admin y quien tenga el permiso.
+  if (veoLeads()) v.push('leads')
   // La fiesta de empleados: todos los usuarios del centro ven quién confirmó.
   v.push('fiesta')
   if (esAdmin()) v.push('usuarios', 'bitacora')
@@ -323,7 +331,7 @@ function vistasPermitidas() {
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -375,6 +383,7 @@ function pintarVista() {
     biblioteca: vistaBiblioteca,
     catalogos: vistaCatalogos,
     fiesta: vistaFiesta,
+    leads: vistaLeads,
     usuarios: vistaUsuarios,
     bitacora: vistaBitacora,
   }[S.vista]
@@ -1362,6 +1371,157 @@ function vistaCatalogos() {
     </div>`
 }
 
+// -- leads de Mi Semago -------------------------------------------------------
+
+const veoLeads = () => esAdmin() || Boolean(S.yo?.ve_leads)
+const ETAPAS_LEAD = {
+  nuevo: { t: 'Nuevo', ayuda: 'Llegó de WhatsApp; Ana Sofi le va a programar la llamada' },
+  programada: { t: 'Llamada programada', ayuda: 'Ana Sofi le llama a la hora que pidió' },
+  no_contesto: { t: 'No contestó', ayuda: 'Se le vuelve a llamar una vez' },
+  hablo: { t: 'Ya habló', ayuda: 'Ana Sofi ya habló con él; no agendó Meet' },
+  meet: { t: 'Meet agendado', ayuda: 'Videollamada con Eduardo' },
+  cerrado: { t: 'Cerrado', ayuda: 'Ya es cliente' },
+  no_califica: { t: 'No califica', ayuda: 'No le conviene o no le interesa' },
+  no_llamar: { t: 'No llamar', ayuda: 'Pidió que no le llamen' },
+}
+const COLUMNAS_LEAD = ['nuevo', 'programada', 'no_contesto', 'hablo', 'meet', 'cerrado', 'no_califica']
+const CALIFICACION = { caliente: '🔥 Caliente', medio: '🙂 Medio', frio: '🧊 Frío' }
+const ZONA_ESTE = 'America/New_York'
+
+/** "jue 12 nov, 11:00 a.m." en una zona horaria. */
+function horaEn(iso, zona = ZONA_ESTE, conDia = true) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString('es-MX', { timeZone: zona || ZONA_ESTE, ...(conDia ? { weekday: 'short', day: 'numeric', month: 'short' } : {}), hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return new Date(iso).toLocaleString('es-MX')
+  }
+}
+/** La hora del Este y, si el lead vive en otra zona, también la suya. */
+function horaLead(iso, l) {
+  if (!iso) return ''
+  const este = `${horaEn(iso)} (hora del Este)`
+  return l.zona && l.zona !== ZONA_ESTE ? `${este} · ${horaEn(iso, l.zona, false)} en ${h(l.ciudad || 'su ciudad')}` : este
+}
+
+function tarjetaLead(l) {
+  const notas = l.leads_notas?.length ?? 0
+  const proximo =
+    l.etapa === 'meet' && l.meet_inicio
+      ? `🎥 ${horaEn(l.meet_inicio)}`
+      : ['programada', 'no_contesto'].includes(l.etapa) && l.llamada_programada
+        ? `📞 ${horaEn(l.llamada_programada)}`
+        : ''
+  return `<button class="lead-tarjeta" data-lead="${l.id}">
+    <b>${h(l.negocio || l.nombre || 'Sin nombre')}</b>
+    <span>${h([l.negocio ? l.nombre : '', l.ciudad].filter(Boolean).join(' · '))}</span>
+    <span class="lead-chips">${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${l.llamada_estado === 'marcando' || l.llamada_estado === 'en_llamada' ? '<span class="chip vivo">● En llamada</span>' : ''}${notas ? `<span class="chip">📝 ${notas}</span>` : ''}</span>
+    ${proximo ? `<small>${proximo}</small>` : ''}
+  </button>`
+}
+
+function vistaLeads() {
+  const q = sinAcentos(S.leadsBusca)
+  const lista = S.leads.filter((l) => !q || sinAcentos(`${l.nombre} ${l.negocio} ${l.ciudad} ${l.telefono} ${l.correo}`).includes(q))
+  const cuenta = (e) => S.leads.filter((l) => l.etapa === e).length
+  const hoyEste = horaEn(new Date().toISOString(), ZONA_ESTE, true).split(',')[0]
+  const meetsHoy = S.leads.filter((l) => l.etapa === 'meet' && l.meet_inicio && horaEn(l.meet_inicio).split(',')[0] === hoyEste && new Date(l.meet_inicio) > Date.now() - 3600_000)
+  return `
+    <p class="ayuda" style="margin-top:0">Los que escriben a Mi Semago por WhatsApp. Ana Sofi les llama a la hora que pidieron, les da precios, pide sus datos y, si quieren, agenda el Google Meet con Eduardo.</p>
+    ${meetsHoy.length ? `<div class="aviso-meet">${meetsHoy.map((l) => `<div>🎥 <b>Hoy ${h(horaEn(l.meet_inicio, ZONA_ESTE, false))}</b> · ${h(l.negocio || l.nombre)}</div><a class="btn principal chico" href="${h(l.meet_link)}" target="_blank" rel="noopener">Unirse al meeting</a>`).join('')}</div>` : ''}
+    <div class="resumen-leads">
+      ${['nuevo', 'programada', 'hablo', 'meet', 'cerrado'].map((e) => `<div><b>${cuenta(e)}</b><span>${ETAPAS_LEAD[e].t}</span></div>`).join('')}
+    </div>
+    <div class="barra"><input type="search" data-filtro="leadsBusca" value="${h(S.leadsBusca)}" placeholder="Buscar por nombre, negocio, ciudad, teléfono…" aria-label="Buscar leads"></div>
+    ${
+      S.leads.length
+        ? `<div class="tablero-leads">${COLUMNAS_LEAD.map((e) => {
+            const enCol = lista.filter((l) => l.etapa === e || (e === 'no_califica' && l.etapa === 'no_llamar'))
+            return `<section class="col-lead"><h3 title="${h(ETAPAS_LEAD[e].ayuda)}">${ETAPAS_LEAD[e].t} <span>${enCol.length}</span></h3>${enCol.map(tarjetaLead).join('') || '<p class="ayuda vacia">—</p>'}</section>`
+          }).join('')}</div>`
+        : '<div class="vacio-msg">Todavía no hay leads. Llegan solos de WhatsApp en cuanto alguien termina el chat de Mi Semago.</div>'
+    }`
+}
+
+function abrirLead(id) {
+  const l = S.leads.find((x) => x.id === id)
+  if (!l) return
+  S.leadAbierto = id
+  const dato = (t, v) => (v ? `<div class="dato"><span>${t}</span><b>${h(v)}</b></div>` : '')
+  const notas = [...(l.leads_notas ?? [])].sort((a, b) => String(a.creada).localeCompare(String(b.creada)))
+  const llamada =
+    l.llamada_estado === 'marcando' ? 'Marcando…' : l.llamada_estado === 'en_llamada' ? 'En llamada ahora' : l.llamada_estado === 'no_salio' ? 'La llamada no salió' : ''
+  abrirVentana(
+    h(l.negocio || l.nombre || 'Lead'),
+    `<div class="barra" style="margin-top:0"><span class="chip etapa-${l.etapa}">${ETAPAS_LEAD[l.etapa]?.t ?? l.etapa}</span>${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${llamada ? `<span class="chip vivo">● ${llamada}</span>` : ''}</div>
+    ${
+      l.meet_inicio
+        ? `<div class="meet-caja"><div><span>Google Meet con Eduardo</span><b>${horaLead(l.meet_inicio, l)}</b></div>${l.meet_link ? `<a class="btn principal" href="${h(l.meet_link)}" target="_blank" rel="noopener">🎥 Unirse al meeting</a>` : ''}</div>`
+        : ''
+    }
+    <h3 class="sub">Datos</h3>
+    <div class="datos">
+      ${dato('Nombre', l.nombre)}${dato('Negocio', l.negocio)}${dato('Ciudad', l.ciudad)}
+      ${l.telefono ? `<div class="dato"><span>Teléfono</span><b><a href="tel:${h(l.telefono.replace(/[^\d+]/g, ''))}">${h(l.telefono)}</a></b></div>` : ''}
+      ${l.correo ? `<div class="dato"><span>Correo</span><b><a href="mailto:${h(l.correo)}">${h(l.correo)}</a></b></div>` : ''}
+      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}
+    </div>
+    ${
+      l.tipo_negocio || l.quesos || l.libras || l.frecuencia || l.marca_propia || l.precios
+        ? `<h3 class="sub">Lo que contó en la llamada</h3><div class="datos">${dato('Tipo de negocio', l.tipo_negocio)}${dato('Quesos', l.quesos)}${dato('Libras', l.libras)}${dato('Cada cuánto', l.frecuencia)}${dato('Marca propia', l.marca_propia)}${dato('Precios que se le dieron', l.precios)}</div>`
+        : ''
+    }
+    ${l.resumen ? `<h3 class="sub">Resumen de Ana Sofi</h3><div class="texto-contenido">${h(l.resumen)}</div>` : ''}
+    <h3 class="sub">Llamadas</h3>
+    <div class="datos">
+      ${dato('Pidió que le llamaran', l.hora_pedida)}
+      ${l.llamada_programada && ['nuevo', 'programada', 'no_contesto'].includes(l.etapa) ? `<div class="dato"><span>Próxima llamada</span><b>${horaLead(l.llamada_programada, l)}</b></div>` : ''}
+      ${dato('Llamadas hechas', l.intentos ? String(l.intentos) : '')}
+      ${l.ultima_llamada ? `<div class="dato"><span>Última llamada</span><b>${horaLead(l.ultima_llamada, l)}</b></div>` : ''}
+      ${l.permiso_llamada ? `<div class="dato"><span>Permiso por escrito</span><b>“${h(l.permiso_texto || 'Sí')}” · ${h(horaEn(l.permiso_fecha))}</b></div>` : '<div class="dato"><span>Permiso por escrito</span><b>No dio permiso: no se le llama</b></div>'}
+    </div>
+    ${l.transcripcion ? `<details class="conversacion"><summary>Ver la conversación completa</summary><div class="texto-contenido">${h(l.transcripcion)}</div></details>` : ''}
+    <h3 class="sub">Notas</h3>
+    <div class="notas-lead">${notas.length ? notas.map((n) => `<div class="nota-lead"><b>${h(n.autor_nombre || 'Alguien')}</b> <span class="ayuda">${h(horaEn(n.creada))}</span><p>${h(n.texto)}</p></div>`).join('') : '<p class="ayuda">Todavía no hay notas.</p>'}</div>
+    <form id="form-nota-lead" class="barra" style="align-items:flex-end">
+      <textarea id="nl-texto" rows="2" maxlength="2000" required placeholder="Agregar una nota (todos los que ven Leads la verán)" style="flex:1;min-height:60px"></textarea>
+      <button class="btn principal" data-ocupado="Guardando…">Agregar nota</button>
+    </form>
+    ${
+      S.yo.dueno
+        ? `<div class="barra" style="margin-top:14px;border-top:1px solid var(--linea);padding-top:12px">
+        <label for="l-etapa" class="etiqueta" style="margin:0">Etapa</label>
+        <select id="l-etapa" style="width:auto">${Object.entries(ETAPAS_LEAD).map(([k, v]) => `<option value="${k}" ${k === l.etapa ? 'selected' : ''}>${v.t}</option>`).join('')}</select>
+        <button type="button" class="btn peligro" data-borrar-lead="${l.id}" style="margin-left:auto">Borrar lead</button>
+      </div>`
+        : ''
+    }`,
+    { alCerrar: () => (S.leadAbierto = null) },
+  )
+  $('#form-nota-lead').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.notaLead(l.id, $('#nl-texto').value)
+        avisar('Nota agregada')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+  $('#l-etapa')?.addEventListener('change', async (e) => {
+    try {
+      await D.etapaLead(l.id, e.target.value)
+      avisar(`Ahora está en: ${ETAPAS_LEAD[e.target.value].t}`)
+      await recargar()
+    } catch (err) {
+      falla(err)
+      e.target.value = l.etapa
+    }
+  })
+}
+
 // -- usuarios (admin) ---------------------------------------------------------
 
 function vistaUsuarios() {
@@ -1372,7 +1532,7 @@ function vistaUsuarios() {
   const ve = (u) =>
     u.rol === 'admin'
       ? 'Todo'
-      : [u.ve_tareas !== false && (u.rol === 'cliente' ? 'Sus tareas' : 'Tareas'), u.ve_biblioteca !== false && 'Biblioteca', u.ve_catalogos !== false && 'Catálogos', u.ve_parrilla !== false && 'Parrilla', u.ve_parrilla !== false && u.pide_extras && 'Pide extras', u.rol === 'cliente' && u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada'
+      : [u.ve_tareas !== false && (u.rol === 'cliente' ? 'Sus tareas' : 'Tareas'), u.ve_biblioteca !== false && 'Biblioteca', u.ve_catalogos !== false && 'Catálogos', u.ve_parrilla !== false && 'Parrilla',  u.ve_parrilla !== false && u.pide_extras && 'Pide extras', u.ve_leads && 'Leads', u.rol === 'cliente' && u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada'
   return `
     <div class="barra"><button class="btn principal" data-accion="nuevo-usuario">+ Nuevo usuario</button></div>
     <div class="tabla-envoltura"><table class="tabla">
@@ -1432,6 +1592,7 @@ function formUsuario(id) {
         <label class="casilla"><input type="checkbox" id="u-cat" ${u?.ve_catalogos !== false ? 'checked' : ''}> Catálogos</label>
         <label class="casilla"><input type="checkbox" id="u-parrilla" ${u?.ve_parrilla !== false ? 'checked' : ''}> Parrilla de contenidos</label>
         <label class="casilla" style="padding-left:22px"><input type="checkbox" id="u-extras" ${u?.pide_extras ? 'checked' : ''}> Puede pedir extras en la Parrilla (este mes y el siguiente)</label>
+        <label class="casilla"><input type="checkbox" id="u-leads" ${u?.ve_leads ? 'checked' : ''}> Leads de Mi Semago (ve todo, el link del Meet y agrega notas)</label>
         <div id="u-direccion">
           <div class="etiqueta" style="margin-top:8px">Dirección</div>
           <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
@@ -1482,6 +1643,7 @@ function formUsuario(id) {
       ve_catalogos: $('#u-cat').checked,
       ve_parrilla: $('#u-parrilla').checked,
       pide_extras: $('#u-parrilla').checked && $('#u-extras').checked,
+      ve_leads: $('#u-leads').checked,
       ultron: $('#u-rol').value === 'cliente' && $('#u-ultron').checked,
     }
     const usuario = normalizarUsuario($('#u-usuario').value)
@@ -1646,7 +1808,7 @@ function vistaBitacora() {
   return `<p class="ayuda" style="margin-top:0">Quién hizo qué y cuándo (lo último primero). Nadie la puede borrar ni cambiar.</p><div id="bitacora"><div class="cargando">Cargando…</div></div>`
 }
 
-const NOMBRE_TABLA = { plan: 'plan de la parrilla', contenidos: 'contenido', tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
+const NOMBRE_TABLA = { leads: 'lead', leads_notas: 'nota de lead', plan: 'plan de la parrilla', contenidos: 'contenido', tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
 async function cargarBitacora() {
   try {
     const filas = await D.bitacora()
@@ -1836,6 +1998,16 @@ async function alClic(e) {
       if (!(await preguntar('Borrar extra', `Se quita "${x?.nombre}" de lo que se espera ese mes. Los contenidos que ya lo tenían se quedan sin tipo. ¿Seguro?`, { boton: 'Borrar', peligro: true }))) return
       await ocupado(b, () => D.borrarExtra(d.borrarExtra))
       avisar('Extra borrado')
+      await recargar()
+      return
+    }
+    if (d.lead) return abrirLead(d.lead)
+    if (d.borrarLead) {
+      const l = S.leads.find((x) => x.id === d.borrarLead)
+      if (!(await preguntar('Borrar lead', `Se borra ${l?.negocio || l?.nombre || 'este lead'} con sus notas. No se puede deshacer. ¿Seguro?`, { boton: 'Borrar', peligro: true }))) return
+      await ocupado(b, () => D.borrarLead(d.borrarLead))
+      cerrarVentana()
+      avisar('Lead borrado')
       await recargar()
       return
     }
@@ -2098,7 +2270,7 @@ async function alCambiar(e) {
         if (S.mes === 'pendientes') S.mes = 0
       } else S[d.filtro] = el.value
       if (d.filtro === 'bibEmpresa') S.bibCarpeta = null
-      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca') {
+      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca' || d.filtro === 'leadsBusca') {
         const foco = document.activeElement === el
         const pos = el.selectionStart
         pintarVista()
@@ -2164,7 +2336,7 @@ export async function iniciar(datos, { muestra = false } = {}) {
   document.addEventListener('click', alClic)
   document.addEventListener('change', alCambiar)
   document.addEventListener('input', (e) => {
-    if (e.target.dataset.filtro === 'busca' || e.target.dataset.filtro === 'bibBusca') alCambiar(e)
+    if (['busca', 'bibBusca', 'leadsBusca'].includes(e.target.dataset.filtro)) alCambiar(e)
   })
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('#modal').hidden && !$('.capa-dialogo')) cerrarVentana()

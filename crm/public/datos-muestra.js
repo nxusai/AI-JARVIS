@@ -73,12 +73,30 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], fiesta: [
+  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], leads: [], leads_notas: [], fiesta: [
     { id: 'f1', nombre: 'María López', telefono: '9735550123', empresa: 'MI SEMAGO', creada: ahora(), actualizada: ahora() },
     { id: 'f2', nombre: 'José Hernández', telefono: '2015550188', empresa: 'ABUELITO MEAT', creada: ahora(), actualizada: ahora() },
     { id: 'f3', nombre: 'Ana Martínez', telefono: '9735550144', empresa: 'ABUELITO CHEESE', creada: ahora(), actualizada: ahora() },
     { id: 'f4', nombre: 'Luis Ramírez', telefono: '8625550199', empresa: 'ABUELITO CORN', creada: ahora(), actualizada: ahora() },
   ] }
+  {
+    // Leads de ejemplo, en varias etapas (los trae ManyChat; los llama Ana Sofi).
+    const en = (dias, hora = 10) => {
+      const x = new Date()
+      x.setDate(x.getDate() + dias)
+      x.setUTCHours(hora + 5, 0, 0, 0) // la hora, aprox. en hora del Este
+      return x.toISOString()
+    }
+    const base = { origen: 'manychat', idioma: 'es', zona: 'America/Chicago', permiso_llamada: true, permiso_texto: 'Sí, pueden llamarme', calificacion: '', tipo_negocio: '', quesos: '', libras: '', frecuencia: '', marca_propia: '', precios: '', resumen: '', transcripcion: '', correo: '', intentos: 0, ultima_llamada: null, llamada_programada: null, llamada_estado: '', llamada_id: '', meet_inicio: null, meet_link: '', meet_evento: '' }
+    const l = (o) => db.leads.push({ id: uid(), manychat_id: uid(), creado: en(o.hace ?? 0, 9), actualizado: ahora(), ...base, ...o })
+    l({ nombre: 'Rosa Martínez', negocio: 'Tienda La Esperanza', ciudad: 'Houston, TX', telefono: '+1 713 555 0100', hora_pedida: 'hoy en la tarde', etapa: 'nuevo', hace: 0 })
+    l({ nombre: 'Luis Herrera', negocio: 'Carnicería El Toro', ciudad: 'Dallas, TX', telefono: '+1 214 555 0144', hora_pedida: 'mañana a las 10', etapa: 'programada', llamada_programada: en(1, 10), hace: 0 })
+    l({ nombre: 'Ana Cruz', negocio: 'Pupusería Doña Ana', ciudad: 'Los Angeles, CA', telefono: '+1 323 555 0177', zona: 'America/Los_Angeles', hora_pedida: 'a las 2', etapa: 'no_contesto', intentos: 1, ultima_llamada: en(-1, 14), llamada_programada: en(0, 17), llamada_estado: 'termino', hace: -1 })
+    l({ nombre: 'Jorge Peña', negocio: 'Mercado Latino JP', ciudad: 'Charlotte, NC', zona: 'America/New_York', telefono: '+1 704 555 0123', correo: 'jorge@mercadolatinojp.com', etapa: 'hablo', intentos: 1, ultima_llamada: en(-1, 11), llamada_estado: 'termino', calificacion: 'medio', tipo_negocio: 'Supermercado latino', quesos: 'Queso fresco, quesillo', libras: '200 lb', frecuencia: 'Cada 2 semanas', marca_propia: 'Todavía no; lo está pensando', precios: 'Queso fresco $3.90/lb, quesillo $4.60/lb (más de 150 lb)', resumen: 'Le interesan queso fresco y quesillo para su mercado. Compra hoy a otro proveedor. Quiere comparar precios y lo va a hablar con su socio; pidió que le marquen la próxima semana.', hace: -2 })
+    l({ nombre: 'María López', negocio: 'Distribuidora El Sol', ciudad: 'Atlanta, GA', zona: 'America/New_York', telefono: '+1 404 555 0199', correo: 'maria@distribuidoraelsol.com', etapa: 'meet', intentos: 1, ultima_llamada: en(-1, 12), llamada_estado: 'termino', calificacion: 'caliente', tipo_negocio: 'Distribuidora a tiendas latinas', quesos: 'Queso fresco, cuajada, crema', libras: '800 lb', frecuencia: 'Semanal', marca_propia: 'Sí, con la marca El Sol', precios: 'Queso fresco $3.70/lb, cuajada $3.95/lb, crema $2.80/lb (más de 500 lb)', resumen: 'Distribuidora con 40 tiendas. Quiere quesos con su propia marca. Le parecieron bien los precios y pidió hablar con Eduardo para ver etiquetas, tiempos de entrega y crédito.', meet_inicio: en(1, 11), meet_link: 'https://meet.google.com/abc-defg-hij', meet_evento: 'ejemplo', hace: -3 })
+    l({ nombre: 'Pedro Gil', negocio: 'Taquería Gil', ciudad: 'Phoenix, AZ', zona: 'America/Phoenix', telefono: '+1 602 555 0111', etapa: 'no_califica', intentos: 1, ultima_llamada: en(-4, 13), llamada_estado: 'termino', calificacion: 'frio', tipo_negocio: 'Taquería', libras: '20 lb', resumen: 'Compra muy poco (20 lb al mes) y en tienda. No le conviene el mínimo de pedido.', hace: -5 })
+    db.leads_notas.push({ id: uid(), lead_id: db.leads[4].id, texto: 'La conozco: le vende a varias tiendas de mi zona. Buen cliente.', autor: 'u-senen', autor_nombre: 'Senen', creada: en(-1, 16) })
+  }
   // Lo que se espera cada mes, por marca (igual que en esquema.sql).
   for (const marca of ['abuelito', 'mi-semago'])
     FIJOS.forEach(([nombre, cantidad, color], i) => {
@@ -110,7 +128,7 @@ export function crearMuestra() {
   let folio = 0
 
   const CABEZAS = ['u-senen', 'u-gerardo', 'u-marisol', 'u-miguel']
-  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: ['u-senen', 'u-gerardo'].includes(p.id), ultron: CABEZAS.includes(p.id) })
+  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: ['u-senen', 'u-gerardo'].includes(p.id), ve_leads: p.id === 'u-senen', ultron: CABEZAS.includes(p.id) })
   db.perfiles.find((p) => p.id === 'u-admin').dueno = true
   // Un extra que pidió Senen para este mes.
   {
@@ -467,6 +485,33 @@ export function crearMuestra() {
     },
     async catalogos() {
       return copia(db.archivos.filter((a) => a.tipo === 'catalogo' && veoArchivo(a)))
+    },
+    // Leads de Mi Semago (las mismas reglas que esquema.sql, "leads").
+    async leads() {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) return []
+      return copia(db.leads.map((x) => ({ ...x, leads_notas: db.leads_notas.filter((n) => n.lead_id === x.id) })))
+    },
+    async notaLead(lead_id, texto) {
+      await espera(200)
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) no('No tienes permiso para ver leads')
+      texto = String(texto || '').trim()
+      if (!texto) no('Escribe la nota')
+      db.leads_notas.push({ id: uid(), lead_id, texto, autor: yo, autor_nombre: p.nombre, creada: ahora() })
+    },
+    async etapaLead(id, etapa) {
+      if (!dueno()) no('Solo el administrador principal cambia la etapa')
+      const x = db.leads.find((v) => v.id === id)
+      anota('cambió', 'leads', id, { nombre: x.nombre, etapa: [x.etapa, etapa] })
+      x.etapa = etapa
+    },
+    async borrarLead(id) {
+      if (!dueno()) no('Solo el administrador principal borra leads')
+      const x = db.leads.find((v) => v.id === id)
+      db.leads = db.leads.filter((v) => v.id !== id)
+      db.leads_notas = db.leads_notas.filter((n) => n.lead_id !== id)
+      anota('borró', 'leads', id, { nombre: x?.nombre })
     },
     // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
     async plan() {

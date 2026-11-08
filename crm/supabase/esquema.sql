@@ -64,6 +64,8 @@ alter table public.perfiles add column if not exists ultron boolean not null def
 -- Parrilla: si la ve, y si puede pedir contenidos extra del mes (lo decide el admin).
 alter table public.perfiles add column if not exists ve_parrilla boolean not null default true;
 alter table public.perfiles add column if not exists pide_extras boolean not null default false;
+-- Leads de Mi Semago (los que llegan de WhatsApp y llama Ana Sofi): quién los ve.
+alter table public.perfiles add column if not exists ve_leads boolean not null default false;
 
 -- El dueño (Eduardo): a su perfil y a su acceso solo los toca él. Hay uno solo.
 alter table public.perfiles add column if not exists dueno boolean not null default false;
@@ -1195,3 +1197,150 @@ create policy fiesta_borrar on public.fiesta_asistentes for delete to authentica
 drop trigger if exists crm_bitacora on public.fiesta_asistentes;
 create trigger crm_bitacora after insert or update or delete on public.fiesta_asistentes
   for each row execute function public.anotar_cambio();
+
+-- ---------------------------------------------------------------------------
+-- Leads de Mi Semago
+-- ---------------------------------------------------------------------------
+-- Llegan de WhatsApp (ManyChat): nombre, negocio, ciudad, su número y el
+-- permiso por escrito para que le llamen. Ana Sofi les llama desde la
+-- computadora del sistema (con la llave de servicio, que no pasa por estas
+-- reglas), los califica, les da precios, pide su correo y, si quieren, agenda
+-- el Google Meet con Eduardo.
+-- Los ve quien tenga "Ve Leads" (y el admin). Todos ellos agregan notas; solo
+-- el administrador principal cambia la etapa o borra.
+
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  manychat_id text unique,
+  origen text not null default 'manychat' check (origen in ('manychat', 'sheet', 'manual')),
+  nombre text not null default '' check (char_length(nombre) <= 80),
+  negocio text not null default '' check (char_length(negocio) <= 120),
+  ciudad text not null default '' check (char_length(ciudad) <= 80),
+  telefono text not null default '' check (char_length(telefono) <= 30),
+  correo text not null default '' check (char_length(correo) <= 120),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  hora_pedida text not null default '' check (char_length(hora_pedida) <= 200),
+  zona text not null default '' check (char_length(zona) <= 60),
+  -- El permiso por escrito para que una IA le llame (en EE.UU. es ley). Una vez guardado, no se cambia.
+  permiso_llamada boolean not null default false,
+  permiso_fecha timestamptz,
+  permiso_texto text not null default '' check (char_length(permiso_texto) <= 500),
+  etapa text not null default 'nuevo' check (etapa in ('nuevo', 'programada', 'no_contesto', 'hablo', 'meet', 'cerrado', 'no_califica', 'no_llamar')),
+  -- Lo que saca Ana Sofi en la llamada.
+  calificacion text not null default '' check (calificacion in ('', 'caliente', 'medio', 'frio')),
+  tipo_negocio text not null default '' check (char_length(tipo_negocio) <= 200),
+  quesos text not null default '' check (char_length(quesos) <= 300),
+  libras text not null default '' check (char_length(libras) <= 120),
+  frecuencia text not null default '' check (char_length(frecuencia) <= 120),
+  marca_propia text not null default '' check (char_length(marca_propia) <= 200),
+  precios text not null default '' check (char_length(precios) <= 500),
+  resumen text not null default '' check (char_length(resumen) <= 4000),
+  transcripcion text not null default '' check (char_length(transcripcion) <= 60000),
+  -- Las llamadas.
+  llamada_programada timestamptz,
+  intentos int not null default 0 check (intentos >= 0),
+  ultima_llamada timestamptz,
+  llamada_estado text not null default '' check (llamada_estado in ('', 'marcando', 'en_llamada', 'termino', 'no_salio')),
+  llamada_id text not null default '' check (char_length(llamada_id) <= 120),
+  -- El Google Meet con Eduardo.
+  meet_inicio timestamptz,
+  meet_link text not null default '' check (meet_link = '' or meet_link ~ '^https://'),
+  meet_evento text not null default '' check (char_length(meet_evento) <= 200),
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists leads_etapa on public.leads (etapa, creado desc);
+
+create table if not exists public.leads_notas (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.leads (id) on delete cascade,
+  texto text not null check (char_length(texto) between 1 and 2000),
+  autor uuid references public.perfiles (id) on delete set null,
+  autor_nombre text not null default '',
+  creada timestamptz not null default now()
+);
+create index if not exists leads_notas_lead on public.leads_notas (lead_id, creada);
+
+create or replace function public.antes_lead() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    if new.permiso_llamada and new.permiso_fecha is null then new.permiso_fecha := now(); end if;
+  else
+    new.id := old.id; new.creado := old.creado;
+    if old.permiso_llamada and not es_consola() then
+      new.permiso_llamada := old.permiso_llamada; new.permiso_fecha := old.permiso_fecha; new.permiso_texto := old.permiso_texto;
+    elsif new.permiso_llamada and new.permiso_fecha is null then
+      new.permiso_fecha := now();
+    end if;
+  end if;
+  new.actualizado := now();
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_lead on public.leads;
+create trigger crm_antes_lead before insert or update on public.leads
+  for each row execute function public.antes_lead();
+
+-- En la Bitácora: cuándo llega, cambios de etapa y de Meet, y si se borra (sin la conversación completa).
+create or replace function public.anotar_lead() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'creó', 'leads', new.id::text, jsonb_build_object('nombre', new.nombre, 'negocio', new.negocio, 'origen', new.origen));
+  elsif tg_op = 'DELETE' then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'borró', 'leads', old.id::text, jsonb_build_object('nombre', old.nombre, 'negocio', old.negocio, 'etapa', old.etapa));
+    return old;
+  elsif new.etapa is distinct from old.etapa or new.meet_inicio is distinct from old.meet_inicio then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'cambió', 'leads', new.id::text,
+      jsonb_build_object('nombre', new.nombre, 'etapa', jsonb_build_array(old.etapa, new.etapa), 'meet', jsonb_build_array(old.meet_inicio, new.meet_inicio)));
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_bitacora on public.leads;
+create trigger crm_bitacora after insert or update or delete on public.leads
+  for each row execute function public.anotar_lead();
+
+create or replace function public.antes_nota_lead() returns trigger
+language plpgsql as $$
+begin
+  new.creada := now();
+  if not es_consola() and auth.uid() is not null then
+    new.autor := auth.uid();
+    new.autor_nombre := coalesce((select nombre from perfiles where id = auth.uid()), '');
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_nota_lead on public.leads_notas;
+create trigger crm_antes_nota_lead before insert on public.leads_notas
+  for each row execute function public.antes_nota_lead();
+
+drop trigger if exists crm_bitacora on public.leads_notas;
+create trigger crm_bitacora after insert or update or delete on public.leads_notas
+  for each row execute function public.anotar_cambio();
+
+create or replace function public.veo_leads() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfiles where id = auth.uid() and activo and not eliminado and (rol = 'admin' or ve_leads))
+$$;
+
+alter table public.leads enable row level security;
+alter table public.leads_notas enable row level security;
+
+drop policy if exists leads_ver on public.leads;
+create policy leads_ver on public.leads for select to authenticated using (veo_leads());
+drop policy if exists leads_dueno on public.leads;
+create policy leads_dueno on public.leads for all to authenticated using (es_dueno()) with check (es_dueno());
+
+drop policy if exists leads_notas_ver on public.leads_notas;
+create policy leads_notas_ver on public.leads_notas for select to authenticated using (veo_leads());
+drop policy if exists leads_notas_agregar on public.leads_notas;
+create policy leads_notas_agregar on public.leads_notas for insert to authenticated with check (veo_leads());
+drop policy if exists leads_notas_borrar on public.leads_notas;
+create policy leads_notas_borrar on public.leads_notas for delete to authenticated using (es_dueno());
