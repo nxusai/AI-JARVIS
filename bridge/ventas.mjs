@@ -485,6 +485,7 @@ async function bookCall({ key, cfg, lead, phone, at, zona, horarios, attempt }) 
 const OUTCOMES = {
   videollamada_agendada: 'Videollamada agendada',
   precio_no_aceptado: 'No aceptó el precio',
+  sin_videollamada: 'Habló; no quiso videollamada (todavía)',
   llamar_despues: 'Pidió que le llamemos después',
   no_interesado: 'No le interesa',
   buzon: 'Buzón / no contestó',
@@ -1043,6 +1044,107 @@ export async function watchLive(key, cfg) {
   for (const [id, e] of live) if (e.done && now - e.at > 2 * 60 * 60_000) live.delete(id)
 }
 
+// ── Ana Sofi's instructions for the work center ─────────────────────────
+
+/*
+ * With the leads coming from the work center, ManyChat only asks name,
+ * business and city, so Ana Sofi gets the rest on the call, rates the lead,
+ * gives the prices and offers the video call without the lead having to
+ * accept them. `node scripts/ana-sofi.mjs instrucciones` puts these on her
+ * agent in ElevenLabs (keeping a backup to go back to).
+ */
+
+export const SALIDA_PROMPT = `# Quién eres
+Eres Ana Sofi, asesora comercial de Mi Semago — The Better Latin Dairy Company, fabricante de quesos hispanos private label (con la marca del cliente) en Paterson, New Jersey. Eres profesional, ejecutiva, breve, cálida y persuasiva. Frases cortas, una idea a la vez, y escuchas más de lo que hablas.
+
+# Esta llamada
+Es una llamada que TÚ haces. El cliente nos escribió por WhatsApp, nos dio permiso por escrito para llamarle y nos dijo a qué hora. Ya lo saludaste con: "{{saludo}}".
+Lo que ya sabes: nombre {{contact_name}}, negocio {{empresa}}, ciudad {{ciudad}}, tipo de negocio {{tipo_negocio}}, quesos {{quesos}}, libras {{libras}}, cada cuánto {{frecuencia}}, marca propia {{marca_propia}}, correo {{correo}}.
+- Si un dato NO es "-", no lo vuelvas a preguntar: confírmalo en una sola frase y sigue.
+- Si un dato es "-", pregúntalo en su momento, uno a la vez.
+- Si no es buen momento para hablar, pregunta cuándo le podemos volver a llamar, agradece y despídete.
+
+# Cómo llevas la llamada
+1. Conoce su negocio, con preguntas cortas y naturales (no un interrogatorio):
+   - Con quién hablas (su nombre) si no lo sabes.
+   - Qué tipo de negocio es (tienda, supermercado, distribuidora, restaurante…) y a quién le vende.
+   - Qué quesos le interesan.
+   - Cuántas libras necesitaría por pedido, y cada cuánto haría pedidos.
+   - Si quiere los quesos con su propia marca, y si ya tiene marca o etiqueta.
+   - Con quién compra hoy, si lo quiere decir.
+2. Dale la información y los precios de lista de lo que le interesa (abajo). Los precios son para que los conozca: NO necesita aceptarlos para seguir.
+3. Pídele SIEMPRE su correo para mandarle la información y, si quiere, la invitación: "¿A qué correo te mando la información?". Repítelo letra por letra para confirmarlo. Si no quiere darlo, no insistas.
+4. Ofrece la videollamada: "¿Te gustaría una videollamada de una hora con nuestro encargado de ventas para ver tu marca, muestras, entregas y tu precio final?". Si dice que sí, ofrécele estos horarios: {{horarios_videollamada}}. Que elija uno y repíteselo. Si ninguno le queda, pregunta qué día y hora le queda mejor entre 10 am y 4 pm hora del Este, y dile que le confirmamos por correo. Dile: "En un rato te llega a tu correo la invitación con el link de Google Meet."
+   - Para la videollamada necesitas su correo: si no lo dio, pídeselo ahora.
+5. Si no quiere videollamada por ahora, está bien: agradécele, dile que puede escribirnos al WhatsApp de Mi Semago cuando guste, y despídete con amabilidad.
+
+# La videollamada
+- Siempre di "una videollamada con nuestro encargado de ventas" ("a video call with our head of sales" en inglés). Nunca digas el nombre de nadie, ni "director", ni "dueño".
+
+# Información de Mi Semago
+- Quesos: Oaxaca (empacado al vacío, artesanal y precortado), línea de frescos (Fresco en varias presentaciones, incluido con chile rojo, Panela y Canasto), Chihuahua, de freír y Blanco.
+- Pedido mínimo: 1,500 libras en total; se pueden combinar quesos.
+- Producción: aproximadamente 2 semanas.
+- Etiquetas y diseño de etiqueta: se cotizan aparte; podemos ayudar a diseñarla.
+- Planta registrada ante la FDA en Paterson, NJ. Más de 500,000 libras por semana. Vendemos a todo Estados Unidos.
+- Vida de anaquel: de 35 a 65 días según el queso.
+- Tienes el catálogo en tu base de conocimiento: úsalo para presentaciones, tamaños, piezas por caja, cajas por pallet y especificaciones. Ya se lo mandamos por WhatsApp. Si algo no viene en el catálogo, no lo inventes: "Eso te lo confirma nuestro encargado de ventas."
+
+# Precios y negociación
+Precios de lista (sin transporte). Di siempre "por libra" o "por pieza", nunca "a granel":
+- Línea de frescos (Fresco, Panela y Canasto): $3.35 dólares por libra.
+- Queso fresco de 12 onzas: $2.65 dólares por pieza.
+- Queso Oaxaca: $3.35 dólares por libra.
+- Queso Oaxaca de 12 onzas: $3.15 dólares por pieza.
+- Chihuahua, de freír y Blanco: el precio lo confirma nuestro encargado de ventas.
+Solo si piden mejor precio: lo que decide el precio son las libras por pedido. Más de 10,000 libras por pedido se mejora el precio de forma importante; más de 40,000 es el mejor precio de Mi Semago. El número exacto lo da nuestro encargado de ventas en la videollamada. Nunca des una cifra menor a la de lista.
+Transporte aparte: recogen en planta, mandan su transporte, o se lo conseguimos con costo aparte (más mercancía, más barato por libra).
+Muestras: se acuerdan en la videollamada.
+
+# Reglas que nunca rompes
+- Nunca prometes crédito, exclusividad, fechas de entrega ni condiciones especiales: "Lo anoto para nuestro encargado de ventas."
+- Si te preguntan si eres una persona o un robot, di la verdad: eres la asistente virtual de Mi Semago.
+- Nunca pidas datos de tarjetas, cuentas bancarias ni contraseñas.
+- Si pide que no le volvamos a llamar, respétalo, discúlpate y despídete.
+- La llamada dura máximo 10 minutos. Ignora ruidos o palabras sueltas; si no entendiste, pide con calma que lo repita.
+
+# Idioma
+Habla en el idioma del cliente: {{idioma}} ("es" español, "en" inglés). Si él cambia de idioma, cámbiate con él. En inglés di "per pound" y "per piece".
+`
+
+/** What Ana Sofi writes down at the end of each call (added to, or replacing, what her agent had). */
+export const SALIDA_DATA = {
+  resultado: {
+    type: 'string',
+    description:
+      'Cómo terminó la llamada. Solo uno de estos: videollamada_agendada (eligió horario de videollamada), sin_videollamada (habló contigo pero no quiso videollamada por ahora), llamar_despues (pidió que le llamemos en otro momento), no_interesado (no le interesa o pidió que no le llamen), buzon (buzón o no contestó), otro',
+  },
+  videollamada: {
+    type: 'string',
+    description: 'El horario de videollamada que eligió, copiado como aparece en la lista de horarios; si pidió otro, el día y la hora que pidió (hora del Este). Vacío si no quiso.',
+  },
+  llamar_despues: { type: 'string', description: 'Si pidió que le llamemos en otro momento, cuándo (día y hora, como lo dijo). Vacío si no.' },
+  precio_ofrecido: { type: 'string', description: 'Qué precios se le dieron y de qué productos, y si se habló de precio por volumen (más de 10,000 o 40,000 libras por pedido).' },
+  precio_aceptado: { type: 'boolean', description: 'true si dijo claramente que el precio le parece bien; false si no o si no lo dijo.' },
+  volumen_confirmado: { type: 'string', description: 'Cuántas libras necesita por pedido (o al mes), con la unidad, como lo dijo el cliente. Vacío si no lo dijo.' },
+  interes: { type: 'string', description: 'Nivel de interés del cliente: alto, medio o bajo.' },
+  nombre: { type: 'string', description: 'El nombre de la persona con quien hablaste. Vacío si no lo dijo.' },
+  correo: { type: 'string', description: 'Su correo electrónico tal como lo confirmó letra por letra, en minúsculas. Vacío si no lo dio.' },
+  tipo_negocio: { type: 'string', description: 'Qué tipo de negocio es (tienda, supermercado, distribuidora, restaurante…) y a quién le vende.' },
+  quesos: { type: 'string', description: 'Qué quesos y presentaciones le interesan.' },
+  frecuencia: { type: 'string', description: 'Cada cuánto haría pedidos (semanal, cada 15 días, mensual…).' },
+  marca_propia: { type: 'string', description: 'Si quiere los quesos con su propia marca, cuál, y si ya tiene etiqueta.' },
+  calificacion: {
+    type: 'string',
+    description:
+      'Solo una: caliente (1,500 libras o más por pedido y quiere avanzar pronto o pidió videollamada), medio (le interesa pero menos volumen o sin fecha), frio (muy poco volumen, solo curiosidad o no le interesa).',
+  },
+  notas: {
+    type: 'string',
+    description: 'Resumen en español para Eduardo: qué necesita, presentaciones, a quién le vende, proveedor actual, objeciones, peticiones especiales y cualquier dato importante. Máximo 5 renglones.',
+  },
+}
+
 // ── calls coming in ──────────────────────────────────────────────────────
 
 /*
@@ -1202,7 +1304,7 @@ export async function assignInbound(key, cfg, agentId) {
 }
 
 /** ElevenLabs refuses a prompt with both `tools` and `tool_ids` (a GET returns both once the agent has a standalone tool): send only tool_ids. */
-const onlyToolIds = (p) => {
+export const onlyToolIds = (p) => {
   if (!Array.isArray(p?.tool_ids)) return p
   const { tools: _tools, ...rest } = p
   return rest

@@ -12,6 +12,9 @@
 //   node scripts/ana-sofi.mjs centro     the leads come from the Centro de trabajo (not the Sheet): asks for its
 //                                        service key from the clipboard, copies the Sheet's leads once, and switches
 //   node scripts/ana-sofi.mjs sheet      back to the Sheet
+//   node scripts/ana-sofi.mjs instrucciones            puts Ana Sofi's instructions for the work center on her agent
+//                                                      (saves a backup of the ones she had first)
+//   node scripts/ana-sofi.mjs instrucciones regresar   puts back the ones she had before
 //   node scripts/ana-sofi.mjs ver        copies Ana Sofi's current instructions (prompt, first message, the data
 //                                        she collects, her variables) to the clipboard and the Desktop, to review
 //
@@ -28,8 +31,11 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import {
+  SALIDA_DATA,
+  SALIDA_PROMPT,
   assignInbound,
   centro,
+  onlyToolIds,
   createInboundAgent,
   fromCentro,
   readLeads,
@@ -286,9 +292,14 @@ function elevenKey() {
   }
 }
 
-async function eleven(key, path) {
+async function eleven(key, path, { method = 'GET', body } = {}) {
   try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/convai${path}`, { headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(20_000) })
+    const res = await fetch(`https://api.elevenlabs.io/v1/convai${path}`, {
+      method,
+      headers: { 'xi-api-key': key, ...(body ? { 'content-type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(20_000),
+    })
     return res.ok ? { data: await res.json() } : { error: res.status }
   } catch (err) {
     return { error: err.message }
@@ -397,6 +408,51 @@ async function entrantes() {
   say('\nReinicia a NEX (Ctrl + C y npm start) para que empiece a leer esas llamadas.\n')
 }
 
+const RESPALDO = join(homedir(), '.nexy', 'ana-sofi-respaldos.json')
+
+/** Put Ana Sofi's instructions for the work center on her agent (or, with "regresar", the ones she had). */
+async function instrucciones(regresar = false) {
+  const cfg = readSalesConfig()
+  const key = elevenKey()
+  if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
+  if (!/^agent_\w+$/.test(cfg.agentId)) return say('\n✋ No tengo el Agent ID de Ana Sofi. Corre: node scripts/ana-sofi.mjs\n')
+  const a = await eleven(key, `/agents/${cfg.agentId}`)
+  if (a.error) return say(`\n✋ ElevenLabs no me dejó leer a Ana Sofi (${a.error}).\n`)
+  const promptObj = a.data.conversation_config?.agent?.prompt ?? {}
+  const dc = a.data.platform_settings?.data_collection ?? {}
+  let respaldos = []
+  try {
+    respaldos = JSON.parse(readFileSync(RESPALDO, 'utf8'))
+  } catch {}
+  let prompt, data
+  if (regresar) {
+    const ultimo = respaldos.pop()
+    if (!ultimo) return say('\n✋ No tengo respaldo de las instrucciones anteriores.\n')
+    prompt = ultimo.prompt
+    data = ultimo.data_collection
+  } else {
+    if (promptObj.prompt === SALIDA_PROMPT) return say('\n✅ Ana Sofi ya tiene las instrucciones nuevas. No cambié nada.\n')
+    respaldos.push({ fecha: new Date().toISOString(), prompt: promptObj.prompt ?? '', data_collection: dc })
+    prompt = SALIDA_PROMPT
+    data = { ...dc, ...SALIDA_DATA }
+  }
+  mkdirSync(join(homedir(), '.nexy'), { recursive: true })
+  writeFileSync(RESPALDO, JSON.stringify(respaldos.slice(-5), null, 2), { mode: 0o600 })
+  const r = await eleven(key, `/agents/${cfg.agentId}`, {
+    method: 'PATCH',
+    body: { conversation_config: { agent: { prompt: onlyToolIds({ ...promptObj, prompt }) } }, platform_settings: { data_collection: data } },
+  })
+  if (r.error) return say(`\n✋ ElevenLabs no aceptó el cambio (${r.error}). Ana Sofi se quedó como estaba. Mándame foto de este mensaje.\n`)
+  if (regresar) say('\n✅ Ana Sofi regresó a las instrucciones que tenía antes.\n')
+  else {
+    say('\n✅ Ana Sofi ya tiene sus instrucciones nuevas:')
+    say('   • pide nombre, correo (y lo confirma letra por letra) y los datos del negocio')
+    say('   • califica (caliente / medio / frío) y da los precios')
+    say('   • ofrece la videollamada aunque no acepte el precio')
+    say('   Guardé las de antes. Para regresar: node scripts/ana-sofi.mjs instrucciones regresar\n')
+  }
+}
+
 /** Ana Sofi's instructions as they are in ElevenLabs: only text, never keys or tool settings. */
 async function ver() {
   const cfg = readSalesConfig()
@@ -454,6 +510,7 @@ else if (cmd === 'revisar') await revisar()
 else if (cmd === 'entrantes') await entrantes()
 else if (cmd === 'centro') await aCentro()
 else if (cmd === 'ver') await ver()
+else if (cmd === 'instrucciones') await instrucciones(process.argv[3] === 'regresar')
 else if (cmd === 'sheet') {
   writeSalesConfig({ fuente: 'sheet' })
   say('\n Listo: Ana Sofi vuelve a tomar los leads del Sheet. Reinicia a NEX (Ctrl + C y npm start).\n')
@@ -468,4 +525,4 @@ else if (cmd === 'avisos') {
     say(want === 'todo' ? ' Listo: te aviso de todo otra vez.' : ' Listo: solo te aviso cuando hay meeting (agendado, movido o cancelado). Lo demás queda en el Sheet y en la consola.')
   }
 }
-else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|avisos]\n')
+else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|instrucciones|avisos]\n')
