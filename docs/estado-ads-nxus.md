@@ -165,6 +165,10 @@
 - En Ads Manager, con Messenger + Instagram juntos solo se puede elegir UNA plantilla de ManyChat y las de Instagram salen en gris ("Instagram only"). Se decidió: conversion location solo Messenger, placements en FB e IG igual (el anuncio se ve en Instagram y el chat abre en Messenger), plantilla "Anuncio MX · Video X · FB". Ventajas: un solo conjunto con los $20, flujo de Messenger consistente, Messenger ya conectado a la Conversions API (y es el canal donde Meta permite optimizar por eventos de mensajes). Las automatizaciones IG quedan sin usar. Revisar a las 2 semanas si conviene probar un conjunto aparte solo Instagram.
 - El prompt de NY (v2) ya se ajustó igual: 3 automatizaciones FB y destino solo Messenger.
 
+## Campaña MX v2 lista para publicar (8 nov 2026)
+- Extensión terminó: campaña "NXUS | MX | Mensajes | Diagnóstico v2" en borrador (campaña, conjunto y 3 anuncios). Engagement, límite $300, "Share up to 20%…" desmarcado, conjunto solo Messenger, Maximize conversations, Highest volume, $20/día (Meta: máx. $35/día y $140/semana), público original ("Advantage+ off"), edad 30–65+ fija ("Use as a suggestion" desmarcado), sin idiomas ni intereses, 15 zonas (Interlomas y Zona Esmeralda con pin de 1 milla, Coyoacán = Villa Coyoacán), público estimado 541,200–636,700, placements FB Feed/Stories/Reels + IG Feed/Profile/Stories/Reels, Allow limited spending apagado, 8 mejoras Advantage+ apagadas, Multi-advertiser apagado, plantillas "Anuncio MX · Video A/B/C · FB". Videos corregidos (Eduardo los renombró "AD 1/2/3.mp4"; C verificado con gancho de sucursales).
+- Pendiente: prueba de ManyChat por Messenger y que Eduardo dé "Review and publish". Hubo un aviso de verificación de cuenta que ya no aparece.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
