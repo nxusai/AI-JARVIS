@@ -49,7 +49,9 @@ export function canal(v) {
 export function telefono(v, p, ...lugar) {
   const t = texto(v, 40)
   if (!t) return ''
-  return normalizar(t, p, ...lugar).telefono || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
+  const n = normalizar(t, p, ...lugar)
+  // En duda (+1 pero dijo México): se guarda el número como lo dio; al llamar lo decide la IA.
+  return (n.duda ? n.original : n.telefono) || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
 }
 
 const correo = (v) => {
