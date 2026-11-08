@@ -14,8 +14,8 @@ LO QUE NO QUIERO (ya me pasó y gasté sin resultados)
 - Público abierto a todo el mundo, Advantage+ audience, edad desde 18, radios grandes o "todo el país".
 - Mejoras automáticas de Meta (texto, música, IA), Audience Network, Threads, Messenger inbox, Explore.
 - Saludo de Meta en inglés o sin botones, pedir que escriban "INFO" u otra palabra.
-- Compartir presupuesto entre conjuntos o gastar más de lo autorizado. El saludo del anuncio lo maneja
-ManyChat con botones (un robot no los puede tocar) y cada lead queda marcado con su video.
+- Compartir presupuesto entre conjuntos o gastar más de lo autorizado.
+El saludo del anuncio lo maneja ManyChat con botones (un robot no los puede tocar) y cada lead queda marcado con su video.
 
 REGLAS (obligatorias)
 - NO publiques la campaña: deja todo listo y DETENTE antes de "Publish/Publicar". Yo reviso y publico.
@@ -152,7 +152,7 @@ NO publiques. Informe en español, cada punto con ✅ (hecho), ⚠️ (distinto)
 1. ManyChat: las 3 automatizaciones (nombre, disparador, botones, fuente, etiqueta, Start Automation); cuáles
    publicaste con mi permiso.
 2. Campaña: nombre, objetivo, límite de gasto.
-3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idioma, intereses, las
+3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idioma, intereses, los
    códigos postales que quedaron (y los que no existían), público estimado, placements y "Allow limited spending".
 4. Los 3 anuncios: nombre, video elegido (y si es el mismo de México), textos, CTA, mejoras apagadas y automatización ligada por canal.
 5. Advertencias, errores o cambios que Meta hizo solo.
