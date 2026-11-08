@@ -54,6 +54,8 @@ const API = 'https://api.elevenlabs.io/v1/convai'
 const TICK_MS = 3 * 60_000
 /** With the work center, new leads want the call as soon as possible: look every minute. */
 const TICK_CENTRO_MS = 60_000
+/** …and the new ones alone, every 15 seconds. */
+const NEW_LEADS_MS = 15_000
 /** Calls ring only between these hours, in the lead's own time zone. */
 const FIRST_HOUR = 9
 const LAST_HOUR = 20
@@ -508,11 +510,17 @@ const valueOf = (dc, k) => {
  * Returns null while the call has not happened or is still being analysed.
  */
 async function callOutcome(key, entry) {
-  const b = await eleven(key, `/batch-calling/${entry.batchId}`)
+  // A call placed at once (callNow) has its conversation id already; a booked one goes through its batch.
+  const b = entry.batchId ? await eleven(key, `/batch-calling/${entry.batchId}`) : { data: { recipients: [{ conversation_id: entry.convId }] } }
   if (b.error) return b.error === 404 ? { resultado: 'otro', notas: 'La llamada ya no aparece en ElevenLabs.' } : null
   const rec = (b.data.recipients ?? [])[0] ?? {}
   const status = fold(rec.status ?? b.data.status)
   const convId = rec.conversation_id ?? rec.conversationId
+  if (!entry.batchId && convId) {
+    const c0 = await eleven(key, `/conversations/${convId}`)
+    // A call that never connected (no answer, busy) can stay without a "done" analysis: after 15 minutes it counts as not answered.
+    if (c0.error === 404 && Date.now() - (entry.at ?? 0) > 15 * 60_000) return { resultado: 'no_contesto' }
+  }
   if (convId) {
     const c = await eleven(key, `/conversations/${convId}`)
     if (c.error) return null
@@ -556,6 +564,84 @@ async function callOutcome(key, entry) {
   if (entry.at && Date.now() - entry.at > 3 * 60 * 60_000 && /complet/.test(fold(b.data.status))) return { resultado: 'no_contesto' }
   return null
 }
+
+// ── calling a lead at once ──────────────────────────────────────────────
+
+/*
+ * A lead who just asked for the call (work center, no time given) is called
+ * at once, at any hour: no job for NEX first, no queue. The three video-call
+ * slots Ana Sofi offers are worked out here (10 am, 1 pm and 3 pm Eastern, on
+ * different days, at least three hours ahead); the owner's calendar is checked
+ * when the meeting is booked, and a taken slot moves to the closest free one.
+ */
+
+const SLOT_HOURS = [10, 13, 15]
+
+/** Three video-call slots, in the lead's language, Eastern time. */
+export function autoSlots(now = Date.now(), lang = 'es') {
+  const z = OWNER_ZONE_MEETINGS
+  const out = []
+  for (let d = 0; d < 8 && out.length < 3; d++) {
+    const { y, mo, d: day } = partsIn(now + d * 24 * 60 * 60_000, z)
+    // A different hour each day (10, 1, 3…), or the next one that is still at least three hours ahead.
+    const order = SLOT_HOURS.map((_, i) => SLOT_HOURS[(out.length + i) % SLOT_HOURS.length])
+    const at = order.map((h) => zonedTime(y, mo, day, h, z)).find((t) => t >= now + 3 * 60 * 60_000)
+    if (at && !out.some((t) => partsIn(t, z).d === day)) out.push(at)
+  }
+  const en = lang === 'en'
+  const fmt = (ms) => {
+    const p = partsIn(ms, z)
+    const wd = new Intl.DateTimeFormat(en ? 'en-US' : 'es-MX', { timeZone: z, weekday: 'long' }).format(new Date(ms))
+    const mes = new Intl.DateTimeFormat(en ? 'en-US' : 'es-MX', { timeZone: z, month: 'long' }).format(new Date(ms))
+    const h12 = p.h % 12 || 12
+    const ap = p.h < 12 ? 'am' : 'pm'
+    return en ? `${wd}, ${mes} ${p.d} at ${h12} ${ap.toUpperCase()}` : `${wd} ${p.d} de ${mes} a la${h12 === 1 ? '' : 's'} ${h12} ${ap}`
+  }
+  const list = out.map(fmt)
+  const joined = list.length > 1 ? `${list.slice(0, -1).join(', ')} ${en ? 'or' : 'o'} ${list.at(-1)}` : list.join('')
+  return `${joined}, ${en ? 'Eastern time' : 'hora del Este'}`
+}
+
+/** The UTC time of a wall-clock hour in a zone (DST-safe enough for whole hours). */
+function zonedTime(y, mo, d, h, zone) {
+  const want = Date.UTC(y, mo - 1, d, h)
+  let guess = want
+  for (let i = 0; i < 3; i++) {
+    const p = partsIn(guess, zone)
+    guess -= Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi) - want
+  }
+  return guess
+}
+
+let phoneProvider = null
+/** Ana Sofi's number: 'twilio' or 'sip_trunk' (asked once). */
+async function providerOf(key, cfg) {
+  if (phoneProvider) return phoneProvider
+  const p = await eleven(key, `/phone-numbers/${cfg.phoneId}`)
+  phoneProvider = fold(p.data?.provider ?? 'twilio').includes('sip') ? 'sip-trunk' : 'twilio'
+  return phoneProvider
+}
+
+/** Dial the lead now (not through the batch queue). Returns { convId } or { error }. */
+async function callNow({ key, cfg, lead, phone, horarios }) {
+  const via = await providerOf(key, cfg)
+  const r = await eleven(key, `/${via}/outbound-call`, {
+    method: 'POST',
+    body: JSON.stringify({
+      agent_id: cfg.agentId,
+      agent_phone_number_id: cfg.phoneId,
+      to_number: phone,
+      conversation_initiation_client_data: { user_id: lead.id, dynamic_variables: callVariables(lead, horarios, 1) },
+    }),
+  })
+  if (r.error) return { error: r.error }
+  if (r.data?.success === false) return { error: r.data.message || 'no salió' }
+  const convId = r.data?.conversation_id
+  return convId ? { convId } : { error: 'sin conversación' }
+}
+
+/** A new lead from the work center who gave no time: they want the call now. */
+const wantsItNow = (lead) => lead.centro && !String(lead.horario ?? '').trim()
 
 // ── jobs for NEX ────────────────────────────────────────────────────────
 
@@ -631,7 +717,7 @@ function meetingJob(lead, outcome, horarios) {
     `pounds confirmed: ${outcome.volumen || '-'}\ninterest: ${outcome.interes || '-'}\ncall notes: ${outcome.notas || '-'}\n</lead>\n\n` +
     'Do this:\n' +
     `1. Work out the exact date and time of the chosen slot (Eastern time, ${OWNER_ZONE_MEETINGS}).\n` +
-    '2. Check the owner is still free then. If so, create the event in the owner\'s calendar: one hour, title ' +
+    '2. Check the owner is still free then (if not, see step 5). Create the event in the owner\'s calendar: one hour, title ' +
     `"Mi Semago · ${(lead.empresa || lead.nombre || 'cliente').replace(/"/g, '')} · videollamada", a Google Meet link, the lead's email as attendee ` +
     '(only if it is a real address), sendUpdates "all", and in the description the lead\'s details, the prices discussed and the call notes. ' +
     'It goes out at once: the lead was promised this meeting on the call, so it is not held for the owner. ' +
@@ -640,7 +726,9 @@ function meetingJob(lead, outcome, horarios) {
     `4. Phone the owner right away with call_me (no time, so it rings now): the owner wants every new meeting by phone. Message, in Spanish, spoken: ` +
     '"Boss, Ana Sofi te agendó un meeting el … a las …" with the day and time, the company, who they are, the pounds, the cheeses, the prices discussed and anything from the call ' +
     'they should know.\n' +
-    '5. If the slot is no longer free or the email is missing: create nothing, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
+    '5. If that slot is taken in the owner\'s calendar, use the closest free one-hour slot between 10:00 and 16:00 Eastern that same day or the next, ' +
+    'and say in the description "Ajustamos el horario al más cercano disponible." / "We moved it to the closest available time." ' +
+    'If the email is missing: create nothing, do not call log_sales_meeting, and say in the report what is needed.\n\n' +
     'Report: company, pounds, prices discussed, the meeting time, and that the invitation went out.'
   )
 }
@@ -748,6 +836,22 @@ export function startSales({ elevenKey, zone }) {
   }
   const clock = setInterval(tick, fromCentro() ? TICK_CENTRO_MS : TICK_MS)
   clock.unref?.()
+  // With the work center, new leads are looked for every 15 seconds, so the call goes out right after they say yes.
+  if (fromCentro()) {
+    const quick = async () => {
+      if (running) return
+      running = true
+      try {
+        await newLeadsTick({ elevenKey, zone })
+      } catch (err) {
+        console.log(`[jarvis] ventas (nuevos): ${err?.message ?? err}`)
+      } finally {
+        running = false
+      }
+    }
+    const fast = setInterval(quick, NEW_LEADS_MS)
+    fast.unref?.()
+  }
   setTimeout(tick, 15_000).unref?.()
   // Ana Sofi's calls as they happen, in the console's Mi Semago section.
   let watching = false
@@ -766,6 +870,25 @@ export function startSales({ elevenKey, zone }) {
   const eyes = setInterval(look, LIVE_MS)
   eyes.unref?.()
   console.log(`[jarvis] ventas Mi Semago on: Ana Sofi calls the leads in ${fromCentro() ? 'the Centro de trabajo' : 'the Sheet'}`)
+}
+
+/** Only the new leads with permission (a light read), so they are called right away. */
+export async function newLeadsTick({ elevenKey, zone }) {
+  const cfg = readSalesConfig()
+  const key = elevenKey()
+  if (!key || !fromCentro(cfg)) return
+  const rows = await centro(cfg, '/rest/v1/leads?select=*&etapa=eq.nuevo&permiso_llamada=is.true&order=creado.asc&limit=50')
+  if (!rows?.length) return
+  const state = readState()
+  const now = Date.now()
+  for (const lead of rows.map(leadFromCentro)) {
+    try {
+      await stepLead({ cfg, key, lead, state, zone, now })
+    } catch (err) {
+      console.log(`[jarvis] ventas: ${lead.nombre || lead.id}: ${err?.message ?? err}`)
+    }
+    writeState(state)
+  }
 }
 
 export async function salesTick({ elevenKey, zone }) {
@@ -826,6 +949,25 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
         await writeLead(cfg, lead, { Fecha: when(now, zone), Estado: 'Número fuera de EE.UU. — llamar a mano' }, { etapa: 'no_califica', nota: `Su número (${lead.telefono || 'vacío'}) no es de EE.UU.: Ana Sofi no lo llama. Hay que llamarle a mano.` })
         return
       }
+      if (wantsItNow(lead)) {
+        // Taken first, so a second clock never dials the same lead twice.
+        state[lead.key] = { stage: 'programada', row: lead.row, since: now, at: now, zona: OWNER_ZONE_MEETINGS, attempts: 1, marcando: true }
+        writeState(state)
+        const horarios = autoSlots(now, english(lead) ? 'en' : 'es')
+        const r = await callNow({ key, cfg, lead, phone, horarios })
+        if (r.convId) {
+          Object.assign(state[lead.key], { convId: r.convId, horarios, marcando: false })
+          writeState(state)
+          await writeLead(cfg, lead, { Estado: 'Llamando' }, { etapa: 'programada', llamada_programada: iso(now), llamada_estado: 'marcando', llamada_id: r.convId.slice(0, 120) })
+          console.log(`[jarvis] ventas: Ana Sofi ya está llamando a ${lead.nombre || lead.empresa || 'un lead nuevo'}`)
+          return
+        }
+        // It did not go out at once: the usual way (NEX books it), and the reason in the lead's card.
+        delete state[lead.key]
+        writeState(state)
+        console.log(`[jarvis] ventas: la llamada inmediata no salió (${r.error}); la programa NEX`)
+        await writeLead(cfg, lead, {}, { nota: `La llamada inmediata no salió (${r.error}). NEX la programa en un momento.` })
+      }
       const handed = routine('Ana Sofi · lead nuevo', scheduleJob(lead, now, zone), `📋 Lead nuevo de Mi Semago${lead.origen === 'web' ? ' (de misemago.com)' : ''}: ${lead.empresa || lead.nombre || 'sin nombre'}. Programo la llamada de Ana Sofi.`)
       if (!handed) {
         console.log('[jarvis] ventas: lead nuevo esperando a que Telegram esté listo')
@@ -855,7 +997,7 @@ async function stepLead({ cfg, key, lead, state, zone, now }) {
       return
     }
 
-    if (s.stage === 'programada' && s.batchId && now > (s.at ?? 0)) {
+    if (s.stage === 'programada' && (s.batchId || s.convId) && now > (s.at ?? 0)) {
       const outcome = await callOutcome(key, s)
       if (!outcome) return
       await handleOutcome({ cfg, key, lead, s, outcome, zone, now })
