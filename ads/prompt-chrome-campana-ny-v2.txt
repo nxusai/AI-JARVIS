@@ -25,12 +25,9 @@ REGLAS (obligatorias)
 ======================================================================
 PARTE A. MANYCHAT
 ======================================================================
-A1. Crea 6 automatizaciones nuevas, iguales a las de México ("Anuncio MX · Video A · IG", etc.; ábrelas para
+A1. Crea 3 automatizaciones nuevas, iguales a las de México ("Anuncio MX · Video A · IG", etc.; ábrelas para
 copiar cómo quedaron), con estos nombres y fuentes:
-  Instagram (trigger: "Instagram Ads – User clicks an Instagram Ad"):
-    Anuncio NY · Video A · IG   (fuente: Anuncio NY · Video A)
-    Anuncio NY · Video B · IG   (fuente: Anuncio NY · Video B)
-    Anuncio NY · Video C · IG   (fuente: Anuncio NY · Video C)
+  (Solo Messenger: el anuncio abre el chat en Messenger aunque se vea en Instagram.)
   Messenger (trigger: "Facebook Ads – User clicks a Facebook Ad"):
     Anuncio NY · Video A · FB   (fuente: Anuncio NY · Video A)
     Anuncio NY · Video B · FB   (fuente: Anuncio NY · Video B)
@@ -42,12 +39,12 @@ copiar cómo quedaron), con estos nombres y fuentes:
   b) Cada botón lleva a su paso de Actions:
      - Set User Field sucursales = el texto del botón
      - Set User Field fuente = la fuente de esa automatización (por ejemplo: Anuncio NY · Video A)
-     - Set User Field canal = instagram (IG) o facebook (FB)
+     - Set User Field canal = facebook
      - Add Tag: anuncio-ny
-     - Start Automation → "Filtro NXUS" (IG) o "Filtro NXUS · Facebook" (FB).
+     - Start Automation → "Filtro NXUS · Facebook".
   c) Nada más.
 
-A2. Pídeme permiso para publicar estas 6 automatizaciones (solo responden a clics de anuncios) y espera mi "sí".
+A2. Pídeme permiso para publicar estas 3 automatizaciones (solo responden a clics de anuncios) y espera mi "sí".
 
 ======================================================================
 PARTE B. META ADS MANAGER
@@ -60,7 +57,9 @@ B1. Campaña
 
 B2. Conjunto de anuncios
   - Nombre: NY-NJ | Hispanos | 30+
-  - Conversion location: Messaging apps → Messenger e Instagram. WhatsApp DESMARCADO.
+  - Conversion location: Messaging apps → SOLO Messenger (Instagram y WhatsApp DESMARCADOS). Meta solo deja una
+    plantilla de ManyChat para los dos canales y las de Instagram salen en gris; con solo Messenger usamos las FB.
+    Los anuncios igual se ven en Instagram (placements), pero el chat se abre en Messenger.
   - Performance goal: Maximize number of conversations. Puja: Highest volume. Daily budget: 20 USD. Sin fecha fin.
   - Público: "Switch to original audience options" si aparece Advantage+ audience; si no, Audience controls con
     ubicación y edad mínima 30.
@@ -86,8 +85,8 @@ B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
   - CTA: Send message / Enviar mensaje.
   - Advantage+ creative: APAGA TODAS las mejoras una por una (texto, visuales, música, overlays, animación,
     filtros, expandir, traducir, relevant comments, enhance CTA, site links, etc.) y "Multi-advertiser ads".
-  - Message template: Partner app → ManyChat → Instagram: "Anuncio NY · Video X · IG"; Messenger:
-    "Anuncio NY · Video X · FB". Si no deja elegir una por canal o no aparece ManyChat, DETENTE y dime qué ves.
+  - Message template: Partner app → ManyChat → "Anuncio NY · Video X · FB" (la del mismo video). Si no aparece
+    ManyChat, DETENTE y dime qué ves.
   - No pidas en el texto que escriban ninguna palabra.
 
   Anuncio A
@@ -133,7 +132,7 @@ que no se corte lo importante y que no aparezca música ni texto que yo no puse.
 PARTE C. RESUMEN FINAL (antes de publicar)
 ======================================================================
 NO publiques. Informe en español, cada punto con ✅ (hecho), ⚠️ (distinto) o ❌ (no hecho):
-1. ManyChat: las 6 automatizaciones (nombre, disparador, botones, fuente, etiqueta, Start Automation); cuáles
+1. ManyChat: las 3 automatizaciones (nombre, disparador, botones, fuente, etiqueta, Start Automation); cuáles
    publicaste con mi permiso.
 2. Campaña: nombre, objetivo, límite de gasto.
 3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idioma, intereses, las

@@ -161,6 +161,10 @@
 - Se hicieron videos de NY sin voz para empresas bilingües; a Eduardo NO le gustaron y se borraron. Decisión: NY usa los MISMOS 3 videos de México (A, B, C, en español, de restaurantes), dirigidos a dueños hispanos en NYC y norte de NJ, como el plan original. Cuando recargue Higgsfield se pueden hacer versiones nuevas.
 - Prompt: `ads/prompt-chrome-campana-ny-v2.txt` (correr después de publicar MX): 6 automatizaciones "Anuncio NY · Video A/B/C · IG/FB" (saludo de sucursales, fuente "Anuncio NY · Video X", etiqueta anuncio-ny, Start Automation al Filtro); campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, idioma español, sin intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 3 anuncios con los textos de MX + línea de NY/NJ.
 
+## Decisión: anuncios con destino SOLO Messenger (8 nov 2026)
+- En Ads Manager, con Messenger + Instagram juntos solo se puede elegir UNA plantilla de ManyChat y las de Instagram salen en gris ("Instagram only"). Se decidió: conversion location solo Messenger, placements en FB e IG igual (el anuncio se ve en Instagram y el chat abre en Messenger), plantilla "Anuncio MX · Video X · FB". Ventajas: un solo conjunto con los $20, flujo de Messenger consistente, Messenger ya conectado a la Conversions API (y es el canal donde Meta permite optimizar por eventos de mensajes). Las automatizaciones IG quedan sin usar. Revisar a las 2 semanas si conviene probar un conjunto aparte solo Instagram.
+- El prompt de NY (v2) ya se ajustó igual: 3 automatizaciones FB y destino solo Messenger.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
