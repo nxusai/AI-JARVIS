@@ -6,7 +6,7 @@ Si la interfaz está en inglés o en español, adáptate.
 
 CONTEXTO
 La campaña de México ("NXUS | MX | Mensajes | Diagnóstico v2") ya está armada. Esta de NY es IGUAL, con los mismos
-3 videos en español (NXUS-Ad-A.mp4, NXUS-Ad-B.mp4, NXUS-Ad-C.mp4), pero dirigida a dueños de restaurantes y
+3 videos en español (en mi computadora se llaman AD 1.mp4, AD 2.mp4 y AD 3.mp4 = videos A, B y C), pero dirigida a dueños de restaurantes y
 negocios que hablan español en la ciudad de Nueva York y el norte de New Jersey. El saludo del anuncio lo maneja
 ManyChat con botones (un robot no los puede tocar) y cada lead queda marcado con su video.
 
@@ -25,7 +25,7 @@ REGLAS (obligatorias)
 ======================================================================
 PARTE A. MANYCHAT
 ======================================================================
-A1. Crea 3 automatizaciones nuevas, iguales a las de México ("Anuncio MX · Video A · IG", etc.; ábrelas para
+A1. Crea 3 automatizaciones nuevas, iguales a las de México ("Anuncio MX · Video A · FB", etc.; ábrelas para
 copiar cómo quedaron), con estos nombres y fuentes:
   (Solo Messenger: el anuncio abre el chat en Messenger aunque se vea en Instagram.)
   Messenger (trigger: "Facebook Ads – User clicks a Facebook Ad"):
@@ -53,6 +53,7 @@ B1. Campaña
   - + Create → objetivo: Engagement / Interacción. Nombre: NXUS | NY | Mensajes | Diagnóstico
   - Sin categoría especial de anuncio.
   - Advantage campaign budget: APAGADO. Campaign spending limit: 300 USD.
+  - Desmarca "Share up to 20% of your budget with other ad sets".
   - Si ofrece "Advantage+ campaign" o configuración recomendada, elige la manual.
 
 B2. Conjunto de anuncios
@@ -63,7 +64,7 @@ B2. Conjunto de anuncios
   - Performance goal: Maximize number of conversations. Puja: Highest volume. Daily budget: 20 USD. Sin fecha fin.
   - Público: "Switch to original audience options" si aparece Advantage+ audience; si no, Audience controls con
     ubicación y edad mínima 30.
-  - Edad 30 a 65+. Todos los géneros.
+  - Edad 30 a 65+, con "Use as a suggestion" DESMARCADO (límite fijo). Todos los géneros. No apliques la sugerencia de 18–65+.
   - Idiomas: Español (Spanish) — los videos están en español.
   - Intereses / detailed targeting: NINGUNO. Sin públicos personalizados.
   - Ubicaciones (quita "United States" si viene puesto; agrega SOLO estas):
@@ -81,7 +82,8 @@ B2. Conjunto de anuncios
 
 B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
   - Identidad: Página Nxus.AI e Instagram @nxusai. Formato: Single image or video.
-  - Video: DETENTE y dime "Sube el archivo NXUS-Ad-A.mp4" (o B, o C). Espero a que yo lo suba.
+  - Video: DETENTE y dime "Sube el archivo AD 1.mp4" (A), "AD 2.mp4" (B) o "AD 3.mp4" (C). Espero a que yo lo suba.
+    Después revisa que el C empiece con "¿Tienes un restaurante con varias sucursales?".
   - CTA: Send message / Enviar mensaje.
   - Advantage+ creative: APAGA TODAS las mejoras una por una (texto, visuales, música, overlays, animación,
     filtros, expandir, traducir, relevant comments, enhance CTA, site links, etc.) y "Multi-advertiser ads".
@@ -91,7 +93,7 @@ B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
 
   Anuncio A
   - Nombre: NY | A | 11:48
-  - Video: NXUS-Ad-A.mp4
+  - Video: AD 1.mp4
   - Texto principal:
 Son las 11:48 de la noche. Tu restaurante ya cerró… y los mensajes siguen llegando. 📲
 Reservas, eventos, cotizaciones: si nadie contesta, ese cliente se va con otro.
@@ -103,7 +105,7 @@ Para restaurantes y empresas con varias sucursales en Nueva York y New Jersey.
 
   Anuncio B
   - Nombre: NY | B | Empleado
-  - Video: NXUS-Ad-B.mp4
+  - Video: AD 2.mp4
   - Texto principal:
 Este empleado atiende a tus clientes a las 3 de la mañana. 🤖
 Conoce tu menú, tus horarios y tus sucursales, contesta en español y en inglés, y nunca deja un mensaje sin contestar.
@@ -115,7 +117,7 @@ Para restaurantes y empresas en Nueva York y New Jersey.
 
   Anuncio C
   - Nombre: NY | C | Sucursales
-  - Video: NXUS-Ad-C.mp4
+  - Video: AD 3.mp4
   - Texto principal:
 ¿Tienes un restaurante con varias sucursales? 🍽️
 Cada mensaje sin contestar es una reserva, un evento o un pedido que se va con la competencia.
