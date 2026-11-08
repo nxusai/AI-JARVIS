@@ -315,6 +315,9 @@ export function leadFromCentro(r, i = 0) {
     row: i + 2,
     id: r.id,
     origen: r.origen ?? 'manychat',
+    creado: r.creado ? Date.parse(r.creado) : 0,
+    // Last change (a lead who writes again and asks for a call is touched here).
+    actualizado: r.actualizado ? Date.parse(r.actualizado) : 0,
     contacto: r.id,
     key: `id:${r.id}`,
     nombre: r.nombre ?? '',
@@ -599,10 +602,12 @@ function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
     'Do this:\n' +
     (web
       ? "1. Work out the lead's time zone (an IANA name such as America/Chicago) from the area code of their phone number (the city, when there is one, is only where they would ship, not where they live). If it is unclear, use America/New_York.\n" +
-        `2. Call them as soon as possible: in two minutes from now if it is between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time; otherwise at 10:00 the next morning their time.\n`
+        (lead.centro
+          ? '2. Call them RIGHT NOW, whatever the hour: they asked for the call this very minute. Use at = two minutes from now and pass ahora true.\n'
+          : `2. Call them as soon as possible: in two minutes from now if it is between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time; otherwise at 10:00 the next morning their time.\n`)
       : "1. Work out the lead's time zone (an IANA name such as America/Chicago) from their city and state (or, if there is no city, from the area code of their phone number). If it is unclear, use America/New_York.\n" +
         (pronto
-          ? `2. Call them as soon as possible: in two minutes from now if it is between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time; otherwise at 10:00 the next morning their time.\n`
+          ? '2. Call them RIGHT NOW, whatever the hour: they asked for the call this very minute on WhatsApp. Use at = two minutes from now and pass ahora true.\n'
           : `2. Work out when to call from what they asked for, in their own time zone. It must be between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time. ` +
         'If they gave no usable time, or it has already passed, pick the next good moment: in about ten minutes if it is daytime there, otherwise 10:00 the next morning.\n')) +
     (pronto ? '3. The lead is waiting for the call: do the calendar quickly. ' : '3. ') +
@@ -1572,6 +1577,10 @@ export function salesServer(elevenKey, zone) {
             .max(400)
             .describe('Three free one-hour slots with the owner, Eastern time, written for Ana Sofi to read out in the lead\'s language.'),
           reprogramar: z.boolean().optional().describe('true to replace a call already booked for this lead.'),
+          ahora: z
+            .boolean()
+            .optional()
+            .describe('true for a lead from the work center who asked for the call just now (WhatsApp or the website): the call goes out at once, whatever the hour.'),
         },
         async (args) => {
           const cfg = readSalesConfig()
@@ -1598,7 +1607,12 @@ export function salesServer(elevenKey, zone) {
           if (at < now - 30 * 60_000) return refuse('That time has already passed. Pick the next good time.')
           if (at < now + 60_000) at = now + 90_000
           if (at - now > MAX_AHEAD_MS) return refuse('Calls can be booked at most 14 days ahead.')
-          if (!inCallHours(at, args.zona)) return refuse(`That is outside ${FIRST_HOUR}:00–${LAST_HOUR}:00 for the lead. Pick a time within it.`)
+          // A lead who asked for the call this very minute is called at once, at any hour (the owner's rule).
+          // Only right after they asked: a new lead, in the work center, that arrived in the last hour.
+          const ahora = args.ahora === true && lead.centro && lead.etapa === 'nuevo' && now - Math.max(lead.creado || 0, lead.actualizado || 0) < 60 * 60_000
+          if (args.ahora && !ahora) return refuse('ahora is only for a new lead who asked for the call within the last hour. Pick a time between the call hours.')
+          if (ahora && at - now > 10 * 60_000) at = now + 90_000
+          if (!ahora && !inCallHours(at, args.zona)) return refuse(`That is outside ${FIRST_HOUR}:00–${LAST_HOUR}:00 for the lead. Pick a time within it.`)
 
           const state = readState()
           const prev = state[lead.key]
