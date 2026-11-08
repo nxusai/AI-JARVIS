@@ -176,6 +176,12 @@
 
 - NY v3 (8 nov): videos desde la biblioteca de medios (AD 1/2/3.mp4) y ubicación por códigos postales de zonas con más negocios hispanos (Queens: Jackson Heights, Corona, Elmhurst, Woodside; Washington Heights/Inwood; Bronx: Fordham, Concourse; Brooklyn: Sunset Park, Bushwick; NJ: Union City, West New York, North Bergen, Journal Sq., Elizabeth, Ironbound, Paterson, Passaic, Hackensack, Perth Amboy, New Brunswick) en vez de toda la ciudad y condados.
 
+## Estado al 8 nov 2026 (noche)
+- MX v2 ACTIVA. MX B y MX C estaban ligados por error a la plantilla "Anuncio MX · Video A · FB"; se corrigió a Video B y Video C (volvieron a revisión). MX A sin cambios. Related media 0 y mejoras apagadas en los 3.
+- Cuenta Eduardo's: se salió de "Test new creative features" y de las 13 pruebas de "AI generation features".
+- NY creada en borrador (campaña, conjunto "NY-NJ | Zonas hispanas | 30+" con 32 ZIPs, público estimado 1.3–1.5 M, 3 anuncios con su plantilla FB correcta). Automatizaciones "Anuncio NY · Video A/B/C · FB" Live. Falta que Eduardo publique.
+- Lecciones generales para clientes: `docs/lecciones-anuncios-mensajes.md`.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
