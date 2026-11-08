@@ -6,8 +6,15 @@ Si la interfaz está en inglés o en español, adáptate.
 
 CONTEXTO
 La campaña de México ("NXUS | MX | Mensajes | Diagnóstico v2") ya está armada. Esta de NY es IGUAL, con los mismos
-3 videos en español (en mi computadora se llaman AD 1.mp4, AD 2.mp4 y AD 3.mp4 = videos A, B y C), pero dirigida a dueños de restaurantes y
-negocios que hablan español en la ciudad de Nueva York y el norte de New Jersey. El saludo del anuncio lo maneja
+3 videos en español (en la biblioteca de medios de la cuenta se llaman AD 1.mp4, AD 2.mp4 y AD 3.mp4 = videos A, B y C),
+pero dirigida a dueños de restaurantes y negocios hispanos en las zonas de NY y NJ con más negocios hispanos
+(los códigos postales de abajo), no a toda la ciudad.
+
+LO QUE NO QUIERO (ya me pasó y gasté sin resultados)
+- Público abierto a todo el mundo, Advantage+ audience, edad desde 18, radios grandes o "todo el país".
+- Mejoras automáticas de Meta (texto, música, IA), Audience Network, Threads, Messenger inbox, Explore.
+- Saludo de Meta en inglés o sin botones, pedir que escriban "INFO" u otra palabra.
+- Compartir presupuesto entre conjuntos o gastar más de lo autorizado. El saludo del anuncio lo maneja
 ManyChat con botones (un robot no los puede tocar) y cada lead queda marcado con su video.
 
 REGLAS (obligatorias)
@@ -16,7 +23,7 @@ REGLAS (obligatorias)
 - La cuenta de anuncios es compartida. NO toques, pauses, edites ni borres ninguna campaña existente (tampoco la
   de México). Solo crea la nueva.
 - NO cambies métodos de pago, límites de la cuenta, usuarios ni datos de la empresa.
-- NO subas videos: cuando llegues a esa parte, dime cuál archivo subir y espera a que yo lo suba.
+- Los videos ya están en la biblioteca de medios: úsalos de ahí. No subas archivos nuevos ni uses "Create video".
 - Presupuesto: exactamente el que dice aquí.
 - Si Meta o ManyChat piden algo que no está aquí, o algo no coincide, DETENTE y pregúntame. No adivines.
 - Copia los textos exactamente, con acentos y emojis.
@@ -57,7 +64,7 @@ B1. Campaña
   - Si ofrece "Advantage+ campaign" o configuración recomendada, elige la manual.
 
 B2. Conjunto de anuncios
-  - Nombre: NY-NJ | Hispanos | 30+
+  - Nombre: NY-NJ | Zonas hispanas | 30+
   - Conversion location: Messaging apps → SOLO Messenger (Instagram y WhatsApp DESMARCADOS). Meta solo deja una
     plantilla de ManyChat para los dos canales y las de Instagram salen en gris; con solo Messenger usamos las FB.
     Los anuncios igual se ven en Instagram (placements), pero el chat se abre en Messenger.
@@ -67,14 +74,20 @@ B2. Conjunto de anuncios
   - Edad 30 a 65+, con "Use as a suggestion" DESMARCADO (límite fijo). Todos los géneros. No apliques la sugerencia de 18–65+.
   - Idiomas: Español (Spanish) — los videos están en español.
   - Intereses / detailed targeting: NINGUNO. Sin públicos personalizados.
-  - Ubicaciones (quita "United States" si viene puesto; agrega SOLO estas):
-      New York, New York (la ciudad: los 5 boroughs)
-      Hudson County, New Jersey
-      Bergen County, New Jersey
-      Passaic County, New Jersey
-      Essex County, New Jersey
-      Union County, New Jersey
-    Si Meta no ofrece algún condado, usa sus ciudades principales y dime cuáles. Dime el público estimado.
+  - Ubicaciones: quita "United States" si viene puesto. Agrega SOLO estos códigos postales (ZIP codes; puedes usar
+    "Add locations in bulk" → ZIP/Postal code). Son las zonas con más negocios hispanos:
+      Queens (Jackson Heights, Corona, Elmhurst, Woodside): 11372, 11368, 11373, 11369, 11377
+      Manhattan (Washington Heights, Inwood): 10032, 10033, 10040, 10034
+      Bronx (Fordham, Concourse, Morris Heights): 10458, 10452, 10453, 10451
+      Brooklyn (Sunset Park, Bushwick): 11220, 11237, 11221
+      NJ – Hudson (Union City, West New York, North Bergen, Jersey City Journal Sq.): 07087, 07093, 07047, 07306
+      NJ – Union (Elizabeth): 07201, 07202, 07206
+      NJ – Essex (Newark Ironbound): 07105
+      NJ – Passaic (Paterson, Passaic): 07501, 07503, 07513, 07514, 07055
+      NJ – Bergen (Hackensack): 07601
+      NJ – Middlesex (Perth Amboy, New Brunswick): 08861, 08901
+    Si algún código no existe en Meta, sáltalo y dime cuál. Dime el público estimado. Si sale menor de 100,000
+    personas, avísame antes de seguir.
   - Placements: Manual. SOLO Facebook Feed, Facebook Stories, Facebook Reels, Instagram Feed, Instagram Stories,
     Instagram Reels (e Instagram Profile feed si viene junto). Quita todo lo demás (Audience Network, Messenger,
     Threads, Marketplace, Right column, Search, In-stream, Explore, etc.). Desmarca "Allow limited spending to
@@ -82,8 +95,10 @@ B2. Conjunto de anuncios
 
 B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
   - Identidad: Página Nxus.AI e Instagram @nxusai. Formato: Single image or video.
-  - Video: DETENTE y dime "Sube el archivo AD 1.mp4" (A), "AD 2.mp4" (B) o "AD 3.mp4" (C). Espero a que yo lo suba.
-    Después revisa que el C empiece con "¿Tienes un restaurante con varias sucursales?".
+  - Video: elígelo de la biblioteca de medios (Media / Account videos): A = AD 1.mp4, B = AD 2.mp4, C = AD 3.mp4.
+    Si hay varios con el mismo nombre, usa el que ya usan los anuncios de México ("MX | A | 11:48", etc.).
+    Revisa que el C empiece con "¿Tienes un restaurante con varias sucursales?" y no con "o una empresa".
+    Si no los encuentras, DETENTE y dime qué ves.
   - CTA: Send message / Enviar mensaje.
   - Advantage+ creative: APAGA TODAS las mejoras una por una (texto, visuales, música, overlays, animación,
     filtros, expandir, traducir, relevant comments, enhance CTA, site links, etc.) y "Multi-advertiser ads".
@@ -93,7 +108,7 @@ B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
 
   Anuncio A
   - Nombre: NY | A | 11:48
-  - Video: AD 1.mp4
+  - Video: AD 1.mp4 (biblioteca)
   - Texto principal:
 Son las 11:48 de la noche. Tu restaurante ya cerró… y los mensajes siguen llegando. 📲
 Reservas, eventos, cotizaciones: si nadie contesta, ese cliente se va con otro.
@@ -105,7 +120,7 @@ Para restaurantes y empresas con varias sucursales en Nueva York y New Jersey.
 
   Anuncio B
   - Nombre: NY | B | Empleado
-  - Video: AD 2.mp4
+  - Video: AD 2.mp4 (biblioteca)
   - Texto principal:
 Este empleado atiende a tus clientes a las 3 de la mañana. 🤖
 Conoce tu menú, tus horarios y tus sucursales, contesta en español y en inglés, y nunca deja un mensaje sin contestar.
@@ -117,7 +132,7 @@ Para restaurantes y empresas en Nueva York y New Jersey.
 
   Anuncio C
   - Nombre: NY | C | Sucursales
-  - Video: AD 3.mp4
+  - Video: AD 3.mp4 (biblioteca)
   - Texto principal:
 ¿Tienes un restaurante con varias sucursales? 🍽️
 Cada mensaje sin contestar es una reserva, un evento o un pedido que se va con la competencia.
@@ -138,8 +153,8 @@ NO publiques. Informe en español, cada punto con ✅ (hecho), ⚠️ (distinto)
    publicaste con mi permiso.
 2. Campaña: nombre, objetivo, límite de gasto.
 3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idioma, intereses, las
-   ubicaciones geográficas que quedaron, público estimado, placements y "Allow limited spending".
-4. Los 3 anuncios: nombre, video subido, textos, CTA, mejoras apagadas y automatización ligada por canal.
+   códigos postales que quedaron (y los que no existían), público estimado, placements y "Allow limited spending".
+4. Los 3 anuncios: nombre, video elegido (y si es el mismo de México), textos, CTA, mejoras apagadas y automatización ligada por canal.
 5. Advertencias, errores o cambios que Meta hizo solo.
 6. Lo que yo tengo que hacer (publicar en ManyChat y "Publish" en Ads Manager).
 Luego espera mis instrucciones.

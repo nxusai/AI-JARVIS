@@ -159,7 +159,7 @@
 
 ## Campaña NY (8 nov 2026)
 - Se hicieron videos de NY sin voz para empresas bilingües; a Eduardo NO le gustaron y se borraron. Decisión: NY usa los MISMOS 3 videos de México (A, B, C, en español, de restaurantes), dirigidos a dueños hispanos en NYC y norte de NJ, como el plan original. Cuando recargue Higgsfield se pueden hacer versiones nuevas.
-- Prompt: `ads/prompt-chrome-campana-ny-v2.txt` (correr después de publicar MX): 6 automatizaciones "Anuncio NY · Video A/B/C · IG/FB" (saludo de sucursales, fuente "Anuncio NY · Video X", etiqueta anuncio-ny, Start Automation al Filtro); campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, idioma español, sin intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 3 anuncios con los textos de MX + línea de NY/NJ.
+- Prompt: `ads/prompt-chrome-campana-ny-v3.txt` (correr después de publicar MX): 6 automatizaciones "Anuncio NY · Video A/B/C · IG/FB" (saludo de sucursales, fuente "Anuncio NY · Video X", etiqueta anuncio-ny, Start Automation al Filtro); campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, idioma español, sin intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 3 anuncios con los textos de MX + línea de NY/NJ.
 
 ## Decisión: anuncios con destino SOLO Messenger (8 nov 2026)
 - En Ads Manager, con Messenger + Instagram juntos solo se puede elegir UNA plantilla de ManyChat y las de Instagram salen en gris ("Instagram only"). Se decidió: conversion location solo Messenger, placements en FB e IG igual (el anuncio se ve en Instagram y el chat abre en Messenger), plantilla "Anuncio MX · Video X · FB". Ventajas: un solo conjunto con los $20, flujo de Messenger consistente, Messenger ya conectado a la Conversions API (y es el canal donde Meta permite optimizar por eventos de mensajes). Las automatizaciones IG quedan sin usar. Revisar a las 2 semanas si conviene probar un conjunto aparte solo Instagram.
@@ -173,6 +173,8 @@
 - Problema en prueba: +1 201 993 7238 con país México se volvió +52 (HQ asumía que el +1 lo ponía ManyChat). Eduardo pidió respetar el número tal cual y que la persona diga si su número es de México o USA.
 - HQ (`hq/netlify/lib/telefono.mjs`, `functions/manychat.mjs`): con lada escrita (+52/+1) se respeta; sin lada decide el campo `lada` del botón de ManyChat; si no viene, país → ciudad → IA. Flujo viejo (+1 con México y sin `lada`): decide la IA al recibir el lead. Al llamar, un número con +52/+1 se marca tal cual.
 - ManyChat: `ads/prompt-chrome-manychat-telefono.txt` (campo `lada`, botón "¿Tu número es de México o de Estados Unidos?" antes del teléfono, pregunta del teléfono de tipo Text en vez de Phone, `"lada"` en los avisos a HQ). Pendiente de correr.
+
+- NY v3 (8 nov): videos desde la biblioteca de medios (AD 1/2/3.mp4) y ubicación por códigos postales de zonas con más negocios hispanos (Queens: Jackson Heights, Corona, Elmhurst, Woodside; Washington Heights/Inwood; Bronx: Fordham, Concourse; Brooklyn: Sunset Park, Bushwick; NJ: Union City, West New York, North Bergen, Journal Sq., Elizabeth, Ironbound, Paterson, Passaic, Hackensack, Perth Amboy, New Brunswick) en vez de toda la ciudad y condados.
 
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
