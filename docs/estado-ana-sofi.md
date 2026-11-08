@@ -37,6 +37,9 @@ Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo y el panorama gen
 ## Relacionado (otro chat)
 El ecosistema autónomo de leads de **NXUS** (ManyChat → NXUS HQ → llamada → Cartera de prospectos) se diseña en otro chat con `docs/estado-nxus.md`. Este modelo de Ana Sofi es la referencia.
 
+## Decisión del 8 de noviembre de 2026: solo el Centro de trabajo
+Eduardo: "enfócate en que funcione en el CRM, ya no en Google Sheet". Todo trabajo nuevo de Ana Sofi y de los leads de Mi Semago es para el Centro de trabajo (fuente "centro"). El modo Sheet de `bridge/ventas.mjs` no se mejora ni se usa para probar; se queda sin tocar solo como regreso de emergencia (`node scripts/ana-sofi.mjs sheet`) hasta que Eduardo archive el Sheet (recomendado tras una semana estable, con copia en Excel); entonces se quita el modo Sheet del código.
+
 ## En marcha: los leads pasan al Centro de trabajo (luz verde del 8 de noviembre de 2026)
 Decisiones de Eduardo:
 - Los leads llegan al **Centro de trabajo** (`docs/estado-crm.md`, sección **Leads**), no al Sheet. **Ana Sofi sigue corriendo en una computadora** (hoy la Mac con NEX; después una computadora de la empresa de Senen, siempre prendida). **No en la nube.** Solo la puerta que recibe el lead de ManyChat vive en Netlify (la página del Centro de trabajo ya está ahí).
