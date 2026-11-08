@@ -180,13 +180,4 @@ La pestaña **WEBSITE LEADS** junta cada solicitud del formulario «Cotizar / Ge
 - **Cómo llega:** el sitio manda los datos a la función `crm/netlify/functions/leads.mjs`, que los revisa (trampa para robots, correo válido, máximo 5 por minuto por persona) y los guarda con la llave de servicio. El sitio no toca la base de datos.
 - **Si el CRM no responde,** el sitio abre el correo con la solicitud escrita, para que no se pierda ningún cliente.
 - **Para activarla** solo hay que correr el esquema otra vez (sección de arriba). No hace falta ninguna llave nueva: usa `SUPABASE_SERVICE_KEY`, que ya está en Netlify.
-
-## Website leads (formulario de misemago.com)
-
-La pestaña **WEBSITE LEADS** junta cada solicitud del formulario «Cotizar / Get a quote» de misemago.com: nombre, empresa, correo, teléfono, tipo de negocio, quesos que le interesan, mensaje y, si lo armó, su diseño del Estudio de Marca. Va aparte de **Leads** (los de WhatsApp que llama Ana Sofi).
-
-- **Quién la ve:** los mismos que ven Leads: el admin y quien tenga **Ve Leads** (Usuarios → editar). Ellos cambian el estatus (Nuevo → Contactado → Cotizado → Ganado o Perdido) y escriben notas. Lo que la persona escribió en el sitio no se puede cambiar. Solo el admin borra.
-- **El numerito rojo** en la pestaña son los que están en «Nuevo».
-- **Cómo llega:** el sitio manda los datos a la función `crm/netlify/functions/leads.mjs`, que los revisa (trampa para robots, correo válido, máximo 5 por minuto por persona) y los guarda con la llave de servicio. El sitio no toca la base de datos.
-- **Si el CRM no responde,** el sitio abre el correo con la solicitud escrita, para que no se pierda ningún cliente.
-- **Para activarla** solo hay que correr el esquema otra vez (sección de arriba). No hace falta ninguna llave nueva: usa `SUPABASE_SERVICE_KEY`, que ya está en Netlify.
+- **Ana Sofi les llama:** si la persona marca «Quiero que me llamen ahora» (su permiso por escrito), el lead también entra a **Leads** con 🌐 Web y Ana Sofi le llama en unos minutos, saltándose lo que ya contestó. Detalles en `docs/estado-ana-sofi.md`.

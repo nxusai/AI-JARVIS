@@ -447,7 +447,7 @@ function tarjetaWeb(x) {
     <header class="wl-cabeza">
       <div>
         <b class="wl-nombre">${h(x.nombre)}</b>${x.empresa ? ` <span class="wl-empresa">· ${h(x.empresa)}</span>` : ''}
-        <div class="ayuda">#${x.folio} · ${fecha(x.creada, true)}${x.idioma === 'en' ? ' · en inglés' : ''}</div>
+        <div class="ayuda">#${x.folio} · ${fecha(x.creada, true)}${x.idioma === 'en' ? ' · en inglés' : ''}${x.lead_id ? ' · <b>📞 Pidió que le llamen: Ana Sofi le llama</b>' : ''}</div>
       </div>
       <select class="wl-estatus" data-web-estatus="${x.id}" aria-label="Estatus del lead">
         ${Object.entries(ESTATUS_WEB).map(([k, n]) => `<option value="${k}" ${x.estatus === k ? 'selected' : ''}>${n}</option>`).join('')}
@@ -464,6 +464,7 @@ function tarjetaWeb(x) {
       ${x.notas ? `<p class="wl-notas"><b>Notas:</b> ${h(x.notas)}</p>` : '<span class="ayuda">Sin notas</span>'}
       <div class="wl-botones">
         <button class="btn chico" data-notas-web="${x.id}">📝 ${x.notas ? 'Editar notas' : 'Agregar nota'}</button>
+        ${x.lead_id ? `<button class="btn chico" data-lead="${x.lead_id}">📞 Ver llamada de Ana Sofi</button>` : ''}
         ${esAdmin() ? `<button class="btn chico peligro" data-borrar-web="${x.id}" title="Borrar">✕</button>` : ''}
       </div>
     </footer>
@@ -1535,7 +1536,7 @@ function tarjetaLead(l) {
   return `<button class="lead-tarjeta" data-lead="${l.id}">
     <b>${h(l.negocio || l.nombre || 'Sin nombre')}</b>
     <span>${h([l.negocio ? l.nombre : '', l.ciudad].filter(Boolean).join(' · '))}</span>
-    <span class="lead-chips">${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${l.llamada_estado === 'marcando' || l.llamada_estado === 'en_llamada' ? '<span class="chip vivo">● En llamada</span>' : ''}${notas ? `<span class="chip">📝 ${notas}</span>` : ''}</span>
+    <span class="lead-chips">${l.origen === 'web' ? '<span class="chip">🌐 Web</span>' : ''}${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${l.llamada_estado === 'marcando' || l.llamada_estado === 'en_llamada' ? '<span class="chip vivo">● En llamada</span>' : ''}${notas ? `<span class="chip">📝 ${notas}</span>` : ''}</span>
     ${proximo ? `<small>${proximo}</small>` : ''}
   </button>`
 }
@@ -1584,7 +1585,7 @@ function abrirLead(id) {
       ${dato('Nombre', l.nombre)}${dato('Negocio', l.negocio)}${dato('Ciudad', l.ciudad)}
       ${l.telefono ? `<div class="dato"><span>Teléfono</span><b><a href="tel:${h(l.telefono.replace(/[^\d+]/g, ''))}">${h(l.telefono)}</a></b></div>` : ''}
       ${l.correo ? `<div class="dato"><span>Correo</span><b><a href="mailto:${h(l.correo)}">${h(l.correo)}</a></b></div>` : ''}
-      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}
+      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}${l.origen === 'web' ? dato('Llegó por', 'misemago.com (WEBSITE LEADS)') : ''}
     </div>
     ${
       l.tipo_negocio || l.quesos || l.libras || l.frecuencia || l.marca_propia || l.precios

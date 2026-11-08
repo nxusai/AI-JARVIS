@@ -55,3 +55,28 @@ Fases:
 5. Avisos por llamada: ✅ en el código (ver 3).
 6. Prueba con el número de Eduardo; el mismo día: Fase 3 del prompt de ManyChat + `node scripts/ana-sofi.mjs centro` + reiniciar NEX.
 Después: la gemela de entrada y lo de WhatsApp de NEX, y mover todo a la computadora de la empresa.
+
+## Leads del sitio web (misemago.com) → Ana Sofi
+
+Pedido de Eduardo (8 de noviembre de 2026): los leads del formulario «Cotizar / Get a quote» de misemago.com también los llama Ana Sofi **de inmediato**, saltándose lo que ya contestaron en el formulario, y agenda la videollamada.
+
+- **Permiso por escrito:** el formulario tiene la casilla «Quiero que me llamen ahora…» con el aviso legal (incluye que puede llamar un asistente de voz con IA). Solo a quien la marca se le llama, y entonces el teléfono es obligatorio (10 dígitos de EE. UU.). El texto exacto que aceptó, con fecha, se guarda en `permiso_texto`.
+- **Cómo entra:** `crm/netlify/functions/leads.mjs` guarda la solicitud en `website_leads` (pestaña WEBSITE LEADS) y, si marcó la casilla, crea un lead en `leads` con `origen = 'web'`, etapa Nuevo y lo que ya sabemos: nombre, negocio, correo, teléfono, idioma, tipo de negocio, quesos, libras (las que calculó en el Estudio de Marca), marca propia, y en el resumen su mensaje y su diseño del Estudio. `website_leads.lead_id` apunta a ese lead (botón «Ver llamada de Ana Sofi»). En Leads sale con la etiqueta 🌐 Web.
+- **NEX** (`bridge/ventas.mjs`) lo trata como cualquier lead con permiso, con tres diferencias para `origen = 'web'`: el saludo dice que pidió una cotización en misemago.com (no WhatsApp); la llamada va **en dos minutos** si es de 9 am a 8 pm en su zona (si no, 10 am del día siguiente); la zona sale del código de área de su teléfono (la «ciudad» es a dónde enviaría, no donde vive). Sigue todo lo demás: solo EE. UU., la IA nunca pone el número, un reintento, Meet en el calendario y avisos por llamada.
+- **Nunca el nombre de Eduardo** en nada que oiga o reciba el lead: Ana Sofi dice «una videollamada con nuestro encargado de ventas»; el título y la descripción del evento tampoco lo nombran. Las notas internas del CRM tampoco.
+- **«Instantáneo» depende de NEX:** revisa cada 3 minutos, así que la llamada suele salir entre 3 y 6 minutos después de enviar el formulario, solo mientras NEX esté prendido.
+
+### Lo que hay que agregar a las instrucciones de Ana Sofi en ElevenLabs
+
+Agent → Ana Sofi → **Agent** → **System prompt**, al final, y **Save**. (Los datos ya le llegan como variables; esto le dice que no los vuelva a preguntar.)
+
+```
+DATOS QUE YA TIENES
+Antes de preguntar algo, revisa lo que ya sabes del cliente: negocio {{empresa}}, tipo de negocio {{tipo_negocio}}, quesos {{quesos}}, libras {{libras}}, marca propia {{marca_propia}}, correo {{correo}}.
+- Si un dato NO es "-", no lo vuelvas a preguntar: confírmalo en una sola frase y sigue. Ejemplo: "Vi que te interesa el Oaxaca, unas 1,080 libras por semana con tu marca Don Chuy. ¿Es correcto?"
+- Pregunta solo lo que falte (por ejemplo, cada cuánto compraría), califica, da los precios y ofrece la videollamada.
+- Los clientes que llegan por la página misemago.com ya llenaron un formulario: ve directo a confirmar, precios y videollamada.
+
+LA VIDEOLLAMADA
+- Siempre di "una videollamada con nuestro encargado de ventas" ("a video call with our head of sales" en inglés). Nunca digas el nombre de nadie, ni "director", ni "dueño".
+```
