@@ -395,13 +395,17 @@ async function submitContact(e) {
   const f = e.target; const name = f.name.value.trim(); const email = f.email.value.trim();
   if (!name) { f.name.focus(); f.name.reportValidity?.(); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { f.email.focus(); f.email.reportValidity?.(); return; }
+  // «Quiero que me llamen»: su permiso por escrito para que Ana Sofi le llame. Sin teléfono de EE. UU. no se puede.
+  const llamar = f.llamar.checked;
+  const digits = f.phone.value.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  if (llamar && digits.length !== 10) { f.phone.setCustomValidity(t('ct.callPhone')); f.phone.reportValidity(); f.phone.focus(); f.phone.addEventListener('input', () => f.phone.setCustomValidity(''), { once: true }); return; }
   const en = LANG === 'en';
   const typeName = (lang) => (contact.type == null ? '' : STRINGS[lang][`ct.t${contact.type + 1}`]);
   const interest = (lang) => [...contact.interest].map((c) => CATEGORIES.find((x) => x.id === c).name[lang]);
   const btn = f.querySelector('button[type=submit]'); const label = btn.querySelector('span');
   const ok = $('#ctOk');
   btn.disabled = true; label.textContent = t('ct.sending'); ok.hidden = true;
-  let saved = false;
+  let saved = false; let calling = false;
   try {
     const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 15000);
     const res = await fetch(BRAND.leadsUrl, {
@@ -409,15 +413,17 @@ async function submitContact(e) {
       body: JSON.stringify({
         nombre: name, empresa: f.company.value.trim(), correo: email, telefono: f.phone.value.trim(),
         tipo: typeName('es'), intereses: interest('es'), mensaje: f.msg.value.trim(),
-        propuesta: studioProposal ? studioProposal.text : '', idioma: LANG, origen: location.hostname, sitio: f.sitio.value,
+        propuesta: studioProposal ? studioProposal.text : '', estudio: studioProposal ? studioProposal.data : null, idioma: LANG, origen: location.hostname, sitio: f.sitio.value,
+        llamar, permiso_texto: llamar ? `${t('ct.call')} ${t('ct.callLegal')} (${new Date().toISOString()}, ${location.hostname})` : '',
       }),
     });
     clearTimeout(timer);
-    saved = res.ok && (await res.json().catch(() => ({}))).ok === true;
+    const r = res.ok ? await res.json().catch(() => ({})) : {};
+    saved = r.ok === true; calling = r.llamada === true;
   } catch { saved = false; }
   btn.disabled = false; label.textContent = t('ct.send');
   if (saved) {
-    ok.textContent = t('ct.thanks'); ok.hidden = false;
+    ok.textContent = t(calling ? 'ct.thanksCall' : 'ct.thanks'); ok.hidden = false;
     f.reset(); contact.type = null; contact.interest.clear(); studioProposal = null;
     $$('#ctType button').forEach((x) => x.classList.remove('on')); contactChips(); $('#ctStudio').hidden = true;
     return;

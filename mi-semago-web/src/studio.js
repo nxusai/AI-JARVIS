@@ -247,6 +247,12 @@ function summary() {
   return {
     pid: p.id,
     short: `${brandName()} · ${p.name[lang]} ${sizeOf().l}`,
+    data: {
+      marca: S.brand.trim(),
+      queso: `${p.name.es} ${sizeOf().l}`,
+      libras_semana: Math.round(n.lbs).toLocaleString('en-US'),
+      destino: stateName(),
+    },
     text: en
       ? `Brand Studio proposal\n- Brand: ${brandName()}${S.claim ? ` ("${S.claim}")` : ''}\n- Cheese: ${p.name.en} · ${sizeOf().l}\n- Style: ${ctx.t('st.tpl.' + S.tpl)} · color ${S.color}${S.logo ? ' · has logo' : ''}\n- Volume: ${S.cases} cases/week of ${n.pack.n} (${fmt(n.units)} units, ${fmt(n.lbs)} lb${n.pallets != null ? `, ${fmt(n.pallets, 1)} pallets` : ''})\n- Destination: ${stateName()} (~${n.transit} days in transit)`
       : `Propuesta del Estudio de Marca\n- Marca: ${brandName()}${S.claim ? ` ("${S.claim}")` : ''}\n- Queso: ${p.name.es} · ${sizeOf().l}\n- Estilo: ${ctx.t('st.tpl.' + S.tpl)} · color ${S.color}${S.logo ? ' · con logo' : ''}\n- Volumen: ${S.cases} cajas/semana de ${n.pack.n} (${fmt(n.units)} piezas, ${fmt(n.lbs)} lb${n.pallets != null ? `, ${fmt(n.pallets, 1)} tarimas` : ''})\n- Destino: ${stateName()} (~${n.transit} días en camino)`,

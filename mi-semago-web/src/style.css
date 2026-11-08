@@ -536,3 +536,9 @@ input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border-radius
 
 /* Campo trampa para robots en el formulario: nadie lo ve ni lo llena. */
 .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* «Quiero que me llamen»: el permiso por escrito para que Ana Sofi llame. */
+.llamar { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0 16px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(230, 200, 115, 0.45); background: rgba(193, 154, 50, 0.1); cursor: pointer; }
+.llamar input { flex: none; width: 20px; height: 20px; margin-top: 2px; accent-color: var(--gold); }
+.llamar b { display: block; font-size: 15px; color: #fff; }
+.llamar small { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.45; color: rgba(255, 255, 255, 0.62); }
