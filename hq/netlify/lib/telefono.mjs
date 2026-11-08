@@ -1,9 +1,14 @@
 // El teléfono del lead, listo para marcar (+52… o +1…), y su país.
-// La gente escribe el número sin lada, con lada vieja de México (044, 045, 01,
-// +521) o ManyChat le pone +1 a un número de México. Se decide con, en orden:
-//   1. Lo que respondió en el chat (México / USA).
-//   2. Su ciudad y dirección (CDMX, Coacalco, Jalisco… / NJ, Texas, Houston…).
-//   3. La IA (Claude), con todo lo que dejó, si lo anterior no alcanza.
+// Regla: el número se respeta TAL CUAL si trae lada (+52 / +1): hay gente con número
+// de USA que vive en México y al revés. Solo se arreglan las ladas viejas de México
+// (044, 045, 01, +521). Si no trae lada, se decide con, en orden:
+//   1. El botón "¿Tu número es de México o de USA?" del chat (campo lada).
+//   2. El país que respondió (México / USA).
+//   3. Su ciudad y dirección (CDMX, Coacalco, Jalisco… / NJ, Texas, Houston…).
+//   4. La IA (Claude), con todo lo que dejó, si lo anterior no alcanza.
+// Caso viejo: el mensaje de teléfono tipo "Phone" de ManyChat le ponía +1 solo a números
+// de México escritos sin lada. Si no viene el campo lada (flujo viejo), trae +1 y dijo
+// México, queda en duda y decide la IA al recibir el lead (manychat.mjs).
 import Anthropic from '@anthropic-ai/sdk'
 
 const sinAcentos = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -40,26 +45,35 @@ function partes(v) {
  * El número para marcar y el país, sin IA. pais: lo que respondió en el chat.
  * Devuelve { telefono, pais } o { telefono: '' } si no se puede saber.
  */
-export function normalizar(v, pais = '', ...lugar) {
+/** 'mexico' | 'usa' | '' según lo que tocó en el botón de lada. */
+export function ladaDe(v) {
+  const t = sinAcentos(v).trim()
+  if (!t) return ''
+  if (/(\+?\s*52\b|mexico|^mx\b|^mex)/.test(t)) return 'mexico'
+  if (/(\+\s*1\b|\busa\b|^us\b|estados unidos|united states|eeuu|ee\.? ?uu)/.test(t)) return 'usa'
+  return ''
+}
+
+export function normalizar(v, pais = '', lada = '', ...lugar) {
   const p = partes(v)
   if (!p.d) return { telefono: '', pais }
   if (p.raro) return p.mas ? { telefono: `+${p.d}`.slice(0, 30), pais: pais || 'otro' } : { telefono: '', pais }
   // Trae +1 pero dijo México: puede ser el +1 que ManyChat le pone solo a un número de México, o un número
   // de USA de verdad (ej. vive en NJ y eligió México). Si su ciudad o dirección es de USA, es de USA; si no,
   // queda en duda: se guarda tal cual y al llamar decide la IA (telefonoParaLlamar).
-  if (p.cc === '1' && pais === 'mexico') {
+  if (p.cc === '1' && pais === 'mexico' && !lada) {
     if (paisPorLugar(...lugar) === 'usa') return { telefono: `+1${p.d}`, pais }
     return { telefono: `+52${p.d}`, pais, duda: true, original: `+1${p.d}` }
   }
-  // Si escribió +52, es de México (aunque viva en USA). Sin lada: lo que respondió, si no su ciudad o dirección.
+  // Con lada escrita (+52 / +1) se respeta. Sin lada: el botón de lada, si no lo que respondió, si no su ciudad o dirección.
   const elegido =
-    p.cc === '52' ? 'mexico' : p.cc === '1' && pais !== 'mexico' ? 'usa' : pais === 'mexico' || pais === 'usa' ? pais : paisPorLugar(...lugar) || (p.cc === '1' ? 'usa' : '')
+    p.cc === '52' ? 'mexico' : p.cc === '1' ? 'usa' : lada || (pais === 'mexico' || pais === 'usa' ? pais : paisPorLugar(...lugar))
   if (!elegido) return { telefono: '', pais }
   return { telefono: `${elegido === 'mexico' ? '+52' : '+1'}${p.d}`, pais: pais === 'mexico' || pais === 'usa' ? pais : elegido }
 }
 
 /** Cuando no alcanza: la IA decide con todo lo que dejó el lead. */
-async function preguntarIA(l) {
+export async function preguntarIA(l) {
   if (!process.env.ANTHROPIC_API_KEY) return null
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 6_000, maxRetries: 0 })
   const res = await client.messages.create({
@@ -72,24 +86,20 @@ async function preguntarIA(l) {
       },
     },
     system:
-      'Decides de qué país es el teléfono de un cliente de NXUS AI (México o Estados Unidos) con lo que dejó en un chat, y lo escribes en formato internacional (E.164): México = +52 y 10 dígitos (sin el 1, 044, 045 ni 01 viejos); USA = +1 y 10 dígitos. Usa la ciudad, la dirección, el país que dijo y la forma del número. Ojo: el chat (ManyChat) a veces le pone +1 a un número de México escrito sin lada, pero también hay gente que vive en USA y dice México. Fíjate en los primeros dígitos de los 10: si son una lada de México (55, 56, 33, 81, 222, 442, 477, 664, 998…) es de México; si son un código de área de USA que no existe como lada en México (201, 973, 862, 908, 732, 212, 646, 718, 347, 917…) es de USA. Si no hay forma de saberlo con seguridad, pais = "no_se" y telefono vacío.',
+      'Decides de qué país es el teléfono de un cliente de NXUS AI (México o Estados Unidos) con lo que dejó en un chat, y lo escribes en formato internacional (E.164): México = +52 y 10 dígitos (sin el 1, 044, 045 ni 01 viejos); USA = +1 y 10 dígitos. Usa la ciudad, la dirección, el país que dijo y la forma del número. Ojo: el chat (ManyChat) antes le ponía +1 a números de México escritos sin lada, pero también hay gente con número de USA que vive en México. Fíjate en los primeros dígitos de los 10: si son una lada de México (55, 56, 33, 81, 222, 442, 477, 664, 998…) es de México; si son un código de área de USA que no existe como lada en México (201, 973, 862, 908, 732, 212, 646, 718, 347, 917…) es de USA. Si no hay forma de saberlo con seguridad, pais = "no_se" y telefono vacío.',
     messages: [{ role: 'user', content: JSON.stringify({ telefono: l.telefono, pais_que_dijo: l.pais, ciudad: l.ciudad, direccion: l.direccion, empresa: l.empresa, idioma: l.idioma }) }],
   })
   const out = JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''))
   if (!['mexico', 'usa'].includes(out.pais)) return null
-  const n = normalizar(out.telefono || l.telefono, out.pais)
+  const n = normalizar(out.telefono || l.telefono, out.pais, out.pais)
   return n.telefono ? n : null
 }
 
 /** El número listo para marcar (con IA si hace falta). { telefono, pais } o null. */
 export async function telefonoParaLlamar(l) {
-  if (/^\+(52|1)\d{10}$/.test(String(l.telefono || ''))) {
-    // Ya viene con lada: solo se corrige si choca con el país que dijo (ManyChat le pone +1 a números de México).
-    const n = normalizar(l.telefono, l.pais, l.ciudad, l.direccion)
-    if (n.duda) return (await preguntarIA(l).catch(() => null)) || { telefono: n.telefono, pais: n.pais }
-    return n.telefono ? n : { telefono: l.telefono, pais: l.pais }
-  }
-  const n = normalizar(l.telefono, l.pais, l.ciudad, l.direccion)
+  // Ya viene con lada (+52 / +1): se respeta tal cual (la duda del flujo viejo se resolvió al recibir el lead).
+  if (/^\+(52|1)\d{10}$/.test(String(l.telefono || ''))) return { telefono: l.telefono, pais: l.pais }
+  const n = normalizar(l.telefono, l.pais, '', l.ciudad, l.direccion)
   if (n.telefono) return n
   return preguntarIA(l).catch(() => null)
 }
