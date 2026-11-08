@@ -2,6 +2,9 @@
 // cada solicitud. No pide sesión (cualquiera en el sitio puede escribir), así
 // que todo se revisa en este lado y se guarda con la llave de servicio. Dentro
 // del Centro de trabajo aparece en la pestaña WEBSITE LEADS.
+// Si la persona marcó «Quiero que me llamen» (su permiso por escrito) y dejó un
+// número, también entra a Leads con lo que ya contó en el formulario: NEX lo ve
+// como cualquier lead con permiso y Ana Sofi le llama.
 import { json, sb } from '../lib/sb.mjs'
 
 // El sitio vive en otro dominio: el navegador pregunta antes de mandar (CORS).
@@ -47,6 +50,46 @@ export default async (req, context) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return responder({ ok: false, error: 'El correo no es válido' }, 400)
   const tipo = TIPOS.includes(d.tipo) ? d.tipo : null
   const intereses = (Array.isArray(d.intereses) ? d.intereses : []).map((x) => linea(x, 40)).filter(Boolean).slice(0, 10)
+  const empresa = linea(d.empresa, 120)
+  const mensaje = texto(d.mensaje, 4000)
+  const propuesta = texto(d.propuesta, 2000)
+  const idioma = d.idioma === 'en' ? 'en' : 'es'
+  const digitos = telefono.replace(/\D/g, '')
+  const llamar = d.llamar === true && digitos.length >= 10
+  if (d.llamar === true && !llamar) return responder({ ok: false, error: 'Para que te llamemos necesitamos tu teléfono' }, 400)
+
+  // Para Ana Sofi: lo que ya sabemos, para que no lo vuelva a preguntar.
+  let leadId = null
+  if (llamar) {
+    const e = d.estudio && typeof d.estudio === 'object' ? d.estudio : {}
+    const queso = linea(e.queso, 120)
+    try {
+      const [l] = await sb('/rest/v1/leads', {
+        servicio: true,
+        method: 'POST',
+        body: {
+          origen: 'web',
+          nombre,
+          negocio: empresa,
+          ciudad: linea(e.destino, 80),
+          telefono: telefono.slice(0, 30),
+          correo: correo.slice(0, 120),
+          idioma,
+          hora_pedida: idioma === 'en' ? 'As soon as possible (asked on misemago.com)' : 'Lo antes posible (lo pidió en misemago.com)',
+          permiso_llamada: true,
+          permiso_texto: linea(d.permiso_texto, 480) || 'Marcó «Quiero que me llamen» en el formulario de misemago.com.',
+          tipo_negocio: tipo || '',
+          quesos: [queso, ...intereses].filter(Boolean).join(', ').slice(0, 300),
+          libras: e.libras_semana ? linea(`${e.libras_semana} lb por semana (lo calculó en el Estudio de Marca)`, 120) : '',
+          marca_propia: e.marca ? linea(`Sí, quiere su marca «${e.marca}»`, 200) : tipo === 'Marca propia nueva' ? 'Sí, quiere lanzar su marca' : '',
+          resumen: texto(['Llegó por misemago.com y pidió que le llamen.', mensaje && `Mensaje: ${mensaje}`, propuesta].filter(Boolean).join('\n\n'), 4000),
+        },
+      })
+      leadId = l?.id ?? null
+    } catch (err) {
+      console.log('leads: no pude crear el lead para Ana Sofi:', err.message)
+    }
+  }
 
   try {
     await sb('/rest/v1/website_leads', {
@@ -55,18 +98,19 @@ export default async (req, context) => {
       prefer: 'return=minimal',
       body: {
         nombre,
-        empresa: linea(d.empresa, 120),
+        empresa,
         correo,
         telefono,
         tipo,
         intereses,
-        mensaje: texto(d.mensaje, 4000),
-        propuesta: texto(d.propuesta, 2000),
-        idioma: d.idioma === 'en' ? 'en' : 'es',
+        mensaje,
+        propuesta,
+        idioma,
         origen: linea(d.origen, 200),
+        ...(leadId ? { lead_id: leadId } : {}),
       },
     })
-    return responder({ ok: true })
+    return responder({ ok: true, llamada: Boolean(leadId) })
   } catch {
     return responder({ ok: false, error: 'No pudimos guardar tu solicitud. Intenta otra vez en un momento.' }, 500)
   }

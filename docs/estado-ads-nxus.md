@@ -157,6 +157,10 @@
 - En anuncios de mensajes conectados a ManyChat (Ads trigger) no hace falta palabra: el chat empieza con botones. La palabra sirve para orgánico, historias, Reels sin pauta y comentarios.
 - Si se agrega una palabra nueva a un video, primero hay que agregarla al disparador en ManyChat (regla "Message is").
 
+## Campaña NY (8 nov 2026)
+- Se hicieron videos de NY sin voz para empresas bilingües; a Eduardo NO le gustaron y se borraron. Decisión: NY usa los MISMOS 3 videos de México (A, B, C, en español, de restaurantes), dirigidos a dueños hispanos en NYC y norte de NJ, como el plan original. Cuando recargue Higgsfield se pueden hacer versiones nuevas.
+- Prompt: `ads/prompt-chrome-campana-ny-v2.txt` (correr después de publicar MX): 6 automatizaciones "Anuncio NY · Video A/B/C · IG/FB" (saludo de sucursales, fuente "Anuncio NY · Video X", etiqueta anuncio-ny, Start Automation al Filtro); campaña "NXUS | NY | Mensajes | Diagnóstico": Engagement, $20/día, límite $300, 30+, idioma español, sin intereses, NYC + condados Hudson, Bergen, Passaic, Essex y Union (NJ), placements manuales, 3 anuncios con los textos de MX + línea de NY/NJ.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.

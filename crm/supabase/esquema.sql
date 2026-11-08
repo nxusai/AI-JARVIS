@@ -1403,3 +1403,10 @@ revoke all on public.website_leads from anon;
 drop trigger if exists crm_bitacora on public.website_leads;
 create trigger crm_bitacora after insert or update or delete on public.website_leads
   for each row execute function public.anotar_cambio();
+
+-- Los website leads que piden que les llamen también entran a Leads (origen
+-- 'web') para que Ana Sofi les llame; website_leads guarda a cuál.
+alter table public.leads drop constraint if exists leads_origen_check;
+alter table public.leads add constraint leads_origen_check check (origen in ('manychat', 'sheet', 'manual', 'web'));
+alter table public.website_leads add column if not exists lead_id uuid references public.leads (id) on delete set null;
+notify pgrst, 'reload schema';

@@ -1,6 +1,6 @@
 # Música original del anuncio: pulso tecnológico a 112 BPM, golpes en cada corte,
 # riser hacia el llamado a la acción. Sintetizado aquí, sin muestras de terceros.
-#   python musica.py salida.wav T H
+#   python musica.py salida.wav T H [cortes]
 import sys
 import numpy as np
 import soundfile as sf
@@ -13,7 +13,9 @@ out = np.zeros((N, 2))
 rng = np.random.default_rng(11)
 BEAT = 60 / 112
 CORTES = [H, H + 5.3, H + 13.0, H + 16.9, H + 23.4]
-CTA = H + 23.4
+if len(sys.argv) > 4:   # cortes a la medida: "3.6,7,12.6,15.6" (el último es el llamado a la acción)
+    CORTES = [float(x) for x in sys.argv[4].split(',')]
+CTA = CORTES[-1]
 
 
 def filt(x, f, tipo):

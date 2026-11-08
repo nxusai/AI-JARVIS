@@ -1,0 +1,144 @@
+Eres mi experto en Meta Ads y ManyChat. Soy Eduardo, dueño de NXUS AI (inteligencia artificial, software a la
+medida y marketing; con base en New Jersey). Vas a armar mi campaña de Nueva York desde cero, en mi Chrome, con mis
+sesiones abiertas de ManyChat (https://app.manychat.com) y Meta Ads Manager
+(https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563). Yo te estoy viendo.
+Si la interfaz está en inglés o en español, adáptate.
+
+CONTEXTO
+La campaña de México ("NXUS | MX | Mensajes | Diagnóstico v2") ya está armada. Esta de NY es IGUAL, con los mismos
+3 videos en español (NXUS-Ad-A.mp4, NXUS-Ad-B.mp4, NXUS-Ad-C.mp4), pero dirigida a dueños de restaurantes y
+negocios que hablan español en la ciudad de Nueva York y el norte de New Jersey. El saludo del anuncio lo maneja
+ManyChat con botones (un robot no los puede tocar) y cada lead queda marcado con su video.
+
+REGLAS (obligatorias)
+- NO publiques la campaña: deja todo listo y DETENTE antes de "Publish/Publicar". Yo reviso y publico.
+- En ManyChat no publiques nada ("Set Live", "Publish", "Update") sin pedirme permiso en este chat y esperar mi "sí".
+- La cuenta de anuncios es compartida. NO toques, pauses, edites ni borres ninguna campaña existente (tampoco la
+  de México). Solo crea la nueva.
+- NO cambies métodos de pago, límites de la cuenta, usuarios ni datos de la empresa.
+- NO subas videos: cuando llegues a esa parte, dime cuál archivo subir y espera a que yo lo suba.
+- Presupuesto: exactamente el que dice aquí.
+- Si Meta o ManyChat piden algo que no está aquí, o algo no coincide, DETENTE y pregúntame. No adivines.
+- Copia los textos exactamente, con acentos y emojis.
+- Al terminar cada parte, dime en una o dos líneas qué hiciste.
+
+======================================================================
+PARTE A. MANYCHAT
+======================================================================
+A1. Crea 6 automatizaciones nuevas, iguales a las de México ("Anuncio MX · Video A · IG", etc.; ábrelas para
+copiar cómo quedaron), con estos nombres y fuentes:
+  Instagram (trigger: "Instagram Ads – User clicks an Instagram Ad"):
+    Anuncio NY · Video A · IG   (fuente: Anuncio NY · Video A)
+    Anuncio NY · Video B · IG   (fuente: Anuncio NY · Video B)
+    Anuncio NY · Video C · IG   (fuente: Anuncio NY · Video C)
+  Messenger (trigger: "Facebook Ads – User clicks a Facebook Ad"):
+    Anuncio NY · Video A · FB   (fuente: Anuncio NY · Video A)
+    Anuncio NY · Video B · FB   (fuente: Anuncio NY · Video B)
+    Anuncio NY · Video C · FB   (fuente: Anuncio NY · Video C)
+
+  En cada una:
+  a) Primer mensaje: UN SOLO bloque de texto, sin variables, con 3 botones (1 · 2 a 5 · 6 o más):
+¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar tu diagnóstico gratis, ¿cuántas sucursales o ubicaciones tiene tu negocio?
+  b) Cada botón lleva a su paso de Actions:
+     - Set User Field sucursales = el texto del botón
+     - Set User Field fuente = la fuente de esa automatización (por ejemplo: Anuncio NY · Video A)
+     - Set User Field canal = instagram (IG) o facebook (FB)
+     - Add Tag: anuncio-ny
+     - Start Automation → "Filtro NXUS" (IG) o "Filtro NXUS · Facebook" (FB).
+  c) Nada más.
+
+A2. Pídeme permiso para publicar estas 6 automatizaciones (solo responden a clics de anuncios) y espera mi "sí".
+
+======================================================================
+PARTE B. META ADS MANAGER
+======================================================================
+B1. Campaña
+  - + Create → objetivo: Engagement / Interacción. Nombre: NXUS | NY | Mensajes | Diagnóstico
+  - Sin categoría especial de anuncio.
+  - Advantage campaign budget: APAGADO. Campaign spending limit: 300 USD.
+  - Si ofrece "Advantage+ campaign" o configuración recomendada, elige la manual.
+
+B2. Conjunto de anuncios
+  - Nombre: NY-NJ | Hispanos | 30+
+  - Conversion location: Messaging apps → Messenger e Instagram. WhatsApp DESMARCADO.
+  - Performance goal: Maximize number of conversations. Puja: Highest volume. Daily budget: 20 USD. Sin fecha fin.
+  - Público: "Switch to original audience options" si aparece Advantage+ audience; si no, Audience controls con
+    ubicación y edad mínima 30.
+  - Edad 30 a 65+. Todos los géneros.
+  - Idiomas: Español (Spanish) — los videos están en español.
+  - Intereses / detailed targeting: NINGUNO. Sin públicos personalizados.
+  - Ubicaciones (quita "United States" si viene puesto; agrega SOLO estas):
+      New York, New York (la ciudad: los 5 boroughs)
+      Hudson County, New Jersey
+      Bergen County, New Jersey
+      Passaic County, New Jersey
+      Essex County, New Jersey
+      Union County, New Jersey
+    Si Meta no ofrece algún condado, usa sus ciudades principales y dime cuáles. Dime el público estimado.
+  - Placements: Manual. SOLO Facebook Feed, Facebook Stories, Facebook Reels, Instagram Feed, Instagram Stories,
+    Instagram Reels (e Instagram Profile feed si viene junto). Quita todo lo demás (Audience Network, Messenger,
+    Threads, Marketplace, Right column, Search, In-stream, Explore, etc.). Desmarca "Allow limited spending to
+    excluded placements" si aparece.
+
+B3. Tres anuncios en el mismo conjunto (A, B y C). En cada uno:
+  - Identidad: Página Nxus.AI e Instagram @nxusai. Formato: Single image or video.
+  - Video: DETENTE y dime "Sube el archivo NXUS-Ad-A.mp4" (o B, o C). Espero a que yo lo suba.
+  - CTA: Send message / Enviar mensaje.
+  - Advantage+ creative: APAGA TODAS las mejoras una por una (texto, visuales, música, overlays, animación,
+    filtros, expandir, traducir, relevant comments, enhance CTA, site links, etc.) y "Multi-advertiser ads".
+  - Message template: Partner app → ManyChat → Instagram: "Anuncio NY · Video X · IG"; Messenger:
+    "Anuncio NY · Video X · FB". Si no deja elegir una por canal o no aparece ManyChat, DETENTE y dime qué ves.
+  - No pidas en el texto que escriban ninguna palabra.
+
+  Anuncio A
+  - Nombre: NY | A | 11:48
+  - Video: NXUS-Ad-A.mp4
+  - Texto principal:
+Son las 11:48 de la noche. Tu restaurante ya cerró… y los mensajes siguen llegando. 📲
+Reservas, eventos, cotizaciones: si nadie contesta, ese cliente se va con otro.
+En NXUS AI creamos un asistente de inteligencia artificial hecho a la medida de tu negocio: contesta WhatsApp, Instagram y llamadas al instante, en español y en inglés, agenda y te deja las ventas listas para cerrar.
+Para restaurantes y empresas con varias sucursales en Nueva York y New Jersey.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: Tu restaurante, atendido 24/7
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+  Anuncio B
+  - Nombre: NY | B | Empleado
+  - Video: NXUS-Ad-B.mp4
+  - Texto principal:
+Este empleado atiende a tus clientes a las 3 de la mañana. 🤖
+Conoce tu menú, tus horarios y tus sucursales, contesta en español y en inglés, y nunca deja un mensaje sin contestar.
+Es un asistente de inteligencia artificial hecho a la medida por NXUS AI: contesta WhatsApp, Instagram y teléfono, aparta reservas, da seguimiento y le avisa a tu equipo lo importante.
+Para restaurantes y empresas en Nueva York y New Jersey.
+👇 Toca "Enviar mensaje" y agenda tu diagnóstico gratis de 30 minutos.
+  - Título: Tu mejor empleado nunca duerme
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+  Anuncio C
+  - Nombre: NY | C | Sucursales
+  - Video: NXUS-Ad-C.mp4
+  - Texto principal:
+¿Tienes un restaurante con varias sucursales? 🍽️
+Cada mensaje sin contestar es una reserva, un evento o un pedido que se va con la competencia.
+En NXUS AI conectamos tus sucursales con inteligencia artificial: atiende al instante, las 24 horas, en español y en inglés, y tu equipo recibe a los clientes listos para cerrar. Además, software a la medida y marketing que vende.
+Con base en New Jersey, para Nueva York y New Jersey.
+👇 Toca "Enviar mensaje" y te hacemos un diagnóstico gratis de 30 minutos.
+  - Título: Hecho para cadenas de restaurantes
+  - Descripción: Diagnóstico gratis · 30 minutos
+
+B4. Revisa la vista previa (Advanced preview) de cada anuncio en Instagram Reels, Instagram Feed y Facebook Feed:
+que no se corte lo importante y que no aparezca música ni texto que yo no puse.
+
+======================================================================
+PARTE C. RESUMEN FINAL (antes de publicar)
+======================================================================
+NO publiques. Informe en español, cada punto con ✅ (hecho), ⚠️ (distinto) o ❌ (no hecho):
+1. ManyChat: las 6 automatizaciones (nombre, disparador, botones, fuente, etiqueta, Start Automation); cuáles
+   publicaste con mi permiso.
+2. Campaña: nombre, objetivo, límite de gasto.
+3. Conjunto: ubicación de conversión, meta, puja, presupuesto, tipo de público, edad, idioma, intereses, las
+   ubicaciones geográficas que quedaron, público estimado, placements y "Allow limited spending".
+4. Los 3 anuncios: nombre, video subido, textos, CTA, mejoras apagadas y automatización ligada por canal.
+5. Advertencias, errores o cambios que Meta hizo solo.
+6. Lo que yo tengo que hacer (publicar en ManyChat y "Publish" en Ads Manager).
+Luego espera mis instrucciones.
