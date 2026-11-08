@@ -169,6 +169,11 @@
 - Extensión terminó: campaña "NXUS | MX | Mensajes | Diagnóstico v2" en borrador (campaña, conjunto y 3 anuncios). Engagement, límite $300, "Share up to 20%…" desmarcado, conjunto solo Messenger, Maximize conversations, Highest volume, $20/día (Meta: máx. $35/día y $140/semana), público original ("Advantage+ off"), edad 30–65+ fija ("Use as a suggestion" desmarcado), sin idiomas ni intereses, 15 zonas (Interlomas y Zona Esmeralda con pin de 1 milla, Coyoacán = Villa Coyoacán), público estimado 541,200–636,700, placements FB Feed/Stories/Reels + IG Feed/Profile/Stories/Reels, Allow limited spending apagado, 8 mejoras Advantage+ apagadas, Multi-advertiser apagado, plantillas "Anuncio MX · Video A/B/C · FB". Videos corregidos (Eduardo los renombró "AD 1/2/3.mp4"; C verificado con gancho de sucursales).
 - Pendiente: prueba de ManyChat por Messenger y que Eduardo dé "Review and publish". Hubo un aviso de verificación de cuenta que ya no aparece.
 
+## Teléfono del lead (8 nov 2026)
+- Problema en prueba: +1 201 993 7238 con país México se volvió +52 (HQ asumía que el +1 lo ponía ManyChat). Eduardo pidió respetar el número tal cual y que la persona diga si su número es de México o USA.
+- HQ (`hq/netlify/lib/telefono.mjs`, `functions/manychat.mjs`): con lada escrita (+52/+1) se respeta; sin lada decide el campo `lada` del botón de ManyChat; si no viene, país → ciudad → IA. Flujo viejo (+1 con México y sin `lada`): decide la IA al recibir el lead. Al llamar, un número con +52/+1 se marca tal cual.
+- ManyChat: `ads/prompt-chrome-manychat-telefono.txt` (campo `lada`, botón "¿Tu número es de México o de Estados Unidos?" antes del teléfono, pregunta del teléfono de tipo Text en vez de Phone, `"lada"` en los avisos a HQ). Pendiente de correr.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.

@@ -1,0 +1,49 @@
+Eres mi experto en ManyChat. Soy Eduardo (NXUS AI). Trabaja en https://app.manychat.com, en mi Chrome. Yo te veo.
+
+POR QUÉ
+Hoy la pregunta del teléfono usa el tipo "Phone" de ManyChat, y ManyChat le pone +1 solo a los números escritos sin
+lada (aunque sean de México). Además hay gente con número de USA que vive en México, y al revés. Quiero que el número
+se guarde TAL CUAL lo escribe la persona y que ella misma diga, con un botón, si su número es de México o de USA.
+
+REGLAS
+- Solo toca "Filtro NXUS" y "Filtro NXUS · Facebook". Nada más (ni las automatizaciones de anuncios, ni ajustes).
+- No cambies textos, preguntas ni pasos que no diga aquí. No borres campos ni pasos (salvo lo que se reemplaza aquí).
+- No toques la URL, el encabezado (x-manychat-clave) ni el mapeo de respuesta de "Aviso 1 a HQ" y "Aviso 2 a HQ":
+  solo agrega UNA línea al cuerpo, como se indica.
+- NO publiques ("Update", "Set Live") sin pedirme permiso y esperar mi "sí".
+- Si algo no coincide, detente y pregúntame.
+
+PASO 1. Crea un User Field nuevo, tipo Text, llamado: lada
+
+PASO 2. En cada Filtro, en la rama en ESPAÑOL, justo ANTES de la pregunta del teléfono, agrega un mensaje con
+Data Collection Multiple Choice (sin texto libre, guarda en lada, reintento "Toca una opción 👇", expira en 23 h,
+sin botón Skip):
+Texto:
+¿Tu número de teléfono es de México o de Estados Unidos?
+Opciones:  🇲🇽 México (+52)   ·   🇺🇸 USA (+1)   ·   Otro país
+Conecta: lo que hoy llega a la pregunta del teléfono ahora llega a este mensaje, y este va a la pregunta del teléfono.
+
+PASO 3. En la rama en INGLÉS, lo mismo, antes de la pregunta del teléfono:
+Texto:
+Is your phone number from Mexico or the US?
+Opciones:  🇲🇽 Mexico (+52)   ·   🇺🇸 USA (+1)   ·   Other country
+
+PASO 4. En la pregunta del teléfono (las dos ramas, los dos Filtros):
+- Cambia el Reply Type de "Phone" a "Text". Sigue guardando en el campo telefono.
+- Cambia el texto de la pregunta:
+  Español: ¿A qué número te podemos llamar? Escríbelo tal cual, por ejemplo 55 1234 5678 o 201 555 0100.
+  Inglés:  What number can we call you at? Type it as is, for example 201 555 0100 or 55 1234 5678.
+- Si el campo telefono es de tipo sistema "Phone" y no deja guardar texto ahí, DETENTE y dime qué opciones ves.
+
+PASO 5. En "Aviso 1 a HQ" y "Aviso 2 a HQ" (los dos Filtros), agrega al cuerpo JSON, antes de "completo", con el
+selector de variables:
+"lada": "{{lada}}",
+
+PASO 6. Pídeme permiso para publicar los dos Filtros ("Update") y espera mi "sí".
+
+PASO 7. INFORME (en español, corto, con ✅ / ⚠️ / ❌):
+1. Campo lada creado.
+2. Mensaje de lada en español e inglés en cada Filtro, y cómo quedó conectado.
+3. Pregunta del teléfono: tipo Text, campo, textos nuevos, en cada rama de cada Filtro.
+4. Línea "lada" en los 4 avisos a HQ.
+5. Si publicaste (con mi permiso) y cualquier cosa rara.
