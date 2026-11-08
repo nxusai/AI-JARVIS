@@ -52,6 +52,8 @@ const STATE = join(DIR, 'ventas-estado.json')
 const WHATSAPP_FILE = join(DIR, 'ventas-whatsapp.json')
 const API = 'https://api.elevenlabs.io/v1/convai'
 const TICK_MS = 3 * 60_000
+/** With the work center, new leads want the call as soon as possible: look every minute. */
+const TICK_CENTRO_MS = 60_000
 /** Calls ring only between these hours, in the lead's own time zone. */
 const FIRST_HOUR = 9
 const LAST_HOUR = 20
@@ -582,6 +584,8 @@ const JOB_HEADER =
 
 function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
   const web = lead.origen === 'web' && why !== 'callback'
+  // From the work center, a WhatsApp lead who gave no time wants the call as soon as possible too.
+  const pronto = web || (why === 'new' && lead.centro && !String(lead.horario ?? '').trim())
   const intro =
     why === 'callback'
       ? `A lead asked Ana Sofi, on her call, to be called again later. When they asked for: "${lead.llamarDespues ?? ''}" (said on the call, ${when(seenAt, ownerZone)} in the owner's zone).`
@@ -596,10 +600,13 @@ function scheduleJob(lead, seenAt, ownerZone, why = 'new') {
     (web
       ? "1. Work out the lead's time zone (an IANA name such as America/Chicago) from the area code of their phone number (the city, when there is one, is only where they would ship, not where they live). If it is unclear, use America/New_York.\n" +
         `2. Call them as soon as possible: in two minutes from now if it is between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time; otherwise at 10:00 the next morning their time.\n`
-      : "1. Work out the lead's time zone (an IANA name such as America/Chicago) from their city and state. If it is unclear, use America/New_York.\n" +
-        `2. Work out when to call from what they asked for, in their own time zone. It must be between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time. ` +
-        'If they gave no usable time, or it has already passed, pick the next good moment: in about ten minutes if it is daytime there, otherwise 10:00 the next morning.\n') +
-    '3. Check the owner\'s Google Calendar and pick three free one-hour slots for a video call with the head of sales (the owner): between 10:00 and 16:00 Eastern time, any day of the week, ' +
+      : "1. Work out the lead's time zone (an IANA name such as America/Chicago) from their city and state (or, if there is no city, from the area code of their phone number). If it is unclear, use America/New_York.\n" +
+        (pronto
+          ? `2. Call them as soon as possible: in two minutes from now if it is between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time; otherwise at 10:00 the next morning their time.\n`
+          : `2. Work out when to call from what they asked for, in their own time zone. It must be between ${FIRST_HOUR}:00 and ${LAST_HOUR}:00 their time. ` +
+        'If they gave no usable time, or it has already passed, pick the next good moment: in about ten minutes if it is daytime there, otherwise 10:00 the next morning.\n')) +
+    (pronto ? '3. The lead is waiting for the call: do the calendar quickly. ' : '3. ') +
+    'Check the owner\'s Google Calendar and pick three free one-hour slots for a video call with the head of sales (the owner): between 10:00 and 16:00 Eastern time, any day of the week, ' +
     'at least three hours after the call, within the next five days, spread over two or three days.\n' +
     '4. Call schedule_sales_call with contacto_id, at (the call time as YYYY-MM-DDTHH:MM in the lead\'s zone), zona, and horarios_videollamada: the three slots written ' +
     'for Ana Sofi to read out, in the lead\'s language, with the date and "hora del Este" / "Eastern time", e.g. "martes 8 de octubre a las 10 am, miércoles 9 a la 1 pm o jueves 10 a las 3 pm, hora del Este".' +
@@ -734,7 +741,7 @@ export function startSales({ elevenKey, zone }) {
       running = false
     }
   }
-  const clock = setInterval(tick, TICK_MS)
+  const clock = setInterval(tick, fromCentro() ? TICK_CENTRO_MS : TICK_MS)
   clock.unref?.()
   setTimeout(tick, 15_000).unref?.()
   // Ana Sofi's calls as they happen, in the console's Mi Semago section.
