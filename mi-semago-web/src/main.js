@@ -83,8 +83,7 @@ function preload(srcs, onProgress) {
   })));
 }
 async function boot() {
-  const heroItems = TRIO.map((x) => PRODUCTS.find((p) => p.id === x.id));
-  const srcs = ['./img/ui/knot.png', './img/ui/logo-white.png', ...heroItems.map((p) => `./img/p/${p.img}.webp`)];
+  const srcs = ['./img/ui/knot.png', './img/ui/logo-white.png', './video/hilado.jpg'];
   let shown = 0; const pct = $('#loaderPct');
   const msgs = ['load.1', 'load.2', 'load.3']; let mi = 0;
   const msgTimer = setInterval(() => { mi = (mi + 1) % msgs.length; $('#loaderMsg').textContent = t(msgs[mi]); }, 900);
@@ -95,7 +94,7 @@ async function boot() {
   await new Promise((r) => setTimeout(r, wait));
   gsap.to(counter, { v: 100, duration: 0.3, onUpdate: () => { pct.textContent = Math.round(counter.v); } });
   clearInterval(msgTimer);
-  buildTrio();
+  heroArch();
   await new Promise((r) => setTimeout(r, 300));
   document.body.classList.remove('is-loading');
   const loader = $('#loader');
@@ -110,8 +109,9 @@ function heroIntro() {
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
   tl.from('.hero__title .line > *', { yPercent: 120, duration: 1.3, stagger: 0.1 })
     .from('.hero .kicker, .hero__sub, .hero__ctas', { y: 30, opacity: 0, duration: 1, stagger: 0.1 }, '-=1')
-    .from('.plate', { scale: 0.6, opacity: 0, duration: 1.4 }, '-=1.2')
-    .from('.trio__item', { y: 80, opacity: 0, duration: 1.3, stagger: 0.12 }, '-=1.1')
+    .fromTo('.arch', { clipPath: 'inset(100% 0 0 0 round 999px 999px 32px 32px)' }, { clipPath: 'inset(0% 0 0 0 round 999px 999px 32px 32px)', duration: 1.6, ease: 'expo.inOut' }, '-=1.3')
+    .from('.arch__video', { scale: 1.3, duration: 2.2, ease: 'expo.out' }, '<')
+    .from('.arch__chip', { y: 20, opacity: 0, duration: 0.8 }, '-=1')
     .from('.hero__ticket', { y: 60, rotate: 20, opacity: 0, duration: 1 }, '-=0.9')
     .from('.stat', { y: 30, opacity: 0, duration: 0.8, stagger: 0.07 }, '-=1')
     .add(countUp, '-=0.8');
@@ -155,27 +155,17 @@ function ticketCycle() {
   }, 3200);
 }
 
-// Tres quesos sobre un plato de luz: flotan despacio y se mueven en profundidad con el cursor, sin encimarse.
-const TRIO = [
-  { id: 'fresco-hoja-4', x: 2, y: 30, w: 44, depth: 0.6, z: 1 },
-  { id: 'canaston', x: 54, y: 20, w: 42, depth: 0.4, z: 1 },
-  { id: 'oaxaca-retail', x: 22, y: 44, w: 54, depth: 1, z: 2 },
-];
-function buildTrio() {
-  const box = $('#heroTrio');
-  box.innerHTML = TRIO.map((x) => { const p = PRODUCTS.find((q) => q.id === x.id); return `<div class="trio__item" style="left:${x.x}%;top:${x.y}%;width:${x.w}%;z-index:${x.z}"><img src="./img/p/${p.img}.webp" alt="" /></div>`; }).join('');
-  if (reduced) return;
-  const items = $$('.trio__item', box);
-  items.forEach((el, k) => gsap.to($('img', el), { y: -10 - k * 3, duration: 2.6 + k * 0.5, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: k * 0.4 }));
+// El arco con el video del hilado: se mueve un poco con el cursor y se pausa fuera de pantalla.
+function heroArch() {
+  const video = $('#heroVideo'); const arch = $('#heroArch');
+  if (reduced) { video.removeAttribute('autoplay'); video.pause(); return; }
+  ScrollTrigger.create({ trigger: '.hero', start: 'top bottom', end: 'bottom top', onToggle: (st) => { if (st.isActive) video.play().catch(() => {}); else video.pause(); } });
   const mouse = { x: 0, y: 0 }; const cur = { x: 0, y: 0 };
   addEventListener('pointermove', (e) => { mouse.x = e.clientX / innerWidth - 0.5; mouse.y = e.clientY / innerHeight - 0.5; });
-  let visible = true;
-  ScrollTrigger.create({ trigger: '.hero', start: 'top bottom', end: 'bottom top', onToggle: (st) => { visible = st.isActive; } });
   gsap.ticker.add(() => {
-    if (!visible) return;
     cur.x += (mouse.x - cur.x) * 0.06; cur.y += (mouse.y - cur.y) * 0.06;
-    items.forEach((el, k) => { const d = TRIO[k].depth; el.style.transform = `translate3d(${cur.x * 26 * d}px, ${cur.y * 18 * d}px, 0)`; });
-    $('.plate').style.transform = `translate3d(${cur.x * -10}px, ${cur.y * -8}px, 0)`;
+    arch.style.transform = `translate3d(${cur.x * 14}px, ${cur.y * 10}px, 0)`;
+    video.style.objectPosition = `${50 + cur.x * 8}% ${50 + cur.y * 6}%`;
   });
 }
 
