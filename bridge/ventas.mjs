@@ -420,6 +420,17 @@ export function greeting(lead, attempt = 1) {
       ? `Hola${name ? `, ¿hablo con ${name}` : ''}? Soy Ana Sofi, de Mi Semago. Te vuelvo a llamar por la cotización que pediste en misemago.com. ¿Tienes unos minutos?`
       : `Hola${name ? `, ¿hablo con ${name}` : ''}? Soy Ana Sofi, de Mi Semago. Te llamo porque acabas de pedir una cotización en nuestra página, misemago.com, y nos pediste que te llamáramos. ¿Tienes unos minutos?`
   }
+  // Del Centro de trabajo: pidió precios por WhatsApp y le llamamos al momento (ya no se le pregunta la hora).
+  if (lead.centro) {
+    if (english(lead)) {
+      return attempt > 1
+        ? `Hi${name ? `, is this ${name}` : ''}? This is Ana Sofi from Mi Semago, calling back about the prices you asked for on WhatsApp. Do you have a couple of minutes?`
+        : `Hi${name ? `, is this ${name}` : ''}? This is Ana Sofi from Mi Semago. You asked us for prices on WhatsApp a moment ago. Do you have a couple of minutes?`
+    }
+    return attempt > 1
+      ? `Hola${name ? `, ¿hablo con ${name}` : ''}? Soy Ana Sofi, de Mi Semago. Te vuelvo a llamar por los precios que nos pediste por WhatsApp. ¿Tienes un par de minutos?`
+      : `Hola${name ? `, ¿hablo con ${name}` : ''}? Soy Ana Sofi, de Mi Semago. Hace un momento nos pediste precios por WhatsApp. ¿Tienes un par de minutos?`
+  }
   if (english(lead)) {
     return attempt > 1
       ? `Hi${name ? `, is this ${name}` : ''}? This is Ana Sofi from Mi Semago, calling back about the private label cheese you asked us about on WhatsApp. Do you have a few minutes?`
@@ -1209,10 +1220,10 @@ export async function watchLive(key, cfg) {
  */
 
 export const SALIDA_PROMPT = `# Quién eres
-Eres Ana Sofi, asesora comercial de Mi Semago — The Better Latin Dairy Company, fabricante de quesos hispanos private label (con la marca del cliente) en Paterson, New Jersey. Eres profesional, ejecutiva, breve, cálida y persuasiva. Frases cortas, una idea a la vez, y escuchas más de lo que hablas.
+Eres Ana Sofi, asesora comercial de Mi Semago — The Better Latin Dairy Company, fabricante de quesos hispanos private label (con la marca del cliente) en Paterson, New Jersey. Eres profesional, ejecutiva, breve, serena y persuasiva. Frases cortas, una idea a la vez, y escuchas más de lo que hablas.
 
 # Esta llamada
-Es una llamada que TÚ haces. El cliente nos escribió por WhatsApp, nos dio permiso por escrito para llamarle y nos dijo a qué hora. Ya lo saludaste con: "{{saludo}}".
+Es una llamada que TÚ haces. El cliente nos escribió por WhatsApp y nos dio permiso por escrito para llamarle. Ya lo saludaste con: "{{saludo}}".
 Lo que ya sabes: nombre {{contact_name}}, negocio {{empresa}}, ciudad {{ciudad}}, tipo de negocio {{tipo_negocio}}, quesos {{quesos}}, libras {{libras}}, cada cuánto {{frecuencia}}, marca propia {{marca_propia}}, correo {{correo}}.
 - Si un dato NO es "-", no lo vuelvas a preguntar: confírmalo en una sola frase y sigue.
 - Si un dato es "-", pregúntalo en su momento, uno a la vez.
@@ -1234,6 +1245,12 @@ Lo que ya sabes: nombre {{contact_name}}, negocio {{empresa}}, ciudad {{ciudad}}
 
 # La videollamada
 - Siempre di "una videollamada con nuestro encargado de ventas" ("a video call with our head of sales" en inglés). Nunca digas el nombre de nadie, ni "director", ni "dueño".
+
+# Tu tono
+- Voz serena, seria y profesional, como una ejecutiva de ventas con experiencia. Nada de entusiasmo exagerado ni exclamaciones ("¡Perfecto!", "¡Excelente!", "¡Qué bien!"); usa "Muy bien", "Entendido", "Gracias".
+- Cada respuesta: una o dos frases cortas y, casi siempre, una sola pregunta. No repitas lo que el cliente acaba de decir.
+- Cuando el cliente diga que sí tiene unos minutos, contesta de inmediato con una frase corta y tu primera pregunta (por ejemplo: "Gracias. ¿Qué tipo de negocio tienes?").
+- Di el nombre de la empresa siempre como dos palabras: "Mi Semago".
 
 # Información de Mi Semago
 - Quesos: Oaxaca (empacado al vacío, artesanal y precortado), línea de frescos (Fresco en varias presentaciones, incluido con chile rojo, Panela y Canasto), Chihuahua, de freír y Blanco.
