@@ -456,16 +456,37 @@ async function instrucciones(regresar = false) {
 }
 
 const RESPALDO_VOZ = join(homedir(), '.nexy', 'ana-sofi-voz-respaldos.json')
-// Voz más seria y más rápida: el modelo de voz más veloz, poca emoción, velocidad normal.
-const VOZ_SERIA = { model_id: 'eleven_flash_v2_5', stability: 0.75, similarity_boost: 0.75, speed: 1, optimize_streaming_latency: 3 }
-const LLM_LENTOS = /(pro|opus|sonnet|o1|o3|o4|reason|think|gpt-5(?!.*(mini|nano)))/i
+// Voz seria: sin el modo expresivo (las etiquetas como [happy]), más estable, velocidad normal.
+const VOZ_SERIA = { expressive_mode: false, stability: 0.75, similarity_boost: 0.75, speed: 1, optimize_streaming_latency: 3 }
+const LLM_LENTOS = /(opus|o1|o3|o4|reason|think|gemini-[\d.]+-pro)/i
 
-/** Ana Sofi's voice, model and turn settings: "voz" only looks, "voz arreglar" fixes them, "voz regresar" undoes it. */
+/** Lo que se cambia en cada agente, por partes (si ElevenLabs rechaza una, las demás sí entran). */
+function arreglos(c, principal) {
+  const lista = [
+    ['Voz seria (sin modo expresivo, estabilidad 0.75)', { tts: VOZ_SERIA }, { tts: pick(c.tts, VOZ_SERIA) }],
+    ['Contesta sin esperar de más (turnos "normal")', { turn: { turn_eagerness: 'normal' } }, { turn: pick(c.turn, { turn_eagerness: 1 }) }],
+    ['Ignora voces y ruido de fondo (bueno para speaker)', { vad: { background_voice_detection: true } }, { vad: pick(c.vad, { background_voice_detection: 1 }) }],
+  ]
+  // Empieza en español: así no gasta segundos "cambiando de idioma" con cada lead que habla español.
+  const presets = c.language_presets ?? {}
+  if (principal && c.agent?.language === 'en' && presets.es) {
+    const saludo = presets.es.overrides?.agent?.first_message || c.agent.first_message || '{{saludo}}'
+    lista.push([
+      'Empieza en español (y cambia a inglés solo si el cliente habla inglés)',
+      { agent: { language: 'es', first_message: saludo }, language_presets: { en: { overrides: { agent: { first_message: c.agent.first_message || saludo } } } } },
+      { agent: { language: c.agent.language, first_message: c.agent.first_message }, language_presets: presets },
+    ])
+  }
+  return lista
+}
+const pick = (o = {}, keys) => Object.fromEntries(Object.keys(keys).filter((k) => o?.[k] !== undefined).map((k) => [k, o[k]]))
+
+/** Ana Sofi's voice, speed and language: "voz" only looks, "voz arreglar" fixes them, "voz regresar" undoes it. */
 async function voz(accion = '') {
   const cfg = readSalesConfig()
   const key = elevenKey()
   if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
-  const agentes = [['Ana Sofi', cfg.agentId], ['Ana Sofi · Llamadas entrantes', cfg.inboundAgentId]].filter(([, id]) => /^agent_\w+$/.test(id || ''))
+  const agentes = [['Ana Sofi', cfg.agentId, true], ['Ana Sofi · Llamadas entrantes', cfg.inboundAgentId, false]].filter(([, id]) => /^agent_\w+$/.test(id || ''))
   if (!agentes.length) return say('\n✋ No tengo el Agent ID de Ana Sofi. Corre: node scripts/ana-sofi.mjs\n')
   let respaldos = []
   try {
@@ -474,7 +495,7 @@ async function voz(accion = '') {
   const ultimo = accion === 'regresar' ? respaldos.pop() : null
   if (accion === 'regresar' && !ultimo) return say('\n✋ No tengo respaldo de la voz anterior.\n')
   const nuevo = { fecha: new Date().toISOString(), agentes: {} }
-  for (const [nombre, id] of agentes) {
+  for (const [nombre, id, principal] of agentes) {
     const a = await eleven(key, `/agents/${id}`)
     if (a.error) { say(`\n✋ ElevenLabs no me dejó leer "${nombre}" (${a.error}).`); continue }
     const c = a.data.conversation_config ?? {}
@@ -482,25 +503,35 @@ async function voz(accion = '') {
     const llm = c.agent?.prompt?.llm ?? '-'
     const ok = (bien, t) => say(`  ${bien ? '✅' : '⚠️ '} ${t}`)
     say(`\n${nombre}:`)
-    ok(/flash|turbo/i.test(tts.model_id || ''), `Modelo de voz: ${tts.model_id ?? '-'}${/flash/i.test(tts.model_id || '') ? '' : ' (el más rápido es eleven_flash_v2_5)'}`)
-    ok((tts.stability ?? 0) >= 0.7, `Estabilidad: ${tts.stability ?? '-'} (más alta = menos emoción; la buscamos en 0.75)`)
-    ok(Math.abs((tts.speed ?? 1) - 1) < 0.05, `Velocidad: ${tts.speed ?? '-'}`)
-    ok((tts.optimize_streaming_latency ?? 0) >= 3, `Latencia del audio: ${tts.optimize_streaming_latency ?? '-'} (3 o 4 es lo más rápido)`)
-    ok(!LLM_LENTOS.test(llm), `Modelo que piensa (LLM): ${llm}${LLM_LENTOS.test(llm) ? ' (es de los lentos: tarda en contestar)' : ''}`)
-    if (c.turn) say(`  ℹ️  Turnos: ${JSON.stringify(c.turn)}`)
+    ok(tts.expressive_mode !== true, `Modo expresivo: ${tts.expressive_mode ? 'prendido (por eso suena con tanta emoción)' : 'apagado'}`)
+    ok((tts.stability ?? 0) >= 0.7, `Estabilidad de la voz: ${tts.stability ?? '-'} (más alta = más seria; la buscamos en 0.75)`)
+    ok(c.turn?.turn_eagerness !== 'patient', `Espera para contestar: ${c.turn?.turn_eagerness ?? '-'}${c.turn?.turn_eagerness === 'patient' ? ' (espera de más)' : ''}`)
+    ok(c.vad?.background_voice_detection === true, `Ignorar ruido y voces de fondo: ${c.vad?.background_voice_detection ? 'sí' : 'no (en speaker oye el eco)'}`)
+    if (principal) ok(c.agent?.language !== 'en', `Idioma con el que empieza: ${c.agent?.language ?? '-'}${c.agent?.language === 'en' ? ' (con cada lead en español pierde segundos cambiando de idioma)' : ''}`)
+    ok(!LLM_LENTOS.test(llm), `Modelo que piensa: ${llm}`)
     if (!accion) continue
-    const tts2 = accion === 'regresar' ? ultimo.agentes[id] : { ...VOZ_SERIA }
-    if (!tts2) { say('  (no tengo respaldo de este agente; no lo toqué)'); continue }
-    nuevo.agentes[id] = Object.fromEntries(Object.keys(VOZ_SERIA).map((k) => [k, tts[k]]).filter(([, v]) => v !== undefined))
-    const r = await eleven(key, `/agents/${id}`, { method: 'PATCH', body: { conversation_config: { tts: tts2 } } })
-    say(r.error ? `  ✋ ElevenLabs no aceptó el cambio (${r.error}); se quedó como estaba.` : `  ✅ ${accion === 'regresar' ? 'Regresé la voz que tenía.' : 'Listo: Flash v2.5, estabilidad 0.75, velocidad 1, latencia 3.'}`)
+    if (accion === 'regresar') {
+      const antes = ultimo.agentes[id]
+      if (!antes) { say('  (no tengo respaldo de este agente; no lo toqué)'); continue }
+      for (const cambio of Array.isArray(antes) ? antes : [{ tts: antes }]) {
+        const r = await eleven(key, `/agents/${id}`, { method: 'PATCH', body: { conversation_config: cambio } })
+        say(r.error ? `  ✋ No pude regresar una parte (${r.error}).` : '  ✅ Regresé una parte a como estaba.')
+      }
+      continue
+    }
+    nuevo.agentes[id] = []
+    for (const [que, cambio, antes] of arreglos(c, principal)) {
+      const r = await eleven(key, `/agents/${id}`, { method: 'PATCH', body: { conversation_config: cambio } })
+      if (r.error) say(`  ✋ ${que}: ElevenLabs no lo aceptó (${r.error}); esa parte se quedó como estaba.`)
+      else { say(`  ✅ ${que}`); nuevo.agentes[id].push(antes) }
+    }
   }
-  if (accion === 'arreglar' && Object.keys(nuevo.agentes).length) respaldos.push(nuevo)
+  if (accion === 'arreglar' && Object.values(nuevo.agentes).some((x) => x.length)) respaldos.push(nuevo)
   if (accion) {
     mkdirSync(join(homedir(), '.nexy'), { recursive: true })
     writeFileSync(RESPALDO_VOZ, JSON.stringify(respaldos.slice(-5), null, 2), { mode: 0o600 })
   }
-  say(accion === 'arreglar' ? '\nGuardé la voz de antes. Para regresar: node scripts/ana-sofi.mjs voz regresar\n' : accion ? '' : '\nSolo miré, no cambié nada. Para corregir: node scripts/ana-sofi.mjs voz arreglar\n')
+  say(accion === 'arreglar' ? '\nGuardé cómo estaba. Para regresar: node scripts/ana-sofi.mjs voz regresar\n' : accion ? '' : '\nSolo miré, no cambié nada. Para corregir: node scripts/ana-sofi.mjs voz arreglar\n')
 }
 
 /** Why Ana Sofi is slow or sounds too expressive: her voice/turn settings and the timings of her last call. Copied to paste in the chat. */
