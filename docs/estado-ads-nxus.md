@@ -199,6 +199,11 @@
 - Une Meta con HQ por nombre: anuncio "MX | A | …" en campaña "| MX |" ↔ fuente "Anuncio MX · Video A". Mantener esos nombres.
 - Reporte semanal (lunes) con la extensión: `ads/prompt-chrome-reporte-semanal.txt`.
 
+## Panel: activos e historial por mes (9 nov 2026)
+- El panel "📈 Anuncios" muestra en "Activos" solo los anuncios activos en Meta. Los apagados (pausados, archivados o borrados) pasan a "🗂 Historial", agrupados por el mes en que se apagaron, con su nombre y sus números. Arriba del historial: "Lo aprendido" (mejor gancho, cita más barata, más clientes, el que más ven completo).
+- Memoria del asesor: `docs/aprendizajes-anuncios.md`. Leerla antes de proponer anuncios y actualizarla después de cada revisión semanal.
+- Conectar Meta (token ads_read) con la extensión: `ads/prompt-chrome-meta-token.txt` (la extensión nunca toca el token; Eduardo lo copia y lo pega).
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.

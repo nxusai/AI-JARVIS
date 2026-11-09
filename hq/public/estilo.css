@@ -465,3 +465,13 @@ main { display: flex; flex-direction: column; min-height: 100vh; }
 .an-pie { text-align: center; }
 @media (max-width: 1200px) { .an-kpis { grid-template-columns: repeat(3, 1fr); } .an-dos { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .an-kpis { grid-template-columns: repeat(2, 1fr); } .an-cifras { grid-template-columns: repeat(2, 1fr); } .an-vivo { margin-left: 0; } .an-motivo { grid-template-columns: 110px 1fr 24px; } }
+.an-mes { display: grid; gap: 12px; margin-bottom: 8px; }
+.an-mes > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--borde); padding-bottom: 8px; }
+.an-mes > header h3 { margin: 0; font-size: 18px; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.an-mes > header span { color: var(--suave); font-size: 13px; }
+.an-video.pasado { opacity: .82; filter: saturate(.75); }
+.an-video.pasado:hover { opacity: 1; filter: none; }
+.an-lec { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.an-lec div { background: rgba(255, 255, 255, .03); border: 1px solid var(--borde); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; }
+.an-lec span { color: var(--suave); font-size: 12px; } .an-lec b { font-size: 14px; } .an-lec b small { font-weight: 500; }
+.an-lec small { color: var(--verde); font-weight: 600; }

@@ -8,7 +8,10 @@ import { json, quien } from '../lib/sb.mjs'
 
 const env = (k) => (process.env[k] || '').trim()
 const V = 'v23.0'
-const FILTRO = encodeURIComponent(JSON.stringify([{ field: 'campaign.name', operator: 'CONTAIN', value: 'NXUS |' }]))
+// Todos los estados (también pausados, archivados y borrados): lo que se apaga pasa al historial del mes, no desaparece.
+const TODOS = ['ACTIVE', 'PAUSED', 'DELETED', 'PENDING_REVIEW', 'DISAPPROVED', 'PREAPPROVED', 'PENDING_BILLING_INFO', 'CAMPAIGN_PAUSED', 'ARCHIVED', 'ADSET_PAUSED', 'IN_PROCESS', 'WITH_ISSUES']
+const FILTRO = encodeURIComponent(JSON.stringify([{ field: 'campaign.name', operator: 'CONTAIN', value: 'NXUS |' }, { field: 'ad.effective_status', operator: 'IN', value: TODOS }]))
+const FILTRO_ADS = encodeURIComponent(JSON.stringify([{ field: 'campaign.name', operator: 'CONTAIN', value: 'NXUS |' }, { field: 'effective_status', operator: 'IN', value: TODOS }]))
 
 async function graph(path) {
   const sep = path.includes('?') ? '&' : '?'
@@ -53,7 +56,7 @@ export default async (req) => {
       graph(`${act}/insights?level=ad&date_preset=maximum&fields=${campos}&filtering=${FILTRO}&limit=200`),
       graph(`${act}/insights?level=ad&date_preset=last_7d&fields=${campos}&filtering=${FILTRO}&limit=200`),
       graph(`${act}/insights?level=campaign&date_preset=last_30d&time_increment=1&fields=campaign_name,spend,actions,impressions&filtering=${FILTRO}&limit=500`),
-      graph(`${act}/ads?fields=name,effective_status,created_time,campaign{name}&filtering=${FILTRO}&limit=200`),
+      graph(`${act}/ads?fields=name,effective_status,created_time,updated_time,campaign{name}&filtering=${FILTRO_ADS}&limit=200`),
     ])
     return json({
       ok: true,
@@ -62,7 +65,7 @@ export default async (req) => {
       total: (total.data || []).map(fila),
       semana: (semana.data || []).map(fila),
       dias: (dias.data || []).map(fila),
-      estados: (ads.data || []).map((a) => ({ anuncio: a.name, campana: a.campaign?.name || '', estado: a.effective_status, creado: a.created_time })),
+      estados: (ads.data || []).map((a) => ({ anuncio: a.name, campana: a.campaign?.name || '', estado: a.effective_status, creado: a.created_time, actualizado: a.updated_time })),
       al: new Date().toISOString(),
     })
   } catch (err) {

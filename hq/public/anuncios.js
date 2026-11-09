@@ -27,7 +27,7 @@ export function claveDeAnuncio(nombre, campana) {
 
 export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   titulo('Anuncios · de la vista al cliente')
-  const estado = v._an || (v._an = { camp: 'todo', periodo: 'todo' })
+  const estado = v._an || (v._an = { camp: 'todo', periodo: 'todo', vista: 'activos' })
   const [leads, prospectos, meta] = await Promise.all([
     D.leads().catch(() => []),
     D.prospectos().catch(() => []),
@@ -41,9 +41,7 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   const enCamp = (k) => estado.camp === 'todo' || k?.camp === estado.camp
   const pros = Object.fromEntries(prospectos.map((p) => [p.id, p]))
 
-  // ---- HQ: cada lead, con su anuncio
-  const deAnuncio = leads.filter((l) => claveDeFuente(l.fuente) && enCamp(claveDeFuente(l.fuente)) && enPeriodo(l.creado))
-  const organicos = leads.filter((l) => !claveDeFuente(l.fuente) && enPeriodo(l.creado))
+  // ---- Cada video: lo de Meta + sus leads (los de HQ se unen por "Anuncio MX · Video A")
   const pasos = (ls) => {
     const calif = ls.filter((l) => l.estado !== 'incompleto')
     const hablo = ls.filter((l) => (l.llamada_seg ?? 0) >= 20)
@@ -52,38 +50,50 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
     const cliente = agendo.filter((l) => pros[l.prospecto_id]?.etapa === 'cliente')
     return { leads: ls.length, calif: calif.length, hablo: hablo.length, agendo: agendo.length, asistio: asistio.length, cliente: cliente.length }
   }
-
-  // ---- Meta: por anuncio
-  const filasMeta = (meta.conectado ? (estado.periodo === 'todo' ? meta.total : meta.semana) : []) || []
-  const porVideo = {}
   const llave = (k) => `${k.camp}-${k.video}`
-  for (const f of filasMeta) {
-    const k = claveDeAnuncio(f.anuncio, f.campana)
-    if (!k || !enCamp(k)) continue
-    const x = (porVideo[llave(k)] ??= { ...k, meta: { gasto: 0, impresiones: 0, alcance: 0, conversaciones: 0, vistas3s: 0, thruplays: 0, clics: 0, frec: [] }, leads: [] })
-    for (const c of ['gasto', 'impresiones', 'alcance', 'conversaciones', 'vistas3s', 'thruplays', 'clics']) x.meta[c] += f[c]
-    x.meta.frec.push(f.frecuencia)
-    x.anuncio = f.anuncio
-  }
-  for (const l of deAnuncio) {
-    const k = claveDeFuente(l.fuente)
-    ;(porVideo[llave(k)] ??= { ...k, meta: null, leads: [] }).leads.push(l)
-  }
   const estados = Object.fromEntries((meta.estados || []).map((e) => [llave(claveDeAnuncio(e.anuncio, e.campana) || { camp: '?', video: e.anuncio }), e]))
-  const videos = Object.values(porVideo).map((x) => {
-    const p = pasos(x.leads)
-    const m = x.meta
-    const est = estados[llave(x)]
-    const dias = est?.creado ? Math.floor((Date.now() - new Date(est.creado).getTime()) / 864e5) : null
-    return {
-      ...x, p, est, dias,
-      gancho: m && m.impresiones ? pct(m.vistas3s, m.impresiones) : null,
-      retencion: m && m.vistas3s ? pct(m.thruplays, m.vistas3s) : null,
-      frecuencia: m?.frec.length ? Math.max(...m.frec) : null,
-      costoCita: m && p.agendo ? m.gasto / p.agendo : null,
-      costoLead: m && p.calif ? m.gasto / p.calif : null,
+  const VIVOS = ['ACTIVE', 'IN_PROCESS', 'PENDING_REVIEW', 'WITH_ISSUES', 'PREAPPROVED']
+  // Activo = así lo dice Meta. Sin Meta (o sin anuncio todavía en Meta), se toma como activo.
+  const esActivo = (k) => !meta.conectado || !estados[llave(k)] || VIVOS.includes(estados[llave(k)].estado)
+  function construir(filas, listaLeads) {
+    const porVideo = {}
+    for (const f of filas || []) {
+      const k = claveDeAnuncio(f.anuncio, f.campana)
+      if (!k || !enCamp(k)) continue
+      const x = (porVideo[llave(k)] ??= { ...k, meta: { gasto: 0, impresiones: 0, alcance: 0, conversaciones: 0, vistas3s: 0, thruplays: 0, clics: 0, frec: [] }, leads: [] })
+      for (const c of ['gasto', 'impresiones', 'alcance', 'conversaciones', 'vistas3s', 'thruplays', 'clics']) x.meta[c] += f[c]
+      x.meta.frec.push(f.frecuencia)
+      x.anuncio = f.anuncio
+      x.campana = f.campana
     }
-  })
+    for (const l of listaLeads) {
+      const k = claveDeFuente(l.fuente)
+      if (!k || !enCamp(k)) continue
+      ;(porVideo[llave(k)] ??= { ...k, meta: null, leads: [] }).leads.push(l)
+    }
+    return Object.values(porVideo).map((x) => {
+      const p = pasos(x.leads)
+      const m = x.meta
+      const est = estados[llave(x)]
+      const dias = est?.creado ? Math.floor((Date.now() - new Date(est.creado).getTime()) / 864e5) : null
+      const ultimo = est?.actualizado || x.leads.map((l) => l.creado).sort().at(-1) || est?.creado || new Date().toISOString()
+      return {
+        ...x, p, est, dias, ultimo, activo: esActivo(x),
+        gancho: m && m.impresiones ? pct(m.vistas3s, m.impresiones) : null,
+        retencion: m && m.vistas3s ? pct(m.thruplays, m.vistas3s) : null,
+        frecuencia: m?.frec.length ? Math.max(...m.frec) : null,
+        costoCita: m && p.agendo ? m.gasto / p.agendo : null,
+        costoLead: m && p.calif ? m.gasto / p.calif : null,
+      }
+    })
+  }
+  const leadsPeriodo = leads.filter((l) => enPeriodo(l.creado))
+  const videos = construir(meta.conectado ? (estado.periodo === 'todo' ? meta.total : meta.semana) : [], leadsPeriodo).filter((x) => x.activo)
+  const historia = construir(meta.conectado ? meta.total : [], leads).filter((x) => !x.activo)
+  const todos = construir(meta.conectado ? meta.total : [], leads)
+  const activas = new Set(videos.map(llave))
+  const deAnuncio = leadsPeriodo.filter((l) => { const k = claveDeFuente(l.fuente); return k && enCamp(k) && activas.has(llave(k)) })
+  const organicos = leadsPeriodo.filter((l) => !claveDeFuente(l.fuente))
   // Quién va ganando: el menor costo por cita (si ya hay citas).
   const conCitas = videos.filter((x) => x.costoCita != null)
   const ganador = conCitas.length ? conCitas.reduce((a, b) => (a.costoCita <= b.costoCita ? a : b)) : null
@@ -147,12 +157,12 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
 
   // ---- Tarjetas por video
   const ordenados = videos.sort((a, b) => (a.camp + a.video).localeCompare(b.camp + b.video))
-  const tarjeta = (x) => {
-    const [tono, txt] = consejo(x)
+  const tarjeta = (x, pasado = false) => {
+    const [tono, txt] = pasado ? ['gris', `⏹ Apagado${x.est?.actualizado ? ' el ' + new Date(x.est.actualizado).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : ''}${x.costoCita != null ? ` · ${$$(x.costoCita)} por cita` : ''}`] : consejo(x)
     const m = x.meta
     const mini = [['Chats', m?.conversaciones], ['Reales', x.p.calif], ['Citas', x.p.agendo], ['Clientes', x.p.cliente]]
     const mmax = Math.max(1, ...mini.map(([, n]) => n || 0))
-    return `<article class="an-video ${ganador === x ? 'gana' : ''}">
+    return `<article class="an-video ${!pasado && ganador === x ? 'gana' : ''} ${pasado ? 'pasado' : ''}">
       <header><span class="an-letra">${x.video}</span><div><b>${CAMP[x.camp]} · Video ${x.video}</b><small>${h(LETRAS[x.video] || x.anuncio || '')}</small></div>${x.est ? `<span class="chip ${x.est.estado === 'ACTIVE' ? 'verde' : ''}">${x.est.estado === 'ACTIVE' ? '● Activo' : h(x.est.estado.toLowerCase())}</span>` : ''}</header>
       <div class="an-cifras">
         <div><span>Gastado</span><b>${m ? $$(m.gasto) : '—'}</b></div>
@@ -171,6 +181,30 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   const robots = deAnuncio.filter((l) => l.estado === 'incompleto').length
   const mmot = Math.max(1, ...motivos.map(([, n]) => n))
 
+  // ---- Historial por mes (lo que se apagó) y lo aprendido de todos los videos
+  const MES = (iso) => { const t = new Date(iso).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }); return t[0].toUpperCase() + t.slice(1) }
+  const meses = {}
+  for (const x of historia) (meses[new Date(x.ultimo).toISOString().slice(0, 7)] ??= []).push(x)
+  const historialHtml = Object.keys(meses).sort().reverse().map((ym) => {
+    const xs = meses[ym]
+    const g = xs.reduce((a, x) => a + (x.meta?.gasto || 0), 0)
+    const c = xs.reduce((a, x) => a + x.p.agendo, 0)
+    const cl = xs.reduce((a, x) => a + x.p.cliente, 0)
+    return `<section class="an-mes"><header><h3>${h(MES(ym + '-15T12:00'))}</h3><span>${xs.length} video${xs.length === 1 ? '' : 's'} · ${$$(g)} gastado · ${c} citas · ${cl} clientes${c ? ` · ${$$(g / c)} por cita` : ''}</span></header>
+      <div class="an-videos">${xs.map((x) => tarjeta(x, true)).join('')}</div></section>`
+  }).join('')
+  const mejor = (lista, f, menor = false) => lista.filter((x) => f(x) != null).sort((a, b) => (menor ? f(a) - f(b) : f(b) - f(a)))[0]
+  const nombreV = (x) => `${CAMP[x.camp]} · Video ${x.video}${x.anuncio ? ` <small>(${h(x.anuncio)})</small>` : ''}`
+  const lecciones = [
+    ['🎣 Mejor gancho', mejor(todos, (x) => (x.meta?.impresiones > 500 ? x.gancho : null)), (x) => `${x.gancho}% se detiene a verlo`],
+    ['💸 Cita más barata', mejor(todos, (x) => x.costoCita, true), (x) => `${$$(x.costoCita)} por cita`],
+    ['🤝 Más clientes', mejor(todos, (x) => (x.p.cliente ? x.p.cliente : null)), (x) => `${x.p.cliente} cliente${x.p.cliente === 1 ? '' : 's'}`],
+    ['👀 Lo ven completo', mejor(todos, (x) => (x.meta?.vistas3s > 200 ? x.retencion : null)), (x) => `${x.retencion}% lo termina`],
+  ].filter(([, x]) => x)
+  const leccionesHtml = `<section class="tarjeta an-lecciones"><h3>Lo aprendido <small>de todos los videos, activos y apagados</small></h3>
+    ${lecciones.length ? `<div class="an-lec">${lecciones.map(([t, x, f]) => `<div><span>${t}</span><b>${nombreV(x)}</b><small>${f(x)}</small></div>`).join('')}</div>` : '<p class="vacio">Con más datos aquí aparece qué funciona mejor.</p>'}</section>`
+  const historialBloque = `${leccionesHtml}${historialHtml || '<div class="tarjeta"><p class="vacio">Todavía no se ha apagado ningún video. Cuando apagues uno en Meta, aquí queda guardado en su mes, con su nombre y sus números.</p></div>'}`
+
   const sinMeta = !meta.conectado
     ? `<div class="tarjeta an-aviso"><b>📡 Falta conectar Meta</b><p>El embudo de HQ ya funciona. Para ver lo gastado, cuántos vieron cada video y el costo por cita, falta la llave de Meta (solo lectura). ${h(meta.motivo || '')}</p>
        <ol><li>En <b>Meta Business Settings → Users → System users</b>, crea (o usa) un usuario de sistema con acceso a la cuenta de anuncios "Eduardo's" y genera un token con el permiso <b>ads_read</b>.</li>
@@ -178,14 +212,7 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
        <li><b>Deploys → Trigger deploy</b>. Al volver aquí, ya salen los números de Meta.</li></ol></div>`
     : ''
 
-  v.innerHTML = `
-    <div class="an">
-      <div class="an-barra-sup">
-        <div class="an-tabs">${[['todo', 'Todo'], ['MX', '🇲🇽 México'], ['NY', '🗽 Nueva York']].map(([k, t]) => `<button data-camp="${k}" class="${estado.camp === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-        <div class="an-tabs">${[['todo', 'Desde el inicio'], ['7', 'Últimos 7 días']].map(([k, t]) => `<button data-per="${k}" class="${estado.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-        <div class="an-vivo"><i></i>En vivo · ${new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}</div>
-      </div>
-      ${sinMeta}
+  const principalBloque = `
       <div class="an-kpis">
         <div class="an-kpi"><span>Gastado</span><b>${meta.conectado ? $$(T.gasto) : '—'}</b><small>${meta.conectado ? `${num(T.impresiones)} vistas` : 'conecta Meta'}</small></div>
         <div class="an-kpi"><span>Chats abiertos</span><b>${meta.conectado ? num(T.conversaciones) : '—'}</b><small>${cu(T.conversaciones)} c/u</small></div>
@@ -213,13 +240,25 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
           <ul class="lista">${deAnuncio.slice(0, 8).map((l) => `<li><a href="#lead/${l.id}"><b>${h(l.empresa || l.nombre || 'Sin nombre')}</b></a><small>${h(l.fuente.replace('Anuncio ', ''))} · ${h(new Date(l.creado).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))} · ${h({ incompleto: 'No terminó', nuevo: 'Por llamar', llamando: 'NEX llamando', agendado: '✅ Agendó', cartera: 'Cartera', no_llamar: 'No llamar' }[l.estado] || l.estado)}</small></li>`).join('') || '<li class="vacio">Sin leads todavía.</li>'}</ul>
         </section>
       </div>
+`
+  v.innerHTML = `
+    <div class="an">
+      <div class="an-barra-sup">
+        <div class="an-tabs">${[['todo', 'Todo'], ['MX', '🇲🇽 México'], ['NY', '🗽 Nueva York']].map(([k, t]) => `<button data-camp="${k}" class="${estado.camp === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <div class="an-tabs">${[['activos', `● Activos (${videos.length})`], ['historial', `🗂 Historial (${historia.length})`]].map(([k, t]) => `<button data-vista="${k}" class="${estado.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        ${estado.vista === 'activos' ? `<div class="an-tabs">${[['todo', 'Desde el inicio'], ['7', 'Últimos 7 días']].map(([k, t]) => `<button data-per="${k}" class="${estado.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''}
+        <div class="an-vivo"><i></i>En vivo · ${new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}</div>
+      </div>
+      ${sinMeta}
+      ${estado.vista === 'historial' ? historialBloque : principalBloque}
       <p class="nota an-pie">Meta ${meta.conectado ? `actualizado ${new Date(meta.al).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}` : 'sin conectar'} · HQ en vivo · Esta pantalla se actualiza sola cada minuto. "Personas reales" = terminaron el filtro de ManyChat. "NEX habló" = llamada de 20 s o más.</p>
     </div>`
 
   v.querySelectorAll('[data-camp]').forEach((b) => (b.onclick = () => { estado.camp = b.dataset.camp; vistaAnuncios(v, { D, h, titulo, dinero }) }))
+  v.querySelectorAll('[data-vista]').forEach((b) => (b.onclick = () => { estado.vista = b.dataset.vista; vistaAnuncios(v, { D, h, titulo, dinero }) }))
   v.querySelectorAll('[data-per]').forEach((b) => (b.onclick = () => { estado.periodo = b.dataset.per; vistaAnuncios(v, { D, h, titulo, dinero }) }))
   const obj = v.querySelector('#an-obj')
-  obj.onchange = () => { guardarObjetivo(Math.max(1, Number(obj.value) || 40)); vistaAnuncios(v, { D, h, titulo, dinero }) }
+  if (obj) obj.onchange = () => { guardarObjetivo(Math.max(1, Number(obj.value) || 40)); vistaAnuncios(v, { D, h, titulo, dinero }) }
   // Siempre al día: se vuelve a pedir cada minuto mientras la pantalla está abierta.
   clearInterval(v._anReloj)
   v._anReloj = setInterval(() => {

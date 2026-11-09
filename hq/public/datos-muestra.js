@@ -360,13 +360,14 @@ export function crearMuestra() {
         f('NY | A | 11:48', 'NXUS | NY | Mensajes | Diagnóstico', 52.0, 3900, 7, 900, 160, 1.6),
         f('NY | B | Empleado', 'NXUS | NY | Mensajes | Diagnóstico', 39.4, 3100, 6, 700, 150, 1.5),
         f('NY | C | Sucursales', 'NXUS | NY | Mensajes | Diagnóstico', 28.6, 2400, 3, 410, 70, 1.4),
+        f('MX | D | Promo octubre', 'NXUS | MX | Mensajes | Diagnóstico', 120.5, 68000, 27, 9100, 1200, 2.6),
       ]
       const dias = [...Array(30)].flatMap((_, i) => {
         const d = new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10)
         return i < 23 ? [] : [{ ...f('', 'NXUS | MX | Mensajes | Diagnóstico v2', 18 + (i % 3) * 3, 3000, 5, 0, 0, 1), dia: d }, { ...f('', 'NXUS | NY | Mensajes | Diagnóstico', 15 + (i % 2) * 4, 1200, 2, 0, 0, 1), dia: d }]
       })
       const creado = new Date(Date.now() - 9 * 864e5).toISOString()
-      return espera({ ok: true, conectado: true, moneda: 'USD', total, semana: total.map((x) => ({ ...x, gasto: x.gasto * 0.7, impresiones: Math.round(x.impresiones * 0.7), conversaciones: Math.round(x.conversaciones * 0.7), vistas3s: Math.round(x.vistas3s * 0.7), thruplays: Math.round(x.thruplays * 0.7) })), dias, estados: total.map((x) => ({ anuncio: x.anuncio, campana: x.campana, estado: 'ACTIVE', creado })), al: new Date().toISOString() })
+      return espera({ ok: true, conectado: true, moneda: 'USD', total, semana: total.map((x) => ({ ...x, gasto: x.gasto * 0.7, impresiones: Math.round(x.impresiones * 0.7), conversaciones: Math.round(x.conversaciones * 0.7), vistas3s: Math.round(x.vistas3s * 0.7), thruplays: Math.round(x.thruplays * 0.7) })), dias, estados: total.map((x) => (x.anuncio.startsWith('MX | D') ? { anuncio: x.anuncio, campana: x.campana, estado: 'PAUSED', creado: '2026-10-12T15:00:00Z', actualizado: '2026-10-28T15:00:00Z' } : { anuncio: x.anuncio, campana: x.campana, estado: 'ACTIVE', creado })), al: new Date().toISOString() })
     },
     async guardarLead(l) {
       const viejo = l.id && db.leads.find((x) => x.id === l.id && veLead(x))
