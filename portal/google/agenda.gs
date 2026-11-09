@@ -117,15 +117,26 @@ function agendar_(d) {
     { conferenceDataVersion: 1, sendUpdates: 'all' },
   )
   const meet = ev.hangoutLink || ''
-  // El link de Meet también en la descripción, para los recordatorios.
-  if (meet) Calendar.Events.patch({ description: MARCA + '\nMeet: ' + meet + '\n\n' + String(d.notas || '').slice(0, 3000) }, 'primary', ev.id)
-  // El idioma y la zona del cliente, para sus recordatorios.
-  const evento = CalendarApp.getDefaultCalendar().getEventById(ev.iCalUID || ev.id)
-  if (evento) {
-    evento.setTag('idioma', en ? 'en' : 'es')
-    evento.setTag('zona', zonaLead)
+  // La cita YA está creada. Lo que sigue son extras: si alguno falla (Google a veces responde "Rate Limit
+  // Exceeded" justo después de crear el evento, pasó el 9 de nov), se reintenta una vez y si no, se sigue:
+  // la cita no se pierde ni se reporta como error.
+  const intentar_ = function (fn) {
+    try { fn() } catch (e) {
+      Utilities.sleep(1500)
+      try { fn() } catch (e2) { console.warn('agendar: extra falló: ' + e2) }
+    }
   }
-  correo_(d.correo, d.nombre, d.tipo, inicio, meet, '', en ? 'en' : 'es', zonaLead)
+  // El link de Meet también en la descripción, para los recordatorios.
+  if (meet) intentar_(function () { Calendar.Events.patch({ description: MARCA + '\nMeet: ' + meet + '\n\n' + String(d.notas || '').slice(0, 3000) }, 'primary', ev.id) })
+  // El idioma y la zona del cliente, para sus recordatorios.
+  intentar_(function () {
+    const evento = CalendarApp.getDefaultCalendar().getEventById(ev.iCalUID || ev.id)
+    if (evento) {
+      evento.setTag('idioma', en ? 'en' : 'es')
+      evento.setTag('zona', zonaLead)
+    }
+  })
+  intentar_(function () { correo_(d.correo, d.nombre, d.tipo, inicio, meet, '', en ? 'en' : 'es', zonaLead) })
   return { ok: true, inicio: inicio.toISOString(), meet: meet, evento: ev.id }
 }
 
