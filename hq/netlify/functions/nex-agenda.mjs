@@ -52,9 +52,20 @@ export default async (req) => {
 
     if (b.accion === 'horarios') {
       const { horarios } = await agenda({ accion: 'horarios' })
-      const opciones = (horarios ?? []).slice(0, 8).map((inicio) => ({ inicio, texto: enPalabras(inicio, l) }))
+      // Hasta 3 horarios por día de los próximos días (antes solo salían los primeros 8, todos del mismo día,
+      // y NEX no podía ofrecer mañana).
+      const porDia = {}
+      for (const inicio of horarios ?? []) {
+        const dia = new Date(inicio).toLocaleDateString('en-CA', { timeZone: zona(l) })
+        porDia[dia] ??= []
+        porDia[dia].push(inicio)
+      }
+      const opciones = Object.values(porDia)
+        .slice(0, 5)
+        .flatMap((xs) => (xs.length <= 3 ? xs : [xs[0], xs[Math.floor(xs.length / 2)], xs[xs.length - 1]]))
+        .map((inicio) => ({ inicio, texto: enPalabras(inicio, l) }))
       if (!opciones.length) return json({ ok: true, horarios: [], mensaje: l.idioma === 'en' ? 'No free slots this week; tell them an NXUS AI specialist will contact them to find a time.' : 'No hay horarios libres esta semana; dile que un especialista de NXUS AI le escribirá para buscar un horario.' })
-      return json({ ok: true, horarios: opciones, instrucciones: 'Offer two or three of these options using the "texto". When the person picks one, call agendar with its exact "inicio".' })
+      return json({ ok: true, horarios: opciones, instrucciones: 'These cover several days. Offer two options (the soonest reasonable one and one on another day) using the "texto". If the person asks for another day or time, look for it in this list. When they pick one, call agendar with its exact "inicio".' })
     }
 
     if (b.accion === 'agendar') {
@@ -66,7 +77,7 @@ export default async (req) => {
       const [apartado] = await sb(`/rest/v1/leads?id=eq.${l.id}&prospecto_id=is.null&estado=neq.agendado`, { servicio: true, method: 'PATCH', prefer: 'return=representation', body: { estado: 'agendado' } })
       if (!apartado) return json({ ok: true, mensaje: l.idioma === 'en' ? 'The meeting is already being booked.' : 'La reunión ya se está agendando.' })
       const notas = [
-        'Lead de los anuncios (Instagram) · agendado por NEX en la llamada',
+        `Lead de los anuncios (${l.canal === 'facebook' ? 'Messenger' : 'Instagram'})${l.fuente ? ` · ${l.fuente}` : ''} · agendado por NEX en la llamada`,
         `${l.nombre} · ${l.empresa} · ${l.telefono}`,
         [l.ciudad, { mexico: 'México', usa: 'USA' }[l.pais]].filter(Boolean).join(', '),
         l.servicio ? `Le interesa: ${l.servicio}` : '',
