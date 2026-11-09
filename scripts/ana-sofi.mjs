@@ -503,6 +503,48 @@ async function voz(accion = '') {
   say(accion === 'arreglar' ? '\nGuardé la voz de antes. Para regresar: node scripts/ana-sofi.mjs voz regresar\n' : accion ? '' : '\nSolo miré, no cambié nada. Para corregir: node scripts/ana-sofi.mjs voz arreglar\n')
 }
 
+/** Why Ana Sofi is slow or sounds too expressive: her voice/turn settings and the timings of her last call. Copied to paste in the chat. */
+async function diagnostico() {
+  const cfg = readSalesConfig()
+  const key = elevenKey()
+  if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
+  if (!/^agent_\w+$/.test(cfg.agentId)) return say('\n✋ No tengo el Agent ID de Ana Sofi. Corre: node scripts/ana-sofi.mjs\n')
+  const a = await eleven(key, `/agents/${cfg.agentId}`)
+  if (a.error) return say(`\n✋ ElevenLabs no me dejó leer a Ana Sofi (${a.error}).\n`)
+  const c = a.data.conversation_config ?? {}
+  const p = c.agent?.prompt ?? {}
+  const sinTexto = (o) => JSON.stringify(o ?? {}, (k, v) => (/prompt|first_message|message$/i.test(k) && typeof v === 'string' ? `(${v.length} letras)` : v))
+  const lineas = [
+    `# Diagnóstico de Ana Sofi (${new Date().toLocaleString('es-MX')})`,
+    `Modelo que piensa: ${p.llm ?? '-'} · temperatura ${p.temperature ?? '-'} · max_tokens ${p.max_tokens ?? '-'} · instrucciones ${String(p.prompt ?? '').length} letras`,
+    `Base de conocimiento: ${(p.knowledge_base ?? []).length} documento(s) · RAG ${sinTexto(p.rag)}`,
+    `Herramientas: ${(p.tool_ids ?? []).length + (p.tools ?? []).length}`,
+    `Voz (tts): ${sinTexto(c.tts)}`,
+    `Turnos (turn): ${sinTexto(c.turn)}`,
+    `Oído (asr): ${sinTexto(c.asr)}`,
+    `Conversación: ${sinTexto(c.conversation)}`,
+    `VAD: ${sinTexto(c.vad)}`,
+    `Idioma: ${c.agent?.language ?? '-'} · presets por idioma: ${sinTexto(c.language_presets)}`,
+  ]
+  const lista = await eleven(key, `/conversations?agent_id=${cfg.agentId}&page_size=1`)
+  const conv = lista.data?.conversations?.[0]
+  if (conv) {
+    const d = await eleven(key, `/conversations/${conv.conversation_id}`)
+    lineas.push('', `## Última llamada (${conv.start_time_unix_secs ? new Date(conv.start_time_unix_secs * 1000).toLocaleString('es-MX') : '-'}, ${conv.call_duration_secs ?? '-'} s)`)
+    for (const t of d.data?.transcript ?? []) {
+      const m = t.conversation_turn_metrics?.metrics ?? {}
+      const tiempos = Object.entries(m).map(([k, v]) => `${k.replace(/^convai_/, '')}=${Number(v?.elapsed_time ?? v).toFixed(2)}s`).join(' ')
+      lineas.push(`[${t.time_in_call_secs ?? '-'}s] ${t.role === 'agent' ? 'Ana Sofi' : 'Cliente'}: ${String(t.message ?? (t.tool_calls?.length ? '(usa herramienta)' : '')).slice(0, 160)}${tiempos ? `  ⏱ ${tiempos}` : ''}${t.interrupted ? ' (la interrumpieron)' : ''}`)
+    }
+  } else lineas.push('', `No encontré llamadas (${lista.error ?? 'vacío'}).`)
+  const texto = lineas.join('\n')
+  const archivo = join(homedir(), 'Desktop', 'ana-sofi-diagnostico.txt')
+  writeFileSync(archivo, texto, { mode: 0o600 })
+  const copiado = process.platform === 'darwin' && spawnSync('pbcopy', { input: texto }).status === 0
+  say(`\n✅ ${copiado ? 'Listo, ya está copiado: pégalo en el chat con Cmd + V.' : 'Listo.'} También quedó en: ${archivo}`)
+  say('   No trae llaves ni números de teléfono.\n')
+}
+
 /** Ana Sofi's instructions as they are in ElevenLabs: only text, never keys or tool settings. */
 async function ver() {
   const cfg = readSalesConfig()
@@ -560,6 +602,7 @@ else if (cmd === 'revisar') await revisar()
 else if (cmd === 'entrantes') await entrantes()
 else if (cmd === 'centro') await aCentro()
 else if (cmd === 'ver') await ver()
+else if (cmd === 'diagnostico') await diagnostico()
 else if (cmd === 'instrucciones') await instrucciones(process.argv[3] === 'regresar')
 else if (cmd === 'voz') await voz(['arreglar', 'regresar'].includes(process.argv[3]) ? process.argv[3] : '')
 else if (cmd === 'sheet') {
@@ -576,4 +619,4 @@ else if (cmd === 'avisos') {
     say(want === 'todo' ? ' Listo: te aviso de todo otra vez.' : ' Listo: solo te aviso cuando hay meeting (agendado, movido o cancelado). Lo demás queda en el Sheet y en la consola.')
   }
 }
-else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|instrucciones|voz|avisos]\n')
+else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|instrucciones|voz|diagnostico|avisos]\n')
