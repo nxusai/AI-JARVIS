@@ -182,6 +182,12 @@
 - NY creada en borrador (campaña, conjunto "NY-NJ | Zonas hispanas | 30+" con 32 ZIPs, público estimado 1.3–1.5 M, 3 anuncios con su plantilla FB correcta). Automatizaciones "Anuncio NY · Video A/B/C · FB" Live. Falta que Eduardo publique.
 - Lecciones generales para clientes: `docs/lecciones-anuncios-mensajes.md`.
 
+## Agenda de Google y NEX Ventas v2 (9 nov 2026)
+- Primer lead real de los anuncios (Anuncio MX · Video C, por Messenger): NEX agendó el Meet, pero HQ lo dejó en Cartera. Causa: la agenda creó la cita y luego Calendar.Events.patch dio "Rate Limit Exceeded"; el reintento dio "ese horario ya no está libre". Eduardo confirmó la cita por WhatsApp.
+- Arreglos: HQ (`nex-agenda.mjs`) da por agendada la cita si el horario ya se ocupó; `agenda.gs` reintenta los extras (patch, tags, correo) y ya no reporta error si la cita se creó; horarios de hasta 5 días (3 por día); saludo corto "¿Hola? ¿Hablo con…?"; variable `canal` (Messenger/Instagram).
+- ElevenLabs NEX Ventas: prompt v2 (`docs/nex-ventas-v2.md`); diccionario NXUS → Nexus; timeouts de herramientas 30 s; LLM Claude Haiku 5.5 (Reasoning effort None); Expressive mode apagado; Voicemail detection activado.
+- Apps Script: AGENDA_URL de HQ = proyecto "HQ" (cuenta de NXUS), versión 3 con el código nuevo. El proyecto "Agenda Portal" tiene otra implementación activa con código viejo: revisar si el portal la usa y, si sí, actualizarla o apuntarlo a la de HQ.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
