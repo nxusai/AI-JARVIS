@@ -188,6 +188,11 @@
 - ElevenLabs NEX Ventas: prompt v2 (`docs/nex-ventas-v2.md`); diccionario NXUS → Nexus; timeouts de herramientas 30 s; LLM Claude Haiku 5.5 (Reasoning effort None); Expressive mode apagado; Voicemail detection activado.
 - Apps Script: AGENDA_URL de HQ = proyecto "HQ" (cuenta de NXUS), versión 3 con el código nuevo. El portal (nxus-portal) también usa la implementación del proyecto "HQ" (confirmado 9 nov). El proyecto "Agenda Portal" no lo usa nadie (implementación activa con código viejo): se puede archivar; nunca pegar código ahí por error.
 
+## Respuesta por defecto en ManyChat (9 nov 2026)
+- Hueco detectado: gente real que escribía con sus palabras ("Costo $", "explícame") no recibía respuesta (solo había palabra exacta y botones de anuncio).
+- Creadas y activas: "Respuesta por defecto · Facebook" y "Respuesta por defecto · Instagram" (Default Reply, una vez cada 24 h por contacto; en Instagram "Skip story replies" encendido). Saludo con botón "Quiero información" → etiqueta respuesta-defecto → Start Automation al Filtro del canal. Un robot no puede tocar el botón.
+- Si Eduardo contesta a mano en Live Chat, ManyChat pausa las automatizaciones de ese contacto: hay que darle Resume antes de mandarle el Filtro (ícono de cuadritos conectados → Send automation).
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
