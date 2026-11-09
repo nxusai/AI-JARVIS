@@ -165,6 +165,7 @@ export function crearSupabase({ url, anon }) {
     /** Cómo va la llamada de NEX en este momento: { estado, llamada, seg, texto, terminado }. */
     estadoLlamada: (id) => funcion('nex-estado', { id }),
     traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
+    metaAnuncios: () => funcion('anuncios', {}),
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
     // Propuestas (del prospecto) y contratos (del cliente) en PDF, en el almacenamiento privado "documentos".

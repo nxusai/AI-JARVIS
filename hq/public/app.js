@@ -6,6 +6,7 @@
 // de datos (supabase/esquema.sql); aquí solo se esconde lo que no le toca.
 
 import { fraseDelDia, saludo } from './frases.js'
+import { vistaAnuncios } from './anuncios.js'
 
 const $ = (s, el = document) => el.querySelector(s)
 const $$ = (s, el = document) => [...el.querySelectorAll(s)]
@@ -257,12 +258,13 @@ export function iniciar(D, { muestra = false } = {}) {
     ['clientes', 'Clientes', '◉'],
     ['prospectos', 'Prospectos', '✦'],
     ['leads', 'Leads', '⚡'],
+    ['anuncios', 'Anuncios', '📈'],
     ['cartera', 'Cartera', '◌'],
     ['tareas', 'Tareas', '☰'],
     ['equipo', 'Equipo', '◎'],
     ['reloj', 'Mi reloj', '◷'],
   ]
-  const misSecciones = () => SECCIONES.filter(([id]) => !['prospectos', 'leads', 'cartera'].includes(id) || vePros())
+  const misSecciones = () => SECCIONES.filter(([id]) => !['prospectos', 'leads', 'anuncios', 'cartera'].includes(id) || vePros())
   const SECCIONES_ADMIN = [
     ['nomina', 'Nómina', '⧉'],
     ['dinero', 'Dinero', '$'],
@@ -351,7 +353,7 @@ export function iniciar(D, { muestra = false } = {}) {
     vista.dataset.ruta = location.hash
     if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
     else vista.classList.add('actualizando')
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, anuncios: (v) => vistaAnuncios(v, { D, h, titulo, dinero }), cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)

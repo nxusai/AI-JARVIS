@@ -193,6 +193,12 @@
 - Creadas y activas: "Respuesta por defecto · Facebook" y "Respuesta por defecto · Instagram" (Default Reply, una vez cada 24 h por contacto; en Instagram "Skip story replies" encendido). Saludo con botón "Quiero información" → etiqueta respuesta-defecto → Start Automation al Filtro del canal. Un robot no puede tocar el botón.
 - Si Eduardo contesta a mano en Live Chat, ManyChat pausa las automatizaciones de ese contacto: hay que darle Resume antes de mandarle el Filtro (ícono de cuadritos conectados → Send automation).
 
+## Panel "Anuncios" en HQ (9 nov 2026)
+- HQ → "📈 Anuncios" (`hq/public/anuncios.js`, estilos al final de `hq/public/estilo.css`): embudo completo por video (vistas → 3 s → chats → entraron a HQ → personas reales → NEX habló → agendaron → llegaron al Meet → clientes), 6 KPIs con costo por paso, gráfica de 30 días (gasto vs personas reales), tarjeta por video con costo por cita, gancho, "ven completo", mini embudo y consejo automático (aprendiendo / gasta sin citas / cambia el video / va ganando), "Por qué no agendan" y últimos leads. Filtros MX/NY y 7 días. Se actualiza solo cada minuto. Objetivo de costo por cita editable (se guarda en el navegador).
+- Datos: leads y prospectos de Supabase + Meta de SOLO LECTURA por `hq/netlify/functions/anuncios.mjs` (Graph API v23.0, campañas cuyo nombre dice "NXUS |"). Necesita en Netlify `META_TOKEN` (ads_read) y `META_AD_ACCOUNT_ID` (act_736971049130563); sin eso el panel muestra el embudo de HQ y un aviso con los pasos.
+- Une Meta con HQ por nombre: anuncio "MX | A | …" en campaña "| MX |" ↔ fuente "Anuncio MX · Video A". Mantener esos nombres.
+- Reporte semanal (lunes) con la extensión: `ads/prompt-chrome-reporte-semanal.txt`.
+
 ## En qué se quedó (lo que sigue en el chat nuevo)
 Eduardo quiere un **prompt nuevo para Claude in Chrome**. Va a dar:
 1. Lo que Meta hace últimamente y no le gusta.
