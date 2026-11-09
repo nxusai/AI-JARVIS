@@ -75,8 +75,16 @@ export default async (req) => {
       try {
         r = await agenda({ accion: 'agendar', id: l.id, inicio: new Date(inicio).toISOString(), tipo: 'llamada', idioma: l.idioma, zona: zona(l), nombre: l.nombre, empresa: l.empresa, correo: l.correo, notas })
       } catch (err) {
-        await sb(`/rest/v1/leads?id=eq.${l.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: l.estado } }) // no se agendó: como estaba
-        throw err
+        // La agenda a veces crea la cita en Google y aun así contesta con error o tarda de más (pasó el 9 de nov:
+        // la cita quedó en el calendario y el lead se fue a la Cartera). Si ese horario ya no está libre, la cita sí se creó.
+        const iso = new Date(inicio).toISOString()
+        const creada = await agenda({ accion: 'horarios' }).then((h) => !(h.horarios ?? []).includes(iso)).catch(() => false)
+        if (!creada) {
+          await sb(`/rest/v1/leads?id=eq.${l.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { estado: l.estado } }) // no se agendó: como estaba
+          throw err
+        }
+        r = { inicio: iso, meet: '' }
+        await sb(`/rest/v1/leads?id=eq.${l.id}`, { servicio: true, method: 'PATCH', prefer: 'return=minimal', body: { llamada_error: `La agenda contestó con error (${String(err.message).slice(0, 120)}), pero la cita sí quedó en el calendario. Revisa el link de Meet en Google Calendar.` } }).catch(() => null)
       }
       // A Prospectos, con la cita y el Meet: queda a nombre del admin (o de quien lo trabaja), en "Cita agendada".
       const [admin] = await sb('/rest/v1/perfiles?rol=eq.admin&activo=is.true&select=id&order=creado.asc&limit=1', { servicio: true })
