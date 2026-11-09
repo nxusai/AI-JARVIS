@@ -15,6 +15,8 @@
 //   node scripts/ana-sofi.mjs instrucciones            puts Ana Sofi's instructions for the work center on her agent
 //                                                      (saves a backup of the ones she had first)
 //   node scripts/ana-sofi.mjs instrucciones regresar   puts back the ones she had before
+//   node scripts/ana-sofi.mjs voz [arreglar|regresar]   Ana Sofi's voice and speed: looks; fixes (serious voice, fastest
+//                                        models; backup first); or undoes it
 //   node scripts/ana-sofi.mjs ver        copies Ana Sofi's current instructions (prompt, first message, the data
 //                                        she collects, her variables) to the clipboard and the Desktop, to review
 //
@@ -453,6 +455,54 @@ async function instrucciones(regresar = false) {
   }
 }
 
+const RESPALDO_VOZ = join(homedir(), '.nexy', 'ana-sofi-voz-respaldos.json')
+// Voz más seria y más rápida: el modelo de voz más veloz, poca emoción, velocidad normal.
+const VOZ_SERIA = { model_id: 'eleven_flash_v2_5', stability: 0.75, similarity_boost: 0.75, speed: 1, optimize_streaming_latency: 3 }
+const LLM_LENTOS = /(pro|opus|sonnet|o1|o3|o4|reason|think|gpt-5(?!.*(mini|nano)))/i
+
+/** Ana Sofi's voice, model and turn settings: "voz" only looks, "voz arreglar" fixes them, "voz regresar" undoes it. */
+async function voz(accion = '') {
+  const cfg = readSalesConfig()
+  const key = elevenKey()
+  if (!key) return say('\n✋ No encuentro la llave de ElevenLabs en esta Mac.\n')
+  const agentes = [['Ana Sofi', cfg.agentId], ['Ana Sofi · Llamadas entrantes', cfg.inboundAgentId]].filter(([, id]) => /^agent_\w+$/.test(id || ''))
+  if (!agentes.length) return say('\n✋ No tengo el Agent ID de Ana Sofi. Corre: node scripts/ana-sofi.mjs\n')
+  let respaldos = []
+  try {
+    respaldos = JSON.parse(readFileSync(RESPALDO_VOZ, 'utf8'))
+  } catch {}
+  const ultimo = accion === 'regresar' ? respaldos.pop() : null
+  if (accion === 'regresar' && !ultimo) return say('\n✋ No tengo respaldo de la voz anterior.\n')
+  const nuevo = { fecha: new Date().toISOString(), agentes: {} }
+  for (const [nombre, id] of agentes) {
+    const a = await eleven(key, `/agents/${id}`)
+    if (a.error) { say(`\n✋ ElevenLabs no me dejó leer "${nombre}" (${a.error}).`); continue }
+    const c = a.data.conversation_config ?? {}
+    const tts = c.tts ?? {}
+    const llm = c.agent?.prompt?.llm ?? '-'
+    const ok = (bien, t) => say(`  ${bien ? '✅' : '⚠️ '} ${t}`)
+    say(`\n${nombre}:`)
+    ok(/flash|turbo/i.test(tts.model_id || ''), `Modelo de voz: ${tts.model_id ?? '-'}${/flash/i.test(tts.model_id || '') ? '' : ' (el más rápido es eleven_flash_v2_5)'}`)
+    ok((tts.stability ?? 0) >= 0.7, `Estabilidad: ${tts.stability ?? '-'} (más alta = menos emoción; la buscamos en 0.75)`)
+    ok(Math.abs((tts.speed ?? 1) - 1) < 0.05, `Velocidad: ${tts.speed ?? '-'}`)
+    ok((tts.optimize_streaming_latency ?? 0) >= 3, `Latencia del audio: ${tts.optimize_streaming_latency ?? '-'} (3 o 4 es lo más rápido)`)
+    ok(!LLM_LENTOS.test(llm), `Modelo que piensa (LLM): ${llm}${LLM_LENTOS.test(llm) ? ' (es de los lentos: tarda en contestar)' : ''}`)
+    if (c.turn) say(`  ℹ️  Turnos: ${JSON.stringify(c.turn)}`)
+    if (!accion) continue
+    const tts2 = accion === 'regresar' ? ultimo.agentes[id] : { ...VOZ_SERIA }
+    if (!tts2) { say('  (no tengo respaldo de este agente; no lo toqué)'); continue }
+    nuevo.agentes[id] = Object.fromEntries(Object.keys(VOZ_SERIA).map((k) => [k, tts[k]]).filter(([, v]) => v !== undefined))
+    const r = await eleven(key, `/agents/${id}`, { method: 'PATCH', body: { conversation_config: { tts: tts2 } } })
+    say(r.error ? `  ✋ ElevenLabs no aceptó el cambio (${r.error}); se quedó como estaba.` : `  ✅ ${accion === 'regresar' ? 'Regresé la voz que tenía.' : 'Listo: Flash v2.5, estabilidad 0.75, velocidad 1, latencia 3.'}`)
+  }
+  if (accion === 'arreglar' && Object.keys(nuevo.agentes).length) respaldos.push(nuevo)
+  if (accion) {
+    mkdirSync(join(homedir(), '.nexy'), { recursive: true })
+    writeFileSync(RESPALDO_VOZ, JSON.stringify(respaldos.slice(-5), null, 2), { mode: 0o600 })
+  }
+  say(accion === 'arreglar' ? '\nGuardé la voz de antes. Para regresar: node scripts/ana-sofi.mjs voz regresar\n' : accion ? '' : '\nSolo miré, no cambié nada. Para corregir: node scripts/ana-sofi.mjs voz arreglar\n')
+}
+
 /** Ana Sofi's instructions as they are in ElevenLabs: only text, never keys or tool settings. */
 async function ver() {
   const cfg = readSalesConfig()
@@ -511,6 +561,7 @@ else if (cmd === 'entrantes') await entrantes()
 else if (cmd === 'centro') await aCentro()
 else if (cmd === 'ver') await ver()
 else if (cmd === 'instrucciones') await instrucciones(process.argv[3] === 'regresar')
+else if (cmd === 'voz') await voz(['arreglar', 'regresar'].includes(process.argv[3]) ? process.argv[3] : '')
 else if (cmd === 'sheet') {
   writeSalesConfig({ fuente: 'sheet' })
   say('\n Listo: Ana Sofi vuelve a tomar los leads del Sheet. Reinicia a NEX (Ctrl + C y npm start).\n')
@@ -525,4 +576,4 @@ else if (cmd === 'avisos') {
     say(want === 'todo' ? ' Listo: te aviso de todo otra vez.' : ' Listo: solo te aviso cuando hay meeting (agendado, movido o cancelado). Lo demás queda en el Sheet y en la consola.')
   }
 }
-else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|instrucciones|avisos]\n')
+else say('\nUso: node scripts/ana-sofi.mjs [script|estado|revisar|entrantes|centro|sheet|ver|instrucciones|voz|avisos]\n')
