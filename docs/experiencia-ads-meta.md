@@ -1,6 +1,6 @@
-# Kit para el chat nuevo: anuncios de CURSOS DE IA PRESENCIALES (NXUS AI)
+# Experiencia en anuncios de Meta (NXUS AI) — para llevar a cualquier proyecto nuevo
 
-Este archivo junta todo lo aprendido en el chat de anuncios de NXUS (nov 2026) para arrancar el proyecto de cursos sin repetir errores. Léelo completo antes de proponer nada. Archivos de apoyo en este repo (rama `claude/jarvis-project-setup-gs6uu2`):
+Este archivo junta todo lo aprendido en el chat de anuncios de NXUS (nov 2026) para que cualquier proyecto nuevo de anuncios arranque sin repetir errores. Léelo completo antes de proponer nada. Archivos de apoyo en este repo (rama `claude/jarvis-project-setup-gs6uu2`):
 - `docs/lecciones-anuncios-mensajes.md`: reglas antibots de Meta + ManyChat + extensión (OBLIGATORIAS).
 - `docs/aprendizajes-anuncios.md`: memoria de lo que funcionó y lo que no (con fechas).
 - `docs/estado-ads-nxus.md`: historial completo de la campaña de NXUS (consulta, no copiar tal cual).
@@ -45,23 +45,14 @@ Gastamos $210 USD en anuncios de mensajes y llegaron **0 personas reales**: solo
 - Ojo: el gancho atrae gente "parecida" (el de varias sucursales trajo un técnico dental con 2 sucursales). Ser específico.
 - No usar frases sobre atributos personales de quien ve ("¿Tienes más de 50 años?", "¿Te cuesta la tecnología?"): Meta las rechaza. Mejor nombrar el negocio o la situación del negocio.
 
-## 5. Qué cambia para CURSOS DE IA PRESENCIALES (puntos de partida, a confirmar con Eduardo)
-- **Cliente ideal:** dueños de negocio de ~40–65+ que quieren promocionar su negocio con IA. Edad en el público, no en el texto del anuncio.
-- **Presencial = zona chica:** radio corto alrededor de la sede del curso (lo que la gente maneja para ir). Preguntar ciudad, dirección, fecha, horario, cupo, precio, si hay anticipo.
-- **Embudo propuesto:** anuncio → Messenger (ManyChat con botones) → filtro (¿tiene negocio? · giro · ¿qué fecha le queda?) → teléfono → apartar lugar (anticipo o confirmación) → recordatorios → asistencia. Medir: costo por inscrito y costo por asistente.
-- **Público mayor:** botones grandes y pocos, textos cortos, trato de "usted", opción "Prefiero que me llamen". Es más probable que escriban texto libre: el Default Reply debe guiarlos amable sin perderlos.
-- **Gancho ejemplo (a probar):** "¿Tiene un negocio y no sabe cómo anunciarlo en internet?" / "Aprenda a usar la IA para su negocio, en persona y paso a paso". Mostrar el salón, gente aprendiendo, la cara de Eduardo (hipótesis pendiente: video de Eduardo a cámara vs voz de IA).
-- **Pendiente decidir con Eduardo:** ¿los inscritos entran a HQ (tabla de leads/prospectos) o a otro lugar? ¿NEX llama para confirmar o no? ¿Cuenta de anuncios y página: las mismas de NXUS o otras? ¿Campañas con nombre "NXUS | CURSOS | …" para que el panel de HQ las lea? (el panel filtra por "NXUS |").
-- Categoría especial: cursos no lo son normalmente, pero si Meta lo marca, seguir lo que pida.
-
-## 6. Prompts para la extensión: la forma que funciona
+## 5. Prompts para la extensión: la forma que funciona
 1. Primero **solo revisar y reportar** lo que existe (no crear). Si se cerró la pestaña, igual: revisar para no duplicar.
 2. Pasos numerados con nombres de botones en inglés, valores exactos.
 3. Reglas arriba: no publicar, no pagos, no tocar campañas existentes, detenerse ante contraseña/código, no leer tokens.
 4. Verificar que el video correcto quedó en cada anuncio y que las mejoras automáticas quedaron apagadas.
 5. Informe final con ✅ / ⚠️ / ❌ antes de publicar.
 
-## 7. Mensaje para abrir el chat nuevo
-(ver la respuesta del chat de NXUS; el texto también está aquí)
+## 6. Mensaje para abrir el chat nuevo
 
-> Eres mi experto en Meta Ads. Proyecto nuevo: anuncios para vender CURSOS DE IA PRESENCIALES a dueños de negocio de 40 años en adelante, para que aprendan a promocionar su negocio con IA. Antes de todo lee en el repo nxusai/AI-JARVIS, rama claude/jarvis-project-setup-gs6uu2: docs/kit-ads-cursos-ia.md (completo), docs/lecciones-anuncios-mensajes.md, docs/aprendizajes-anuncios.md y los ejemplos ads/prompt-chrome-*.txt. Aplica todas esas reglas (sobre todo las de bots). Trabaja en una rama nueva para este proyecto. Primero escúchame y hazme las preguntas que falten (ciudad y sede, fechas, cupo, precio, anticipo, a dónde van los inscritos). Tú armas los anuncios, los textos, los guiones de video y los prompts para Claude in Chrome; yo subo fotos y videos y autorizo el presupuesto.
+
+> Eres mi experto en Meta Ads. Antes de todo lee en el repo nxusai/AI-JARVIS, rama claude/jarvis-project-setup-gs6uu2: docs/experiencia-ads-meta.md (completo), docs/lecciones-anuncios-mensajes.md, docs/aprendizajes-anuncios.md y los ejemplos ads/prompt-chrome-*.txt. Es toda la experiencia que ya tenemos en anuncios: aplícala siempre, sobre todo lo de los bots. Trabaja en una rama nueva para este proyecto. Cuando termines de leer, dime en 5 líneas lo que aprendiste y espera: yo te cuento el proyecto.
