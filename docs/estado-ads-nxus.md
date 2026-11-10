@@ -217,3 +217,8 @@ Ya se le preguntó, y está pendiente que conteste:
 - Cuánta libertad le da a la extensión. Recomendación: que se detenga antes de publicar o gastar.
 
 Con eso se arma el **prompt v2**: incorporar sus quejas como reglas, sus zonas en Locations, los nombres de los anuncios al día y una revisión de la configuración actual antes de crear algo.
+
+## 10 nov 2026 · Panel "Anuncios" conectado a Meta (solo lectura)
+- Usuario de sistema nuevo **"NXUS HQ lectura"** (Employee) en AI Ramos Digital Solutions: cuenta "Eduardo's" solo con View performance; app NXUS HQ con permiso mínimo. Token sin caducidad. El usuario viejo "NXUS HQ" (con Manage campaigns) no se tocó.
+- Netlify `nxus-hq`: `META_TOKEN` reemplazado por el token de "NXUS HQ lectura" (el anterior venía de las funciones de contenido quitadas el 1 nov; hoy solo `anuncios.mjs` usa `META_TOKEN`). `META_AD_ACCOUNT_ID` ya era act_736971049130563. `META_PAGE_ID`, `META_IG_ID`, `META_DATASET_ID` ya no las usa nada (se pueden borrar).
+- Primera lectura en vivo (desde el inicio de las campañas nuevas): $117.68 gastado · 7,777 vistas · 5 chats ($23.54 c/u) · 1 cita ($117.68 por cita). Todavía en aprendizaje: no tocar hasta cumplir 7 días.
