@@ -18,3 +18,9 @@ Este archivo es la memoria de lo que funciona y lo que no en los anuncios de NXU
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
 2. El asesor compara contra este archivo, decide (apagar, subir presupuesto, cambiar gancho) y anota aquí el resultado con fecha.
 3. Cuando un video se apaga, queda en "Historial" del panel con sus números; aquí se anota por qué se apagó y qué se aprendió.
+
+## Corte 9 nov 2026 (campañas v2 con ~2 días al aire)
+- $117.78 · 7,787 impresiones · gancho 16.9% · 5 chats ($23.56) · 1 real · 1 cita ($117.78). La cita (MX Video C, "varias sucursales") es el lead que pasó a propuesta de precios y contrato: si firma, la campaña ya se pagó varias veces.
+- NY: más gancho (Video B 26% / 32% lo termina) pero 3 chats y 0 reales → revisar en ManyChat si son robots o personas que no tocan el botón antes de cambiar nada.
+- Cuello de botella: de vista a chat (0.06%). Hipótesis a probar después del día 7: CTA más directo en el texto y al final del video.
+- Regla: no juzgar un video con menos de ~$40–60 gastados ni antes de 7 días.

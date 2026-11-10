@@ -51,8 +51,15 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
     return { leads: ls.length, calif: calif.length, hablo: hablo.length, agendo: agendo.length, asistio: asistio.length, cliente: cliente.length }
   }
   const llave = (k) => `${k.camp}-${k.video}`
-  const estados = Object.fromEntries((meta.estados || []).map((e) => [llave(claveDeAnuncio(e.anuncio, e.campana) || { camp: '?', video: e.anuncio }), e]))
   const VIVOS = ['ACTIVE', 'IN_PROCESS', 'PENDING_REVIEW', 'WITH_ISSUES', 'PREAPPROVED']
+  // Varios anuncios pueden caer en el mismo video (copias, campaña vieja y nueva): manda el que sigue vivo; si ninguno, el más reciente.
+  const estados = {}
+  for (const e of meta.estados || []) {
+    const k = llave(claveDeAnuncio(e.anuncio, e.campana) || { camp: '?', video: e.anuncio })
+    const a = estados[k]
+    const vivoE = VIVOS.includes(e.estado), vivoA = a && VIVOS.includes(a.estado)
+    if (!a || (vivoE && !vivoA) || (vivoE === vivoA && (e.actualizado || '') > (a.actualizado || ''))) estados[k] = e
+  }
   // Activo = así lo dice Meta. Sin Meta (o sin anuncio todavía en Meta), se toma como activo.
   const esActivo = (k) => !meta.conectado || !estados[llave(k)] || VIVOS.includes(estados[llave(k)].estado)
   function construir(filas, listaLeads) {
