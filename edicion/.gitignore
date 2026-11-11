@@ -13,3 +13,4 @@ modelos/
 palabras.json
 plan.json
 log-*.txt
+venv/
