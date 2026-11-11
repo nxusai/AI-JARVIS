@@ -2,13 +2,16 @@
 -- Todos los nombres, montos y deudas son inventados. Se marcan es_demo = true y
 -- se borran con 99_borrar_demo.sql antes de importar la información real.
 --
--- Las reglas de interés todavía no están definidas: aquí se usa un 40 % fijo y
--- 10 cuotas sólo para que las cifras se vean realistas.
+-- Fórmula tomada del sistema actual (deducida, por confirmar con el dueño):
+-- interés plano de 50 %, 10 cuotas de 15 % del monto, casi todos semanales.
+-- Se corre DESPUÉS de 01_esquema.sql y 03_tesoreria_y_altas.sql.
 --
 -- Se puede volver a correr: primero borra el ejemplo anterior.
 
 begin;
 
+delete from public.movimientos_tesoreria where es_demo;
+delete from public.cuentas_bancarias where es_demo;
 delete from public.pagos where es_demo;
 delete from public.solicitudes where es_demo;
 delete from public.creditos where es_demo;
@@ -87,10 +90,10 @@ begin
       for k in 1..(case when random() < 0.12 then 2 else 1 end) loop
         kid := kid + 1;
         monto := (6 + floor(random() * 35)) * 500;      -- $3,000 a $20,000
-        total := round(monto * 1.40, 2);                  -- 40 % provisional
-        frec := case when random() < 0.70 then 'semanal' when random() < 0.85 then 'quincenal' else 'mensual' end;
+        total := round(monto * 1.50, 2);                  -- 50 % plano
+        frec := case when random() < 0.85 then 'semanal' when random() < 0.67 then 'quincenal' else 'mensual' end;
         dias_periodo := case frec when 'semanal' then 7 when 'quincenal' then 15 else 30 end;
-        cuota := round(total / 10, 2);
+        cuota := round(monto * 0.15, 2);
         if k = 2 then
           inicio := hoy - (200 + floor(random() * 80))::int;  -- crédito anterior, ya pagado
         else
@@ -141,5 +144,100 @@ begin
     (8, 'Solicitante H (ejemplo)', 3, 7000, 'aprobada', hoy, true),
     (9, 'Solicitante I (ejemplo)', 11, 20000, 'rechazada', hoy - 3, true);
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Tesorería de ejemplo: cuadra de punta a punta
+--   fondeo de socios → banco → fondo fijo de cada gerente
+--   asesor cobra → cierre 18:00 a su gerente → gerente redistribuye para prestar y gastos
+--   cada sábado el gerente deposita al banco lo que sobró (o retira lo que faltó)
+--   del banco salen nóminas y rentas
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  hoy date := current_date;
+  ini date;
+  s date;
+  g record;
+  neto numeric;
+begin
+  perform setseed(0.77);
+  select min(fecha_inicio) - 7 into ini from public.creditos where es_demo;
+
+  insert into public.cuentas_bancarias (id, banco, alias, terminacion, es_demo) overriding system value values
+    (1, 'BBVA', 'Cuenta operativa (ejemplo)', '4821', true),
+    (2, 'Banorte', 'Cuenta de reserva (ejemplo)', '0937', true)
+  on conflict (id) do nothing;
+  perform setval(pg_get_serial_sequence('public.cuentas_bancarias', 'id'), 2);
+
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo) values
+    (ini, 'fondeo', 'externo', 'banco:1', 'Fondeo', 'Aportación de capital de socios', 3800000, true),
+    (ini, 'traslado', 'banco:1', 'banco:2', 'Reserva', 'Reserva de liquidez', 250000, true);
+
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select ini, 'retiro', 'banco:1', 'gerencia:' || id, 'Fondo fijo', 'Fondo fijo de gerencia', 90000, true
+  from public.gerencias where es_demo;
+
+  -- Gasolina diaria por ruta (lunes a sábado)
+  create temporary table _gas on commit drop as
+  select d::date as fecha, r.id as ruta_id, (80 + floor(random() * 80))::numeric as monto
+  from generate_series(ini, hoy, interval '1 day') d cross join public.rutas r
+  where r.es_demo and extract(dow from d) between 1 and 6;
+
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select fecha, 'egreso', 'ruta:' || ruta_id, 'externo', 'Gastos de ruta', 'Gasolina', monto, true from _gas;
+
+  -- Redistribución de la mañana: el gerente da a cada ruta lo que va a prestar y gastar
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select x.fecha, 'traslado', 'gerencia:' || o.gerencia_id, 'ruta:' || x.ruta_id, 'Redistribución', 'Efectivo para colocar y gastos', sum(x.monto), true
+  from (
+    select c.fecha_inicio as fecha, cl.ruta_id, c.monto from public.creditos c join public.clientes cl on cl.id = c.cliente_id where c.es_demo
+    union all select fecha, ruta_id, monto from _gas
+  ) x join public.rutas r on r.id = x.ruta_id join public.oficinas o on o.id = r.oficina_id
+  group by x.fecha, x.ruta_id, o.gerencia_id;
+
+  -- Cierre de las 18:00: la cobranza del día pasa de la ruta a su gerente (hoy aún no cierra)
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select p.fecha, 'traslado', 'ruta:' || cl.ruta_id, 'gerencia:' || o.gerencia_id, 'Cierre 18:00', 'Cobranza del día', sum(p.monto), true
+  from public.pagos p join public.creditos c on c.id = p.credito_id join public.clientes cl on cl.id = c.cliente_id
+  join public.rutas r on r.id = cl.ruta_id join public.oficinas o on o.id = r.oficina_id
+  where p.es_demo and p.fecha < hoy
+  group by p.fecha, cl.ruta_id, o.gerencia_id;
+
+  -- Corte semanal (sábado): el gerente deposita al banco lo que sobró o retira lo que faltó
+  for s in select d::date from generate_series(ini + 6, hoy - 1, interval '1 day') d where extract(dow from d) = 6 loop
+    for g in select id from public.gerencias where es_demo loop
+      select coalesce(sum(case when caja_destino = 'gerencia:' || g.id then monto else 0 end), 0)
+           - coalesce(sum(case when caja_origen = 'gerencia:' || g.id then monto else 0 end), 0)
+      into neto
+      from public.movimientos_tesoreria
+      where es_demo and fecha between s - 6 and s and categoria in ('Cierre 18:00', 'Redistribución');
+      if neto > 0 then
+        insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+        values (s, 'deposito', 'gerencia:' || g.id, 'banco:1', 'Depósito semanal', 'Excedente de la semana', round(neto, 2), true);
+      elsif neto < 0 then
+        insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+        values (s, 'retiro', 'banco:1', 'gerencia:' || g.id, 'Reposición semanal', 'Reposición para colocar', round(-neto, 2), true);
+      end if;
+    end loop;
+  end loop;
+
+  -- Nómina semanal de asesores, quincenal de gerentes y renta mensual de oficinas
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select d::date, 'egreso', 'banco:1', 'externo', 'Nómina', 'Nómina semanal de asesores', 1800 * (select count(*) from public.rutas where es_demo), true
+  from generate_series(ini, hoy - 1, interval '1 day') d where extract(dow from d) = 6;
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select d::date, 'egreso', 'banco:1', 'externo', 'Nómina', 'Nómina quincenal de gerentes', 9000 * (select count(*) from public.gerencias where es_demo), true
+  from generate_series(ini, hoy - 1, interval '1 day') d where extract(day from d) in (1, 16);
+  insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
+  select d::date, 'egreso', 'banco:1', 'externo', 'Renta', 'Renta de oficinas', 7500 * (select count(*) from public.oficinas where es_demo), true
+  from generate_series(ini, hoy - 1, interval '1 day') d where extract(day from d) = 1;
+end $$;
+
+-- Los identificadores automáticos siguen después de los de ejemplo
+select setval('public.regiones_id_seq', greatest((select max(id) from public.regiones), 1));
+select setval('public.zonas_id_seq', greatest((select max(id) from public.zonas), 1));
+select setval('public.gerencias_id_seq', greatest((select max(id) from public.gerencias), 1));
+select setval('public.oficinas_id_seq', greatest((select max(id) from public.oficinas), 1));
+select setval('public.rutas_id_seq', greatest((select max(id) from public.rutas), 1));
 
 commit;

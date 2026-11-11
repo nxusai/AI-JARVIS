@@ -27,9 +27,11 @@ const ESTADOS = [
 ]
 const ESTADO = Object.fromEntries([...ESTADOS, { k: 'liquidado', n: 'Liquidado', c: '#8892a6', s: 'pagado', st: 'off' }].map((e) => [e.k, e]))
 const ROLES = {
-  dueno: 'Dueño', direccion: 'Dirección', regional: 'Regional', zonal: 'Zonal', gerente: 'Gerente',
-  asesor: 'Asesor / cobrador', mesa: 'Mesa de control', consulta: 'Consulta / auditoría', soporte: 'Soporte NXUS',
+  dueno: 'Dueño', direccion: 'Dirección', regional: 'Gerente regional', zonal: 'Gerente zonal', gerente: 'Gerente',
+  asesor: 'Asesor de crédito', mesa: 'Mesa de control', consulta: 'Consulta / auditoría', soporte: 'Soporte NXUS',
 }
+const ADMIN_ROLES = ['dueno', 'direccion', 'soporte']
+const PER = { semanal: 7, quincenal: 15, mensual: 30 }
 const ICON = {
   tablero: '<path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/>',
   clientes: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
@@ -39,11 +41,14 @@ const ICON = {
   cajas: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
   reportes: '<path d="M4 19V5M10 19V9M16 19v-7M22 19H2"/>',
   importar: '<path d="M12 3v12M8 11l4 4 4-4M4 21h16"/>',
+  normalidad: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  tesoreria: '<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
   admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
 }
 const NAV = [
   ['h', 'Operación'], ['tablero', 'Tablero'], ['clientes', 'Clientes'], ['solicitudes', 'Solicitudes'], ['creditos', 'Créditos'],
-  ['cobranza', 'Cobranza'], ['cajas', 'Cajas'], ['reportes', 'Reportes'], ['h', 'Sistema'], ['importar', 'Importar datos'], ['admin', 'Administración'],
+  ['cobranza', 'Cobranza'], ['normalidad', 'Normalidad'], ['cajas', 'Cajas'], ['tesoreria', 'Tesorería'], ['reportes', 'Reportes'],
+  ['h', 'Sistema'], ['importar', 'Importar datos'], ['admin', 'Administración'],
 ]
 
 let sb = null
@@ -56,7 +61,7 @@ let charts = []
 async function boot() {
   if (window.__FIXTURE__) { DB = prep(window.__FIXTURE__); return showApp() }
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return showLogin('Falta conectar la base de datos. Configuración pendiente.', true)
-  const recovery = /type=recovery/.test(location.hash)
+  const recovery = /type=(recovery|invite)/.test(location.hash)
   try {
     const { createClient } = await import(SUPABASE_JS)
     sb = createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
@@ -64,6 +69,7 @@ async function boot() {
     return showLogin('No se pudo cargar el módulo de acceso. Revisa tu conexión y recarga la página.', true)
   }
   sb.auth.onAuthStateChange((ev) => { if (ev === 'PASSWORD_RECOVERY') showNewPass(); if (ev === 'SIGNED_OUT') showLogin() })
+  window.addEventListener('hashchange', () => { if (/type=(recovery|invite)/.test(location.hash)) showNewPass() })
   const { data } = await sb.auth.getSession()
   if (recovery && data.session) return showNewPass()
   if (!data.session) return showLogin()
@@ -127,6 +133,29 @@ async function fetchAll(table, build) {
   }
 }
 
+async function loadRaw(perfil) {
+  const desde = addDays(iso(new Date()), -400)
+  const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT] = await Promise.all([
+    fetchAll('v_rutas', (q) => q.order('ruta_id')),
+    fetchAll('v_cartera', (q) => q.order('credito_id')),
+    fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
+    fetchAll('solicitudes', (q) => q.order('id')),
+    opt('v_movimientos', (q) => q.order('fecha').order('id')),
+    opt('cuentas_bancarias', (q) => q.order('id')),
+    opt('perfiles', (q) => q.order('creado')),
+    opt('regiones', (q) => q.order('id')), opt('zonas', (q) => q.order('id')), opt('gerencias', (q) => q.order('id')),
+    opt('oficinas', (q) => q.order('id')), opt('rutas', (q) => q.order('id')),
+  ])
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil }
+}
+async function reload() {
+  if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
+  const keep = { VIEW, SCOPE }
+  DB = prep(await loadRaw(DB.perfil))
+  VIEW = keep.VIEW; SCOPE = keep.SCOPE
+  showApp()
+}
 async function loadAndShow(session) {
   $('#login').hidden = true; $('#loading').hidden = false; $('#loading').textContent = 'Cargando información…'
   try {
@@ -136,14 +165,7 @@ async function loadAndShow(session) {
       await sb.auth.signOut()
       return showLogin('Tu cuenta todavía no está activa. Pide al administrador que la active.')
     }
-    const desde = addDays(iso(new Date()), -400)
-    const [rutas, cartera, recaudo, solicitudes] = await Promise.all([
-      fetchAll('v_rutas', (q) => q.order('ruta_id')),
-      fetchAll('v_cartera', (q) => q.order('credito_id')),
-      fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
-      fetchAll('solicitudes', (q) => q.order('id')),
-    ])
-    DB = prep({ rutas, cartera, recaudo, solicitudes, perfil: { ...perfil, correo: session.user.email } })
+    DB = prep(await loadRaw({ ...perfil, correo: session.user.email }))
     showApp()
   } catch (e) {
     console.error(e)
@@ -161,8 +183,10 @@ function prep(raw) {
   const uniq = (key, name, extra = () => ({})) => {
     const m = new Map(); rutas.forEach((r) => { if (!m.has(r[key])) m.set(r[key], { id: r[key], nombre: r[name], ...extra(r) }) }); return [...m.values()]
   }
+  const movimientos = (raw.movimientos || []).map((m) => ({ ...m, monto: +m.monto }))
   return {
-    rutas, R, cartera, recaudo, solicitudes, perfil: raw.perfil || {},
+    rutas, R, cartera, recaudo, solicitudes, perfil: raw.perfil || {}, movimientos, cuentas: raw.cuentas || [], perfiles: raw.perfiles || [],
+    est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
     demo: cartera.some((c) => c.es_demo) || solicitudes.some((s) => s.es_demo),
     zonas: uniq('zona_id', 'zona', (r) => ({ resp: r.zonal })),
@@ -464,7 +488,7 @@ VIEWS.creditos = {
       <div class="card panel">
         <div class="ph"><div class="tabs" id="fil">${[['todos', 'Todos'], ...ESTADOS.map((e) => [e.k, e.n]), ['liquidado', 'Liquidados']].map(([k, t]) => `<button type="button" data-f="${k}" class="${this.filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div><span class="chip" id="cnt"></span></div>
         <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Cliente</th><th>Ruta</th><th>Inicio</th><th class="num">Monto</th><th class="num">Cuota</th><th>Frecuencia</th><th class="num">Pagadas</th><th class="num">Saldo</th><th class="num">Atraso</th><th>Estado</th></tr></thead><tbody id="tb"></tbody></table></div>
-        <div class="note">Cálculo de interés provisional (40 % y 10 cuotas) mientras el cliente confirma sus reglas.</div>
+        <div class="note">Fórmula tomada del sistema actual (por confirmar): 50 % de interés plano en 10 cuotas de 15 % del monto.</div>
       </div>`
   },
   init() {
@@ -631,33 +655,399 @@ VIEWS.admin = {
   paint() {
     const p = DB.perfil, el = $('#abody')
     if (this.tab === 'usuarios') {
-      const roles = [['Dirección', 'Ve toda la empresa; autoriza acciones financieras'], ['Regional', 'Su región: zonas, gerencias, oficinas y rutas'], ['Zonal', 'Su zona: gerencias, oficinas y rutas; ve el resumen completo de su zona', 1],
-        ['Gerente', 'Sus oficinas y rutas; recibe y redistribuye la caja'], ['Asesor / cobrador', 'Su ruta: clientes, cobro y caja propia'], ['Mesa de control', 'Revisa documentos; aprueba, rechaza u observa'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
-      el.innerHTML = `<div class="card panel"><div class="ph"><h3>Roles del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
-          ${roles.map(([n, d, nuevo]) => `<div class="rolerow inset ${nuevo ? 'new' : ''}"><div><div class="rn">${n}${nuevo ? ' <span class="chip g" style="margin-left:6px">nuevo</span>' : ''}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}
-        </div>
-        <div class="card panel"><div class="ph"><h3>Usuarios</h3><button class="btn" disabled type="button">+ Nuevo usuario</button></div>
-          <div class="tablewrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
-          <tr><td class="strong">${esc(p.nombre || '')}</td><td>${esc(p.correo || '')}</td><td>${esc(ROLES[p.rol] || p.rol || '')}</td><td><span class="st ok">Activo</span></td></tr></tbody></table></div>
-          <div class="note">Por ahora sólo existe tu cuenta. Las altas de usuarios (con rol y ámbito) se activan en la siguiente etapa; los nuevos usuarios entran inactivos hasta que el dueño los active.</div></div>`
+      const roles = [['Dirección', 'Ve toda la empresa; autoriza acciones financieras y da de alta usuarios'], ['Gerente regional', 'Su región: zonas, gerencias, oficinas y rutas'],
+        ['Gerente zonal', 'Su zona: gerencias, oficinas y rutas; ve el resumen completo de su zona'], ['Gerente', 'Sus oficinas y rutas; recibe y redistribuye la caja'],
+        ['Asesor de crédito', 'Su ruta: clientes, cobro y caja propia'], ['Mesa de control', 'Revisa documentos; aprueba, rechaza u observa'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
+      const lista = DB.perfiles.length ? DB.perfiles : [p]
+      const amb = (a) => !a || a === 'empresa' ? 'Toda la empresa' : ambitoNombre(a)
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Usuarios</h3><div class="sub">Cada usuario tiene un cargo y un ámbito: sólo ve lo que le toca. Los permisos se validan en la base de datos.</div></div>
+          ${esAdmin() ? '<button class="btn" type="button" id="uinv"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Invitar usuario</button>' : ''}</div>
+          <div class="tablewrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Correo</th><th>Cargo</th><th>Ámbito</th><th>Estado</th><th></th></tr></thead><tbody>
+          ${lista.map((u) => `<tr><td class="strong">${esc(u.nombre || '')}${u.id === p.id ? ' <span class="chip">tú</span>' : ''}</td><td>${esc(u.correo || '')}</td><td>${esc(ROLES[u.rol] || u.rol || '')}</td><td>${esc(amb(u.ambito))}</td>
+            <td><span class="st ${u.activo ? 'ok' : 'off'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+            <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>` : ''}</td></tr>`).join('')}
+          </tbody></table></div>
+          <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y el ámbito que les asignes; puedes desactivarlos en cualquier momento.</div></div>
+        <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
+          ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
+      $('#uinv')?.addEventListener('click', invitarUsuario)
+      $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
     } else if (this.tab === 'estructura') {
-      const car = DB.cartera.filter((c) => c.saldo > 0)
-      const s = (k, id) => peso(sum(car.filter((c) => c[k] === id), (c) => c.saldo))
-      const reg = [...new Map(DB.rutas.map((r) => [r.region_id, r])).values()]
-      el.innerHTML = `<div class="card panel"><div class="ph"><h3>Estructura de la empresa</h3><span class="chip">${DB.zonas.length} zonas · ${DB.gerencias.length} gerencias · ${DB.oficinas.length} oficinas · ${DB.rutas.length} rutas</span></div><div class="tree">
-        ${reg.map((rg) => `<div class="tn inset"><span><b>${esc(rg.region)}</b> <small>· Regional: ${esc(rg.regional || '—')}</small></span><small>${s('region_id', rg.region_id)}</small></div>
-          ${DB.zonas.filter((z) => DB.rutas.some((r) => r.zona_id === z.id && r.region_id === rg.region_id)).map((z) => `<div class="tn inset l2"><span><b>${esc(z.nombre)}</b> <small>· Zonal: ${esc(z.resp || '—')}</small></span><small>${s('zona_id', z.id)}</small></div>
-            ${DB.gerencias.filter((g) => g.zona_id === z.id).map((g) => `<div class="tn inset l3"><span>${esc(g.nombre)} <small>· Gerente: ${esc(g.resp || '—')}</small></span><small>${s('gerencia_id', g.id)}</small></div>
-              ${DB.oficinas.filter((o) => o.gerencia_id === g.id).map((o) => `<div class="tn inset l4"><span>Oficina ${esc(o.nombre)}</span><small>${s('oficina_id', o.id)}</small></div>
-                ${DB.rutas.filter((r) => r.oficina_id === o.id).map((r) => `<div class="tn inset l5"><span>${esc(r.ruta)} <small>· ${esc(r.asesor || '')}</small></span><small>${s('ruta_id', r.ruta_id)}</small></div>`).join('')}`).join('')}`).join('')}`).join('')}`).join('')}
+      const E = DB.est, car = DB.cartera.filter((c) => c.saldo > 0)
+      const s$ = (k, id) => peso(sum(car.filter((c) => c[k] === id), (c) => c.saldo))
+      const ed = (t, id) => esAdmin() ? `<button class="btn ghost sm" type="button" data-et="${t}" data-id="${id}">Editar</button>` : ''
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Estructura de la empresa</h3><div class="sub">${E.zonas.length} zonas · ${E.gerencias.length} gerencias · ${E.oficinas.length} oficinas · ${E.rutas.length} rutas</div></div>
+        ${esAdmin() ? `<div class="toolbar">${[['region', 'Región'], ['zona', 'Zona'], ['gerencia', 'Gerencia'], ['oficina', 'Oficina'], ['ruta', 'Ruta']].map(([t, n]) => `<button class="btn ghost sm" type="button" data-nt="${t}">+ ${n}</button>`).join('')}</div>` : ''}</div>
+        <div class="tree">
+        ${E.regiones.map((rg) => `<div class="tn inset"><span><b>${esc(rg.nombre)}</b> <small>· Gerente regional: ${esc(rg.responsable || '—')}</small></span><span class="toolbar"><small>${s$('region_id', rg.id)}</small>${ed('region', rg.id)}</span></div>
+          ${E.zonas.filter((z) => z.region_id === rg.id).map((z) => `<div class="tn inset l2"><span><b>${esc(z.nombre)}</b> <small>· Gerente zonal: ${esc(z.responsable || '—')}</small></span><span class="toolbar"><small>${s$('zona_id', z.id)}</small>${ed('zona', z.id)}</span></div>
+            ${E.gerencias.filter((g) => g.zona_id === z.id).map((g) => `<div class="tn inset l3"><span>${esc(g.nombre)} <small>· Gerente: ${esc(g.responsable || '—')}</small></span><span class="toolbar"><small>${s$('gerencia_id', g.id)}</small>${ed('gerencia', g.id)}</span></div>
+              ${E.oficinas.filter((o) => o.gerencia_id === g.id).map((o) => `<div class="tn inset l4"><span>Oficina ${esc(o.nombre)}</span><span class="toolbar"><small>${s$('oficina_id', o.id)}</small>${ed('oficina', o.id)}</span></div>
+                ${E.rutas.filter((r) => r.oficina_id === o.id).map((r) => `<div class="tn inset l5"><span>${esc(r.nombre)} <small>· ${esc(r.responsable || 'sin asesor')}</small></span><span class="toolbar"><small>${s$('ruta_id', r.id)}</small>${ed('ruta', r.id)}</span></div>`).join('')}`).join('')}`).join('')}`).join('')}`).join('')}
         </div></div>`
+      $$('[data-nt]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.nt)))
+      $$('[data-et]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.et, +b.dataset.id)))
     } else if (this.tab === 'parametros') {
-      const kv = [['Productos de préstamo', '<span class="pend">por definir</span>'], ['Cálculo de interés', '<span class="pend">provisional: 40 % · 10 cuotas</span>'], ['Frecuencias', 'semanal · quincenal (2 fechas fijas) · mensual'], ['Hora de cierre de caja', '18:00'],
+      const kv = [['Productos de préstamo', '<span class="pend">por definir</span>'], ['Cálculo de interés', '50 % plano · 10 cuotas de 15 % del monto <span class="pend">deducido de Listo, por confirmar</span>'], ['Frecuencias', 'semanal · quincenal (2 fechas fijas) · mensual'], ['Hora de cierre de caja', '18:00'],
         ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Mora / penalización', '<span class="pend">por definir</span>'], ['Días no laborables', '<span class="pend">por definir</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
       el.innerHTML = `<div class="card panel"><h3 class="sec-title">Parámetros</h3><div class="kv">${kv.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
     } else {
       el.innerHTML = `<div class="card panel"><div class="ph"><h3>Bitácora</h3><span class="chip">0 eventos</span></div><div class="empty"><b>Sin eventos todavía</b>Cada alta, cambio, pago, reverso o cierre quedará aquí: quién, cuándo, qué y por qué.</div></div>`
     }
+  },
+}
+
+// ============================================================ utilidades de formularios
+function toast(msg, tipo = 'ok') {
+  let t = $('#toast')
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t) }
+  t.className = 'toast ' + tipo; t.textContent = msg; t.hidden = false
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true }, 3800)
+}
+const esAdmin = () => ADMIN_ROLES.includes(DB.perfil.rol)
+function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
+  const f = (c) => {
+    const id = 'f_' + c.id, req = c.req ? ' required' : ''
+    if (c.tipo === 'select') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><div class="field sel" style="display:block"><select class="ctl" id="${id}" style="width:100%"${req}>${c.opciones.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(c.valor ?? '') ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div></label>`
+    if (c.tipo === 'check') return `<label class="fl chk"><input type="checkbox" id="${id}"${c.valor ? ' checked' : ''}> <span>${c.label}</span></label>`
+    return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><input class="ctl" id="${id}" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}"${c.min != null ? ` min="${c.min}"` : ''}${c.step ? ` step="${c.step}"` : ''}${req} style="width:100%"></label>`
+  }
+  modal(`<div class="ph"><div><h3 style="font-size:19px">${titulo}</h3>${nota ? `<div class="sub">${nota}</div>` : ''}</div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <form id="fm" class="fgrid" novalidate>${campos.map(f).join('')}<div class="err" id="fmErr" role="alert"></div>
+    <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" id="fmOk">${boton}</button></div></form>`)
+  $('#fm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const v = {}
+    campos.forEach((c) => { const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : el.value.trim() })
+    const falta = campos.find((c) => c.req && !v[c.id])
+    if (falta) { $('#fmErr').textContent = `Falta: ${falta.label}.`; return }
+    const b = $('#fmOk'); b.disabled = true; b.textContent = 'Guardando…'
+    try {
+      const msg = await guardar(v)
+      $('#modalHost').innerHTML = ''
+      if (msg) toast(msg)
+    } catch (err) {
+      console.error(err)
+      $('#fmErr').textContent = err.userMsg || 'No se pudo guardar. Revisa los datos e intenta de nuevo.'
+      b.disabled = false; b.textContent = boton
+    }
+  })
+}
+async function escribir(fn) {
+  if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return false }
+  const { error } = await fn()
+  if (error) { const e = new Error(error.message); e.userMsg = /row-level security|permission/i.test(error.message) ? 'Tu cuenta no tiene permiso para este cambio.' : /duplicate|unique/i.test(error.message) ? 'Ya existe un registro con esos datos.' : ''; throw e }
+  await reload(); return true
+}
+
+// ============================================================ altas de estructura y usuarios
+const NIVELES = {
+  region: { tabla: 'regiones', nombre: 'Región', resp: 'Gerente regional', padre: null },
+  zona: { tabla: 'zonas', nombre: 'Zona', resp: 'Gerente zonal', padre: ['region_id', 'regiones', 'Región'] },
+  gerencia: { tabla: 'gerencias', nombre: 'Gerencia', resp: 'Gerente', padre: ['zona_id', 'zonas', 'Zona'] },
+  oficina: { tabla: 'oficinas', nombre: 'Oficina', resp: null, padre: ['gerencia_id', 'gerencias', 'Gerencia'] },
+  ruta: { tabla: 'rutas', nombre: 'Ruta', resp: 'Asesor de crédito', padre: ['oficina_id', 'oficinas', 'Oficina'] },
+}
+function editarNivel(tipo, id) {
+  const N = NIVELES[tipo], reg = id ? DB.est[N.tabla].find((x) => x.id === id) : null
+  const campos = [{ id: 'nombre', label: 'Nombre', req: 1, valor: reg?.nombre }]
+  if (N.resp) campos.push({ id: 'responsable', label: N.resp, valor: reg?.responsable })
+  if (N.padre) {
+    const [col, tabla, lab] = N.padre
+    const ops = DB.est[tabla].map((x) => [x.id, x.nombre])
+    if (!ops.length) { toast(`Primero crea una ${lab.toLowerCase()}.`, 'warn'); return }
+    campos.push({ id: 'padre', label: `Pertenece a (${lab})`, tipo: 'select', req: 1, opciones: ops, valor: reg?.[col] ?? ops[0][0] })
+  }
+  formModal({
+    titulo: `${id ? 'Editar' : 'Nueva'} ${N.nombre.toLowerCase()}`, nota: 'El cambio queda registrado con tu usuario.',
+    campos,
+    guardar: async (v) => {
+      const row = { nombre: v.nombre }
+      if (N.resp) row.responsable = v.responsable || null
+      if (N.padre) row[N.padre[0]] = +v.padre
+      const ok = await escribir(() => id ? sb.from(N.tabla).update(row).eq('id', id) : sb.from(N.tabla).insert(row))
+      return ok ? `${N.nombre} ${id ? 'actualizada' : 'creada'}.` : ''
+    },
+  })
+}
+function ambitoOpciones() {
+  const E = DB.est
+  return [['empresa', 'Toda la empresa'], ...E.regiones.map((x) => ['region:' + x.id, 'Región · ' + x.nombre]), ...E.zonas.map((x) => ['zona:' + x.id, 'Zona · ' + x.nombre]),
+    ...E.gerencias.map((x) => ['gerencia:' + x.id, 'Gerencia · ' + x.nombre]), ...E.oficinas.map((x) => ['oficina:' + x.id, 'Oficina · ' + x.nombre]), ...E.rutas.map((x) => ['ruta:' + x.id, 'Ruta · ' + x.nombre])]
+}
+function ambitoNombre(a) { return (ambitoOpciones().find(([v]) => v === a) || [a, a])[1] }
+const cargoOpciones = () => Object.entries(ROLES).filter(([k]) => !['soporte', 'dueno'].includes(k) || (k === 'dueno' && DB.perfil.rol === 'soporte'))
+function editarUsuario(u) {
+  if (!u) return
+  formModal({
+    titulo: `Editar a ${esc(u.nombre || u.correo || '')}`, nota: esc(u.correo || ''),
+    campos: [
+      { id: 'nombre', label: 'Nombre', req: 1, valor: u.nombre },
+      { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: u.rol },
+      { id: 'ambito', label: 'Ámbito (qué parte de la empresa ve)', tipo: 'select', req: 1, opciones: ambitoOpciones(), valor: u.ambito || 'empresa' },
+      { id: 'activo', label: 'Activo (puede entrar al sistema)', tipo: 'check', valor: u.activo },
+    ],
+    guardar: async (v) => {
+      const ok = await escribir(() => sb.from('perfiles').update({ nombre: v.nombre, rol: v.rol, ambito: v.ambito, activo: v.activo }).eq('id', u.id))
+      return ok ? 'Usuario actualizado.' : ''
+    },
+  })
+}
+function invitarUsuario() {
+  formModal({
+    titulo: 'Invitar usuario', nota: 'Le llega un correo para crear su contraseña. Entra con este cargo y ámbito.', boton: 'Enviar invitación',
+    campos: [
+      { id: 'nombre', label: 'Nombre completo', req: 1 }, { id: 'correo', label: 'Correo', tipo: 'email', req: 1 },
+      { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: 'asesor' },
+      { id: 'ambito', label: 'Ámbito (qué parte de la empresa ve)', tipo: 'select', req: 1, opciones: ambitoOpciones(), valor: 'empresa' },
+    ],
+    guardar: async (v) => {
+      if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.correo)) { const e = new Error('correo'); e.userMsg = 'Escribe un correo válido.'; throw e }
+      const { data } = await sb.auth.getSession()
+      const r = await fetch('/.netlify/functions/invitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify(v) })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) { const e = new Error(j.error || 'invitar'); e.userMsg = j.error || 'No se pudo enviar la invitación.'; throw e }
+      await reload()
+      return `Invitación enviada a ${v.correo}.`
+    },
+  })
+}
+
+// ============================================================ Normalidad
+// % de pagos  = $ cobrado ÷ $ esperado (cuotas que vencen en el periodo)
+// % de clientes = número de pagos ÷ créditos con cuota en el periodo
+// Mismo cálculo que "Estadística ruta" de Listo, pero a cualquier nivel.
+function agenda(desde, hasta) {
+  const m = new Map()
+  sc.cartera().forEach((c) => {
+    const per = PER[c.frecuencia] || 7
+    for (let k = 1; k <= c.num_cuotas; k++) {
+      const d = addDays(c.fecha_inicio, k * per)
+      if (d > hasta) break
+      if (d < desde) continue
+      const key = c.ruta_id + '|' + d, x = m.get(key) || { n: 0, s: 0 }
+      x.n++; x.s += c.cuota; m.set(key, x)
+    }
+  })
+  return m
+}
+const semaforo = (p) => (p >= 90 ? 'ok' : p >= 70 ? 'wait' : 'bad')
+VIEWS.normalidad = {
+  rango: '7', nivel: 'ruta',
+  html() {
+    return `${head('Normalidad', 'Qué tanto se cobra de lo que tocaba cobrar: en pesos y en clientes, por ruta, oficina, gerencia o zona.',
+      `<div class="seg" id="nrango">${[['1', 'Hoy'], ['7', '7 días'], ['30', '30 días']].map(([k, t]) => `<button type="button" data-r="${k}" class="${this.rango === k ? 'on' : ''}">${t}</button>`).join('')}</div>`)}
+      <section class="kpis" id="nk"></section>
+      <div class="card panel"><div class="ph"><div><h3>Normalidad diaria</h3><div class="sub">Últimos 30 días · días sin cuotas por cobrar no se grafican</div></div></div><div class="chart-box" style="height:250px"><canvas id="nchart"></canvas></div></div>
+      <div class="card panel"><div class="ph"><div><h3>Por nivel</h3><div class="sub" id="nsub"></div></div><div class="tabs" id="nnivel">${[['ruta', 'Ruta'], ['oficina', 'Oficina'], ['gerencia', 'Gerencia'], ['zona', 'Zona']].map(([k, t]) => `<button type="button" data-n="${k}" class="${this.nivel === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
+        <div id="ntabla"></div>
+        <div class="note">Mismo cálculo que el reporte «Estadística ruta» del sistema actual. Puede pasar de 100 % cuando se cobran cuotas atrasadas. Verde ≥ 90 % · ámbar ≥ 70 %.</div></div>`
+  },
+  init() {
+    $$('#nrango button').forEach((b) => b.addEventListener('click', () => { this.rango = b.dataset.r; $$('#nrango button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.pintar() }))
+    $$('#nnivel button').forEach((b) => b.addEventListener('click', () => { this.nivel = b.dataset.n; $$('#nnivel button').forEach((x) => x.classList.toggle('on', x === b)); this.tabla() }))
+    this.pintar(); this.grafica()
+  },
+  datos() {
+    const hoy = DB.hoy, n = +this.rango, desde = addDays(hoy, -(n - 1))
+    const ag = agenda(desde, hoy), rec = sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= hoy)
+    const porRuta = new Map()
+    const get = (id) => { let x = porRuta.get(id); if (!x) { x = { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }; porRuta.set(id, x) } return x }
+    ag.forEach((v, k) => { const x = get(+k.split('|')[0]); x.esperado += v.s; x.porCobrar += v.n })
+    rec.forEach((r) => { const x = get(r.ruta_id); x.cobrado += r.monto; x.pagos += +r.pagos || 0 })
+    return { porRuta, desde, hoy }
+  },
+  pintar() {
+    const { porRuta } = this.datos()
+    const T = { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }
+    porRuta.forEach((x) => { for (const k in T) T[k] += x[k] })
+    const pP = pct(T.cobrado, T.esperado), pC = pct(T.pagos, T.porCobrar)
+    const lab = { 1: 'hoy', 7: 'últimos 7 días', 30: 'últimos 30 días' }[this.rango]
+    const k = [
+      { lab: 'Normalidad en pesos', val: pP + '%', meta: `cobrado vs esperado · ${lab}`, g: [COL.teal, COL.blue], st: semaforo(pP) },
+      { lab: 'Normalidad en clientes', val: pC + '%', meta: `pagos vs clientes por cobrar`, g: [COL.blue, COL.violet], st: semaforo(pC) },
+      { lab: 'Esperado', val: peso(T.esperado), meta: `${NUM.format(T.porCobrar)} cuotas por cobrar`, g: [COL.violet, COL.teal] },
+      { lab: 'Cobrado', val: peso(T.cobrado), meta: `${NUM.format(T.pagos)} pagos registrados`, g: [COL.green, COL.teal] },
+    ]
+    $('#nk').innerHTML = k.map((x) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${x.g[0]},${x.g[1]})"><svg viewBox="0 0 24 24">${ICON.normalidad}</svg></div>${x.st ? `<span class="st ${x.st}">${x.st === 'ok' ? 'Sana' : x.st === 'wait' ? 'Atención' : 'Baja'}</span>` : ''}</div>
+      <div><div class="lab">${x.lab}</div><div class="val">${x.val}</div><div class="meta">${x.meta}</div></div></div>`).join('')
+    $('#nsub').textContent = `${lab[0].toUpperCase() + lab.slice(1)} · ${scopeLabel()}`
+    this.tabla()
+  },
+  tabla() {
+    const { porRuta } = this.datos(), nivel = this.nivel
+    const m = new Map()
+    DB.rutas.filter(inScope).forEach((r) => {
+      const x = porRuta.get(r.ruta_id) || { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }
+      const id = r[nivel + '_id'], nombre = nivel === 'ruta' ? r.ruta : r[nivel]
+      const resp = { ruta: r.asesor, oficina: r.gerente, gerencia: r.gerente, zona: r.zonal }[nivel]
+      let y = m.get(id); if (!y) { y = { nombre, resp, esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }; m.set(id, y) }
+      for (const k of ['esperado', 'porCobrar', 'cobrado', 'pagos']) y[k] += x[k]
+    })
+    const rows = [...m.values()].map((y) => ({ ...y, pp: pct(y.cobrado, y.esperado), pc: pct(y.pagos, y.porCobrar) })).sort((a, b) => a.pp - b.pp)
+    const chip = (p) => `<span class="st ${semaforo(p)}">${p}%</span>`
+    const respT = { ruta: 'Asesor', oficina: 'Gerente', gerencia: 'Gerente', zona: 'Gerente zonal' }[nivel]
+    $('#ntabla').innerHTML = tabla([
+      { t: { ruta: 'Ruta', oficina: 'Oficina', gerencia: 'Gerencia', zona: 'Zona' }[nivel], k: 'nombre', b: 1 }, { t: respT, k: 'resp' },
+      { t: 'Esperado', num: 1, f: P('esperado'), tot: T('esperado') }, { t: 'Cobrado', num: 1, b: 1, f: P('cobrado'), tot: T('cobrado') },
+      { t: '% pagos', num: 1, f: (r) => chip(r.pp), tot: (r) => chip(pct(sum(r, (x) => x.cobrado), sum(r, (x) => x.esperado))) },
+      { t: 'Por cobrar', k: 'porCobrar', num: 1, tot: (r) => sum(r, (x) => x.porCobrar) }, { t: 'Pagos', k: 'pagos', num: 1, tot: (r) => sum(r, (x) => x.pagos) },
+      { t: '% clientes', num: 1, f: (r) => chip(r.pc), tot: (r) => chip(pct(sum(r, (x) => x.pagos), sum(r, (x) => x.porCobrar))) },
+    ], rows, true)
+  },
+  grafica() {
+    const hoy = DB.hoy, desde = addDays(hoy, -29)
+    const ag = agenda(desde, hoy), rec = sc.recaudo()
+    const dias = Array.from({ length: 30 }, (_, i) => addDays(desde, i))
+    const e = new Map(), n = new Map(), c = new Map(), p = new Map()
+    ag.forEach((v, k) => { const d = k.split('|')[1]; e.set(d, (e.get(d) || 0) + v.s); n.set(d, (n.get(d) || 0) + v.n) })
+    rec.forEach((r) => { if (r.fecha >= desde) { c.set(r.fecha, (c.get(r.fecha) || 0) + r.monto); p.set(r.fecha, (p.get(r.fecha) || 0) + (+r.pagos || 0)) } })
+    const dd = dias.filter((d) => e.get(d) > 0)
+    chart($('#nchart'), {
+      type: 'line',
+      data: { labels: dd.map((d) => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })), datasets: [
+        { label: '% pagos', data: dd.map((d) => pct(c.get(d) || 0, e.get(d))), borderColor: COL.teal, backgroundColor: COL.teal + '30', fill: true, tension: 0.35, borderWidth: 2.6, pointRadius: 2 },
+        { label: '% clientes', data: dd.map((d) => pct(p.get(d) || 0, n.get(d))), borderColor: COL.violet, borderWidth: 2.2, tension: 0.35, pointRadius: 0 },
+        { label: 'Meta 90 %', data: dd.map(() => 90), borderColor: 'rgba(255,255,255,.35)', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: COL.ink2, usePointStyle: true, boxHeight: 7, font: { weight: 600 } } }, tooltip: { callbacks: { label: (x) => ` ${x.dataset.label}: ${x.raw}%` } } },
+        scales: { x: { grid: { color: COL.grid }, ticks: { color: COL.ink2, maxRotation: 0, autoSkipPadding: 12 } }, y: { grid: { color: COL.grid }, ticks: { color: COL.ink2, callback: (v) => v + '%' }, beginAtZero: true, suggestedMax: 120 } } },
+    })
+  },
+}
+
+// ============================================================ Tesorería
+const BANCO = () => Object.fromEntries(DB.cuentas.map((c) => [c.id, c]))
+function cajaNombre(k) {
+  if (k === 'externo') return 'Externo'
+  const [t, id] = k.split(':')
+  if (t === 'ruta') { const r = DB.R[id]; return r ? `Asesor · ${r.asesor || r.ruta}` : k }
+  if (t === 'gerencia') { const g = DB.gerencias.find((x) => String(x.id) === id); return g ? `Gerente · ${g.resp || g.nombre}` : k }
+  if (t === 'banco') { const b = BANCO()[id]; return b ? `${b.banco} ····${b.terminacion || ''}` : k }
+  if (t === 'oficina') { const o = DB.oficinas.find((x) => String(x.id) === id); return o ? `Oficina ${o.nombre}` : k }
+  return k
+}
+function cajasAmbito() {
+  const set = new Set()
+  DB.rutas.filter(inScope).forEach((r) => { set.add('ruta:' + r.ruta_id); set.add('gerencia:' + r.gerencia_id) })
+  if (SCOPE === 'emp') { DB.cuentas.forEach((b) => set.add('banco:' + b.id)); DB.oficinas.forEach((o) => set.add('oficina:' + o.id)) }
+  return set
+}
+function saldos(hasta) {
+  const s = new Map(), add = (k, v) => s.set(k, (s.get(k) || 0) + v)
+  DB.movimientos.forEach((m) => { if (m.fecha > hasta) return; if (m.caja_destino !== 'externo') add(m.caja_destino, m.monto); if (m.caja_origen !== 'externo') add(m.caja_origen, -m.monto) })
+  DB.recaudo.forEach((r) => { if (r.fecha <= hasta) add('ruta:' + r.ruta_id, r.monto) })
+  DB.cartera.forEach((c) => { if (c.fecha_inicio <= hasta) add('ruta:' + c.ruta_id, -c.monto) })
+  return s
+}
+VIEWS.tesoreria = {
+  periodo: 'mes', tipo: 'todos',
+  html() {
+    return `${head('Tesorería', 'El dinero de la empresa de punta a punta: socios y bancos, cajas de gerentes, cajas de asesores y cartera en la calle.',
+      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar movimiento</button>' : ''}`)}
+      <section class="kpis" id="tk"></section>
+      <div class="card panel"><div class="ph"><div><h3>Flujo del dinero</h3><div class="sub" id="tflsub"></div></div></div><div class="flow" id="tflow"></div></div>
+      <div class="grid2">
+        <div class="card panel"><div class="ph"><div><h3>Balance de caja</h3><div class="sub" id="tbsub"></div></div></div><div class="kv" id="tbal"></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Utilidad del periodo</h3><div class="sub">Interés del periodo menos gastos</div></div></div><div class="kv" id="tutil"></div>
+          <div class="note">El sistema actual cuenta todo el interés como utilidad el día que se presta. Aquí ves las dos: la que se reconoce al prestar y la que realmente entra al cobrar.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card panel"><div class="ph"><h3>Cajas</h3><span class="chip" id="tcnt"></span></div><div class="list" id="tcajas"></div></div>
+        <div class="card panel"><div class="ph"><h3>Movimientos</h3><div class="tabs" id="ttipo">${[['todos', 'Todos'], ['traslado', 'Traslados'], ['deposito', 'Depósitos'], ['retiro', 'Retiros'], ['egreso', 'Gastos'], ['fondeo', 'Fondeo']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="tmov"></div></div>
+      </div>`
+  },
+  init() {
+    $$('#tper button').forEach((b) => b.addEventListener('click', () => { this.periodo = b.dataset.p; $$('#tper button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.pintar() }))
+    $$('#ttipo button').forEach((b) => b.addEventListener('click', () => { this.tipo = b.dataset.t; $$('#ttipo button').forEach((x) => x.classList.toggle('on', x === b)); this.movs() }))
+    $('#tnuevo')?.addEventListener('click', () => this.nuevo())
+    this.pintar()
+  },
+  pintar() {
+    const hoy = DB.hoy, set = cajasAmbito(), S = saldos(hoy)
+    const sumT = (t) => sum([...set].filter((k) => k.startsWith(t + ':')), (k) => S.get(k) || 0)
+    const enRutas = sumT('ruta'), enGer = sumT('gerencia'), enBanco = sumT('banco'), cartera = sum(sc.activos(), (c) => c.saldo)
+    const K = [
+      { lab: 'Efectivo con asesores', val: peso(enRutas), meta: new Date().getHours() < 18 ? 'cobranza de hoy, pendiente del cierre 18:00' : 'después del cierre 18:00', g: [COL.teal, COL.blue], i: ICON.cobranza },
+      { lab: 'Efectivo con gerentes', val: peso(enGer), meta: 'fondo fijo y cierres por depositar', g: [COL.blue, COL.violet], i: ICON.cajas },
+      { lab: 'Bancos', val: SCOPE === 'emp' ? peso(enBanco) : '—', meta: SCOPE === 'emp' ? `${DB.cuentas.length} cuentas` : 'sólo a nivel empresa', g: [COL.violet, COL.teal], i: ICON.tesoreria },
+      { lab: 'Cartera en la calle', val: peso(cartera), meta: 'saldo por cobrar a clientes', g: [COL.green, COL.teal], i: ICON.creditos },
+    ]
+    $('#tk').innerHTML = K.map((x) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${x.g[0]},${x.g[1]})"><svg viewBox="0 0 24 24">${x.i}</svg></div></div><div><div class="lab">${x.lab}</div><div class="val">${x.val}</div><div class="meta">${x.meta}</div></div></div>`).join('')
+
+    const desde = this.periodo === 'semana' ? addDays(hoy, -6) : hoy.slice(0, 8) + '01'
+    const lab = this.periodo === 'semana' ? 'últimos 7 días' : 'este mes'
+    const M = DB.movimientos.filter((m) => m.fecha >= desde && m.fecha <= hoy)
+    const sumM = (f) => sum(M.filter(f), (m) => m.monto)
+    const isIn = (k) => set.has(k)
+    const rec = sum(sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= hoy), (r) => r.monto)
+    const prest = sum(sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= hoy), (c) => c.monto)
+    const ing = sumM((m) => m.caja_origen === 'externo' && isIn(m.caja_destino))
+    const egr = sumM((m) => m.caja_destino === 'externo' && isIn(m.caja_origen))
+    const ent = sumM((m) => m.caja_origen !== 'externo' && !isIn(m.caja_origen) && isIn(m.caja_destino))
+    const sal = sumM((m) => m.caja_destino !== 'externo' && isIn(m.caja_origen) && !isIn(m.caja_destino))
+    const Si = saldos(addDays(desde, -1)), inicial = sum([...set], (k) => Si.get(k) || 0)
+    const final = inicial + rec - prest + ing - egr + ent - sal
+    $('#tbsub').textContent = `${lab[0].toUpperCase() + lab.slice(1)} · ${scopeLabel()}`
+    const row = (k, v, cls = '') => `<div class="r"><span class="k ${cls}">${k}</span><span class="v ${cls}">${v}</span></div>`
+    $('#tbal').innerHTML = row('Caja inicial', peso(inicial)) + row('+ Cobrado a clientes', peso(rec)) + row('− Préstamos entregados', peso(prest)) + row('+ Fondeo e ingresos', peso(ing)) + row('− Gastos', peso(egr))
+      + (SCOPE === 'emp' ? '' : row('+ Entradas de otras cajas', peso(ent)) + row('− Salidas a otras cajas', peso(sal))) + row('Caja final', peso(final), 'strong')
+
+    const act = sc.cartera()
+    const ratio = sum(act, (c) => c.total_pagar - c.monto) / Math.max(1, sum(act, (c) => c.total_pagar))
+    const dev = sum(act.filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= hoy), (c) => c.total_pagar - c.monto)
+    const cob = rec * ratio
+    $('#tutil').innerHTML = row('Interés de préstamos nuevos (al prestar)', peso(dev)) + row('Interés cobrado (aprox.)', peso(cob)) + row('− Gastos del periodo', peso(egr))
+      + row('Utilidad al prestar', peso(dev - egr), 'strong') + row('Utilidad cobrada', peso(cob - egr), 'strong')
+
+    // Flujo
+    const f = (o, d) => sumM((m) => m.caja_origen.startsWith(o) && m.caja_destino.startsWith(d) && (isIn(m.caja_origen) || isIn(m.caja_destino)))
+    const nodo = (t, v, sub) => `<div class="node inset"><b>${t}</b><span class="nv">${v}</span><span>${sub}</span></div>`
+    const flecha = (a, b) => `<div class="arr2"><span>→ ${a}</span><span>← ${b}</span></div>`
+    $('#tflsub').textContent = `Saldos al día de hoy · movimientos de ${lab} · ${scopeLabel()}`
+    $('#tflow').innerHTML = (SCOPE === 'emp' ? nodo('Socios', peso(sumM((m) => m.tipo === 'fondeo')), 'fondeo del periodo') + flecha('fondeo', '—') + nodo('Bancos', peso(enBanco), `${DB.cuentas.length} cuentas`)
+      + flecha(peso(f('banco:', 'gerencia:')) + ' reposición', peso(f('gerencia:', 'banco:')) + ' depósitos') : '')
+      + nodo('Gerentes', peso(enGer), 'cajas de gerencia') + flecha(peso(f('gerencia:', 'ruta:')) + ' para prestar', peso(f('ruta:', 'gerencia:')) + ' cierre 18:00')
+      + nodo('Asesores', peso(enRutas), 'cajas de ruta') + flecha(peso(prest) + ' préstamos', peso(rec) + ' cobranza') + nodo('Clientes', peso(cartera), 'cartera por cobrar')
+
+    // Cajas
+    const cajas = [...set].filter((k) => !k.startsWith('oficina:') || (S.get(k) || 0) !== 0).map((k) => ({ k, n: cajaNombre(k), v: S.get(k) || 0, t: k.split(':')[0] }))
+      .sort((a, b) => ['banco', 'gerencia', 'oficina', 'ruta'].indexOf(a.t) - ['banco', 'gerencia', 'oficina', 'ruta'].indexOf(b.t) || b.v - a.v)
+    $('#tcnt').textContent = `${cajas.length} cajas`
+    $('#tcajas').innerHTML = cajas.map((c) => `<div class="rowitem inset"><div><div class="t">${esc(c.n)}</div><div class="s">${{ banco: 'Cuenta bancaria', gerencia: 'Caja de gerente', ruta: 'Caja de asesor', oficina: 'Caja de oficina' }[c.t]}</div></div><div class="m" style="${c.v < 0 ? 'color:var(--red)' : ''}">${peso(c.v)}</div></div>`).join('')
+    this.movs()
+  },
+  movs() {
+    const set = cajasAmbito()
+    const L = DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo)).slice(-60).reverse()
+    $('#tmov').innerHTML = tabla([
+      { t: 'Fecha', k: 'fecha' }, { t: 'Concepto', f: (m) => `<b>${esc(m.concepto || m.categoria || m.tipo)}</b><div class="muted" style="font-size:12px">${esc(m.categoria || '')}</div>` },
+      { t: 'De', f: (m) => esc(cajaNombre(m.caja_origen)) }, { t: 'A', f: (m) => esc(cajaNombre(m.caja_destino)) }, { t: 'Monto', num: 1, b: 1, f: P('monto') },
+    ], L)
+  },
+  nuevo() {
+    const cajas = [['externo', 'Externo (fuera de la empresa)'], ...DB.cuentas.map((b) => ['banco:' + b.id, cajaNombre('banco:' + b.id)]),
+      ...DB.gerencias.map((g) => ['gerencia:' + g.id, cajaNombre('gerencia:' + g.id)]), ...DB.rutas.map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)])]
+    formModal({
+      titulo: 'Registrar movimiento', nota: 'Queda en la bitácora con tu usuario, fecha y hora.',
+      campos: [
+        { id: 'tipo', label: 'Tipo', tipo: 'select', req: 1, opciones: [['deposito', 'Depósito a banco'], ['retiro', 'Retiro de banco'], ['traslado', 'Traslado entre cajas'], ['egreso', 'Gasto'], ['ingreso', 'Ingreso'], ['fondeo', 'Fondeo de socios']] },
+        { id: 'origen', label: 'Sale de', tipo: 'select', req: 1, opciones: cajas }, { id: 'destino', label: 'Entra a', tipo: 'select', req: 1, opciones: cajas, valor: cajas[1]?.[0] },
+        { id: 'concepto', label: 'Concepto', req: 1 }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 },
+        { id: 'fecha', label: 'Fecha', tipo: 'date', req: 1, valor: DB.hoy }, { id: 'obs', label: 'Observación' },
+      ],
+      guardar: async (v) => {
+        const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
+        if (v.origen === v.destino) err('El origen y el destino no pueden ser la misma caja.')
+        if (['ingreso', 'fondeo'].includes(v.tipo) && v.origen !== 'externo') err('Un ingreso o fondeo debe salir de «Externo».')
+        if (v.tipo === 'egreso' && v.destino !== 'externo') err('Un gasto debe ir a «Externo».')
+        if (!(+v.monto > 0)) err('El monto debe ser mayor a cero.')
+        const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ fecha: v.fecha, tipo: v.tipo, caja_origen: v.origen, caja_destino: v.destino, concepto: v.concepto, categoria: { deposito: 'Depósito', retiro: 'Retiro', traslado: 'Traslado', egreso: 'Gasto', ingreso: 'Ingreso', fondeo: 'Fondeo' }[v.tipo], monto: +v.monto, observacion: v.obs || null, creado_por: DB.perfil.id }))
+        return ok ? 'Movimiento registrado.' : ''
+      },
+    })
   },
 }
 

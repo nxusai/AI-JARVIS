@@ -167,7 +167,7 @@ end $$;
 
 create or replace function public.es_administrador() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.perfiles where id = auth.uid() and activo and rol in ('dueno', 'soporte'));
+  select exists (select 1 from public.perfiles where id = auth.uid() and activo and rol in ('dueno', 'direccion', 'soporte'));
 $$;
 
 alter table public.perfiles enable row level security;

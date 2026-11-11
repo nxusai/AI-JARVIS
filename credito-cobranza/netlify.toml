@@ -1,9 +1,13 @@
 # Sistema de crédito y cobranza · prototipo para el cliente (base directory: credito-cobranza)
 # La página se genera desde app/ con build.py; no edites public/ a mano.
-# Variables de entorno en Netlify: SUPABASE_URL y SUPABASE_ANON_KEY.
+# Variables de entorno en Netlify: SUPABASE_URL y SUPABASE_ANON_KEY (públicas) y
+# SUPABASE_SECRET_KEY (secreta; sólo la usa la función de invitar, nunca la página).
 [build]
   command = "python3 build.py"
   publish = "public"
+
+[functions]
+  directory = "netlify/functions"
 
 [[headers]]
   for = "/*"
