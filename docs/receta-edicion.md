@@ -5,6 +5,26 @@
 ## De dónde salió
 **Referencia 1:** anuncio de una agente de bienes raíces (inglés, 44 s, 9:16). Está en la carpeta de Drive "Videos para editar" de contacto@nxusai.org: https://drive.google.com/drive/folders/1026SDveh_-ceHYlzRaWD5x0uDo9nOgTx. Los archivos se bajan con `curl -L "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t"` cuando la carpeta está abierta con link; los ID se sacan con la búsqueda de Drive `parentId = '<carpeta>'`.
 
+## Registro: qué ya se analizó y qué ya se editó
+**Cuando Eduardo diga "ya subí videos":**
+1. Lista las dos carpetas con la búsqueda de Drive (`parentId = '<id>'`).
+2. Compara contra estas tablas **por ID** de archivo (el nombre se puede repetir).
+3. Lo que no esté en las tablas es nuevo: analízalo o edítalo, y **agrégalo aquí al terminar**.
+
+**Carpetas** (dentro de "Videos para editar", `1026SDveh_-ceHYlzRaWD5x0uDo9nOgTx`):
+- **Ejemplos de edicion** (`1EDLEcUQQpTFFwVYyHPH8zqZ_EsT1Hf3W`): videos de referencia para analizar el estilo.
+- **Mis videos crudos** (`1yIkwpOgswvj9cSXJ7PupZKB8OV2FOQyh`): sus videos en bruto para editar.
+
+### Ejemplos ya analizados
+| Fecha | ID de Drive | Archivo | Qué se aprendió |
+|---|---|---|---|
+| 11 nov 2026 | `1_fjSPOF_xX11_toCM0Julof44j8UoUP4` | AQOrAGhtsH0cf3f1zhz226CbmdAu_KjTj8iWqspihSfqj7tGz9wBa_hcNiZDYyF 2.MP4 | Agente de bienes raíces (44 s): fondo desenfocado, texto detrás, subtítulos con dos letras, pastillas, logos, ritmo y estructura (ver "La receta") |
+
+### Crudos ya editados
+| Fecha | ID de Drive | Archivo | Resultado | Notas |
+|---|---|---|---|---|
+| 11 nov 2026 | `1_7w6qWNJkunNuaf-2Co19_VBuYbJcbdl` | IMG_2615.MOV (4K, 27 s) | Prueba-Edicion.mp4 (15 s), versión 3 aprobada | Solo era prueba; no se vuelve a editar. De aquí salieron las reglas de gestos, desenfoque ligero, subtítulos clave, retoque de cuerpo y texto en espacio libre |
+
 ## Preferencias de Eduardo (mandan sobre lo de abajo)
 - **Desenfoque ligero**, no extremo: gaussiano de unos 4.5 px a 1080 de ancho (sube poquito con el acercamiento). Que el fondo se vea suave, no borrado.
 - **Subtítulos solo en las frases clave** (el gancho y la idea principal), no en todo lo que dice. Lo demás lo cuentan el texto gigante detrás y los acercamientos.
