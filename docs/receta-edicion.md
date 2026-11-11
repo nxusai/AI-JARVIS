@@ -108,10 +108,12 @@
 ## El taller: herramientas y cómo montarlas
 Todo corre en el contenedor del chat (Linux). Ya vienen ffmpeg y Playwright con Chromium. Lo demás va en un **entorno de Python propio**, sin instalar nada en todo el sistema:
 ```
-python3 -m venv venv && venv/bin/pip install faster-whisper rembg onnxruntime pillow numpy scipy soundfile opencv-python-headless "mediapipe==0.10.14"
+python3.12 -m venv venv && venv/bin/pip install faster-whisper rembg onnxruntime pillow numpy scipy soundfile opencv-python-headless "mediapipe==0.10.14"
 mkdir -p modelos && curl -sS -o modelos/pose.task https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task
 ```
 - **MediaPipe tiene que ser la versión 0.10.14:** las nuevas piden una librería gráfica (libEGL) que el contenedor no tiene.
+- **El entorno se crea con `python3.12`**, no con `python3`: el contenedor trae Python 3.13 por omisión y MediaPipe 0.10.14 no existe para 3.13 (falló así el 11 de noviembre).
+- El entorno va en `edicion/venv` (ignorado por git) y tarda unos 10 minutos en instalarse; conviene dejarlo instalando en segundo plano al empezar el chat.
 - **rembg** baja solo su modelo (`u2net_human_seg`, unos 176 MB) la primera vez.
 - **faster-whisper** usa el modelo `small` en CPU para transcribir con tiempo por palabra.
 
@@ -148,3 +150,4 @@ Pasos:
 - **Subtítulos en todo:** van solo en las frases clave.
 - **Texto detrás de él** con espacio libre arriba.
 - **Marca NXUS** en un video personal.
+- **El entorno de Python no instaló MediaPipe** al crearlo con Python 3.13: usar `python3.12`.
