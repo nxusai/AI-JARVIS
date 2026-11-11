@@ -5,6 +5,14 @@
 ## De dónde salió
 **Referencia 1:** anuncio de una agente de bienes raíces (inglés, 44 s, 9:16). Está en la carpeta de Drive "Videos para editar" de contacto@nxusai.org: https://drive.google.com/drive/folders/1026SDveh_-ceHYlzRaWD5x0uDo9nOgTx. Los archivos se bajan con `curl -L "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t"` cuando la carpeta está abierta con link; los ID se sacan con la búsqueda de Drive `parentId = '<carpeta>'`.
 
+## Preferencias de Eduardo (mandan sobre lo de abajo)
+- **Desenfoque ligero**, no extremo: gaussiano de unos 4.5 px a 1080 de ancho (sube poquito con el acercamiento). Que el fondo se vea suave, no borrado.
+- **Subtítulos solo en las frases clave** (el gancho y la idea principal), no en todo lo que dice. Lo demás lo cuentan el texto gigante detrás y los acercamientos.
+- **Sin marca NXUS** en sus videos personales salvo que la pida (ni logo ni tarjeta final).
+- **Sus gestos mandan los acercamientos:** mano que agarra y jala hacia él = la cámara se acerca; palma que empuja hacia la cámara = la cámara se aleja; brazos abiertos = plano abierto con destello.
+- **Cortes:** fuera la entrada (cuando llega y se sienta), la salida (cuando se levanta) y las pausas entre frases.
+- **Texto gigante detrás de la cabeza** en colores que contrasten con su fondo (en pared clara: degradado cian → azul → violeta, no blanco).
+
 ## La receta
 1. **Persona enfocada y fondo desenfocado (lo pidió Eduardo).**
    - Se recorta a la persona cuadro por cuadro (rembg `u2net_human_seg`, máscara suavizada 2 px) y se desenfoca el fondo (gaussiano de unos 12 a 16 px a 1080 de ancho).
