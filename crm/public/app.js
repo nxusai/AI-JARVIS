@@ -26,6 +26,15 @@ const COLORES = {
 const ESTATUS_CLIENTE = { ...ESTATUS, entregada: 'Lista para revisar', 'en-correccion': 'Corrigiendo' }
 const AVANCE = ['Pedida', 'En proceso', 'Para revisar', 'Aprobada']
 const pasoDe = (estatus) => ({ recibida: 0, 'en-proceso': 1, 'en-correccion': 1, entregada: 2, aprobada: 3 })[estatus] ?? 0
+// Las tareas van por hojas, una por paso: se mueven solas de hoja cuando cambia su estatus.
+// "toca": a quién le toca hacer algo en esa hoja (equipo o cliente).
+const HOJAS = [
+  { k: 'pedidas', titulo: 'Pedidas', estatus: ['recibida'], toca: 'equipo' },
+  { k: 'proceso', titulo: 'En proceso', estatus: ['en-proceso', 'en-correccion'], toca: 'equipo' },
+  { k: 'revisar', titulo: 'Para revisar', estatus: ['entregada'], toca: 'cliente' },
+  { k: 'aprobadas', titulo: 'Aprobadas', estatus: ['aprobada'], toca: '' },
+]
+const hojaDe = (estatus) => HOJAS.find((x) => x.estatus.includes(estatus)) ?? HOJAS[0]
 
 let nLogo = 0
 /** El logo NXUS (N y X con el degradado cian → azul → violeta). */
@@ -81,6 +90,7 @@ const S = {
   parrillaTipo: '',
   vista: 'tareas',
   mes: 'pendientes',
+  hoja: null,
   anio: new Date().getFullYear(),
   filtroCliente: '',
   filtroEmpresa: '',
@@ -275,6 +285,7 @@ const marcaEntrada = () => `
 const firma = () => `<div class="firma">${logo()}<span>Hecho por NXUS AI</span></div>`
 
 async function empezar() {
+  S.hoja = null
   $('#app').innerHTML = '<div class="cargando">Cargando…</div>'
   await cargarTodo()
   const vistas = vistasPermitidas()
@@ -599,29 +610,48 @@ function tareasFiltradas() {
   return l
 }
 
+/** La hoja que se abre sola: al cliente, lo que le toca revisar; al equipo, lo que le toca trabajar. */
+function hojaInicial(base) {
+  const hay = (k) => base.some((t) => HOJAS.find((x) => x.k === k).estatus.includes(t.estatus))
+  const orden = esCliente() ? ['revisar', 'proceso', 'pedidas'] : ['pedidas', 'proceso', 'revisar']
+  return orden.find(hay) ?? orden[0]
+}
+
+/** Las aprobadas se ordenan por el mes en que se aprobaron. */
+const fechaHoja = (t) => aFecha(t.estatus === 'aprobada' && t.aprobada ? t.aprobada : t.pedida)
+
 function vistaTareas() {
   const base = tareasFiltradas()
+  if (!S.hoja) S.hoja = hojaInicial(base)
+  const hoja = HOJAS.find((x) => x.k === S.hoja) ?? HOJAS[0]
   const busca = S.busca.trim()
+  if (hoja.k === 'aprobadas' && S.mes === 'pendientes') S.mes = new Date().getMonth()
   let lista
   let titulo
   if (busca) {
     lista = base.filter((t) => coincide(textoTarea(t), busca)).sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida))
-    titulo = `Resultados de “${h(busca)}” en todos los meses`
-  } else if (S.mes === 'pendientes') {
-    lista = base.filter((t) => t.estatus !== 'aprobada').sort((a, b) => Number(b.urgente) - Number(a.urgente) || aFecha(a.pedida) - aFecha(b.pedida))
-    titulo = 'Todo lo que no se ha aprobado, de cualquier mes'
+    titulo = `Resultados de “${h(busca)}” en todas las hojas y meses`
+  } else if (hoja.k !== 'aprobadas') {
+    lista = base.filter((t) => hoja.estatus.includes(t.estatus)).sort((a, b) => Number(b.urgente) - Number(a.urgente) || aFecha(a.pedida) - aFecha(b.pedida))
+    const mia = (hoja.toca === 'cliente') === esCliente()
+    titulo = {
+      pedidas: esCliente() ? '⏳ Le toca al equipo: recibirlas y empezar.' : '👉 Te toca: abre cada una y dale “Recibir y empezar”.',
+      proceso: esCliente() ? '⏳ Le toca al equipo: está trabajando en estas (y en tus correcciones).' : '👉 Te toca: termínalas y sube el PDF final.',
+      revisar: esCliente() ? '👉 Te toca a ti: revisa cada una y apruébala o pide una corrección.' : '⏳ Le toca al cliente: revisarlas y aprobarlas o pedir corrección.',
+    }[hoja.k]
+    titulo = `<span class="${mia ? 'te-toca' : ''}">${titulo}</span>`
   } else {
     lista = base
       .filter((t) => {
-        const d = aFecha(t.pedida)
-        return d.getFullYear() === S.anio && d.getMonth() === S.mes
+        const d = fechaHoja(t)
+        return t.estatus === 'aprobada' && d.getFullYear() === S.anio && d.getMonth() === S.mes
       })
-      .sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida))
-    titulo = `Pedidas en ${MESES_LARGOS[S.mes]} ${S.anio}`
+      .sort((a, b) => fechaHoja(b) - fechaHoja(a))
+    titulo = `Aprobadas en ${MESES_LARGOS[S.mes]} ${S.anio}`
   }
-  const pendientes = base.filter((t) => t.estatus !== 'aprobada').length
-  const anios = [...new Set([new Date().getFullYear(), ...S.tareas.map((t) => aFecha(t.pedida).getFullYear())])].sort((a, b) => b - a)
-  const porMes = MESES.map((_, m) => base.filter((t) => { const d = aFecha(t.pedida); return d.getFullYear() === S.anio && d.getMonth() === m }).length)
+  const aprobadas = base.filter((t) => t.estatus === 'aprobada')
+  const anios = [...new Set([new Date().getFullYear(), ...aprobadas.map((t) => fechaHoja(t).getFullYear())])].sort((a, b) => b - a)
+  const porMes = MESES.map((_, m) => aprobadas.filter((t) => { const d = fechaHoja(t); return d.getFullYear() === S.anio && d.getMonth() === m }).length)
   const empresasTareas = misEmpresas('tareas')
   return `
     ${saludo(base)}
@@ -631,14 +661,17 @@ function vistaTareas() {
       ${esEquipo() ? `<select data-filtro="filtroCliente" aria-label="Cliente"><option value="">Todos los clientes</option>${S.clientes.map((c) => `<option value="${c.id}" ${S.filtroCliente === c.id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select>` : ''}
       ${empresasTareas.length > 1 ? `<select data-filtro="filtroEmpresa" aria-label="Empresa"><option value="">Todas las empresas</option>${opcionesEmpresa(empresasTareas, S.filtroEmpresa)}</select>` : ''}
     </div>
-    <div class="meses" role="tablist">
-      <button class="mes pend ${S.mes === 'pendientes' && !busca ? 'activo' : ''}" data-mes="pendientes">Pendientes<small>${pendientes}</small></button>
+    ${
+      hoja.k === 'aprobadas' && !busca
+        ? `<div class="meses" role="tablist">
       <select data-filtro="anio" aria-label="Año" style="width:auto;border-radius:999px;min-height:34px;padding:4px 10px">${anios.map((a) => `<option ${a === S.anio ? 'selected' : ''}>${a}</option>`).join('')}</select>
-      ${MESES.map((m, i) => `<button class="mes ${S.mes === i && !busca ? 'activo' : ''} ${porMes[i] ? '' : 'vacio'}" data-mes="${i}">${m}${porMes[i] ? `<small>${porMes[i]}</small>` : ''}</button>`).join('')}
-    </div>
-    <p class="ayuda" style="margin:0 0 10px">${titulo}</p>
+      ${MESES.map((m, i) => `<button class="mes ${S.mes === i ? 'activo' : ''} ${porMes[i] ? '' : 'vacio'}" data-mes="${i}">${m}${porMes[i] ? `<small>${porMes[i]}</small>` : ''}</button>`).join('')}
+    </div>`
+        : ''
+    }
+    <p class="ayuda hoja-aviso">${titulo}</p>
     <div class="lista">
-      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : S.mes === 'pendientes' ? '<b>¡Todo al día! 🎉</b>No hay tareas pendientes.' : '<b>Mes tranquilo</b>No hay tareas pedidas en este mes.'}</div>`}
+      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : hoja.k === 'aprobadas' ? '<b>Mes tranquilo</b>No se aprobó nada en este mes.' : `<b>Nada en “${hoja.titulo}” 🎉</b>${hoja.toca && (hoja.toca === 'cliente') === esCliente() ? 'No tienes nada pendiente aquí.' : 'Aquí aparecen solas cuando les toque.'}`}</div>`}
     </div>`
 }
 
@@ -667,11 +700,13 @@ function saludo(base) {
   } catch {}
   return `
     <div class="hola"><div><h1>${hola}, <span class="grad">${h(primerNombre(S.yo.nombre))}</span></h1><p>${frase}</p></div></div>
-    <div class="resumen">
-      <button class="dato d-pend" data-mes="pendientes"><b>${pend}</b><span>Pendientes</span></button>
-      <button class="dato d-proceso" data-mes="pendientes"><b>${proceso}</b><span>${esCliente() ? 'En manos del equipo' : 'Por trabajar'}</span></button>
-      <button class="dato d-revisar ${revisar && esCliente() ? 'llama' : ''}" data-mes="pendientes"><b>${revisar}</b><span>${esCliente() ? 'Listas para revisar' : 'Esperando al cliente'}</span></button>
-      <button class="dato d-ok" data-mes="${hoy.getMonth()}"><b>${aprobadasMes}</b><span>Aprobadas este mes</span></button>
+    <div class="resumen hojas" role="tablist" aria-label="Hojas de tareas">
+      ${HOJAS.map((x) => {
+        const n = x.k === 'aprobadas' ? aprobadasMes : base.filter((t) => x.estatus.includes(t.estatus)).length
+        const mia = x.toca && (x.toca === 'cliente') === esCliente()
+        const sub = x.k === 'aprobadas' ? 'Este mes' : !n ? (mia ? 'Nada pendiente' : 'Nada aquí') : mia ? '👉 Te toca a ti' : esCliente() ? '⏳ Le toca al equipo' : '⏳ Le toca al cliente'
+        return `<button class="dato d-${x.k} ${S.hoja === x.k && !S.busca.trim() ? 'activo' : ''} ${mia && n ? 'llama' : ''}" role="tab" aria-selected="${S.hoja === x.k}" data-hoja="${x.k}"><span class="hoja-nombre">${x.titulo}</span><b>${n}</b><span>${sub}</span></button>`
+      }).join('')}
     </div>
     ${
       mostrarPasos
@@ -691,6 +726,13 @@ function avance(estatus) {
   return `<div class="avance ${estatus === 'aprobada' ? 'fin' : ''}" aria-label="Avance: ${AVANCE[p]}">${AVANCE.map((n, i) => `<div class="${i < p ? 'hecho' : i === p ? 'aqui' : ''}"><i></i>${n}</div>`).join('')}</div>`
 }
 
+/** "👉 Te toca" o "⏳ Le toca al equipo / al cliente", según la hoja y quién mira. */
+function tocaChip(t) {
+  const toca = hojaDe(t.estatus).toca
+  if (!toca) return ''
+  return (toca === 'cliente') === esCliente() ? '<span class="chip te-toca">👉 Te toca</span>' : `<span class="chip le-toca">⏳ Le toca ${toca === 'cliente' ? 'al cliente' : 'al equipo'}</span>`
+}
+
 function tarjetaTarea(t) {
   const e = empresa(t.empresa_id)
   const nCorr = t.correcciones.length
@@ -701,6 +743,7 @@ function tarjetaTarea(t) {
       <div class="chips">
         <span class="chip emp">${h(e.nombre)}</span>
         <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
+        ${tocaChip(t)}
         ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
         ${(t.notas ?? []).length ? `<span class="chip nuevo">${t.notas.length} ${t.notas.length === 1 ? 'actualización' : 'actualizaciones'}</span>` : ''}
         ${esEquipo() ? `<span class="chip">${h(nombreCliente(t.cliente_id))}</span>` : ''}
@@ -754,6 +797,7 @@ function formNuevaTarea() {
         cerrarVentana()
         avisar(`Listo: tarea #${t.folio} registrada`)
         S.mes = 'pendientes'
+        S.hoja = 'pedidas'
         S.busca = ''
         await recargar()
       } catch (err) {
@@ -846,6 +890,7 @@ function abrirTarea(id) {
 
     <div class="seccion">
       <h3>Trabajo del equipo ${esCliente() ? '<span class="candado">🔒 Lo actualiza el equipo</span>' : ''}</h3>
+      ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
       ${
         esEquipo() && abierta
           ? `<div class="dos">
@@ -2086,6 +2131,7 @@ async function alClic(e) {
       S.yo = await D.entrar(d.entrarMuestra)
       S.vista = 'tareas'
       S.mes = 'pendientes'
+      S.hoja = null
       Object.assign(S, { filtroCliente: '', filtroEmpresa: '', busca: '', bibBusca: '', bibCarpeta: null })
       await empezar()
       return
@@ -2146,6 +2192,12 @@ async function alClic(e) {
       cerrarVentana()
       avisar('Borrado')
       await recargar()
+      return
+    }
+    if (d.hoja) {
+      S.hoja = d.hoja
+      S.busca = ''
+      pintarVista()
       return
     }
     if (d.mes !== undefined) {
@@ -2324,6 +2376,11 @@ async function alClic(e) {
         $('#form-nota').hidden = false
         b.hidden = true
         $('#n-texto').focus()
+        return
+      case 'recibir-tarea':
+        await ocupado(b, () => D.cambiarTarea(S.abierta, { estatus: 'en-proceso' }))
+        avisar('Recibida: pasó a “En proceso”')
+        await recargar()
         return
       case 'cerrar-pasos':
         try {

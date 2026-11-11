@@ -143,6 +143,17 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .dato.d-proceso b { color: var(--info); }
 .dato.d-ok b { color: var(--ok); }
 .dato.d-pend b { color: var(--cian); }
+.hojas .dato { text-align: left; }
+.hojas .dato .hoja-nombre { display: block; font: 600 13.5px/1.2 var(--display); color: var(--texto); margin-bottom: 4px; }
+.hojas .dato.activo { border: 2px solid var(--cian); background: var(--panel-2); padding: 11px 13px; }
+.dato.d-pedidas b { color: var(--cian); }
+.dato.d-aprobadas b { color: var(--ok); }
+.hoja-aviso { margin: 0 0 10px; font-size: 14px; }
+.hoja-aviso .te-toca { color: var(--texto); font-weight: 600; }
+.chip.te-toca { background: rgba(192, 140, 255, .18); color: var(--morado); border-color: rgba(192, 140, 255, .45); font-weight: 600; }
+.chip.le-toca { color: var(--suave); }
+.recibir { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(0, 229, 255, .45); background: rgba(0, 229, 255, .07); }
+.recibir .btn { margin-left: auto; }
 .dato.llama { border-color: rgba(192, 140, 255, .55); box-shadow: 0 0 24px rgba(162, 28, 255, .25); animation: latido 2.4s ease-in-out infinite; }
 @keyframes latido { 50% { box-shadow: 0 0 34px rgba(162, 28, 255, .45); } }
 
