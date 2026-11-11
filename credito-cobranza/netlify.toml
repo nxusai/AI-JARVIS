@@ -1,0 +1,24 @@
+# Sistema de crédito y cobranza · prototipo para el cliente (base directory: credito-cobranza)
+# La página se genera desde prototipo-tablero.html; no edites public/ a mano.
+[build]
+  command = "python3 build.py"
+  publish = "public"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-cache"
+
+# El prototipo es una sola página: cualquier ruta abre el tablero.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
