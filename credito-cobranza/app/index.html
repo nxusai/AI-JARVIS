@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#070a12">
+<title>Crédito y Cobranza</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232ee6cf'/%3E%3Cpath d='M9 24V15M16 24V8M23 24v-6' stroke='%2306221f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="preload" as="image" href="fondo.jpg" media="(min-width: 821px)">
+<link rel="preload" as="image" href="fondo-movil.jpg" media="(max-width: 820px)">
+<link rel="stylesheet" href="estilo.css">
+<!--CONFIG-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<div class="scene" aria-hidden="true"><div class="bgphoto"></div><div class="veil"></div></div>
+
+<div class="loading" id="loading">Cargando…</div>
+
+<section class="login" id="login" hidden>
+  <div class="card">
+    <div class="brand" style="padding:0">
+      <div class="emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#06221f" stroke-width="2.4" stroke-linecap="round"><path d="M5 19V11M12 19V5M19 19v-5"/></svg></div>
+      <div><b>Crédito y Cobranza</b><span>Acceso al sistema</span></div>
+    </div>
+    <div id="loginForm">
+      <h1>Iniciar sesión</h1>
+      <p style="margin-top:4px">Entra con el correo y la contraseña de tu cuenta.</p>
+      <form id="fLogin" style="margin-top:14px" novalidate>
+        <input class="ctl" id="email" type="email" autocomplete="username" placeholder="Correo" required>
+        <input class="ctl" id="pass" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+        <div class="err" id="loginErr" role="alert"></div>
+        <button class="btn" id="btnLogin" type="submit">Entrar</button>
+        <button class="lnk" id="btnOlvide" type="button">Olvidé mi contraseña</button>
+      </form>
+    </div>
+    <div id="newPassForm" hidden>
+      <h1>Nueva contraseña</h1>
+      <p style="margin-top:4px">Escribe tu nueva contraseña (mínimo 10 caracteres).</p>
+      <form id="fNewPass" style="margin-top:14px" novalidate>
+        <input class="ctl" id="pass2" type="password" autocomplete="new-password" placeholder="Nueva contraseña" required>
+        <div class="err" id="newPassErr" role="alert"></div>
+        <button class="btn" type="submit">Guardar contraseña</button>
+      </form>
+    </div>
+    <a class="powered" href="https://nxusai.org" target="_blank" rel="noopener"><img src="logo-nxus.png" alt="" width="23" height="15"><span>powered by <b>NXUS&nbsp;AI</b></span></a>
+  </div>
+</section>
+
+<div class="app" id="app" hidden>
+  <aside class="side glass" id="side">
+    <div class="brand">
+      <div class="emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#06221f" stroke-width="2.4" stroke-linecap="round"><path d="M5 19V11M12 19V5M19 19v-5"/></svg></div>
+      <div><b>Crédito y Cobranza</b><span>Panel de control</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="me inset">
+        <div class="av" id="meAv">·</div>
+        <div style="min-width:0"><div class="nm" id="meNombre"></div><div class="rl" id="meRol"></div></div>
+        <button id="btnSalir" type="button" title="Cerrar sesión" aria-label="Cerrar sesión"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></button>
+      </div>
+      <a class="powered" href="https://nxusai.org" target="_blank" rel="noopener"><img src="logo-nxus.png" alt="" width="23" height="15"><span>powered by <b>NXUS&nbsp;AI</b></span></a>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="main" id="main">
+    <div class="demo-banner" id="demoBanner">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <span id="bannerTxt"></span>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="modalHost"></div>
+</body>
+</html>

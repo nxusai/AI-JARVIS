@@ -1,5 +1,6 @@
 # Sistema de crédito y cobranza · prototipo para el cliente (base directory: credito-cobranza)
-# La página se genera desde prototipo-tablero.html; no edites public/ a mano.
+# La página se genera desde app/ con build.py; no edites public/ a mano.
+# Variables de entorno en Netlify: SUPABASE_URL y SUPABASE_ANON_KEY.
 [build]
   command = "python3 build.py"
   publish = "public"
@@ -7,7 +8,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
@@ -16,6 +17,11 @@
     Cross-Origin-Opener-Policy = "same-origin"
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
 
 # El prototipo es una sola página: cualquier ruta abre el tablero.
 [[redirects]]
