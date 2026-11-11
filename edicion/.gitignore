@@ -1,0 +1,15 @@
+in/
+atras/
+frente/
+p-atras/
+p-frente/
+modelos/
+*.wav
+*.mov
+*.MOV
+*.mp4
+*.jpg
+*.png
+palabras.json
+plan.json
+log-*.txt

@@ -1,6 +1,18 @@
-# Receta de edición de Eduardo (videos hablando a cámara)
+# Receta de edición de Eduardo (su marca personal y sus videos)
 
-Última actualización: 11 de noviembre de 2026. Cualquier chat o NEX que edite un video de Eduardo sigue esta receta. Cada corrección que él pida se agrega aquí.
+Última actualización: 11 de noviembre de 2026. **Cualquier chat o NEX que edite un video de Eduardo lee esto completo primero y lo sigue.** Cada corrección que él pida se agrega aquí, en "Preferencias", y cada video nuevo se anota en el "Registro".
+
+## Cómo trabajar con Eduardo
+- **Comunicación:**
+  - Español, directo y breve.
+  - Pasos clic por clic, con los nombres de los botones en inglés como salen en pantalla.
+  - Links dentro de cada paso y repetidos al final.
+- **Editar aquí y no en NEX:** se edita en el chat de Claude Code, que va con su suscripción. En NEX se cobra a su llave de API. Generar tomas, voz o música con Higgsfield sí gasta créditos, y hoy están casi en cero.
+- **"En vivo":** no hay vista en vivo. Mandar fotos de cada avance (cortes, efectos, final) mientras se edita, y avisar cuando el video esté listo.
+- **Entrega:**
+  - Nunca entregar sin revisar el video **terminado**: audio igual de largo que el video, transcripción del audio final (que su voz se entienda sobre la música) y fotogramas a lo largo del video.
+  - Luego el archivo con SendUserFile y una explicación corta de qué se hizo.
+- **Archivos:** sus videos y ejemplos están en su Google Drive (contacto@nxusai.org), en las carpetas del Registro. Él abre la carpeta con "Anyone with the link" cuando sube videos; si un archivo no baja, pedirle que la abra.
 
 ## De dónde salió
 **Referencia 1:** anuncio de una agente de bienes raíces (inglés, 44 s, 9:16). Está en la carpeta de Drive "Videos para editar" de contacto@nxusai.org: https://drive.google.com/drive/folders/1026SDveh_-ceHYlzRaWD5x0uDo9nOgTx. Los archivos se bajan con `curl -L "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t"` cuando la carpeta está abierta con link; los ID se sacan con la búsqueda de Drive `parentId = '<carpeta>'`.
@@ -42,11 +54,11 @@
 
 ## La receta
 1. **Persona enfocada y fondo desenfocado (lo pidió Eduardo).**
-   - Se recorta a la persona cuadro por cuadro (rembg `u2net_human_seg`, máscara suavizada 2 px) y se desenfoca el fondo (gaussiano de unos 12 a 16 px a 1080 de ancho).
+   - Se recorta a la persona cuadro por cuadro (rembg `u2net_human_seg`, máscara suavizada 2 px) y se desenfoca el fondo **ligero**, unos 4.5 px a 1080 de ancho (ver Preferencias; en la referencia era más fuerte y a él no le gustó extremo).
    - Si el fondo ya viene desenfocado de la cámara, se usa menos.
    - Lo que toca a la persona (el sofá donde está sentada) se desenfoca menos, para que se vea natural; ideal con mapa de profundidad.
    - Un poco de nitidez solo sobre la persona.
-2. **Texto gigante detrás de la persona** en las frases clave ("LET ME", "TOP 1%", "INVESTMENT"): va en la capa de fondo y la persona (su máscara) va encima, tapando parte de las letras. Se usa unas 3 o 4 veces por video, no en todo.
+2. **Texto gigante en las frases clave** ("LET ME", "TOP 1%", "INVESTMENT"). **Si hay espacio libre, va ahí, completo.** Detrás de la persona (la capa de fondo, con la persona encima tapando parte de las letras) solo cuando la toma está cerrada. Unas 3 o 4 veces por video, no en todo.
 3. **Subtítulos de 1 a 3 palabras, con dos tipos de letra:**
    - serif elegante en cursiva para el relleno ("deserves the", "goes far beyond");
    - sans gruesa en mayúsculas para lo importante ("YOUR PROPERTY", "IS NOT").
@@ -92,3 +104,47 @@
 5. **Cámara lenta con rampa:** el clip va normal y se frena en el momento fuerte (esfuerzo, gesto), luego regresa. Pide grabar a 60 o 120 cuadros por segundo.
 6. **Cierre con logo animado** sobre negro con frase o fecha y fundido (solo si pide marca).
 7. **Ángulos que lucen más:** desde abajo, muy cerca de la cara, detalles (manos, cadena, logo). Esto depende de cómo grabe; se le sugiere si quiere ese efecto.
+
+## El taller: herramientas y cómo montarlas
+Todo corre en el contenedor del chat (Linux). Ya vienen ffmpeg y Playwright con Chromium. Lo demás va en un **entorno de Python propio**, sin instalar nada en todo el sistema:
+```
+python3 -m venv venv && venv/bin/pip install faster-whisper rembg onnxruntime pillow numpy scipy soundfile opencv-python-headless "mediapipe==0.10.14"
+mkdir -p modelos && curl -sS -o modelos/pose.task https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task
+```
+- **MediaPipe tiene que ser la versión 0.10.14:** las nuevas piden una librería gráfica (libEGL) que el contenedor no tiene.
+- **rembg** baja solo su modelo (`u2net_human_seg`, unos 176 MB) la primera vez.
+- **faster-whisper** usa el modelo `small` en CPU para transcribir con tiempo por palabra.
+
+## El proceso paso a paso (estilo hablado a cámara)
+El código está en `edicion/` (lo del video de prueba; se adapta a cada video):
+- **`plan.py`:** los tramos que se quedan, las palabras en el tiempo final, los acercamientos (`ZOOM`) y el texto grande (`ATRAS`). Se reescribe para cada video.
+- **`capa.html` + `capa.js`:** dibujan con Playwright, cuadro por cuadro, la capa del texto grande (`atras`) y la de subtítulos, pastillas y destellos (`frente`).
+- **`cuerpo.py`:** retoque del cuerpo guiado por la pose; protege las manos.
+- **`componer.py`:** arma cada cuadro en este orden: acercamiento desde el 4K, retoque, recorte de la persona, fondo desenfocado, texto grande, la persona encima y subtítulos. `python componer.py prueba 3.0,8.0` saca fotos de prueba.
+- **`musica.py`:** música original con golpes en los cortes (parámetros: salida, duración, inicio).
+- **`final.sh`:** todo junto; se corre con `PY=venv/bin/python SALIDA=Nombre.mp4 bash final.sh`.
+
+Pasos:
+1. **Bajar el crudo** de Drive y hacer una copia ligera a 1080 (`scale=-2:1920,fps=30`). Los iPhone graban HEVC 4K a 60 cuadros por segundo con rotación; ffmpeg la corrige solo.
+2. **Transcribir con tiempo por palabra** y medir las pausas reales con la energía del audio: los finales de palabra de whisper se alargan.
+3. **Decidir los cortes:** fuera la entrada, la salida, las pausas y las tomas repetidas. Cortar del 4K a 30 cuadros por segundo, con fundidos de 20 ms en el audio para que no truene.
+4. **Encontrar los gestos:** hoja de cuadros a 10 por segundo con la hora encima, en los tramos donde mueve las manos. Poner el acercamiento exacto en el movimiento.
+5. **Ubicar su cuerpo** (caja y cabeza con rembg) para centrar los acercamientos en su cara y poner el texto.
+6. **Fotos de prueba** de los momentos clave y mandárselas. Ajustar.
+7. **Render completo** en segundo plano. Unos 15 a 20 minutos para 15 segundos de video: el recorte y la pose van cuadro por cuadro.
+8. **Audio:** voz con highpass, quitar ruido, compresor y **loudnorm de la voz sola a -15 LUFS antes de mezclar**. Música a 0.16 con ducking y limitador. Mezclar el audio aparte y luego unirlo con el video: mezclarlo dentro del mismo comando del video ya cortó el audio una vez.
+9. **Revisar el terminado** (duraciones, transcripción, fotogramas) y entregar.
+10. **Anotar en el Registro y en Preferencias** lo nuevo.
+
+## Errores que ya pasaron (no repetir)
+- **La música tapó su voz:** él graba muy bajito, en -40 dB. Siempre normalizar la voz antes de mezclar y transcribir el audio final para comprobarlo.
+- **El audio se cortó antes que el video** al mezclarlo en el mismo comando: mezclar aparte.
+- **Texto blanco invisible** sobre pared clara: usar colores que contrasten.
+- **Texto grande que se salía de la pantalla:** el tamaño se calcula según el largo de la palabra.
+- **La pastilla de Claude encimada** con el texto grande.
+- **El acercamiento adelantado:** empezó cuando estiró la mano, no cuando jaló.
+- **El retoque agrandaba las manos:** se protegen las manos.
+- **Desenfoque demasiado fuerte.**
+- **Subtítulos en todo:** van solo en las frases clave.
+- **Texto detrás de él** con espacio libre arriba.
+- **Marca NXUS** en un video personal.
