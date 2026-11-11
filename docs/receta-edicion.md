@@ -11,6 +11,7 @@
 - **Sin marca NXUS** en sus videos personales salvo que la pida (ni logo ni tarjeta final).
 - **Sus gestos mandan los acercamientos:** mano que agarra y jala hacia él = la cámara se acerca; palma que empuja hacia la cámara = la cámara se aleja; brazos abiertos = plano abierto con destello.
 - **Cortes:** fuera la entrada (cuando llega y se sienta), la salida (cuando se levanta) y las pausas entre frases.
+- **Texto grande: primero el espacio libre, no detrás de él.** Si arriba de él (o a un lado) hay espacio vacío, el texto grande va ahí, completo y sin taparse. El texto detrás de la cabeza se usa solo cuando la toma está cerrada y no hay espacio libre (por ejemplo, en un acercamiento fuerte a la cara). En su prueba del 11 de noviembre había mucho espacio arriba y el texto quedó detrás: no.
 - **Nada encimado** (pastillas, logos, textos) salvo que se vea bien: si dos elementos coinciden, uno termina antes de que entre el otro.
 - **El acercamiento va exacto con el gesto:** medir el gesto cuadro por cuadro (10 por segundo). El acercamiento arranca cuando cierra el puño y empieza a jalar, no cuando estira la mano, y llega a la cara cuando el puño toca el pecho. El alejamiento sigue el empujón de la palma, en unos 0.35 s.
 - **Retoque de cuerpo moderado** (lo pidió): abdomen un poco más delgado y brazos más anchos en el bíceps, con deformación guiada por la pose (MediaPipe 0.10.14 + OpenCV, `cuerpo.py`), sin tocar las manos. No exagerar: la pared y la silla se doblan.
