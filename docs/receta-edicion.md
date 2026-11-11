@@ -19,8 +19,8 @@
 | Fecha | ID de Drive | Archivo | Qué se aprendió |
 |---|---|---|---|
 | 11 nov 2026 | `1_fjSPOF_xX11_toCM0Julof44j8UoUP4` | AQOrAGhtsH0cf3f1zhz226CbmdAu_KjTj8iWqspihSfqj7tGz9wBa_hcNiZDYyF 2.MP4 | Agente de bienes raíces (44 s): fondo desenfocado, texto detrás, subtítulos con dos letras, pastillas, logos, ritmo y estructura (ver "La receta") |
-| 11 nov 2026 | `1O9ErBtKWsaDkQiOyBW3IiLWeLL6Mizfk` | US NEVER THEM #fitness #explorepage✨ #gym #couplegoals❤️ #fitnessaddict.mp4 | Pareja entrenando (29 s, 16:9, rap ~89 BPM): estilo B, montaje cinematográfico con música |
-| 11 nov 2026 | `1aO9UHMWjl3Wcfj0f_uPTI6IGV1OSydLD` | A promise isn’t made when it’s easy. It’s kept when things get hard.Built through adversity. Dri.mp4 | Promo de marca de ropa de gym (25 s, 16:9, ~144 BPM): estilo B, cierra con logo animado y fecha |
+| 11 nov 2026 | `1O9ErBtKWsaDkQiOyBW3IiLWeLL6Mizfk` | US NEVER THEM #fitness #explorepage✨ #gym #couplegoals❤️ #fitnessaddict.mp4 | Pareja entrenando (29 s, 16:9, rap ~89 BPM): de aquí salió la caja de efectos (no copiar el estilo completo) |
+| 11 nov 2026 | `1aO9UHMWjl3Wcfj0f_uPTI6IGV1OSydLD` | A promise isn’t made when it’s easy. It’s kept when things get hard.Built through adversity. Dri.mp4 | Promo de marca de ropa de gym (25 s, 16:9, ~144 BPM): caja de efectos; cierre con logo animado y fecha |
 
 ### Crudos ya editados
 | Fecha | ID de Drive | Archivo | Resultado | Notas |
@@ -83,21 +83,12 @@
 - Micrófono de solapa si lo hay.
 - Si se equivoca, pausa y repite la frase.
 
-## Estilo B: montaje cinematográfico con música (sin hablar)
-Sale de los ejemplos del gym (11 nov 2026). Es para videos de marca, motivación o ambiente: no hay alguien hablando a cámara, la música manda.
-1. **Color oscuro y de cine:** casi sin saturación (medida: 3.3, contra 13 del estilo hablado), negros profundos, tono frío verde azulado, mucho contraste. Las luces del lugar se ven como líneas brillantes.
-2. **Muchas tomas cortas:** de 1 a 1.5 s cada una, cortando **al ritmo de la música** (cada 2 tiempos en un beat lento de ~90 BPM; cada 3 en uno rápido de ~144).
-3. **Variedad de ángulos:**
-   - desde abajo (contrapicado);
-   - muy cerca de la cara y los ojos;
-   - detalles: manos, cadena, logo de la playera, pesas;
-   - cámara en mano y fondo desenfocado.
-4. **Cámara lenta** en los momentos de esfuerzo (caras apretando, el último jalón).
-5. **Transiciones:** casi todo corte seco. Cada tanto, un destello de luz roja o naranja con barrido de movimiento, o un parpadeo a negro.
-6. **Sin subtítulos.** Casi sin texto; al final, logo animado sobre negro y fecha o frase, con fundido.
-7. **Historia por emoción:** esfuerzo, compañía, disciplina. La canción dice el tono.
-8. **Qué necesita de grabación** (con una sola toma no sale este estilo):
-   - de 20 a 40 clips cortos del mismo momento, desde muchos ángulos y distancias;
-   - en 4K y, si se puede, a 60 o 120 cuadros por segundo para la cámara lenta;
-   - poca luz ambiente con luces fuertes de fondo, como un gym;
-   - la canción elegida antes, para cortar al ritmo.
+## Caja de efectos (de los ejemplos del gym, 11 nov 2026)
+**No es un estilo para copiar completo.** Eduardo no quiere que sus videos se vean como esos (ni ese color oscuro ni ese tipo de clips). Son **efectos y técnicas sueltas** que se usan **solo cuando él las pida**, sobre su propio estilo.
+1. **Clips uno tras otro al ritmo de la música:** tomas de 1 a 1.5 s, cortando en el golpe (cada 2 tiempos en beat lento de ~90 BPM, cada 3 en uno rápido de ~144). Se detecta el tempo de la canción y se corta en sus golpes.
+2. **Destello de luz** (luz roja o naranja que cruza la pantalla, tipo "light leak") como transición entre clips.
+3. **Barrido de movimiento** (whip): desenfoque de movimiento rápido de un clip al siguiente.
+4. **Parpadeo a negro** de 1 o 2 cuadros entre tomas para dar golpe.
+5. **Cámara lenta con rampa:** el clip va normal y se frena en el momento fuerte (esfuerzo, gesto), luego regresa. Pide grabar a 60 o 120 cuadros por segundo.
+6. **Cierre con logo animado** sobre negro con frase o fecha y fundido (solo si pide marca).
+7. **Ángulos que lucen más:** desde abajo, muy cerca de la cara, detalles (manos, cadena, logo). Esto depende de cómo grabe; se le sugiere si quiere ese efecto.
