@@ -653,7 +653,7 @@ VIEWS.admin = {
         </div></div>`
     } else if (this.tab === 'parametros') {
       const kv = [['Productos de préstamo', '<span class="pend">por definir</span>'], ['Cálculo de interés', '<span class="pend">provisional: 40 % · 10 cuotas</span>'], ['Frecuencias', 'semanal · quincenal (2 fechas fijas) · mensual'], ['Hora de cierre de caja', '18:00'],
-        ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Mora / penalización', '<span class="pend">por definir</span>'], ['Días no laborables', '<span class="pend">por definir</span>'], ['Respaldos', 'diarios · 30 días']]
+        ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Mora / penalización', '<span class="pend">por definir</span>'], ['Días no laborables', '<span class="pend">por definir</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
       el.innerHTML = `<div class="card panel"><h3 class="sec-title">Parámetros</h3><div class="kv">${kv.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
     } else {
       el.innerHTML = `<div class="card panel"><div class="ph"><h3>Bitácora</h3><span class="chip">0 eventos</span></div><div class="empty"><b>Sin eventos todavía</b>Cada alta, cambio, pago, reverso o cierre quedará aquí: quién, cuándo, qué y por qué.</div></div>`
