@@ -471,6 +471,17 @@ export async function vistaFinanzas(v, ctx) {
   const juntoUSD = (o) => o.USD + o.MXN / tc
   const tieneDos = (o) => Math.round(o.USD * 100) && Math.round(o.MXN * 100)
   const rango = (n) => ({ desde: iso(new Date(Y, Mo, n === 1 ? 1 : 15)), hasta: iso(n === 1 ? new Date(Y, Mo, 15) : new Date(Y, Mo + 1, 1)) })
+  // Cada corte se paga con lo que YA entró antes de prepararlo:
+  //   corte del 1 al 14  ← lo que entra del 15 al fin del mes anterior (y del 1 al 3, por si el de México paga a principios)
+  //   corte del 15 al 31 ← lo que entra del 4 al 14 del mes
+  const DIA_CORTE = 4
+  const rangoFondo = (n) => (n === 1 ? { desde: iso(new Date(Y, Mo - 1, 15)), hasta: iso(new Date(Y, Mo, DIA_CORTE)) } : { desde: iso(new Date(Y, Mo, DIA_CORTE)), hasta: iso(new Date(Y, Mo, 15)) })
+  const textoFondo = (n) => {
+    const r = rangoFondo(n)
+    const fin = sumarDias(r.hasta, -1)
+    const corto = (s) => deIso(s).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '')
+    return `entra del ${corto(r.desde)} al ${corto(fin)}`
+  }
   const claveMes = (n) => `${Y}-${String(Mo + 1).padStart(2, '0')}-${n}`
   const mesClave = `${Y}-${String(Mo + 1).padStart(2, '0')}`
   const estadoDe = (g, n) => estados.find((e) => e.gasto_id === g.id && e.mes === claveMes(n))?.estado ?? (g.activo === false ? 'cancelado' : g.automatico ? 'pagado' : 'debe')
@@ -478,11 +489,17 @@ export async function vistaFinanzas(v, ctx) {
   // ---- Entradas: solas, de cómo paga cada cliente (más las que registre a mano).
   const inicioCuentas = (() => {
     const d = config?.desde ? deIso(String(config.desde).slice(0, 10)) : new Date()
+    // Desde la quincena anterior al mes en que empezó a usar Finanzas (para el dinero del primer corte).
+    return iso(new Date(d.getFullYear(), d.getMonth() - 1, 15))
+  })()
+  const inicioPaydays = (() => {
+    const d = config?.desde ? deIso(String(config.desde).slice(0, 10)) : new Date()
     return iso(new Date(d.getFullYear(), d.getMonth(), 1))
   })()
   const M = motor({ clientes, dinero: din, cobros, omitidos, pagosPros: [], gastos: [], aportes: [], metas: [], nomina: [], jornadas: [], ajustes: [], comisiones: [], config: { ...(config ?? {}), desde: inicioCuentas } }, ctx, cambio)
-  function entradasDe(n) {
-    const r = rango(n)
+  /** Las entradas que pagan el corte n (las que entran antes de prepararlo). */
+  const entradasDe = (n) => entradasEntre(rangoFondo(n))
+  function entradasEntre(r) {
     const prog = M.cobrosProgramados(r.desde, r.hasta)
     const usados = new Set(prog.filter((p) => p.cobro).map((p) => p.cobro.id))
     const deClientes = prog.map((p) => ({
@@ -533,7 +550,7 @@ export async function vistaFinanzas(v, ctx) {
   const navMes = `<div class="acciones mes-nav"><div class="segmento"><button data-mes="-1" aria-label="Mes anterior">←</button><button class="on">${h(mesTxt)}</button><button data-mes="1" aria-label="Mes siguiente">→</button></div>${salto ? '<button class="btn chico" data-mes="0">Este mes</button>' : ''}</div>`
   const ESTADO_ENT = { llego: '✓ Llegó', payday: '💰 Payday · ¿llegó?', 'por-llegar': 'Por llegar', no: 'No llegó', extra: '✓ Registrada', stripe: '✓ Stripe' }
   // Paydays sin confirmar (de los últimos 75 días, cualquier mes): arriba de Finanzas para confirmar con un toque.
-  const paydays = M.cobrosProgramados(sumarDias(hoy, -75), sumarDias(hoy, 1)).filter((p) => p.estado !== 'cobrado' && p.estado !== 'omitido' && p.fecha <= hoy)
+  const paydays = M.cobrosProgramados(sumarDias(hoy, -75), sumarDias(hoy, 1)).filter((p) => p.estado !== 'cobrado' && p.estado !== 'omitido' && p.fecha <= hoy && p.fecha >= inicioPaydays)
   const avisoPayday = paydays.length
     ? `<div class="tarjeta payday"><h3>💰 ${paydays.some((p) => p.fecha === hoy) ? 'Hoy es payday' : 'Payday sin confirmar'}</h3><ul class="movs">${paydays
         .map((p) => `<li><div><b>${h(p.cliente.nombre)}</b><small>${p.fecha === hoy ? 'hoy' : fechaBonita(p.fecha)} · ${dinero(p.monto, p.moneda)}</small></div><div class="mov-der">${editar ? `<button class="btn chico primario" data-llego="${p.cliente.id}|${p.fecha}">✓ Llegó</button><button class="btn chico" data-ajustar="${p.cliente.id}|${p.fecha}">Llegó otro monto</button><button class="btn chico" data-nollego="${p.cliente.id}|${p.fecha}">No llegó</button>` : '<span class="chip">sin confirmar</span>'}</div></li>`)
@@ -566,11 +583,11 @@ export async function vistaFinanzas(v, ctx) {
             }</div></li>`
           })
           .join('')}</ul>
-        <div class="corte-num"><span>Entradas <b>${verMon(entradas)}</b></span><span>A tener (NXUS + personal) <b>${verMon(aTener)}</b></span><span class="${juntoUSD(sobran) < 0 ? 'rojo' : 'verde'}">Sobran <b>${verMon(sobran)}</b></span></div>
+        <div class="corte-num"><span>Dinero para este corte <b>${verMon(entradas)}</b> <small>(${textoFondo(n)})</small></span><span>A tener (NXUS + personal) <b>${verMon(aTener)}</b></span><span class="${juntoUSD(sobran) < 0 ? 'rojo' : 'verde'}">Sobran <b>${verMon(sobran)}</b></span></div>
       </div>`
     }
     return `<div class="tarjeta cortes"><h3>Cortes de ${h(mesTxt.toLowerCase())} <small>tus movimientos de dinero</small></h3><div class="dos">${corte(1)}${corte(2)}</div>
-      <p class="nota">Cada corte: mandar a México lo de "Tarjeta de México" y pasar lo de los "Automatizado" a su cuenta (el del 1 al 14 antes del día 1; el del 15 al 31 antes del 15). Toca <b>"Ya lo hice"</b> cuando lo hagas. A tiempo = verde; si se pasa la fecha y no lo has hecho = rojo. Lo de pago manual (deudas, renta, tarjetas) lo pagas tú directo y no entra aquí.</p></div>`
+      <p class="nota">Cada corte: mandar a México lo de "Tarjeta de México" y pasar lo de los "Automatizado" a su cuenta (el del 1 al 14 antes del día 1; el del 15 al 31 antes del 15). Cada corte se paga con lo que <b>ya entró antes</b>: el del 1 al 14 con lo que entra del 15 al fin del mes anterior (y del 1 al 3, por si México paga a principios de mes); el del 15 al 31 con lo que entra del 4 al 14. Toca <b>"Ya lo hice"</b> cuando lo hagas. A tiempo = verde; si se pasa la fecha y no lo has hecho = rojo. Lo de pago manual (deudas, renta, tarjetas) lo pagas tú directo y no entra aquí.</p></div>`
   }
 
   // ------------------------------------------------- Gastos del mes (como Notion)
@@ -591,7 +608,7 @@ export async function vistaFinanzas(v, ctx) {
         <div class="fila"><h3><span class="punto-n ${enCurso ? 'vivo' : ''}"></span>${M2.titulo} <small class="tipo-n ${cual}">${cual === 'personal' ? 'Personal' : 'NXUS'}</small></h3>${editar ? `<button class="btn chico" data-nuevo="${M2.clave}">+ Gasto</button>` : ''}</div>
         <div class="resumen-n">
           <div><span>A tener</span><b>${verMon(aTener)}</b></div>
-          <div><span>${cual === 'personal' ? 'Te sobra de NXUS' : 'Entradas'}</span><b>${verMon(income)}</b>${cual === 'personal' ? `<small>entradas ${verMon(entradas)} − NXUS ${verMon(nx)}</small>` : ''}</div>
+          <div><span>${cual === 'personal' ? 'Te sobra de NXUS' : 'Dinero para esto'}</span><b>${verMon(income)}</b><small>${cual === 'personal' ? `entradas ${verMon(entradas)} − NXUS ${verMon(nx)} · ` : ''}${textoFondo(n)}</small></div>
           <div class="${juntoUSD(sobran) < 0 ? 'neg' : 'pos'}"><span>Sobran</span><b>${verMon(sobran)}</b>${tieneDos(sobran) ? `<small>todo junto ≈ ${juntoUSD(sobran) < 0 ? '−' : ''}${dinero(Math.abs(juntoUSD(sobran)), 'USD')}</small>` : ''}</div>
           <div><span>Pagados</span><b>${pagados}/${vivos.length}</b></div>
         </div>
@@ -609,7 +626,7 @@ export async function vistaFinanzas(v, ctx) {
       </div>`
     }
     const selector = admin ? `<div class="segmento tipo-sel">${[['negocio', 'NXUS'], ['personal', 'Personal']].map(([k, t]) => `<button data-tipo="${k}" class="${cual === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''
-    return `${navMes}${cortes()}<div class="acciones">${selector}</div>${tabla(1)}${tabla(2)}<p class="nota">${cual === 'personal' ? 'Personal: solo tú lo ves. "Te sobra de NXUS" = entradas − gastos de NXUS de esa mitad; "Sobran" = eso − tus gastos personales. ' : ''}Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. "A tener" = la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
+    return `${navMes}${cortes()}<div class="acciones">${selector}</div>${tabla(1)}${tabla(2)}<p class="nota">${cual === 'personal' ? 'Personal: solo tú lo ves. "Te sobra de NXUS" = entradas − gastos de NXUS de esa mitad; "Sobran" = eso − tus gastos personales. ' : ''}Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. "A tener" = la suma de los gastos (sin los cancelados). "Dinero para esto" = lo que entró antes de esta mitad (con eso la pagas). "Sobran" = dinero para esto − a tener.</p>`
   }
 
   // ------------------------------------------------- Entradas (solas, de cómo paga cada cliente)
@@ -617,7 +634,7 @@ export async function vistaFinanzas(v, ctx) {
     const lista = (n) => {
       const xs = entradasDe(n)
       const tot = sum(cuentan(xs))
-      return `<div class="tarjeta"><div class="fila"><h3>Del ${MITAD[n].corto}</h3><b class="dos-mon">${verMon(tot)}</b></div>${
+      return `<div class="tarjeta"><div class="fila"><h3>Pagan el corte del ${MITAD[n].corto} <small>${textoFondo(n)}</small></h3><b class="dos-mon">${verMon(tot)}</b></div>${
         xs.length
           ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Día</th><th>De</th><th class="num">Monto</th><th>Estado</th><th></th></tr>${xs
               .map(
@@ -641,7 +658,7 @@ export async function vistaFinanzas(v, ctx) {
     }
     const sinPlan = clientes.filter((c) => c.estado === 'activo' && !M.planes.some((p) => p.c.id === c.id && p.monto))
     return `${navMes}
-      <p class="nota">Salen solas de <b>cómo te paga cada cliente</b> (Clientes → el cliente → "Cómo paga"). Antes de su día dicen "Por llegar"; en su día es <b>payday</b> y te pregunta si llegó. Tú confirmas: ✓ Llegó, otro monto o No llegó.</p>
+      <p class="nota">Salen solas de <b>cómo te paga cada cliente</b> (Clientes → el cliente → "Cómo paga"). Antes de su día dicen "Por llegar"; en su día es <b>payday</b> y te pregunta si llegó. Tú confirmas: ✓ Llegó, otro monto o No llegó. Cada entrada paga el corte que sigue: lo que entra del 4 al 14 paga lo del 15 al 31; lo que entra del 15 al fin de mes (y del 1 al 3) paga lo del 1 al 14 del mes siguiente.</p>
       ${editar ? '<div class="acciones"><button class="btn" id="fin-cobro">+ Otra entrada (que no es de un cliente fijo)</button></div>' : ''}
       ${lista(1)}${lista(2)}
       ${sinPlan.length ? `<div class="tarjeta"><h3>Clientes activos sin "cómo paga"</h3><p class="nota">Sus entradas no salen solas hasta que les pongas cómo pagan:</p><ul class="lista">${sinPlan.map((c) => `<li><a href="#cliente/${c.id}">${h(c.nombre)}</a>${editar ? `<button class="btn chico" data-plan="${c.id}">Cómo paga</button>` : ''}</li>`).join('')}</ul></div>` : ''}`
