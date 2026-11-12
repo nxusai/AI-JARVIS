@@ -708,4 +708,10 @@ label { color: var(--suave); letter-spacing: 0.02em; }
   .pend-acc { opacity: 1; flex-wrap: wrap; justify-content: flex-end; }
   .captura-lujo input { font-size: 17px; }
   .dias7 { margin-left: 0; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi { padding: 14px 16px; }
+  .kpi b { font-size: 32px; }
+  .kpi .aro { width: 36px; height: 36px; right: 12px; top: 12px; }
+  .segmento { max-width: 100%; overflow-x: auto; }
+  .segmento button { white-space: nowrap; padding: 8px 12px; }
 }
