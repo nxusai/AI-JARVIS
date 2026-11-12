@@ -922,6 +922,41 @@ function filaArchivo(a, { borrar = false, guardarBib = false, anteriores = null 
     </div>`
 }
 
+/** El detalle en el celular: arriba lo importante y el resto en filas que se abren (como Ajustes). */
+function cuerpoTareaMovil(t, x) {
+  const e = empresa(t.empresa_id)
+  const paso = pasoDe(t.estatus) + 1
+  const toca = hojaDe(t.estatus).toca
+  const mio = toca && (toca === 'cliente') === esCliente()
+  const ult = x.ultimo
+  const fila = (ico, fondo, titulo, valor, contenido, abierto = false) =>
+    `<details class="m-det"${abierto ? ' open' : ''}><summary><span class="m-ic" style="background:${fondo}">${ico}</span><span class="m-txt">${titulo}</span><span class="m-val">${valor}</span><span class="m-flecha">›</span></summary><div class="m-det-cuerpo">${contenido}</div></details>`
+  const cuando = t.aprobada ? `Aprobada ${fecha(t.aprobada)}` : t.compromiso ? `Compromiso ${fecha(t.compromiso)}` : `Pedida ${fecha(t.pedida)}`
+  return `
+    <div class="m-det-top">
+      <span class="m-folio">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}${esEquipo() ? ` · ${h(primerNombre(nombreCliente(t.cliente_id)))}` : ''}</span>
+      <div class="chips">${mio ? `<span class="chip te-toca">👉 Te toca ${esCliente() ? 'revisar' : 'a ti'}</span>` : toca ? `<span class="chip le-toca">⏳ Le toca ${toca === 'cliente' ? 'al cliente' : 'al equipo'}</span>` : ''}${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}<span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span></div>
+    </div>
+    <div class="m-paso"><div class="m-paso-r"><b>Paso ${paso} de 4 · ${AVANCE[paso - 1]}</b><span>${cuando}</span></div><div class="m-prog"><i style="width:${paso * 25}%"></i></div></div>
+    ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
+    <div class="m-grupo m-grupo-det">
+      ${fila('📄', '#e8eefc', esEquipo() ? 'Trabajo y entrega' : 'Entrega final', ult ? h(ult.nombre) : 'Todavía no', x.equipoHTML, esEquipo() && t.estatus !== 'aprobada' && t.estatus !== 'recibida')}
+      ${fila('✏️', '#fbf1e0', esEquipo() ? `Lo que pidió ${h(primerNombre(x.quien))}` : 'Tu pedido', 'Ver', x.pedidoHTML)}
+      ${fila('💬', '#e7f4ec', 'Actualizaciones', String(x.notas.length), x.notasHTML)}
+      ${x.correcciones.length ? fila('↩︎', '#fbe9e1', 'Correcciones', String(x.correcciones.length), x.correccionesHTML, t.estatus === 'en-correccion' && esEquipo()) : ''}
+    </div>
+    ${
+      ult
+        ? `<div class="m-grupo">
+            <button class="m-fila-l" data-bajar="${ult.id}"><span class="m-ic" style="background:#efefec">⬇️</span><span class="m-txt">Descargar PDF</span><span class="m-flecha">›</span></button>
+            <button class="m-fila-l" data-ver="${ult.id}"><span class="m-ic" style="background:#efefec">👁️</span><span class="m-txt">Verlo aquí</span><span class="m-flecha">›</span></button>
+            <button class="m-fila-l" data-correo="${ult.id}"><span class="m-ic" style="background:#efefec">✉️</span><span class="m-txt">Mandar a mi correo</span><span class="m-flecha">›</span></button>
+          </div>`
+        : ''
+    }
+    ${x.finalHTML}`
+}
+
 function abrirTarea(id) {
   const t = S.tareas.find((x) => x.id === id)
   if (!t) {
@@ -942,26 +977,11 @@ function abrirTarea(id) {
   const entregado = Boolean(t.entregada)
   const ultimo = [...t.archivos.filter((a) => a.tipo === 'entrega')].sort((a, b) => aFecha(b.subido) - aFecha(a.subido))[0]
 
-  const cuerpo = `
-    <div class="chips" style="margin:0 0 12px">
-      <span class="chip emp" style="--color-emp:${color(t.empresa_id)}">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}</span>
-      <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
-      ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
-      ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
-    </div>
-    <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
-    <div class="fechas" style="margin-bottom:12px">
-      <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
-      <div class="fecha-caja"><span>Compromiso</span><b>${fecha(t.compromiso)}</b></div>
-      <div class="fecha-caja auto"><span>Última entrega</span><b>${fecha(t.entregada, true)}</b></div>
-      <div class="fecha-caja auto"><span>Aprobada</span><b>${fecha(t.aprobada, true)}</b></div>
-    </div>
-    <p class="ayuda" style="margin:-4px 0 12px">⚙︎ = la fecha se pone sola.</p>
-
-    <div class="seccion">
-      <h3>${esEquipo() ? `Lo que pidió ${h(primerNombre(quien))}` : 'Tu pedido'} <span class="candado">🔒 Escrito por ${esEquipo() ? h(primerNombre(quien)) : 'ti'}. Nadie lo puede cambiar; los cambios se agregan abajo.</span></h3>
+  const pedidoHTML = `
       <div class="texto-cliente">${h(t.descripcion || t.titulo)}</div>
       ${refs.length ? `<div class="etiqueta" style="margin:10px 0 6px">Archivos de referencia</div><div class="archivos">${refs.map((a) => filaArchivo(a, { borrar: true })).join('')}</div>` : ''}
+`
+  const notasHTML = `
       ${notas
         .map(
           (n, i) => `<div class="nota">
@@ -980,11 +1000,8 @@ function abrirTarea(id) {
               <button class="btn principal" data-ocupado="Guardando…">Agregar</button>
             </form>`
           : ''
-      }
-    </div>
-
-    <div class="seccion">
-      <h3>Trabajo del equipo ${esCliente() ? '<span class="candado">🔒 Lo actualiza el equipo</span>' : ''}</h3>
+      }`
+  const equipoHTML = `
       ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
       ${
         esEquipo() && abierta
@@ -997,9 +1014,8 @@ function abrirTarea(id) {
       }
       <div class="etiqueta" style="margin:4px 0 6px">Entrega</div>
       <div class="archivos">${entregas.length ? entregas.map((a) => filaArchivo(a, { borrar: true, guardarBib: esEquipo() })).join('') : '<p class="ayuda" style="margin:0">Todavía no se sube el trabajo.</p>'}</div>
-      ${esEquipo() && abierta ? `<button class="btn principal" style="margin-top:10px" data-subir-entrega="" data-ocupado="Subiendo…">⬆️ Subir PDF final</button>` : ''}
-    </div>
-
+      ${esEquipo() && abierta ? `<button class="btn principal" style="margin-top:10px" data-subir-entrega="" data-ocupado="Subiendo…">⬆️ Subir PDF final</button>` : ''}`
+  const correccionesHTML = `
     ${correcciones
       .map((c) => {
         const archivos = t.archivos.filter((a) => a.correccion_id === c.id)
@@ -1018,7 +1034,8 @@ function abrirTarea(id) {
         </div>`
       })
       .join('')}
-
+`
+  const finalHTML = `
     ${
       esCliente() && mia && abierta && entregado
         ? `<div class="seccion" id="caja-correccion">
@@ -1039,6 +1056,37 @@ function abrirTarea(id) {
     ${esCliente() && abierta && !entregado ? `<p class="ayuda" style="text-align:center">Cuando el equipo suba el trabajo, aquí podrás descargarlo, pedir correcciones o aprobarlo.</p>` : ''}
     ${esAdmin() ? `<div class="seccion solo-admin"><h3>Solo tú (admin)</h3><p class="ayuda" style="margin-top:0">Borrar quita la tarea con todas sus entregas, correcciones y actualizaciones. No se puede deshacer.</p><button class="btn peligro" data-accion="borrar-tarea">🗑 Borrar esta tarea</button></div>` : ''}
     ${t.estatus === 'aprobada' ? `<div class="seccion aprobada-caja">✅ Aprobada el ${fecha(t.aprobada, true)}. Tarea concluida.${ultimo && esEquipo() ? `<div style="margin-top:10px"><button class="btn chico" data-a-biblioteca="${ultimo.id}">📚 Guardar el PDF final en la Biblioteca</button></div>` : ''}</div>` : ''}
+  `
+  const cuerpo = esMovil()
+    ? cuerpoTareaMovil(t, { pedidoHTML, notasHTML, equipoHTML, correccionesHTML, finalHTML, notas, correcciones, entregas, ultimo, quien })
+    : `
+    <div class="chips" style="margin:0 0 12px">
+      <span class="chip emp" style="--color-emp:${color(t.empresa_id)}">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}</span>
+      <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
+      ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
+      ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
+    </div>
+    <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
+    <div class="fechas" style="margin-bottom:12px">
+      <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
+      <div class="fecha-caja"><span>Compromiso</span><b>${fecha(t.compromiso)}</b></div>
+      <div class="fecha-caja auto"><span>Última entrega</span><b>${fecha(t.entregada, true)}</b></div>
+      <div class="fecha-caja auto"><span>Aprobada</span><b>${fecha(t.aprobada, true)}</b></div>
+    </div>
+    <p class="ayuda" style="margin:-4px 0 12px">⚙︎ = la fecha se pone sola.</p>
+
+    <div class="seccion">
+      <h3>${esEquipo() ? `Lo que pidió ${h(primerNombre(quien))}` : 'Tu pedido'} <span class="candado">🔒 Escrito por ${esEquipo() ? h(primerNombre(quien)) : 'ti'}. Nadie lo puede cambiar; los cambios se agregan abajo.</span></h3>
+${pedidoHTML}${notasHTML}
+    </div>
+
+    <div class="seccion">
+      <h3>Trabajo del equipo ${esCliente() ? '<span class="candado">🔒 Lo actualiza el equipo</span>' : ''}</h3>
+${equipoHTML}
+    </div>
+
+${correccionesHTML}
+${finalHTML}
   `
   abrirVentana(`<span class="folio">#${t.folio}</span> ${h(t.titulo)}`, cuerpo, { html: true, alCerrar: () => (S.abierta = null) })
 
@@ -2551,6 +2599,7 @@ async function alClic(e) {
         return
       case 'm-correccion': {
         const caja = $('#caja-correccion')
+        caja?.classList.add('abierta')
         caja?.querySelector('[data-accion="abrir-correccion"]')?.click()
         caja?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         return

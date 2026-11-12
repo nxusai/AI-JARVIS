@@ -1049,3 +1049,32 @@ body.ver-fondo { cursor: zoom-out; }
   #modal .datos .dato { padding: 10px 12px; border-radius: 14px; }
   .m-hecho { text-align: center; font-size: 12px; color: #2b2622; text-shadow: 0 0 10px rgba(255, 255, 255, .9); }
 }
+
+/* iPhone: el detalle de la tarea en filas que se abren */
+@media (max-width: 760px) {
+  .m-det-top { margin: -2px 0 12px; }
+  .m-folio { display: block; font: 600 13px var(--display); color: #6b625a; margin-bottom: 8px; }
+  .m-det-top .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .m-paso { border-radius: 16px; padding: 14px; margin-bottom: 14px; background: rgba(255, 255, 255, .66); border: 1px solid rgba(255, 255, 255, .9); }
+  .m-paso-r { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .m-paso-r b { font: 600 14px var(--display); }
+  .m-paso-r span { font-size: 13px; color: #6b625a; white-space: nowrap; }
+  .m-prog { height: 6px; border-radius: 3px; background: rgba(0, 0, 0, .08); margin-top: 10px; overflow: hidden; }
+  .m-prog i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #1a1714, #5b4b3a); }
+  #modal .m-grupo { background: rgba(255, 255, 255, .66); border: 1px solid rgba(255, 255, 255, .9); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .m-det + .m-det { border-top: 1px solid rgba(0, 0, 0, .06); }
+  .m-det summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 13px 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .m-det summary::-webkit-details-marker { display: none; }
+  .m-det summary:active { background: rgba(255, 255, 255, .5); }
+  .m-val { margin-left: auto; color: #6b625a; font-size: 14px; max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-det .m-flecha { margin-left: 2px; transition: transform .2s; }
+  .m-det[open] .m-flecha { transform: rotate(90deg); }
+  .m-det[open] summary { font-weight: 600; }
+  .m-det-cuerpo { padding: 2px 14px 14px; animation: m-abre .2s ease both; }
+  @keyframes m-abre { from { opacity: 0; transform: translateY(-4px); } }
+  .m-det-cuerpo .seccion { background: rgba(255, 255, 255, .55) !important; box-shadow: none; margin-bottom: 10px; }
+  .m-det-cuerpo .recibir { display: none; }
+  .m-det-cuerpo .archivo { flex-wrap: wrap; }
+  #caja-correccion:not(.abierta) { display: none; }
+  #modal .m-grupo .m-fila-l { padding: 13px 14px; }
+}
