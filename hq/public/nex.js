@@ -47,11 +47,17 @@ export function iniciarNex(ctx) {
     </header>
     <div class="nex-msgs" id="nex-msgs" aria-live="polite"></div>
     <form class="nex-form" id="nex-form">
-      <textarea id="nex-texto" rows="1" placeholder="Escríbele a NEX… “llévame a Finanzas”, “no encuentro dónde pongo un gasto”"></textarea>
+      <textarea id="nex-texto" rows="1" placeholder="Escríbele a NEX…"></textarea>
       <button type="button" id="nex-mic" title="Dictar: toca, habla y toca otra vez">🎙</button>
       <button type="submit" id="nex-enviar" title="Mandar">➤</button>
     </form>`
-  document.body.append(orbe, panel)
+  // El botón va en la barra de arriba (junto a "Marcar entrada"): abajo a la derecha lo tapa el sello de Netlify.
+  const barra = document.getElementById('reloj-top')
+  if (barra?.parentElement) {
+    barra.parentElement.insertBefore(orbe, barra)
+    orbe.classList.add('en-barra')
+  }
+  document.body.append(...(barra ? [panel] : [orbe, panel]))
   const msgs = $('#nex-msgs', panel)
   const caja = $('#nex-texto', panel)
   const estado = (t) => ($('#nex-estado', panel).textContent = t)

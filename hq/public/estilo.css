@@ -1031,3 +1031,8 @@ body.vista-ny .nex-orbe, body.vista-ny .nex-panel { opacity: 1; }
 @media (max-width: 600px) { .nex-orbe { right: 14px; bottom: 14px; width: 54px; height: 54px; } .nex-panel { right: 8px; left: 8px; width: auto; bottom: 78px; height: calc(100vh - 110px); } }
 .nex-panel.izq { right: auto; left: 280px; transition: left .25s, right .25s; }
 @media (max-width: 900px) { .nex-panel.izq { left: 8px; } }
+/* NEX en la barra de arriba */
+.nex-orbe.en-barra { position: relative; right: auto; bottom: auto; width: 44px; height: 44px; font-size: 10.5px; margin-left: auto; margin-right: 10px; flex: none; }
+.top .nex-orbe.en-barra + .reloj-top { margin-left: 0; }
+.nex-panel { top: 84px; bottom: auto; }
+@media (max-width: 600px) { .nex-orbe.en-barra { width: 38px; height: 38px; margin-right: 6px; font-size: 9.5px; } .nex-panel { top: 70px; bottom: 12px; height: auto; } }
