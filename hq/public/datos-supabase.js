@@ -129,7 +129,7 @@ export function crearSupabase({ url, anon }) {
     jornadas: async (desde, hasta) =>
       ok(await tabla('jornadas').select('*').gte('entrada', desde.toISOString()).lt('entrada', hasta.toISOString()).order('entrada', { ascending: false })),
     abiertas: async () => ok(await tabla('jornadas').select('*').is('salida', null)),
-    marcarEntrada: async () => ok(await tabla('jornadas').insert({}).select().single()),
+    marcarEntrada: async (persona) => ok(await tabla('jornadas').insert(persona ? { persona } : {}).select().single()),
     marcarSalida: async (id) => ok(await tabla('jornadas').update({ salida: new Date().toISOString() }).eq('id', id).select().single()),
     diaCompleto: async (id, si) => ok(await tabla('jornadas').update({ dia_completo: si }).eq('id', id).select().single()),
 

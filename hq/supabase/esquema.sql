@@ -193,6 +193,8 @@ create unique index if not exists jornadas_una_abierta on public.jornadas (perso
 create or replace function public.antes_jornada() returns trigger
 language plpgsql as $$
 begin
+  -- El admin también marca su propia entrada: si no dice de quién es, es suya.
+  if tg_op = 'INSERT' and new.persona is null then new.persona := auth.uid(); end if;
   if es_sistema() or es_admin() then return new; end if;
   if tg_op = 'INSERT' then
     new.persona := auth.uid();

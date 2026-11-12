@@ -329,7 +329,7 @@ export function iniciar(D, { muestra = false } = {}) {
     $('#r-salir', el)?.addEventListener('click', marcarSalida)
   }
   async function marcarEntrada() {
-    const j = await intenta(() => D.marcarEntrada(), 'Entrada registrada')
+    const j = await intenta(() => D.marcarEntrada(yo.id), 'Entrada registrada')
     if (j) abierta = j
     pintarReloj()
     if (location.hash === '#reloj' || location.hash === '#inicio' || !location.hash) mostrar()
@@ -1386,15 +1386,35 @@ export function iniciar(D, { muestra = false } = {}) {
     titulo('Equipo')
     personas = await D.personas()
     const activos = personas.filter((p) => p.activo)
+    // Asistencia (solo el admin): quién marcó entrada hoy, a qué hora y si ya salió.
+    let hoyJ = []
+    if (esAdmin()) {
+      const ini = new Date()
+      ini.setHours(0, 0, 0, 0)
+      const fin = new Date(ini.getTime() + 864e5)
+      const [deHoy, abiertasYa] = await Promise.all([D.jornadas(ini, fin), D.abiertas()])
+      hoyJ = [...deHoy, ...abiertasYa.filter((a) => !deHoy.some((j) => j.id === a.id))]
+    }
+    const estadoHoy = (p) => {
+      if (!esAdmin()) return ''
+      const suyas = hoyJ.filter((j) => j.persona === p.id).sort((a, b) => String(a.entrada).localeCompare(String(b.entrada)))
+      if (!suyas.length) return '<span class="asis fuera">No ha marcado entrada hoy</span>'
+      const ab = suyas.find((j) => !j.salida)
+      const total = suyas.reduce((s, j) => s + duracion(j), 0)
+      return ab
+        ? `<span class="asis vivo"><i class="punto vivo"></i>Trabajando desde ${hora(ab.entrada)}</span>`
+        : `<span class="asis">Entró ${hora(suyas[0].entrada)} · salió ${hora(suyas.at(-1).salida)} · ${horas(total)}</span>`
+    }
     const bloque = async (sede) => {
       const ps = activos.filter((p) => p.sede === sede)
       if (!ps.length) return ''
       const cards = await Promise.all(
-        ps.map(async (p) => `<div class="persona">${await avatar(p, 'grande')}<b>${h(p.nombre)}</b><span>${h(p.cargo || '—')}</span><span class="chip ${p.sede}">${SEDE[p.sede]}</span></div>`),
+        ps.map(async (p) => `<div class="persona">${await avatar(p, 'grande')}<b>${h(p.nombre)}</b><span>${h(p.cargo || '—')}</span><span class="chip ${p.sede}">${SEDE[p.sede]}</span>${estadoHoy(p)}</div>`),
       )
       return `<h2 class="grupo">${SEDE[sede]} <small>${ps.length}</small></h2><div class="rejilla personas">${cards.join('')}</div>`
     }
-    v.innerHTML = (await bloque('usa')) + (await bloque('mexico'))
+    const nota = esAdmin() ? '<p class="nota">Asistencia de hoy en cada tarjeta. Las horas de toda la quincena y cada entrada/salida: <a href="#nomina">Nómina</a> → “Ver días”. Quién está trabajando ahora también sale en <a href="#inicio">Inicio</a>.</p>' : ''
+    v.innerHTML = nota + (await bloque('usa')) + (await bloque('mexico'))
   }
 
   // --------------------------------------------------------------- reloj
