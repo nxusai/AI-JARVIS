@@ -1439,8 +1439,14 @@ export function iniciar(D, { muestra = false } = {}) {
   // -------------------------------------------------------------- nómina
 
   let saltoNomina = 0
+  // Pestañas de Nómina: Pagos (quincena) y Asistencia (el registro de entradas y salidas, con todo el historial).
+  const pestanasNomina = (tab) =>
+    `<div class="acciones"><div class="segmento">${[['pagos', 'Pagos'], ['asistencia', 'Asistencia']].map(([k, t]) => `<button data-nt="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>`
+  const conectarPestanasNomina = (v) => $$('[data-nt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-nomina', b.dataset.nt), mostrar())))
+
   async function vistaNomina(v) {
     titulo('Nómina')
+    if (sessionStorage.getItem('hq-nomina') === 'asistencia') return vistaAsistencia(v)
     const q = quincena(new Date(), saltoNomina)
     const [nom, jor, aju, com, din] = await Promise.all([D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.dinero()])
     ;[personas, clientes] = await Promise.all([D.personas(), D.clientes()])
@@ -1454,7 +1460,7 @@ export function iniciar(D, { muestra = false } = {}) {
       totales[n.moneda] += r.total
       return { p, n, r }
     })
-    v.innerHTML = `
+    v.innerHTML = `${pestanasNomina('pagos')}
       <div class="acciones"><div class="segmento"><button id="q-ant">← Anterior</button><button class="on">${h(q.nombre)}</button><button id="q-sig" ${saltoNomina >= 0 ? 'disabled' : ''}>Siguiente →</button></div></div>
       <div class="kpis"><div class="kpi"><span>A pagar esta quincena</span><b>${dinero(totales.MXN, 'MXN')}</b><small>${totales.USD ? `+ ${dinero(totales.USD)}` : 'en pesos'}</small></div>
         <div class="kpi"><span>Al mes (aprox.)</span><b>${dinero(totales.MXN * 2, 'MXN')}</b><small>${totales.USD ? `+ ${dinero(totales.USD * 2)}` : 'dos quincenas como esta'}</small></div></div>
@@ -1485,6 +1491,7 @@ export function iniciar(D, { muestra = false } = {}) {
         )
         .join('')}
       <p class="nota">Medio tiempo: cuenta como día completo el que tú marques, o cualquier día con ${DIA_COMPLETO_HORAS} horas o más registradas. Si no le pones monto, el sistema paga las horas de más a su tarifa por hora (día completo = ${JORNADA_COMPLETA} horas).</p>`
+    conectarPestanasNomina(v)
     $('#q-ant', v).onclick = () => (saltoNomina--, mostrar())
     $('#q-sig', v).onclick = () => (saltoNomina++, mostrar())
     $$('[data-esq]', v).forEach((b) => (b.onclick = () => editarEsquema(persona(b.dataset.esq), nom.find((x) => x.persona === b.dataset.esq))))
@@ -1500,6 +1507,214 @@ export function iniciar(D, { muestra = false } = {}) {
     $$('[data-dias]', v).forEach((b) => (b.onclick = () => verDias(persona(b.dataset.dias), jor)))
     $$('[data-borrar-aj]', v).forEach((b) => (b.onclick = () => intenta(() => D.borrarAjuste(b.dataset.borrarAj), 'Ajuste quitado').then(() => mostrar())))
     $$('[data-borrar-com]', v).forEach((b) => (b.onclick = () => intenta(() => D.borrarComision(b.dataset.borrarCom), 'Comisión quitada').then(() => mostrar())))
+  }
+
+  // ------------------------------------------------------- asistencia
+  // Todo el historial de entradas y salidas del equipo: se guarda para siempre (nadie del equipo
+  // puede borrar ni cambiar horas; las correcciones del admin quedan en la Bitácora).
+
+  const diaJor = (iso) => new Date(iso).toLocaleDateString('en-CA') // AAAA-MM-DD en la hora de esta computadora
+  const aFecha = (d) => d.toLocaleDateString('en-CA')
+  const deFecha = (t) => new Date(`${t}T00:00`)
+  const aLocal = (iso) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    return `${aFecha(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+  const horasDec = (ms) => (Math.max(0, ms) / 3600000).toFixed(2)
+  const diaLargo = (t) => {
+    const x = deFecha(t).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    return x.charAt(0).toUpperCase() + x.slice(1)
+  }
+
+  function periodoAsistencia(clave) {
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    const mas = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
+    const lunes = mas(hoy, -((hoy.getDay() + 6) % 7))
+    const q = quincena(), qa = quincena(new Date(), -1)
+    return (
+      {
+        hoy: { desde: hoy, hasta: mas(hoy, 1) },
+        ayer: { desde: mas(hoy, -1), hasta: hoy },
+        semana: { desde: lunes, hasta: mas(hoy, 1) },
+        'semana-pasada': { desde: mas(lunes, -7), hasta: lunes },
+        quincena: { desde: q.desde, hasta: q.hasta },
+        'quincena-pasada': { desde: qa.desde, hasta: qa.hasta },
+        mes: { desde: new Date(hoy.getFullYear(), hoy.getMonth(), 1), hasta: new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1) },
+        'mes-pasado': { desde: new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1), hasta: new Date(hoy.getFullYear(), hoy.getMonth(), 1) },
+        anio: { desde: new Date(hoy.getFullYear(), 0, 1), hasta: new Date(hoy.getFullYear() + 1, 0, 1) },
+      }[clave] ?? null
+    )
+  }
+  const PERIODOS = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', 'semana-pasada': 'Semana pasada', quincena: 'Esta quincena', 'quincena-pasada': 'Quincena pasada', mes: 'Este mes', 'mes-pasado': 'Mes pasado', anio: 'Este año', rango: 'Elegir fechas…' }
+
+  async function vistaAsistencia(v) {
+    let filtro = {}
+    try { filtro = JSON.parse(sessionStorage.getItem('hq-asis') || '{}') } catch {}
+    const per = PERIODOS[filtro.per] ? filtro.per : 'quincena'
+    let rango = periodoAsistencia(per)
+    if (per === 'rango') {
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(filtro.desde) ? deFecha(filtro.desde) : periodoAsistencia('mes').desde
+      const a = /^\d{4}-\d{2}-\d{2}$/.test(filtro.hasta) ? deFecha(filtro.hasta) : new Date()
+      rango = { desde: d, hasta: new Date(a.getFullYear(), a.getMonth(), a.getDate() + 1) }
+    }
+    const quien = filtro.quien || ''
+    const [jor, todas] = await Promise.all([D.jornadas(rango.desde, rango.hasta), D.personas()])
+    personas = todas
+    const lista = jor.filter((j) => !quien || j.persona === quien).sort((a, b) => String(b.entrada).localeCompare(String(a.entrada)))
+    const ultimoDia = new Date(rango.hasta.getTime() - 864e5)
+    const etiqueta = `${diaLargo(aFecha(rango.desde))}${aFecha(rango.desde) === aFecha(ultimoDia) ? '' : ` — ${diaLargo(aFecha(ultimoDia))}`}`
+
+    // Resumen por persona
+    const porPersona = new Map()
+    for (const j of lista) {
+      const r = porPersona.get(j.persona) ?? { ms: 0, dias: new Set(), completos: new Set(), abiertas: 0, registros: 0, entradas: [] }
+      r.ms += duracion(j)
+      r.dias.add(diaJor(j.entrada))
+      if (j.dia_completo || (j.salida && duracion(j) >= DIA_COMPLETO_HORAS * 3600000)) r.completos.add(diaJor(j.entrada))
+      if (!j.salida) r.abiertas++
+      r.registros++
+      const d = new Date(j.entrada)
+      r.entradas.push(d.getHours() * 60 + d.getMinutes())
+      porPersona.set(j.persona, r)
+    }
+    const resumen = [...porPersona.entries()].map(([pid, r]) => ({ pid, nombre: nombreDe(pid), ...r })).sort((a, b) => a.nombre.localeCompare(b.nombre))
+    const totalMs = resumen.reduce((s, r) => s + r.ms, 0)
+    const diasTot = resumen.reduce((s, r) => s + r.dias.size, 0)
+    const abiertasTot = lista.filter((j) => !j.salida).length
+    const olvidos = lista.filter((j) => !j.salida && diaJor(j.entrada) < aFecha(new Date())).length
+    const promedioEntrada = (arr) => {
+      if (!arr.length) return '—'
+      const m = Math.round(arr.reduce((s, x) => s + x, 0) / arr.length)
+      return new Date(2000, 0, 1, Math.floor(m / 60), m % 60).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })
+    }
+    const opcPersonas = `<option value="">Todo el equipo</option>${todas
+      .slice()
+      .sort((a, b) => Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre))
+      .map((p) => `<option value="${p.id}" ${p.id === quien ? 'selected' : ''}>${h(p.nombre)}${p.activo ? '' : ' (ya no está)'}</option>`)
+      .join('')}`
+
+    // Detalle agrupado por día
+    const porDia = new Map()
+    for (const j of lista) porDia.set(diaJor(j.entrada), [...(porDia.get(diaJor(j.entrada)) ?? []), j])
+    const detalle = [...porDia.entries()]
+      .map(
+        ([dia, js]) => `<tr class="dia-asis"><td colspan="7">${diaLargo(dia)} <small>${horas(js.reduce((s, j) => s + duracion(j), 0))}</small></td></tr>${js
+          .map(
+            (j) => `<tr>
+              <td>${h(nombreDe(j.persona))}</td>
+              <td>${hora(j.entrada)}</td>
+              <td>${j.salida ? `${hora(j.salida)}${diaJor(j.salida) !== dia ? ` <small>(${fechaCorta(j.salida)})</small>` : ''}` : diaJor(j.entrada) < aFecha(new Date()) ? '<span class="chip rojo-chip">sin salida</span>' : '<span class="chip en-curso">trabajando</span>'}</td>
+              <td><b>${horas(duracion(j))}</b></td>
+              <td><input type="checkbox" data-dc="${j.id}" ${j.dia_completo ? 'checked' : ''} title="Le pediste quedarse el día completo"></td>
+              <td class="nota-asis">${h(j.nota || '')}</td>
+              <td><button class="enlace" data-corr="${j.id}">Corregir</button></td>
+            </tr>`,
+          )
+          .join('')}`,
+      )
+      .join('')
+
+    v.innerHTML = `${pestanasNomina('asistencia')}
+      <div class="tarjeta filtros-asis">
+        <label>Periodo<select id="as-per">${Object.entries(PERIODOS).map(([k, t]) => `<option value="${k}" ${k === per ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        ${per === 'rango' ? `<label>Desde<input type="date" id="as-desde" value="${aFecha(rango.desde)}"></label><label>Hasta<input type="date" id="as-hasta" value="${aFecha(ultimoDia)}" max="${aFecha(new Date())}"></label>` : ''}
+        <label>Persona<select id="as-quien">${opcPersonas}</select></label>
+        <div class="acciones-asis"><button class="btn" id="as-csv">⬇ Descargar Excel</button><button class="btn" id="as-mano">+ Registrar a mano</button></div>
+      </div>
+      <p class="nota">${etiqueta}${quien ? ` · ${h(nombreDe(quien))}` : ''}</p>
+      <div class="kpis">
+        <div class="kpi"><span>Horas trabajadas</span><b>${horas(totalMs)}</b><small>${horasDec(totalMs)} h en decimal</small></div>
+        <div class="kpi"><span>Días trabajados</span><b>${diasTot}</b><small>suma de todas las personas</small></div>
+        <div class="kpi"><span>Registros</span><b>${lista.length}</b><small>entradas y salidas</small></div>
+        <div class="kpi"><span>Sin salida</span><b>${olvidos}</b><small class="${olvidos ? 'rojo' : ''}">${olvidos ? 'se les olvidó marcar salida' : abiertasTot ? `${abiertasTot} trabajando ahora` : 'todo en orden'}</small></div>
+      </div>
+      <div class="tarjeta"><h3>Resumen por persona</h3>${
+        resumen.length
+          ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Persona</th><th>Días</th><th>Horas</th><th>Promedio al día</th><th>Llega en promedio</th><th>Días completos</th><th>Sin salida</th></tr>${resumen
+              .map((r) => `<tr><td><b>${h(r.nombre)}</b></td><td>${r.dias.size}</td><td><b>${horas(r.ms)}</b></td><td>${horas(r.ms / Math.max(1, r.dias.size))}</td><td>${promedioEntrada(r.entradas)}</td><td>${r.completos.size}</td><td>${r.abiertas ? `<span class="chip">${r.abiertas}</span>` : '0'}</td></tr>`)
+              .join('')}</table></div>`
+          : '<p class="vacio">Nadie marcó entrada en estas fechas.</p>'
+      }</div>
+      <div class="tarjeta"><h3>Cada entrada y salida</h3>${
+        lista.length
+          ? `<div class="tabla-scroll"><table class="tabla tabla-asis"><tr><th>Persona</th><th>Entrada</th><th>Salida</th><th>Tiempo</th><th>Día completo</th><th>Nota</th><th></th></tr>${detalle}</table></div>`
+          : '<p class="vacio">Sin registros en estas fechas.</p>'
+      }</div>
+      <p class="nota">Todo queda guardado para siempre: puedes ver cualquier fecha pasada con "Elegir fechas…". La hora la pone el sistema y el equipo no puede cambiarla ni borrarla. Si corriges algo, queda anotado quién, cuándo y qué en la <a href="#bitacora">Bitácora</a>. "Día completo" cuenta para la nómina de medio tiempo (también cuenta solo con ${DIA_COMPLETO_HORAS} h o más).</p>`
+
+    conectarPestanasNomina(v)
+    const guardar = (cambio) => (sessionStorage.setItem('hq-asis', JSON.stringify({ ...filtro, ...cambio })), mostrar())
+    $('#as-per', v).onchange = (e) => guardar({ per: e.target.value, ...(e.target.value === 'rango' && !filtro.desde ? { desde: aFecha(rango.desde), hasta: aFecha(ultimoDia) } : {}) })
+    $('#as-quien', v).onchange = (e) => guardar({ quien: e.target.value })
+    const fechas = () => {
+      const d = $('#as-desde', v).value, a = $('#as-hasta', v).value
+      if (d && a && d <= a) guardar({ desde: d, hasta: a })
+      else if (d && a) aviso('La fecha "desde" va antes que "hasta"', 'mal')
+    }
+    $('#as-desde', v)?.addEventListener('change', fechas)
+    $('#as-hasta', v)?.addEventListener('change', fechas)
+    $$('[data-dc]', v).forEach((c) => (c.onchange = () => intenta(() => D.diaCompleto(c.dataset.dc, c.checked), 'Guardado')))
+    $$('[data-corr]', v).forEach((b) => (b.onclick = () => corregirJornada(lista.find((j) => j.id === b.dataset.corr))))
+    $('#as-mano', v).onclick = () => corregirJornada(null, quien)
+    $('#as-csv', v).onclick = () => {
+      const c = (x) => `"${String(x ?? '').replace(/"/g, '""')}"`
+      const filas = [
+        [`Asistencia NXUS — ${etiqueta}${quien ? ` — ${nombreDe(quien)}` : ''}`],
+        [],
+        ['RESUMEN POR PERSONA'],
+        ['Persona', 'Días trabajados', 'Horas (h:mm)', 'Horas (decimal)', 'Promedio al día (decimal)', 'Llega en promedio', 'Días completos', 'Sin salida'],
+        ...resumen.map((r) => [r.nombre, r.dias.size, horas(r.ms), horasDec(r.ms), horasDec(r.ms / Math.max(1, r.dias.size)), promedioEntrada(r.entradas), r.completos.size, r.abiertas]),
+        ['TOTAL', diasTot, horas(totalMs), horasDec(totalMs)],
+        [],
+        ['DETALLE'],
+        ['Fecha', 'Día', 'Persona', 'Entrada', 'Salida', 'Horas (h:mm)', 'Horas (decimal)', 'Día completo', 'Nota'],
+        ...lista
+          .slice()
+          .reverse()
+          .map((j) => [diaJor(j.entrada), deFecha(diaJor(j.entrada)).toLocaleDateString('es-MX', { weekday: 'long' }), nombreDe(j.persona), hora(j.entrada), j.salida ? `${hora(j.salida)}${diaJor(j.salida) !== diaJor(j.entrada) ? ` (${diaJor(j.salida)})` : ''}` : 'sin salida', horas(duracion(j)), horasDec(duracion(j)), j.dia_completo ? 'sí' : 'no', j.nota || '']),
+      ]
+      const texto = '﻿' + filas.map((f) => f.map(c).join(',')).join('\r\n')
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }))
+      a.download = `asistencia-nxus_${aFecha(rango.desde)}_a_${aFecha(ultimoDia)}${quien ? `_${nombreDe(quien).replace(/\s+/g, '-')}` : ''}.csv`
+      document.body.append(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    }
+  }
+
+  /** Corregir una entrada/salida (o registrar una a mano). Queda en la Bitácora. */
+  function corregirJornada(j, quien = '') {
+    const nueva = !j
+    const activos = personas.filter((p) => p.activo).sort((a, b) => a.nombre.localeCompare(b.nombre))
+    abrirModal(
+      `<form id="f-jor"><h2>${nueva ? 'Registrar entrada a mano' : `Corregir · ${h(nombreDe(j.persona))}`}</h2>
+        <div class="campos">
+          ${nueva ? `<label class="ancho">Persona<select name="persona" required><option value="">Elige…</option>${activos.map((p) => `<option value="${p.id}" ${p.id === quien ? 'selected' : ''}>${h(p.nombre)}</option>`).join('')}</select></label>` : ''}
+          <label>Entrada<input type="datetime-local" name="entrada" required value="${aLocal(j?.entrada)}"></label>
+          <label>Salida <small>vacío = sigue trabajando</small><input type="datetime-local" name="salida" value="${aLocal(j?.salida)}"></label>
+          <label class="ancho">Motivo <small>queda en la nota y en la Bitácora</small><input name="nota" required maxlength="500" placeholder="Ej. olvidó marcar salida, salió a las 6 pm" value="${h(j?.nota || '')}"></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+      (caja) => {
+        $('#f-jor', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const f = Object.fromEntries(new FormData(e.target))
+          const entrada = new Date(f.entrada)
+          const salida = f.salida ? new Date(f.salida) : null
+          if (isNaN(entrada)) return aviso('Pon la hora de entrada', 'mal')
+          if (salida && salida <= entrada) return aviso('La salida tiene que ser después de la entrada', 'mal')
+          if (salida && salida - entrada > 24 * 3600000) return aviso('Más de 24 horas seguidas: revisa las fechas', 'mal')
+          if (entrada > new Date() || (salida && salida > new Date())) return aviso('No se pueden poner horas en el futuro', 'mal')
+          const datos = { entrada: entrada.toISOString(), salida: salida ? salida.toISOString() : null, nota: String(f.nota).trim().slice(0, 500) }
+          const r = await intenta(() => (nueva ? D.registrarJornada({ ...datos, persona: f.persona }) : D.corregirJornada(j.id, datos)), nueva ? 'Registrado' : 'Corregido')
+          if (r) (cerrarModal(), mostrar())
+        }
+      },
+    )
   }
 
   function editarEsquema(p, n = {}) {

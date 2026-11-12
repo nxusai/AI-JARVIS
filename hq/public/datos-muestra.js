@@ -322,6 +322,21 @@ export function crearMuestra() {
       anotar('update', 'jornadas', j.id)
       return copia(j)
     },
+    async corregirJornada(jid, c) {
+      if (!admin()) nunca()
+      const j = db.jornadas.find((x) => x.id === jid)
+      Object.assign(j, { entrada: c.entrada, salida: c.salida, nota: c.nota })
+      anotar('update', 'jornadas', j.id)
+      return copia(j)
+    },
+    async registrarJornada(c) {
+      if (!admin()) nunca()
+      if (!c.salida && db.jornadas.some((j) => j.persona === c.persona && !j.salida)) throw new Error('Esa persona ya tiene una entrada abierta')
+      const j = { id: id(), persona: c.persona, entrada: c.entrada, salida: c.salida, dia_completo: false, nota: c.nota }
+      db.jornadas.push(j)
+      anotar('insert', 'jornadas', j.id)
+      return copia(j)
+    },
     async diaCompleto(jid, si) {
       if (!admin()) nunca()
       return copia(upsert(db.jornadas, { id: jid, dia_completo: si }))

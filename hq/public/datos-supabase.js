@@ -10,7 +10,7 @@ function claro(error) {
   if (/Invalid login credentials/i.test(m)) return new Error('Usuario o contraseña incorrectos')
   if (/same.*password|different from the old/i.test(m)) return new Error('Escribe una contraseña distinta a la que tienes')
   if (/row-level security|violates row-level|permission denied/i.test(m)) return new Error('No tienes permiso para hacer eso')
-  if (/jornadas_una_abierta/i.test(m)) return new Error('Ya tienes una entrada abierta')
+  if (/jornadas_una_abierta/i.test(m)) return new Error('Ya hay una entrada abierta (sin salida) para esa persona')
   if (/duplicate key.*perfiles_codigo/i.test(m)) return new Error('Ese código de link ya lo tiene otra persona')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
@@ -127,10 +127,13 @@ export function crearSupabase({ url, anon }) {
     borrarTarea: async (id) => ok(await tabla('tareas').delete().eq('id', id)),
 
     jornadas: async (desde, hasta) =>
-      ok(await tabla('jornadas').select('*').gte('entrada', desde.toISOString()).lt('entrada', hasta.toISOString()).order('entrada', { ascending: false })),
+      ok(await tabla('jornadas').select('*').gte('entrada', desde.toISOString()).lt('entrada', hasta.toISOString()).order('entrada', { ascending: false }).limit(10000)),
     abiertas: async () => ok(await tabla('jornadas').select('*').is('salida', null)),
     marcarEntrada: async (persona) => ok(await tabla('jornadas').insert(persona ? { persona } : {}).select().single()),
     marcarSalida: async (id) => ok(await tabla('jornadas').update({ salida: new Date().toISOString() }).eq('id', id).select().single()),
+    // Solo el admin (lo hace cumplir la base de datos). Queda en la Bitácora.
+    corregirJornada: async (id, c) => ok(await tabla('jornadas').update({ entrada: c.entrada, salida: c.salida, nota: c.nota }).eq('id', id).select().single()),
+    registrarJornada: async (c) => ok(await tabla('jornadas').insert({ persona: c.persona, entrada: c.entrada, salida: c.salida, nota: c.nota }).select().single()),
     diaCompleto: async (id, si) => ok(await tabla('jornadas').update({ dia_completo: si }).eq('id', id).select().single()),
 
     nomina: async () => ok(await tabla('nomina').select('*')),
