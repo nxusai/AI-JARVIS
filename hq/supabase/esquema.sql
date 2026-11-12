@@ -1717,3 +1717,28 @@ from (values
   ('Runway AI', 'software', 0.00, 'segunda', '29 - 31', true, 'Cancelada', false, 18)
 ) v(concepto, categoria, monto, quincena, dia, auto, notas, activo, orden)
 where not exists (select 1 from public.gastos g where g.quincena is not null and g.empresa = 'NXUS AI');
+
+-- Los gastos PERSONALES de Eduardo que llevaba en Notion (solo él los ve; se cargan una sola vez).
+insert into public.gastos (concepto, categoria, tipo, empresa, monto, moneda, frecuencia, quincena, dia_texto, automatico, notas, activo, orden)
+select v.concepto, v.categoria, 'personal', '', v.monto, 'USD', 'mensual', v.quincena, v.dia, v.auto, v.notas, v.activo, v.orden
+from (values
+  ('Mamá', 'familia', 100.00, 'primera', '29 - 2', false, 'Tarjeta México', true, 101),
+  ('Capital One', 'prestamos', 100.00, 'primera', '2', true, 'Automatizado', true, 102),
+  ('Netflix', 'otros', 26.65, 'primera', '5', true, 'Automatizado', true, 103),
+  ('iCloud Apple', 'software', 1.00, 'primera', '5', true, 'Automatizado', true, 104),
+  ('Amazon Prime', 'otros', 10.00, 'primera', '9', true, '', true, 105),
+  ('Crédito Wells Fargo', 'prestamos', 100.00, 'primera', '11', false, 'Pagar directo a la tarjeta', true, 106),
+  ('iCloud mamá', 'familia', 0.99, 'primera', '13', true, 'Automatizado', true, 107),
+  ('Renta', 'casa', 224.00, 'primera', '14', false, 'Pago manual', true, 108),
+  ('Mamá', 'familia', 100.00, 'segunda', '15 - 17', false, 'Tarjeta de México', true, 111),
+  ('Apple Music (yo)', 'otros', 11.00, 'segunda', '15', true, 'Automatizado', true, 112),
+  ('Apple Music (mamá)', 'familia', 11.00, 'segunda', '15', true, 'Automatizado', true, 113),
+  ('Agua México', 'servicios', 40.00, 'segunda', '15', false, 'Tarjeta de México', true, 114),
+  ('Luz México', 'servicios', 118.00, 'segunda', '15', false, 'Tarjeta de México', true, 115),
+  ('AT&T celular', 'servicios', 352.00, 'segunda', '16', true, 'Automatizado', true, 116),
+  ('Coppel', 'prestamos', 60.00, 'segunda', '25', false, 'Tarjeta de México', true, 117),
+  ('Credit One', 'prestamos', 100.00, 'segunda', '26', true, 'Automatizado', true, 118),
+  ('Verizon', 'servicios', 0.00, 'segunda', '27', true, 'Automatizado · cancelada', false, 119),
+  ('PSE&G', 'servicios', 0.00, 'segunda', '25', false, 'Pago manual · cancelada', false, 120)
+) v(concepto, categoria, monto, quincena, dia, auto, notas, activo, orden)
+where not exists (select 1 from public.gastos g where g.quincena is not null and g.tipo = 'personal');

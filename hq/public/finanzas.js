@@ -474,22 +474,29 @@ export async function vistaFinanzas(v, ctx) {
   const navMes = `<div class="acciones mes-nav"><div class="segmento"><button data-mes="-1" aria-label="Mes anterior">←</button><button class="on">${h(mesTxt)}</button><button data-mes="1" aria-label="Mes siguiente">→</button></div>${salto ? '<button class="btn chico" data-mes="0">Este mes</button>' : ''}</div>`
 
   // ------------------------------------------------- Gastos del mes (como Notion)
+  // NXUS (negocio) y Personal van separados; lo personal solo lo ve Eduardo.
+  const cual = admin && sessionStorage.getItem('hq-fin-tipo') === 'personal' ? 'personal' : 'negocio'
+  const deTipo = (tipo, n) => gastos.filter((g) => (g.tipo || 'negocio') === tipo && [MITAD[n].clave, 'ambas'].includes(mitadDe(g)))
+  const aTenerDe = (tipo, n) => sum(deTipo(tipo, n).filter((g) => estadoDe(g, n) !== 'cancelado'))
   function vistaGastos() {
     const tabla = (n) => {
       const M2 = MITAD[n]
-      const lista = gastos.filter((g) => [M2.clave, 'ambas'].includes(mitadDe(g))).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || String(a.concepto).localeCompare(String(b.concepto)))
+      const lista = deTipo(cual, n).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || String(a.concepto).localeCompare(String(b.concepto)))
       const vivos = lista.filter((g) => estadoDe(g, n) !== 'cancelado')
       const aTener = sum(vivos)
       const ent = entradasDe(n)
-      const income = sum(ent)
+      const entradas = sum(ent)
+      // En Personal, lo que entra es lo que te sobró de NXUS en esa mitad del mes.
+      const nx = aTenerDe('negocio', n)
+      const income = cual === 'personal' ? { USD: entradas.USD - nx.USD, MXN: entradas.MXN - nx.MXN } : entradas
       const sobran = { USD: income.USD - aTener.USD, MXN: income.MXN - aTener.MXN }
       const pagados = vivos.filter((g) => estadoDe(g, n) === 'pagado').length
       const enCurso = new Date() >= deIso(rango(n).desde) && new Date() < deIso(rango(n).hasta)
       return `<div class="tarjeta notion-t">
-        <div class="fila"><h3><span class="punto-n ${enCurso ? 'vivo' : ''}"></span>${M2.titulo}</h3>${editar ? `<button class="btn chico" data-nuevo="${M2.clave}">+ Gasto</button>` : ''}</div>
+        <div class="fila"><h3><span class="punto-n ${enCurso ? 'vivo' : ''}"></span>${M2.titulo} <small class="tipo-n ${cual}">${cual === 'personal' ? 'Personal' : 'NXUS'}</small></h3>${editar ? `<button class="btn chico" data-nuevo="${M2.clave}">+ Gasto</button>` : ''}</div>
         <div class="resumen-n">
           <div><span>A tener</span><b>${verMon(aTener)}</b></div>
-          <div><span>Entradas</span><b>${verMon(income)}</b></div>
+          <div><span>${cual === 'personal' ? 'Te sobra de NXUS' : 'Entradas'}</span><b>${verMon(income)}</b>${cual === 'personal' ? `<small>entradas ${verMon(entradas)} − NXUS ${verMon(nx)}</small>` : ''}</div>
           <div class="${juntoUSD(sobran) < 0 ? 'neg' : 'pos'}"><span>Sobran</span><b>${verMon(sobran)}</b>${tieneDos(sobran) ? `<small>todo junto ≈ ${juntoUSD(sobran) < 0 ? '−' : ''}${dinero(Math.abs(juntoUSD(sobran)), 'USD')}</small>` : ''}</div>
           <div><span>Pagados</span><b>${pagados}/${vivos.length}</b></div>
         </div>
@@ -498,7 +505,7 @@ export async function vistaFinanzas(v, ctx) {
             lista
               .map((g) => {
                 const e = estadoDe(g, n)
-                return `<tr class="${e === 'cancelado' ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b>${admin && g.tipo === 'personal' ? ' <span class="chip personal">personal</span>' : ''}</td><td>${h(g.dia_texto || (g.dias ?? []).join(', ') || '—')}</td><td class="num">${dinero(g.monto, g.moneda)}</td><td>${editar ? `<button class="estado-n ${e}" data-estado="${g.id}|${n}" title="Toca para cambiar">${ESTADOS[e]}</button>` : `<span class="estado-n ${e}">${ESTADOS[e]}</span>`}</td><td class="nota-asis">${h(g.notas || '')}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="enlace" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
+                return `<tr class="${e === 'cancelado' ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b></td><td>${h(g.dia_texto || (g.dias ?? []).join(', ') || '—')}</td><td class="num">${dinero(g.monto, g.moneda)}</td><td>${editar ? `<button class="estado-n ${e}" data-estado="${g.id}|${n}" title="Toca para cambiar">${ESTADOS[e]}</button>` : `<span class="estado-n ${e}">${ESTADOS[e]}</span>`}</td><td class="nota-asis">${h(g.notas || '')}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="enlace" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
               })
               .join('') || '<tr><td colspan="6" class="vacio">Sin gastos en esta mitad.</td></tr>'
           }
@@ -507,7 +514,8 @@ export async function vistaFinanzas(v, ctx) {
         ${ent.length ? `<details class="ent-n"><summary>Entradas de ${M2.corto} (${ent.length})</summary><ul class="lista">${ent.map((x) => `<li><span>${fechaBonita(x.fecha)} · ${h(x.de)}</span><b>${dinero(x.monto, x.moneda)}</b></li>`).join('')}</ul></details>` : `<p class="nota">Sin entradas registradas del ${M2.corto}. ${editar ? 'Regístralas en <a href="#" data-ir-tab="entradas">Entradas</a>.' : ''}</p>`}
       </div>`
     }
-    return `${navMes}${tabla(1)}${tabla(2)}<p class="nota">Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. Los gastos se repiten cada mes: edítalos cuando cambien. "A tener" es la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
+    const selector = admin ? `<div class="segmento tipo-sel">${[['negocio', 'NXUS'], ['personal', 'Personal']].map(([k, t]) => `<button data-tipo="${k}" class="${cual === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''
+    return `<div class="acciones">${selector}</div>${navMes}${tabla(1)}${tabla(2)}<p class="nota">${cual === 'personal' ? 'Personal: solo tú lo ves. "Te sobra de NXUS" = entradas − gastos de NXUS de esa mitad; "Sobran" = eso − tus gastos personales. ' : ''}Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. Los gastos se repiten cada mes: edítalos cuando cambien. "A tener" es la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
   }
 
   // ------------------------------------------------- Entradas
@@ -554,7 +562,8 @@ export async function vistaFinanzas(v, ctx) {
   $$('[data-mes]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-mes', b.dataset.mes === '0' ? '0' : String(salto + Number(b.dataset.mes))), mostrar())))
   $$('[data-ir-tab]', v).forEach((a) => (a.onclick = (e) => (e.preventDefault(), sessionStorage.setItem('hq-fin2', a.dataset.irTab), mostrar())))
   $('#fin-felix', v)?.addEventListener('click', () => (editar ? cambioFelix(c2, cambio, config) : null))
-  $$('[data-nuevo]', v).forEach((b) => (b.onclick = () => editarGasto(c2, null, b.dataset.nuevo)))
+  $$('[data-tipo]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-tipo', b.dataset.tipo), mostrar())))
+  $$('[data-nuevo]', v).forEach((b) => (b.onclick = () => editarGasto(c2, null, b.dataset.nuevo, cual)))
   $$('[data-gasto]', v).forEach((b) => (b.onclick = () => editarGasto(c2, gastos.find((g) => g.id === b.dataset.gasto))))
   $$('[data-estado]', v).forEach(
     (b) =>
@@ -667,8 +676,8 @@ function registrarCobro({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, op
   )
 }
 
-function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones, esAdmin }, g, mitad = 'primera') {
-  const n = g ?? { tipo: 'negocio', moneda: 'USD', categoria: 'otros', empresa: 'NXUS AI', quincena: mitad, dia_texto: '', automatico: false, activo: true, notas: '' }
+function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones, esAdmin }, g, mitad = 'primera', tipo = 'negocio') {
+  const n = g ?? { tipo, moneda: 'USD', categoria: 'otros', empresa: 'NXUS AI', quincena: mitad, dia_texto: '', automatico: false, activo: true, notas: '' }
   const admin = esAdmin()
   abrirModal(
     `<form id="f-gasto"><h2>${g ? h(g.concepto) : 'Nuevo gasto'}</h2>
@@ -680,7 +689,7 @@ function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opcio
         <label>Moneda<select name="moneda">${opciones(MONEDAS, n.moneda || 'USD')}</select></label>
         <label class="ancho">Notas <small>ej. Tarjeta México, Automatizado, Destinar a una deuda</small><input name="notas" maxlength="1000" value="${h(n.notas || '')}"></label>
         <label class="check ancho"><input type="checkbox" name="automatico" ${n.automatico ? 'checked' : ''}> Automatizado (se cobra solo: sale como "Pagado" cada mes)</label>
-        ${admin ? `<label>Es<select name="tipo">${opciones({ negocio: 'Del negocio', personal: 'Personal (solo tú lo ves)' }, n.tipo || 'negocio')}</select></label>` : ''}
+        ${admin ? `<label>Es de<select name="tipo">${opciones({ negocio: 'NXUS (negocio)', personal: 'Personal (solo tú lo ves)' }, n.tipo || 'negocio')}</select></label>` : ''}
         <label>Categoría<select name="categoria">${opciones(CATEGORIAS, n.categoria || 'otros')}</select></label>
         ${g ? `<label class="check ancho"><input type="checkbox" name="activo" ${n.activo !== false ? 'checked' : ''}> Sigue activo (si lo cancelaste para siempre, quítalo)</label>` : ''}
       </div>

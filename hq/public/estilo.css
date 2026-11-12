@@ -944,3 +944,8 @@ span.estado-n { cursor: default; display: inline-block; }
 .ent-n { margin-top: 10px; }
 .ent-n summary { cursor: pointer; color: #e3c896; font-size: 13px; }
 .resumen-n b span { font-size: 18px; letter-spacing: 0; text-transform: none; color: inherit; font-weight: 700; }
+
+.tipo-n { font-family: Manrope, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 9px; border-radius: 999px; border: .8px solid rgba(255,255,255,.25); }
+.tipo-n.negocio { color: #9cc2ff; border-color: rgba(156,194,255,.5); }
+.tipo-n.personal { color: #f0b6d6; border-color: rgba(240,182,214,.5); }
+.tipo-sel button { min-width: 120px; font-size: 15px; }

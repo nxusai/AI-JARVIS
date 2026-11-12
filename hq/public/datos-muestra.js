@@ -124,6 +124,17 @@ cliente({ nombre: 'Grupo Norte (contrato MX)', equipo: 'mexico', servicios: ['Ce
     ['Runway AI', 0, 'segunda', '29 - 31', true, 'Cancelada', false],
   ])
     g({ concepto, monto, quincena, dia_texto, automatico, notas, activo })
+  // Personales (solo Eduardo).
+  for (const [concepto, monto, quincena, dia_texto, automatico, notas, activo = true] of [
+    ['Mamá', 100, 'primera', '29 - 2', false, 'Tarjeta México'], ['Capital One', 100, 'primera', '2', true, 'Automatizado'], ['Netflix', 26.65, 'primera', '5', true, 'Automatizado'],
+    ['iCloud Apple', 1, 'primera', '5', true, 'Automatizado'], ['Amazon Prime', 10, 'primera', '9', true, ''], ['Crédito Wells Fargo', 100, 'primera', '11', false, 'Pagar directo a la tarjeta'],
+    ['iCloud mamá', 0.99, 'primera', '13', true, 'Automatizado'], ['Renta', 224, 'primera', '14', false, 'Pago manual'],
+    ['Mamá', 100, 'segunda', '15 - 17', false, 'Tarjeta de México'], ['Apple Music (yo)', 11, 'segunda', '15', true, 'Automatizado'], ['Apple Music (mamá)', 11, 'segunda', '15', true, 'Automatizado'],
+    ['Agua México', 40, 'segunda', '15', false, 'Tarjeta de México'], ['Luz México', 118, 'segunda', '15', false, 'Tarjeta de México'], ['AT&T celular', 352, 'segunda', '16', true, 'Automatizado'],
+    ['Coppel', 60, 'segunda', '25', false, 'Tarjeta de México'], ['Credit One', 100, 'segunda', '26', true, 'Automatizado'],
+    ['Verizon', 0, 'segunda', '27', true, 'Automatizado · cancelada', false], ['PSE&G', 0, 'segunda', '25', false, 'Pago manual · cancelada', false],
+  ])
+    g({ concepto, monto, quincena, dia_texto, automatico, notas, activo, tipo: 'personal', empresa: '', categoria: 'casa' })
   const casa = { id: id(), area: 'patrimonio', titulo: 'Casa multifamiliar para rentar', porque: 'Que la renta pague la casa y me deje ingreso', periodo: 'año', fecha_limite: null, progreso: 0, estado: 'activa', monto_objetivo: 800000, moneda: 'USD', aporte_monto: 500, aporte_frecuencia: 'quincenal', creado: dia(-20), actualizado: dia(-1) }
   db.metas.push(casa)
   db.metas_aportes.push({ id: id(), meta_id: casa.id, monto: 30, moneda: 'USD', fecha: fecha(-6), nota: 'Primer apartado', creado: dia(-6) })
