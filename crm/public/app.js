@@ -317,6 +317,14 @@ async function empezar() {
       yo: S.yo,
       preguntar: (t, opciones) => D.ultron(t, 'crm', opciones),
       transcribir: D.transcribir ? (b) => D.transcribir(b) : null,
+      // Ultron en vivo (ElevenLabs): el permiso para hablar, lo que sabe hacer y quién le habla.
+      vivo: D.ultronVivo ? () => D.ultronVivo() : null,
+      herramientas: herramientasUltron(),
+      contexto: () => ({
+        rol: ROLES[S.yo.rol],
+        hoy: new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+        empresas: misEmpresas('tareas').map((e) => e.nombre).join(', ') || 'ninguna',
+      }),
       avisar,
       muestra: MUESTRA,
       consola: () => (MUESTRA ? avisar('En el sistema real, la consola de Ultron se abre en otra pestaña.') : window.open('/ultron', '_blank')),
@@ -699,6 +707,83 @@ function tareasFiltradas() {
   if (S.filtroCliente) l = l.filter((t) => t.cliente_id === S.filtroCliente)
   if (S.filtroEmpresa) l = l.filter((t) => t.empresa_id === S.filtroEmpresa)
   return l
+}
+
+// -- Ultron en vivo: lo que puede consultar (con lo que esta persona ya ve en su pantalla) --
+function herramientasUltron() {
+  const hoyISO = () => new Date().toLocaleDateString('en-CA')
+  const atrasada = (t) => t.compromiso && t.compromiso < hoyISO() && !['entregada', 'aprobada'].includes(t.estatus)
+  const linea = (t) =>
+    `tarea ${t.folio}: ${t.titulo} · ${empresa(t.empresa_id).nombre} · ${hojaDe(t.estatus).titulo}${t.urgente ? ' · urgente' : ''}${t.compromiso && t.estatus !== 'aprobada' ? ` · compromiso ${t.compromiso}` : ''}${esEquipo() ? ` · de ${nombreCliente(t.cliente_id)}` : ''}`
+  const archivoLinea = (a) => `id ${a.id}: ${a.nombre}${a.empresa_id ? ` (${empresa(a.empresa_id).nombre})` : ''}`
+  return {
+    resumen_centro: () => {
+      const base = S.tareas
+      const cuenta = HOJAS.map((x) => {
+        const n = x.k === 'aprobadas' ? base.filter((t) => t.estatus === 'aprobada' && t.aprobada && aFecha(t.aprobada).getMonth() === new Date().getMonth()).length : base.filter((t) => x.estatus.includes(t.estatus)).length
+        return `${x.titulo}: ${n}`
+      })
+      const mias = base.filter((t) => hojaDe(t.estatus).toca && (hojaDe(t.estatus).toca === 'cliente') === esCliente())
+      const tarde = base.filter(atrasada)
+      return [
+        cuenta.join(', ') + (cuenta.length ? ' (aprobadas: este mes)' : ''),
+        `Le tocan a ${primerNombre(S.yo.nombre)}: ${mias.length}${mias.length ? ` (${mias.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`,
+        `Atrasadas: ${tarde.length}${tarde.length ? ` (${tarde.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`,
+        `Urgentes abiertas: ${base.filter((t) => t.urgente && t.estatus !== 'aprobada').length}`,
+      ].join('\n')
+    },
+    buscar_tareas: ({ texto = '', hoja = '' } = {}) => {
+      let l = S.tareas
+      const h = String(hoja).toLowerCase()
+      if (h === 'atrasadas') l = l.filter(atrasada)
+      else if (h === 'urgentes') l = l.filter((t) => t.urgente && t.estatus !== 'aprobada')
+      else if (HOJAS.find((x) => x.k === h)) l = l.filter((t) => HOJAS.find((x) => x.k === h).estatus.includes(t.estatus))
+      if (String(texto).trim()) l = l.filter((t) => coincide(textoTarea(t), String(texto)))
+      l = [...l].sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida))
+      return l.length ? `${l.length} encontradas.\n${l.slice(0, 6).map(linea).join('\n')}` : 'Ninguna tarea con eso.'
+    },
+    ver_tarea: ({ folio } = {}) => {
+      const t = S.tareas.find((x) => Number(x.folio) === Number(folio))
+      if (!t) return `No veo la tarea ${folio}.`
+      const archivos = t.archivos ?? []
+      return [
+        linea(t),
+        `Pedido: ${(t.descripcion || t.titulo).slice(0, 400)}`,
+        `Pedida ${fecha(t.pedida)}${t.entregada ? `, entregada ${fecha(t.entregada)}` : ''}${t.aprobada ? `, aprobada ${fecha(t.aprobada)}` : ''}`,
+        `A quién le toca: ${hojaDe(t.estatus).toca === 'cliente' ? 'al cliente (revisar y aprobar)' : hojaDe(t.estatus).toca ? 'al equipo' : 'a nadie, ya está aprobada'}`,
+        `Correcciones: ${t.correcciones.length}${t.correcciones.length ? ` (la última: ${t.correcciones[t.correcciones.length - 1].instrucciones.slice(0, 160)})` : ''}`,
+        `Archivos (${archivos.length}): ${archivos.slice(0, 8).map(archivoLinea).join('; ') || 'ninguno'}`,
+      ].join('\n')
+    },
+    buscar_archivos: ({ texto = '' } = {}) => {
+      const q = String(texto)
+      const l = todosLosArchivos().filter((a) => a.vigente !== false && coincide(`${a.nombre} ${empresa(a.empresa_id).nombre}`, q))
+      return l.length ? `${l.length} archivos.\n${l.slice(0, 6).map(archivoLinea).join('\n')}` : 'No encontré archivos con eso.'
+    },
+    mandar_al_correo: async ({ ids = [] } = {}) => {
+      const lista = (Array.isArray(ids) ? ids : [ids]).map(String).filter((id) => todosLosArchivos().some((a) => a.id === id)).slice(0, 20)
+      if (!lista.length) return 'No encontré esos archivos.'
+      try {
+        const r = lista.length > 1 ? await D.correoVarios(lista) : await D.correo(todosLosArchivos().find((a) => a.id === lista[0]))
+        return `Listo, enviado a ${r.para}.`
+      } catch (err) {
+        return `No se pudo mandar: ${err.message}`
+      }
+    },
+    pedir_tarea: async ({ empresa: nombreEmp = '', titulo = '', detalles = '', urgente = false } = {}) => {
+      if (!esCliente()) return 'Las tareas nuevas las pide el cliente; el equipo las registra con el botón +.'
+      const e = misEmpresas('tareas').find((x) => sinAcentos(x.nombre).includes(sinAcentos(nombreEmp)) || sinAcentos(nombreEmp).includes(sinAcentos(x.nombre)))
+      if (!e) return `No encuentro la empresa ${nombreEmp}. Opciones: ${misEmpresas('tareas').map((x) => x.nombre).join(', ')}.`
+      if (!String(titulo).trim()) return 'Falta qué se necesita.'
+      try {
+        const t = await D.pedir({ cliente_id: S.yo.id, empresa_id: e.id, titulo: String(titulo).trim().slice(0, 200), descripcion: `${String(detalles || titulo).trim()}\n\n(Pedida hablando con Ultron)`, urgente: Boolean(urgente), archivos: [] })
+        await recargar()
+        return `Registrada como tarea ${t.folio}.`
+      } catch (err) {
+        return `No se pudo registrar: ${err.message}`
+      }
+    },
+  }
 }
 
 /** La hoja que se abre sola: al cliente, lo que le toca revisar; al equipo, lo que le toca trabajar. */
