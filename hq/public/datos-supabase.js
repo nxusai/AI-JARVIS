@@ -243,7 +243,7 @@ export function crearSupabase({ url, anon }) {
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
     // NEX dentro de HQ (solo el admin).
-    nex: (mensajes, pantalla) => funcion('nex-hq', { mensajes, pantalla }),
+    nex: (mensajes, pantalla, op = {}) => funcion('nex-hq', { mensajes, pantalla, voz: !!op.voz }),
     async nexVoz(texto) {
       const { data } = await sb.auth.getSession()
       const res = await fetch('/.netlify/functions/nex-voz', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` }, body: JSON.stringify({ texto }) })

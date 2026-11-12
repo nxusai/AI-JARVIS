@@ -1036,3 +1036,8 @@ body.vista-ny .nex-orbe, body.vista-ny .nex-panel { opacity: 1; }
 .top .nex-orbe.en-barra + .reloj-top { margin-left: 0; }
 .nex-panel { top: 84px; bottom: auto; }
 @media (max-width: 600px) { .nex-orbe.en-barra { width: 38px; height: 38px; margin-right: 6px; font-size: 9.5px; } .nex-panel { top: 70px; bottom: 12px; height: auto; } }
+
+.nex-modo { padding: 8px 16px; border-bottom: .8px solid rgba(255,255,255,.1); display: grid; gap: 2px; font-size: 12.5px; }
+.nex-modo[hidden] { display: none; }
+.nex-modo label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.nex-modo small { color: rgba(255,255,255,.7); font-size: 11.5px; }

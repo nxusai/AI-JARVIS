@@ -10,10 +10,10 @@
 // Mientras Ultron habla, sube la barra para no oírse a sí mismo por las
 // bocinas (además de la cancelación de eco del navegador).
 
-const SOBRE_PISO = 2.6 // cuánto sobre el ruido del cuarto cuenta como voz
-const GUARDIA = 2.4 // mientras Ultron habla, se exige esto más
+const SOBRE_PISO = 3.1 // cuánto sobre el ruido del cuarto cuenta como voz (más alto = ignora más ruido de fondo)
+const GUARDIA = 3.2 // mientras NEX habla, se exige esto más (para que la música no lo interrumpa)
 const SOLTAR = 0.6 // bajar a umbral×esto termina la frase (histéresis)
-const INICIO_MS = 110 // tanto sonido seguido confirma que es voz y no un golpe
+const INICIO_MS = 200 // tanto sonido seguido confirma que es voz y no un golpe
 const SILENCIO_MS = 700 // tanto silencio termina la frase
 const MAX_MS = 20000 // nadie habla una frase más larga
 const PISO_SUBE = 0.0008

@@ -18,6 +18,10 @@ export function iniciarNex(ctx) {
     historial = JSON.parse(sessionStorage.getItem('hq-nex') || '[]').slice(-30)
   } catch {}
   let leerVoz = localStorage.getItem('hq-nex-voz') === '1'
+  // En conversación, solo contesta si dices "NEX" (o si acaba de hablar contigo: 20 s para seguir sin repetirlo).
+  let soloNombre = localStorage.getItem('hq-nex-nombre') !== '0'
+  let ventana = 0
+  const LLAMADO = /\b(oye\s+)?(nex|nexx|next|neks|necks|nexi|nexy|nexie|nets|nek|necs|nux)\b/i
   let oido = null // conversación en vivo
   let audio = null // lo que NEX está diciendo
   let pensando = false
@@ -45,6 +49,7 @@ export function iniciarNex(ctx) {
         <button type="button" id="nex-cerrar" title="Cerrar (Esc)">✕</button>
       </div>
     </header>
+    <div class="nex-modo" id="nex-modo" hidden><label><input type="checkbox" id="nex-nombre"> Solo me contesta si digo <b>“NEX”</b></label><small>Así no lo confunden la música ni otras pláticas.</small></div>
     <div class="nex-msgs" id="nex-msgs" aria-live="polite"></div>
     <form class="nex-form" id="nex-form">
       <textarea id="nex-texto" rows="1" placeholder="Escríbele a NEX…"></textarea>
@@ -65,6 +70,8 @@ export function iniciarNex(ctx) {
     $('#nex-voz', panel).classList.toggle('on', leerVoz)
     $('#nex-conv', panel).classList.toggle('on', !!oido)
     orbe.classList.toggle('escucha', !!oido)
+    $('#nex-modo', panel).hidden = !oido
+    $('#nex-nombre', panel).checked = soloNombre
   }
 
   function burbuja(rol, html, clase = '') {
@@ -155,22 +162,30 @@ export function iniciarNex(ctx) {
   }
 
   // ---------------------------------------------------------- hablar con NEX
-  async function preguntar(texto, { voz = false } = {}) {
+  async function preguntar(texto, { voz = false, deVoz = false } = {}) {
     if (pensando) return
     if (panel.hidden) abrir()
     callar()
     historial.push({ role: 'user', content: texto })
     guardar()
-    burbuja('yo', formato(texto))
+    const mia = burbuja('yo', formato(texto))
     const espera = burbuja('nex', '<span class="nex-puntos"><i></i><i></i><i></i></span>', 'pensando')
     pensando = true
     estado('Pensando…')
     try {
-      const r = await D.nex(historial, await pantalla())
+      const r = await D.nex(historial, await pantalla(), { voz: deVoz })
       espera.remove()
+      // Lo que oyó no era para NEX (música, otra plática): no contesta ni lo guarda.
+      if (deVoz && /^\s*IGNORAR\s*$/i.test(r.texto || '')) {
+        mia.remove()
+        historial.pop()
+        guardar()
+        return
+      }
       historial.push({ role: 'assistant', content: r.texto })
       guardar()
       burbuja('nex', formato(r.texto))
+      ventana = Date.now() + 25000
       if (voz || leerVoz) decir(r.texto)
       for (const a of r.acciones ?? []) await hacer(a)
     } catch (err) {
@@ -331,6 +346,7 @@ export function iniciarNex(ctx) {
     estado('Hablando…')
     oido?.guardia(true)
     const fin = () => {
+      ventana = Date.now() + 20000 // después de contestarte, 20 s para seguir sin decir "NEX"
       orbe.classList.remove('habla')
       oido?.guardia(false)
       estado(oido ? 'Te escucho…' : 'Tu asistente en HQ')
@@ -408,12 +424,20 @@ export function iniciarNex(ctx) {
         estado('Te escucho…')
         orbe.classList.add('oyendo')
       },
-      async termina(blob) {
+      async termina(blob, ms) {
         orbe.classList.remove('oyendo')
         if (pensando) return
+        if (ms && ms < 450) return // un golpe, una tos, media palabra
         try {
           const texto = await D.nexOido(blob)
-          if (texto && texto.replace(/[^\p{L}]/gu, '').length >= 2) preguntar(texto, { voz: true })
+          if (!texto || texto.replace(/[^\p{L}]/gu, '').length < 3) return
+          const paraMi = !soloNombre || LLAMADO.test(texto) || Date.now() < ventana
+          if (!paraMi) {
+            estado('Escuché algo, pero no dijiste “NEX”')
+            setTimeout(() => oido && !pensando && estado('Te escucho… di “NEX” y lo que necesites'), 2500)
+            return
+          }
+          preguntar(texto, { voz: true, deVoz: true })
         } catch (err) {
           estado(err.message || 'No te entendí')
         }
@@ -429,9 +453,17 @@ export function iniciarNex(ctx) {
     })
     if (oido && !oido.vivo()) oido = null
     if (oido?.dormido()) await oido.despertar()
-    estado(oido ? 'Te escucho… habla cuando quieras' : 'Tu asistente en HQ')
+    estado(oido ? (soloNombre ? 'Te escucho… di “NEX” y lo que necesites' : 'Te escucho… habla cuando quieras') : 'Tu asistente en HQ')
     pintarBotones()
     if (oido) abrir()
+  }
+
+  $('#nex-nombre', panel).onchange = (e) => {
+    soloNombre = e.target.checked
+    try {
+      localStorage.setItem('hq-nex-nombre', soloNombre ? '1' : '0')
+    } catch {}
+    estado(soloNombre ? 'Te escucho… di “NEX” y lo que necesites' : 'Te escucho… habla cuando quieras')
   }
 
   pintarBotones()

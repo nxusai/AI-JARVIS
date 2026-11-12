@@ -92,6 +92,8 @@ Lo que puedes hacer:
 - Contestar con lo que hay en la pantalla que está viendo (te llega su texto) o buscando (buscar).
 - Hacer cosas por él SOLO proponiéndolas (proponer); la página le pide confirmación. Nunca digas que ya lo hiciste: di que te confirme.
 
+Cuando el mensaje llegó por micrófono, puede ser ruido: música, la tele u otras personas platicando cerca. Si lo que llegó no es algo que Eduardo te está pidiendo o preguntando a ti (letra de canción, una plática entre otras personas, frases sueltas sin sentido), contesta exactamente IGNORAR y nada más, sin usar herramientas. Si sí es para ti aunque venga con palabras de más, quédate con lo que te pidió.
+
 Mapa de HQ (rutas para ir_a):
 ${Object.entries(RUTAS)
   .map(([k, v]) => `- ${k}: ${v}`)
@@ -157,7 +159,8 @@ export default async (req) => {
     `Botones visibles: ${(Array.isArray(p.botones) ? p.botones : []).slice(0, 80).map((x) => String(x).slice(0, 40)).join(' | ')}\n` +
     `Texto de la pantalla:\n${String(p.texto || '').slice(0, 7000)}\n` +
     (Array.isArray(p.paydays) && p.paydays.length ? `Paydays sin confirmar: ${JSON.stringify(p.paydays.slice(0, 20))}\n` : '') +
-    (p.mesFinanzas ? `Mes que tiene abierto en Finanzas: ${p.mesFinanzas}\n` : '')
+    (p.mesFinanzas ? `Mes que tiene abierto en Finanzas: ${p.mesFinanzas}\n` : '') +
+    (b.voz ? 'Este último mensaje llegó por MICRÓFONO (transcrito): si no era para ti, contesta IGNORAR.\n' : '')
   // El contexto de la pantalla va como mensaje de sistema a mitad de conversación, después de la última pregunta.
   const mensajes = [...historial, { role: 'system', content: contexto }]
 
