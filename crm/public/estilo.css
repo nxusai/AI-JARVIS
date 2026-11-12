@@ -864,7 +864,27 @@ body::after {
 .frase { background: rgba(255, 255, 255, .7); }
 .entrada-caja { background: rgba(255, 255, 255, .6); }
 .ayuda, .hoja-aviso { color: #3f3a36; }
-@media (max-width: 760px) { #app > main { width: calc(100% - 16px); margin: 10px auto 12px; border-radius: 24px; } }
+/* Celular: la hoja ya no es una lámina de vidrio entera (tapaba la foto); el vidrio va
+   en cada tarjeta, más transparente y con filo de luz, como en la computadora. Lo que
+   va suelto sobre la foto lleva un halo claro para que se lea. */
+@media (max-width: 760px) {
+  #app > main {
+    width: 100%; margin: 6px auto 12px; padding-left: 10px; padding-right: 10px;
+    background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  :root { --vidrio: rgba(255, 255, 255, .4); --esmerilado: blur(18px) saturate(180%); }
+  .tarjeta, .dato, .carpeta, .cat, .vacio-msg, .pasos, .arbol, .tabla, .dia, .seccion, .material-uno, .fecha-caja {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .28));
+    border: 1px solid rgba(255, 255, 255, .75);
+    box-shadow: 0 10px 28px rgba(20, 16, 40, .22), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .25);
+  }
+  .cabeza, .entrada-caja, .frase { background: linear-gradient(160deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .3)); border-color: rgba(255, 255, 255, .75); }
+  .hola h1, .hola p, .ayuda, .hoja-aviso, .etiqueta, main > p, .barra + p {
+    text-shadow: 0 0 10px rgba(255, 255, 255, .95), 0 0 2px rgba(255, 255, 255, .9);
+  }
+  .hola p, .ayuda, .hoja-aviso { color: #2b2723; font-weight: 500; }
+  input, select, textarea { background: rgba(255, 255, 255, .62); }
+}
 
 /* Al cambiar de sección todo se desvanece 2 segundos para que se luzca el fondo (un clic lo regresa antes). */
 #app, #avisos, .orbe { transition: opacity .55s ease, filter .55s ease; }
