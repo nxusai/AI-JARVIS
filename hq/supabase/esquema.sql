@@ -1159,3 +1159,62 @@ revoke all on function public.ya_cambie_mi_clave() from public, anon;
 grant execute on function public.ya_cambie_mi_clave() to authenticated;
 -- Nadie más que el admin ve dinero: el permiso "ver lo que pagaron" se apaga para todos.
 update public.perfiles set pros_pagos = false where rol <> 'admin' and pros_pagos;
+
+-- Mis pendientes, metas y hábitos (12 de noviembre de 2026): lo personal de Eduardo. SOLO el admin lo ve
+-- (ni el equipo ni los socios). NEX (en su Mac, por Telegram) los apunta y los consulta con la llave
+-- PENDIENTES_CLAVE a través de functions/pendientes.mjs.
+create table if not exists public.metas (
+  id uuid primary key default gen_random_uuid(),
+  area text not null default 'negocios' check (area in ('negocios', 'patrimonio', 'salud', 'familia', 'crecimiento', 'disfrute')),
+  titulo text not null check (char_length(titulo) between 1 and 200),
+  porque text not null default '' check (char_length(porque) <= 1000), -- para qué la quiere (NEX se lo recuerda)
+  periodo text not null default 'año' check (periodo in ('año', 'mes')),
+  fecha_limite date,
+  progreso int not null default 0 check (progreso between 0 and 100), -- a mano, si no tiene pendientes ligados
+  estado text not null default 'activa' check (estado in ('activa', 'lograda', 'pausada')),
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create table if not exists public.pendientes (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null check (char_length(titulo) between 1 and 300),
+  notas text not null default '' check (char_length(notas) <= 4000),
+  area text not null default 'negocios' check (area in ('negocios', 'patrimonio', 'salud', 'familia', 'crecimiento', 'disfrute')),
+  empresa text not null default '' check (char_length(empresa) <= 60), -- NXUS AI, Mi Semago, Abuelito…
+  fecha date, -- sin fecha = "Algún día"
+  hora time,
+  prioridad text not null default 'normal' check (prioridad in ('alta', 'media', 'normal')),
+  estrella boolean not null default false, -- de "las tres de hoy", elegida a mano
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'hecho')),
+  hecho_en timestamptz,
+  meta_id uuid references public.metas (id) on delete set null,
+  origen text not null default 'hq' check (origen in ('hq', 'nex')),
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists pendientes_estado on public.pendientes (estado, fecha);
+create table if not exists public.habitos (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null check (char_length(titulo) between 1 and 120),
+  area text not null default 'salud' check (area in ('negocios', 'patrimonio', 'salud', 'familia', 'crecimiento', 'disfrute')),
+  activo boolean not null default true,
+  creado timestamptz not null default now()
+);
+create table if not exists public.habitos_dias (
+  habito_id uuid not null references public.habitos (id) on delete cascade,
+  dia date not null,
+  primary key (habito_id, dia)
+);
+drop trigger if exists hq_actualizado on public.metas;
+create trigger hq_actualizado before update on public.metas for each row execute function public.al_cambiar_fila();
+drop trigger if exists hq_actualizado on public.pendientes;
+create trigger hq_actualizado before update on public.pendientes for each row execute function public.al_cambiar_fila();
+do $$
+declare t text;
+begin
+  foreach t in array array['metas', 'pendientes', 'habitos', 'habitos_dias'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists solo_admin on public.%I', t);
+    execute format('create policy solo_admin on public.%I for all to authenticated using (es_admin()) with check (es_admin())', t);
+  end loop;
+end $$;

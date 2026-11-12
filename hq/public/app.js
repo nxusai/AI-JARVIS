@@ -264,6 +264,8 @@ export function iniciar(D, { muestra = false } = {}) {
   ]
   const misSecciones = () => SECCIONES.filter(([id]) => !['prospectos', 'leads', 'cartera'].includes(id) || vePros())
   const SECCIONES_ADMIN = [
+    ['pendientes', 'Mis pendientes', '✓'],
+    ['metas', 'Metas y hábitos', '◎'],
     ['nomina', 'Nómina', '⧉'],
     ['dinero', 'Dinero', '$'],
     ['personas', 'Personas', '⚙'],
@@ -349,23 +351,42 @@ export function iniciar(D, { muestra = false } = {}) {
     // Si sigues en la misma pantalla (guardar, aprobar, borrar), no se borra: se cambia cuando llega lo nuevo.
     const misma = vista.dataset.ruta === location.hash && vista.children.length
     vista.dataset.ruta = location.hash
+    // El momento Nueva York: al cambiar de sección todo se va 2 segundos y se ve la ciudad (mientras, carga lo nuevo).
+    const ny = !misma ? momentoNY() : null
     if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
     else vista.classList.add('actualizando')
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, pendientes: vistaPendientes, metas: vistaMetas, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
       else if (ruta === 'lead' && arg && vePros()) await vistaLead(vista, arg)
       else await VISTAS[sec](vista)
       vista.classList.remove('actualizando')
+      await ny?.fin()
     } catch (err) {
       vista.classList.remove('actualizando')
+      await ny?.fin()
       if (/leads/.test(err.message) && /schema cache|does not exist|relation/i.test(err.message))
         return (vista.innerHTML = `<div class="tarjeta"><h3>Falta un paso en Supabase</h3><p>Leads y Cartera ya están en la página, pero la base de datos todavía no tiene su lugar. En Supabase → <b>SQL Editor</b> → <b>New query</b>, pega todo <code>hq/supabase/esquema.sql</code> y dale <b>Run</b>.</p></div>`)
       vista.innerHTML = `<p class="error">${h(err.message)}</p>`
     }
   }
   const titulo = (t) => ($('#titulo').textContent = t)
+
+  /** Todo se desvanece y queda Nueva York 2 segundos; fin() espera lo que falte y regresa la pantalla. */
+  let turnoNY = 0
+  function momentoNY(ms = 2000) {
+    const mio = ++turnoNY
+    const desde = Date.now()
+    document.body.classList.add('vista-ny')
+    return {
+      async fin() {
+        const falta = ms - (Date.now() - desde)
+        if (falta > 0) await new Promise((r) => setTimeout(r, falta))
+        if (mio === turnoNY) document.body.classList.remove('vista-ny') // si ya cambiaste de nuevo, sigue la otra
+      },
+    }
+  }
 
   // ------------------------------------------------------------- inicio
 
@@ -1742,6 +1763,303 @@ export function iniciar(D, { muestra = false } = {}) {
           if (r) {
             cerrarModal()
             accesoListo({ nombre: p.nombre, usuario: p.usuario || p.correo, clave, correo: p.correo, enviado: r.enviado, pidio: enviar, nueva: true, motivo: r.motivo })
+          }
+        })
+      },
+    )
+  }
+
+  // ------------------------------------------------------- mis pendientes
+
+  // Lo personal de Eduardo: pendientes, metas y hábitos. Solo el admin (la base de datos lo cuida).
+  const AREAS = {
+    negocios: ['Negocios', '#8fb8ff'],
+    patrimonio: ['Patrimonio', '#e3c896'],
+    salud: ['Salud', '#ff9fb0'],
+    familia: ['Familia', '#ffc98a'],
+    crecimiento: ['Crecimiento', '#bfa8ff'],
+    disfrute: ['Disfrute', '#86f0cc'],
+  }
+  const EMPRESAS = ['NXUS AI', 'Mi Semago', 'Abuelito', 'Aurelius', 'VAYRO']
+  const PRIORIDAD = { alta: 'Urgente', media: 'Importante', normal: 'Normal' }
+  /** La fecha de aquí (no la de Londres): YYYY-MM-DD, con días de más o de menos. */
+  const diaLocal = (mas = 0) => new Date(Date.now() + mas * 864e5).toLocaleDateString('en-CA')
+  const ROMANOS = ['i', 'ii', 'iii']
+  const diaBonito = (iso) => new Date(`${iso}T12:00`).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  const horaBonita = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : '')
+  const chipArea = (a) => `<span class="chip area" style="--c:${AREAS[a]?.[1] ?? '#ccc'}">${AREAS[a]?.[0] ?? a}</span>`
+
+  /** Las tres de hoy: las de estrella; si faltan, las más urgentes (atrasadas, urgentes, con hora). */
+  function tresDeHoy(lista, hoy) {
+    const deHoy = lista.filter((p) => p.estado === 'pendiente' && p.fecha && p.fecha <= hoy)
+    const peso = (p) => (p.estrella ? 1000 : 0) + (p.fecha < hoy ? 300 : 0) + { alta: 200, media: 100, normal: 0 }[p.prioridad] + (p.hora ? 20 : 0)
+    return [...deHoy].sort((a, b) => peso(b) - peso(a) || String(a.hora ?? '99').localeCompare(String(b.hora ?? '99'))).slice(0, 3)
+  }
+
+  /** Un pendiente: círculo para terminarlo, título, etiquetas y acciones. */
+  function filaPendiente(p, hoy, { numero } = {}) {
+    const tarde = p.estado === 'pendiente' && p.fecha && p.fecha < hoy
+    const chips = [
+      chipArea(p.area),
+      p.empresa ? `<span class="chip">${h(p.empresa)}</span>` : '',
+      p.prioridad !== 'normal' ? `<span class="chip prio-${p.prioridad}">${PRIORIDAD[p.prioridad]}</span>` : '',
+      tarde ? `<span class="chip tarde">Desde ${h(diaBonito(p.fecha))}</span>` : p.fecha && p.fecha !== hoy && p.estado === 'pendiente' ? `<span class="chip">${h(diaBonito(p.fecha))}</span>` : '',
+      p.hora ? `<span class="chip">${h(horaBonita(p.hora))}</span>` : '',
+      p.origen === 'nex' ? '<span class="chip nex">vía NEX</span>' : '',
+    ].join('')
+    return `<div class="pend ${p.estado === 'hecho' ? 'hecho' : ''}" data-p="${p.id}">
+      ${numero ? `<span class="romano">${numero}</span>` : ''}
+      <button class="check" data-hecho title="${p.estado === 'hecho' ? 'Regresar a pendiente' : 'Listo'}">${p.estado === 'hecho' ? '✓' : ''}</button>
+      <div class="pend-cuerpo"><b>${h(p.titulo)}</b>${p.notas ? `<small>${h(p.notas)}</small>` : ''}<div class="fila chips">${chips}</div></div>
+      ${
+        p.estado === 'pendiente'
+          ? `<div class="pend-acc"><button class="btn chico ${p.estrella ? 'estrella' : ''}" data-estrella title="${p.estrella ? 'Quitar de las tres de hoy' : 'A las tres de hoy'}">${p.estrella ? '★' : '☆'}</button><button class="btn chico" data-manana>Mañana</button><button class="btn chico" data-editar>Editar</button></div>`
+          : `<div class="pend-acc"><small>${p.hecho_en ? h(hora(p.hecho_en)) : ''}</small></div>`
+      }
+    </div>`
+  }
+
+  /** Conecta los botones de los pendientes de una vista. */
+  function conectarPendientes(v, lista, metas) {
+    const de = (el) => lista.find((p) => p.id === el.closest('[data-p]').dataset.p)
+    const guardar = async (cambio, bien) => (await intenta(() => D.guardarPendiente(cambio), bien)) && mostrar()
+    $$('[data-hecho]', v).forEach((b) => (b.onclick = () => {
+      const p = de(b)
+      b.closest('.pend').classList.add('saliendo')
+      guardar(p.estado === 'hecho' ? { id: p.id, estado: 'pendiente', hecho_en: null } : { id: p.id, estado: 'hecho', hecho_en: new Date().toISOString(), estrella: false }, p.estado === 'hecho' ? 'De vuelta a pendientes' : '✓ Hecho')
+    }))
+    $$('[data-estrella]', v).forEach((b) => (b.onclick = () => {
+      const p = de(b)
+      guardar({ id: p.id, estrella: !p.estrella, ...(!p.estrella && (!p.fecha || p.fecha > diaLocal()) ? { fecha: diaLocal() } : {}) }, p.estrella ? 'Quitado de las tres de hoy' : '★ En las tres de hoy')
+    }))
+    $$('[data-manana]', v).forEach((b) => (b.onclick = () => guardar({ id: de(b).id, fecha: diaLocal(1), estrella: false }, 'Para mañana')))
+    $$('[data-editar]', v).forEach((b) => (b.onclick = () => editarPendiente(de(b), metas)))
+  }
+
+  function editarPendiente(p, metas = []) {
+    const nuevo = !p?.id
+    p = { titulo: '', notas: '', area: 'negocios', empresa: '', fecha: diaLocal(), hora: '', prioridad: 'normal', meta_id: '', ...p }
+    abrirModal(
+      `<form id="f-pend"><h2>${nuevo ? 'Nuevo pendiente' : 'Editar pendiente'}</h2>
+        <div class="campos">
+          <label class="ancho">Qué hay que hacer<input name="titulo" required maxlength="300" value="${h(p.titulo)}"></label>
+          <label>Área<select name="area">${Object.entries(AREAS).map(([k, [t]]) => `<option value="${k}" ${k === p.area ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label>Empresa<select name="empresa"><option value="">Personal / ninguna</option>${EMPRESAS.map((e) => `<option ${e === p.empresa ? 'selected' : ''}>${e}</option>`).join('')}</select></label>
+          <label>Fecha <small>vacía = algún día</small><input name="fecha" type="date" value="${h(p.fecha ?? '')}"></label>
+          <label>Hora<input name="hora" type="time" value="${h(String(p.hora ?? '').slice(0, 5))}"></label>
+          <label>Prioridad<select name="prioridad">${Object.entries(PRIORIDAD).map(([k, t]) => `<option value="${k}" ${k === p.prioridad ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label>Meta<select name="meta_id"><option value="">Ninguna</option>${metas.filter((m) => m.estado === 'activa').map((m) => `<option value="${m.id}" ${m.id === p.meta_id ? 'selected' : ''}>${h(m.titulo)}</option>`).join('')}</select></label>
+          <label class="ancho">Notas<textarea name="notas" rows="3" maxlength="4000">${h(p.notas)}</textarea></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button>${nuevo ? '' : '<button type="button" class="btn peligro" id="pd-borrar">Borrar</button>'}</div></form>`,
+      (caja) => {
+        $('#f-pend', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const fila = { ...(nuevo ? {} : { id: p.id }), titulo: d.titulo.trim(), notas: d.notas.trim(), area: d.area, empresa: d.empresa, fecha: d.fecha || null, hora: d.hora || null, prioridad: d.prioridad, meta_id: d.meta_id || null }
+          if (await intenta(() => D.guardarPendiente(fila), 'Guardado')) {
+            cerrarModal()
+            mostrar()
+          }
+        }
+        $('#pd-borrar', caja)?.addEventListener('click', async () => {
+          if (confirm(`¿Borrar "${p.titulo}"?`) && (await intenta(() => D.borrarPendiente(p.id), 'Borrado')) !== undefined) {
+            cerrarModal()
+            mostrar()
+          }
+        })
+      },
+    )
+  }
+
+  /** Días seguidos (hasta hoy, o hasta ayer si hoy todavía no) con el hábito hecho. */
+  const racha = (habitoId, dias) => {
+    const hechos = new Set(dias.filter((d) => d.habito_id === habitoId).map((d) => d.dia))
+    let n = 0
+    for (let i = hechos.has(diaLocal()) ? 0 : 1; hechos.has(diaLocal(-i)); i++) n++
+    return n
+  }
+  const avanceMeta = (m, lista) => {
+    const suyos = lista.filter((p) => p.meta_id === m.id)
+    return suyos.length ? Math.round((suyos.filter((p) => p.estado === 'hecho').length / suyos.length) * 100) : m.progreso
+  }
+
+  async function vistaPendientes(v) {
+    titulo('Mis pendientes')
+    const hoy = diaLocal()
+    const [lista, habitos, dias, metas] = await Promise.all([D.pendientes(), D.habitos(), D.habitosDias(diaLocal(-60)), D.metas()])
+    const TABS = { hoy: 'Hoy', semana: 'Semana', algun: 'Algún día', hechos: 'Logrado' }
+    const tab = TABS[sessionStorage.getItem('hq-pend')] ? sessionStorage.getItem('hq-pend') : 'hoy'
+    const abiertos = lista.filter((p) => p.estado === 'pendiente')
+    const deHoy = abiertos.filter((p) => p.fecha && p.fecha <= hoy)
+    const hechosHoy = lista.filter((p) => p.estado === 'hecho' && p.hecho_en && new Date(p.hecho_en).toLocaleDateString('en-CA') === hoy)
+    const tres = tresDeHoy(lista, hoy)
+    const activos = habitos.filter((x) => x.activo)
+    const mejorRacha = Math.max(0, ...activos.map((x) => racha(x.id, dias)))
+    const metasMes = metas.filter((m) => m.estado === 'activa' && m.periodo === 'mes')
+    const pctMes = metasMes.length ? Math.round(metasMes.reduce((s, m) => s + avanceMeta(m, lista), 0) / metasMes.length) : 0
+    const totalHoy = deHoy.length + hechosHoy.length
+    const pct = totalHoy ? Math.round((hechosHoy.length / totalHoy) * 100) : 0
+    const aro = (n) => `<svg class="aro" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,.14)"/><circle cx="28" cy="28" r="24" stroke="#e3c896" stroke-linecap="round" stroke-dasharray="${(n / 100) * 150.8} 150.8" transform="rotate(-90 28 28)"/></svg>`
+    const vacio = (t, s) => `<div class="vacio-lujo"><div class="t">${t}</div><small>${s}</small></div>`
+    let cuerpo = ''
+    if (tab === 'hoy') {
+      const resto = deHoy.filter((p) => !tres.includes(p))
+      cuerpo = `<div class="rejilla-pend">
+        <div class="col-pend">
+          <div class="tarjeta"><h3>Las tres de hoy</h3><p class="nota">Si solo haces esto, el día valió la pena. Marca ☆ para elegirlas tú; si no, se eligen solas.</p>
+            ${[0, 1, 2].map((i) => (tres[i] ? filaPendiente(tres[i], hoy, { numero: ROMANOS[i] }) : `<div class="hueco-lujo"><span class="romano">${ROMANOS[i]}</span><span>${['La más importante del día', 'La segunda', 'La tercera'][i]}</span><i></i></div>`)).join('')}
+          </div>
+          <div class="tarjeta"><h3>También hoy <small>${resto.length}</small></h3>${resto.length ? resto.map((p) => filaPendiente(p, hoy)).join('') : vacio('Nada más en la agenda.', 'Lo que apuntes para hoy aparece aquí.')}</div>
+          ${hechosHoy.length ? `<div class="tarjeta"><h3>Logrado hoy <small>${hechosHoy.length}</small></h3>${hechosHoy.map((p) => filaPendiente(p, hoy)).join('')}</div>` : ''}
+        </div>
+        <div class="col-pend">
+          <div class="tarjeta"><h3>Tu día con NEX</h3><p class="nota">Por Telegram, cuando tu Mac está prendida.</p>
+            <div class="agenda-nex"><span>7:30</span>Tu plan del día<span>— 30′</span>Aviso antes de lo que tiene hora<span>21:00</span>Cierre del día y hábitos<span>Dom</span>Revisión de la semana y tus metas</div></div>
+          <div class="tarjeta"><div class="fila"><h3>Hábitos</h3><a href="#metas" data-ir-hab>Ver todos</a></div>
+            ${activos.length ? activos.map((x) => { const hecho = dias.some((d) => d.habito_id === x.id && d.dia === hoy); return `<button class="habito-hoy ${hecho ? 'si' : ''}" data-hab="${x.id}"><i>${hecho ? '✓' : ''}</i>${h(x.titulo)}<small>${racha(x.id, dias)} días</small></button>` }).join('') : vacio('Agrega tu primer hábito.', 'En Metas y hábitos → Hábitos.')}
+          </div>
+          <div class="tarjeta"><h3>Equilibrio <small>esta semana</small></h3>
+            <div class="areas-lujo">${Object.entries(AREAS).map(([k, [t, c]]) => { const n = lista.filter((p) => p.area === k && p.estado === 'hecho' && p.hecho_en && new Date(p.hecho_en) > Date.now() - 7 * 864e5).length; return `<div><span>${t}</span><b style="color:${c}">${n}</b><div class="b"><i style="width:${Math.min(100, n * 20)}%;background:${c}"></i></div></div>` }).join('')}</div>
+          </div>
+        </div></div>`
+    } else if (tab === 'semana') {
+      const dias7 = Array.from({ length: 7 }, (_, i) => diaLocal(i))
+      const atrasados = abiertos.filter((p) => p.fecha && p.fecha < hoy)
+      cuerpo = `${atrasados.length ? `<div class="tarjeta"><h3>Atrasados <small>${atrasados.length}</small></h3>${atrasados.map((p) => filaPendiente(p, hoy)).join('')}</div>` : ''}
+        ${dias7.map((d, i) => { const suyos = abiertos.filter((p) => p.fecha === d); return `<div class="tarjeta"><h3>${i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : h(diaBonito(d))} <small>${suyos.length}</small></h3>${suyos.length ? suyos.map((p) => filaPendiente(p, hoy)).join('') : '<p class="nota">Libre.</p>'}</div>` }).join('')}`
+    } else if (tab === 'algun') {
+      const sin = abiertos.filter((p) => !p.fecha)
+      cuerpo = `<div class="tarjeta"><h3>Algún día <small>${sin.length}</small></h3><p class="nota">Ideas y cosas sin fecha. Cuando les toque, ponles fecha o márcalas ☆ para hoy.</p>${sin.length ? sin.map((p) => filaPendiente(p, hoy)).join('') : vacio('Nada guardado para algún día.', 'Lo que dictes sin fecha cae aquí.')}</div>`
+    } else {
+      const hechos = lista.filter((p) => p.estado === 'hecho').sort((a, b) => String(b.hecho_en).localeCompare(String(a.hecho_en))).slice(0, 80)
+      const grupos = []
+      for (const p of hechos) {
+        const d = p.hecho_en ? new Date(p.hecho_en).toLocaleDateString('en-CA') : '—'
+        if (grupos.at(-1)?.[0] !== d) grupos.push([d, []])
+        grupos.at(-1)[1].push(p)
+      }
+      cuerpo = grupos.length ? grupos.map(([d, ps]) => `<div class="tarjeta"><h3>${d === hoy ? 'Hoy' : h(diaBonito(d))} <small>${ps.length}</small></h3>${ps.map((p) => filaPendiente(p, hoy)).join('')}</div>`).join('') : `<div class="tarjeta">${vacio('Todavía nada logrado.', 'Lo que termines se queda aquí, para que veas lo que avanzas.')}</div>`
+    }
+    v.innerHTML = `
+      <p class="eyebrow">${h(new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
+      <form class="captura-lujo" id="pd-captura"><span class="pluma">✦</span><input name="texto" autocomplete="off" placeholder="Escribe como hablas… “mañana a las diez llamar al contador, urgente; el viernes el regalo de mi mamá”"><button class="btn primario">Apuntar</button></form>
+      <div class="acciones"><div class="segmento">${Object.entries(TABS).map(([k, t]) => `<button data-pt="${k}" class="${tab === k ? 'on' : ''}">${t}${k === 'hoy' && deHoy.length ? ` <small>${deHoy.length}</small>` : k === 'algun' ? ` <small>${abiertos.filter((p) => !p.fecha).length || ''}</small>` : ''}</button>`).join('')}</div>
+        <span style="flex:1"></span><button class="btn" id="pd-nuevo">+ Con detalle</button></div>
+      <div class="kpis">
+        <div class="kpi">${aro(pct)}<span>Para hoy</span><b>${deHoy.length}</b><small>${deHoy.filter((p) => p.fecha < hoy).length ? `${deHoy.filter((p) => p.fecha < hoy).length} atrasado(s)` : 'Al día'}</small></div>
+        <div class="kpi"><span>Logrados hoy</span><b>${hechosHoy.length}</b><small>${pct}% del día</small></div>
+        <div class="kpi"><span>Racha</span><b>${mejorRacha} <em>días</em></b><small>Tu mejor hábito</small></div>
+        <div class="kpi"><span>Metas del mes</span><b>${pctMes}%</b><small>${metasMes.length ? `${metasMes.length} meta(s)` : 'Define tu primera meta'}</small></div>
+      </div>
+      ${cuerpo}`
+    $$('[data-pt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-pend', b.dataset.pt), mostrar())))
+    $('#pd-nuevo', v).onclick = () => editarPendiente(null, metas)
+    $('#pd-captura', v).onsubmit = async (e) => {
+      e.preventDefault()
+      const texto = e.target.texto.value.trim()
+      if (!texto) return
+      const b = $('button', e.target)
+      b.disabled = true
+      b.textContent = 'Ordenando…'
+      const r = await intenta(() => D.entenderPendientes(texto))
+      b.disabled = false
+      b.textContent = 'Apuntar'
+      if (r) {
+        aviso(r.items.length === 1 ? `Apuntado: ${r.items[0].titulo}` : `Apunté ${r.items.length} pendientes`)
+        mostrar()
+      }
+    }
+    $$('[data-hab]', v).forEach((b) => (b.onclick = async () => {
+      const hecho = b.classList.contains('si')
+      if (await intenta(() => D.marcarHabito(b.dataset.hab, hoy, !hecho))) mostrar()
+    }))
+    $('[data-ir-hab]', v)?.addEventListener('click', () => sessionStorage.setItem('hq-metas', 'habitos'))
+    conectarPendientes(v, lista, metas)
+  }
+
+  // --------------------------------------------------------- metas y hábitos
+
+  async function vistaMetas(v) {
+    titulo('Metas y hábitos')
+    const [metas, lista, habitos, dias] = await Promise.all([D.metas(), D.pendientes(), D.habitos(), D.habitosDias(diaLocal(-60))])
+    const tab = sessionStorage.getItem('hq-metas') === 'habitos' ? 'habitos' : 'metas'
+    const hoy = diaLocal()
+    let cuerpo
+    if (tab === 'metas') {
+      cuerpo = `<div class="metas-lujo">${Object.entries(AREAS)
+        .map(([k, [t, c]], i) => {
+          const suyas = metas.filter((m) => m.area === k && m.estado !== 'pausada')
+          return `<div class="tarjeta meta-area" style="--c:${c}"><div class="fila"><span class="romano-chico">${['I', 'II', 'III', 'IV', 'V', 'VI'][i]}</span><span class="punto-area"></span></div><h2>${t}</h2>
+            ${suyas.map((m) => { const pct = avanceMeta(m, lista); return `<button class="meta-item ${m.estado}" data-meta="${m.id}"><span>${h(m.titulo)}${m.estado === 'lograda' ? ' ✓' : ''}</span><small>${m.periodo === 'mes' ? 'Este mes' : 'Este año'} · ${pct}%</small><div class="b"><i style="width:${pct}%"></i></div></button>` }).join('')}
+            <button class="enlace definir" data-nueva="${k}">+ Definir meta</button></div>`
+        })
+        .join('')}</div>
+        <p class="nota">Meta del año → metas del mes → hábitos y pendientes de cada día. Liga tus pendientes a una meta (en Editar) y su barra sube sola cuando los terminas.</p>`
+    } else {
+      const activos = habitos.filter((x) => x.activo)
+      const ult7 = Array.from({ length: 7 }, (_, i) => diaLocal(i - 6))
+      cuerpo = `<div class="tarjeta"><div class="fila"><h3>Tus hábitos <small>${activos.length}</small></h3><button class="btn primario" id="hb-nuevo">+ Nuevo hábito</button></div>
+        ${activos.length ? activos.map((x) => `<div class="habito-fila"><b>${h(x.titulo)}</b>${chipArea(x.area)}<span class="racha">${racha(x.id, dias)} días seguidos</span><div class="dias7">${ult7.map((d) => { const si = dias.some((z) => z.habito_id === x.id && z.dia === d); return `<button class="${si ? 'si' : ''}" data-dia="${d}" data-hb="${x.id}" title="${h(diaBonito(d))}">${new Date(`${d}T12:00`).toLocaleDateString('es-MX', { weekday: 'narrow' })}</button>` }).join('')}</div><button class="enlace rojo" data-hb-borrar="${x.id}">Quitar</button></div>`).join('') : '<div class="vacio-lujo"><div class="t">Agrega tu primer hábito.</div><small>Ejercicio, leer, meditar, revisar finanzas… Lo marcas cada día y llevas tu racha.</small></div>'}
+      </div>`
+    }
+    v.innerHTML = `
+      <p class="eyebrow">Tu año · ${new Date().getFullYear()}</p>
+      <div class="acciones"><div class="segmento"><button data-mt="metas" class="${tab === 'metas' ? 'on' : ''}">Metas</button><button data-mt="habitos" class="${tab === 'habitos' ? 'on' : ''}">Hábitos</button></div></div>
+      ${cuerpo}`
+    $$('[data-mt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-metas', b.dataset.mt), mostrar())))
+    $$('[data-nueva]', v).forEach((b) => (b.onclick = () => editarMeta({ area: b.dataset.nueva })))
+    $$('[data-meta]', v).forEach((b) => (b.onclick = () => editarMeta(metas.find((m) => m.id === b.dataset.meta))))
+    $('#hb-nuevo', v)?.addEventListener('click', () => {
+      abrirModal(
+        `<form id="f-hab"><h2>Nuevo hábito</h2><div class="campos"><label class="ancho">Hábito<input name="titulo" required maxlength="120" placeholder="Ej.: Ejercicio 30 minutos"></label>
+          <label>Área<select name="area">${Object.entries(AREAS).map(([k, [t]]) => `<option value="${k}" ${k === 'salud' ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+          <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+        (caja) => {
+          $('#f-hab', caja).onsubmit = async (e) => {
+            e.preventDefault()
+            const d = Object.fromEntries(new FormData(e.target))
+            if (await intenta(() => D.guardarHabito({ titulo: d.titulo.trim(), area: d.area }), 'Hábito agregado')) {
+              cerrarModal()
+              mostrar()
+            }
+          }
+        },
+      )
+    })
+    $$('[data-hb]', v).forEach((b) => (b.onclick = async () => (await intenta(() => D.marcarHabito(b.dataset.hb, b.dataset.dia, !b.classList.contains('si')))) && mostrar()))
+    $$('[data-hb-borrar]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este hábito?') && (await intenta(() => D.guardarHabito({ id: b.dataset.hbBorrar, activo: false }), 'Quitado')) && mostrar()))
+  }
+
+  function editarMeta(m) {
+    const nueva = !m?.id
+    m = { titulo: '', porque: '', area: 'negocios', periodo: 'año', fecha_limite: '', progreso: 0, estado: 'activa', ...m }
+    abrirModal(
+      `<form id="f-meta"><h2>${nueva ? `Nueva meta · ${AREAS[m.area][0]}` : 'Tu meta'}</h2>
+        <div class="campos">
+          <label class="ancho">Qué quieres lograr<input name="titulo" required maxlength="200" value="${h(m.titulo)}" placeholder="Ej.: Facturar $50,000 al mes"></label>
+          <label class="ancho">Para qué la quieres <small>NEX te lo recuerda cuando te atores</small><textarea name="porque" rows="2" maxlength="1000">${h(m.porque)}</textarea></label>
+          <label>Área<select name="area">${Object.entries(AREAS).map(([k, [t]]) => `<option value="${k}" ${k === m.area ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label>Plazo<select name="periodo"><option value="año" ${m.periodo === 'año' ? 'selected' : ''}>Este año</option><option value="mes" ${m.periodo === 'mes' ? 'selected' : ''}>Este mes</option></select></label>
+          <label>Fecha límite<input name="fecha_limite" type="date" value="${h(m.fecha_limite ?? '')}"></label>
+          <label>Estado<select name="estado"><option value="activa" ${m.estado === 'activa' ? 'selected' : ''}>Activa</option><option value="lograda" ${m.estado === 'lograda' ? 'selected' : ''}>¡Lograda!</option><option value="pausada" ${m.estado === 'pausada' ? 'selected' : ''}>En pausa</option></select></label>
+          <label class="ancho">Avance <small>si no tiene pendientes ligados</small><input name="progreso" type="range" min="0" max="100" step="5" value="${Number(m.progreso) || 0}"></label>
+        </div>
+        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button>${nueva ? '' : '<button type="button" class="btn peligro" id="mt-borrar">Borrar</button>'}</div></form>`,
+      (caja) => {
+        $('#f-meta', caja).onsubmit = async (e) => {
+          e.preventDefault()
+          const d = Object.fromEntries(new FormData(e.target))
+          const fila = { ...(nueva ? {} : { id: m.id }), titulo: d.titulo.trim(), porque: d.porque.trim(), area: d.area, periodo: d.periodo, fecha_limite: d.fecha_limite || null, estado: d.estado, progreso: Number(d.progreso) || 0 }
+          if (await intenta(() => D.guardarMeta(fila), 'Meta guardada')) {
+            cerrarModal()
+            mostrar()
+          }
+        }
+        $('#mt-borrar', caja)?.addEventListener('click', async () => {
+          if (confirm(`¿Borrar la meta "${m.titulo}"?`) && (await intenta(() => D.borrarMeta(m.id), 'Borrada')) !== undefined) {
+            cerrarModal()
+            mostrar()
           }
         })
       },

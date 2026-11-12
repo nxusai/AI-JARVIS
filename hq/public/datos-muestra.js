@@ -49,6 +49,10 @@ const db = {
   prospectos_pagos: [],
   leads: [],
   leads_notas: [],
+  pendientes: [],
+  metas: [],
+  habitos: [],
+  habitos_dias: [],
   documentos: [],
 }
 
@@ -437,6 +441,48 @@ export function crearMuestra() {
     async borrarDocumento(d) {
       if (!admin()) nunca()
       db.documentos = db.documentos.filter((x) => x.id !== d.id)
+      return true
+    },
+
+    // Mis pendientes, metas y hábitos: vacíos para empezar (solo el admin).
+    pendientes: () => espera(admin() ? db.pendientes : nunca()),
+    async guardarPendiente(p) {
+      if (!admin()) nunca()
+      return copia(upsert(db.pendientes, p.id ? p : { estado: 'pendiente', estrella: false, origen: 'hq', notas: '', empresa: '', prioridad: 'normal', area: 'negocios', fecha: null, hora: null, meta_id: null, creado: new Date().toISOString(), ...p }))
+    },
+    async borrarPendiente(pid) {
+      if (!admin()) nunca()
+      db.pendientes = db.pendientes.filter((x) => x.id !== pid)
+      return true
+    },
+    async entenderPendientes(texto) {
+      if (!admin()) nunca()
+      // En la muestra no hay IA: cada línea o "; " es un pendiente para hoy.
+      const hoy = new Date().toLocaleDateString('en-CA')
+      const items = String(texto).split(/;|\n/).map((t) => t.trim()).filter(Boolean).map((t) => ({ id: id(), titulo: t[0].toUpperCase() + t.slice(1), notas: '', area: /mam|pap|famil|hij/i.test(t) ? 'familia' : /gym|ejercicio|doctor|dentista/i.test(t) ? 'salud' : 'negocios', empresa: '', fecha: hoy, hora: null, prioridad: /urgente/i.test(t) ? 'alta' : 'normal', estrella: false, estado: 'pendiente', origen: 'hq', meta_id: null, creado: new Date().toISOString() }))
+      db.pendientes.push(...items)
+      return { ok: true, items: copia(items) }
+    },
+    metas: () => espera(admin() ? db.metas : nunca()),
+    async guardarMeta(m) {
+      if (!admin()) nunca()
+      return copia(upsert(db.metas, m.id ? m : { estado: 'activa', progreso: 0, periodo: 'año', porque: '', creado: new Date().toISOString(), ...m }))
+    },
+    async borrarMeta(mid) {
+      if (!admin()) nunca()
+      db.metas = db.metas.filter((x) => x.id !== mid)
+      return true
+    },
+    habitos: () => espera(admin() ? db.habitos : nunca()),
+    async guardarHabito(x) {
+      if (!admin()) nunca()
+      return copia(upsert(db.habitos, x.id ? x : { activo: true, area: 'salud', creado: new Date().toISOString(), ...x }))
+    },
+    habitosDias: (desde) => espera(admin() ? db.habitos_dias.filter((x) => x.dia >= desde) : nunca()),
+    async marcarHabito(habito_id, dia, hecho) {
+      if (!admin()) nunca()
+      db.habitos_dias = db.habitos_dias.filter((x) => !(x.habito_id === habito_id && x.dia === dia))
+      if (hecho) db.habitos_dias.push({ habito_id, dia })
       return true
     },
 

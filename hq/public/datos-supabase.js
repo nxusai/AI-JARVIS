@@ -195,6 +195,30 @@ export function crearSupabase({ url, anon }) {
       return true
     },
 
+    // Mis pendientes, metas y hábitos (solo el admin: lo cuida la base de datos).
+    pendientes: async () => ok(await tabla('pendientes').select('*').order('fecha', { ascending: true, nullsFirst: false }).order('hora', { ascending: true, nullsFirst: false }).limit(1000)),
+    guardarPendiente: (p) => guardar('pendientes', p),
+    async borrarPendiente(id) {
+      ok(await tabla('pendientes').delete().eq('id', id))
+      return true
+    },
+    /** Lo que escribió o dictó → la IA lo separa y ordena (área, fecha, hora, prioridad) y lo guarda. */
+    entenderPendientes: (texto) => funcion('pendientes', { accion: 'entender', texto }),
+    metas: async () => ok(await tabla('metas').select('*').order('creado')),
+    guardarMeta: (m) => guardar('metas', m),
+    async borrarMeta(id) {
+      ok(await tabla('metas').delete().eq('id', id))
+      return true
+    },
+    habitos: async () => ok(await tabla('habitos').select('*').order('creado')),
+    guardarHabito: (x) => guardar('habitos', x),
+    habitosDias: async (desde) => ok(await tabla('habitos_dias').select('*').gte('dia', desde)),
+    async marcarHabito(habito_id, dia, hecho) {
+      if (hecho) ok(await tabla('habitos_dias').upsert({ habito_id, dia }, { onConflict: 'habito_id,dia', ignoreDuplicates: true }))
+      else ok(await tabla('habitos_dias').delete().eq('habito_id', habito_id).eq('dia', dia))
+      return true
+    },
+
     bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
 
     ordenar: async (texto) => (await funcion('ordenar', { texto })).ficha,
