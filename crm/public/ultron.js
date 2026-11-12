@@ -450,8 +450,8 @@ async function sesionVivo(voz) {
   }
   const { Conversation } = await cargarSdk()
   const hora = new Date().getHours()
-  const nombre = estado.yo.nombre.split(' ')[0]
-  const saludo = voz ? `${hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'}, ${nombre}. ¿En qué te ayudo?` : ''
+  const nombre = primerNombreU() || 'Director'
+  const saludo = voz ? `${hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'}${primerNombreU() ? `, ${primerNombreU()}` : ''}. ¿En qué te ayudo?` : ''
   const historia = estado.mensajes.filter((m) => m.texto && !m.inicial).slice(-6).map((m) => `${m.de === 'yo' ? nombre : 'Ultron'}: ${m.texto}`).join('\n')
   const base = {
     clientTools: estado.herramientas || {},
@@ -574,6 +574,12 @@ function cajaLlamada() {
   return caja
 }
 
+/** Su primer nombre (o el de su usuario, si no tiene nombre guardado). */
+const primerNombreU = () => {
+  const n = String(estado.yo.nombre || estado.yo.usuario || '').trim().split(/\s+/)[0] || ''
+  return n ? n[0].toUpperCase() + n.slice(1) : ''
+}
+
 function despertar() {
   if (estado.despierto) return
   estado.despierto = true
@@ -583,7 +589,7 @@ function despertar() {
     id: ++nMsg,
     de: 'ultron',
     inicial: true,
-    texto: `${saludo}, ${estado.yo.nombre.split(' ')[0]}. Te ayudo con el Centro de trabajo: tareas, archivos y catálogos. Escríbeme o toca 📞 Hablar.`,
+    texto: `${saludo}${primerNombreU() ? `, ${primerNombreU()}` : ''}. Te ayudo con el Centro de trabajo: tareas, archivos y catálogos. Escríbeme o toca 📞 Hablar.`,
   })
 }
 
