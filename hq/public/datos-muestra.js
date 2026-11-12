@@ -57,7 +57,7 @@ const db = {
   cobros: [],
   cobros_omitidos: [],
   gastos: [],
-  finanzas_config: [{ id: 1, tipo_cambio: 18.5, moneda_base: 'USD', saldo: 6200, saldo_moneda: 'USD', saldo_fecha: dia(-1), meta_libre: 5000, desde: fecha(-20), nomina_cuenta: 'c-mx', cambio_auto: true }],
+  finanzas_config: [{ id: 1, tipo_cambio: 18.5, moneda_base: 'USD', saldo: 6200, saldo_moneda: 'USD', saldo_fecha: dia(-1), meta_libre: 5000, desde: fecha(-20), nomina_cuenta: 'c-mx', cambio_auto: true, saldo_usd: 7700, saldo_mxn: 9000, tc_felix: 18.42, tc_felix_fecha: dia(-1) }],
   metas_aportes: [],
   cuentas: [
     { id: 'c-usa', nombre: 'Chase principal', banco: 'Chase', moneda: 'USD', saldo: 6200, saldo_fecha: dia(-2), principal: true, activa: true, orden: 1 },
@@ -65,6 +65,7 @@ const db = {
     { id: 'c-mx', nombre: 'BBVA México', banco: 'BBVA', moneda: 'MXN', saldo: 9000, saldo_fecha: dia(-2), principal: false, activa: true, orden: 3 },
   ],
   traspasos: [],
+  envios: [],
 }
 
 const cliente = (c, dinero) => {
@@ -598,7 +599,7 @@ export function crearMuestra() {
     },
     finanzasConfig: () => espera(tiene('finanzas_ver') ? db.finanzas_config[0] : null),
     async guardarFinanzasConfig(c) {
-      if (!admin()) nunca()
+      if (!tiene('finanzas_editar')) nunca()
       Object.assign(db.finanzas_config[0], c)
       return copia(db.finanzas_config[0])
     },
@@ -622,6 +623,16 @@ export function crearMuestra() {
     async borrarTraspaso(tid) {
       if (!admin()) nunca()
       db.traspasos = db.traspasos.filter((x) => x.id !== tid)
+      return true
+    },
+    envios: () => espera(tiene('finanzas_ver') ? db.envios : []),
+    async guardarEnvio(e) {
+      if (!tiene('finanzas_editar')) nunca()
+      return copia(upsert(db.envios, { creado: new Date().toISOString(), nota: '', ...e }))
+    },
+    async borrarEnvio(eid) {
+      if (!admin()) nunca()
+      db.envios = db.envios.filter((x) => x.id !== eid)
       return true
     },
     aportes: () => espera(admin() ? db.metas_aportes : nunca()),

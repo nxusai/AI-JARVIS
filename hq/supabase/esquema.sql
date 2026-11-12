@@ -1631,3 +1631,35 @@ create policy bitacora_ver on public.bitacora for select to authenticated using 
     and (tabla <> 'gastos' or coalesce(despues ->> 'tipo', antes ->> 'tipo') = 'negocio')
     and (tabla not in ('nomina', 'nomina_ajustes', 'comisiones') or puede('nomina_ver'))
   ));
+
+-- Todo junto por moneda (12 nov 2026): Eduardo no quiere separar bancos. Un saldo en dólares (todo lo de USA)
+-- y uno en pesos (todo lo de México). El tipo de cambio es el de Félix (la app con la que se manda dinero
+-- a México): lo pone él o se aprende de cada envío que registra.
+alter table public.finanzas_config add column if not exists saldo_usd numeric(14, 2) not null default 0;
+alter table public.finanzas_config add column if not exists saldo_mxn numeric(14, 2) not null default 0;
+alter table public.finanzas_config add column if not exists tc_felix numeric(10, 4) check (tc_felix is null or tc_felix > 0);
+alter table public.finanzas_config add column if not exists tc_felix_fecha timestamptz;
+-- Envíos con Félix (dólares que salen → pesos que llegan). Sirven para el historial y el tipo de cambio real.
+create table if not exists public.envios (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null default current_date,
+  dolares numeric(14, 2) not null check (dolares > 0),
+  pesos numeric(14, 2) not null check (pesos > 0),
+  nota text not null default '' check (char_length(nota) <= 300),
+  creado timestamptz not null default now()
+);
+do $$
+begin
+  execute 'drop trigger if exists hq_bitacora on public.envios';
+  execute 'create trigger hq_bitacora after insert or update or delete on public.envios for each row execute function public.anotar_cambio()';
+  execute 'alter table public.envios enable row level security';
+  execute 'drop policy if exists permiso_ver on public.envios';
+  execute 'drop policy if exists permiso_crear on public.envios';
+  execute 'drop policy if exists permiso_borrar on public.envios';
+  execute 'create policy permiso_ver on public.envios for select to authenticated using (puede(''finanzas_ver''))';
+  execute 'create policy permiso_crear on public.envios for insert to authenticated with check (puede(''finanzas_editar''))';
+  execute 'create policy permiso_borrar on public.envios for delete to authenticated using (es_admin())';
+end $$;
+-- Quien edita finanzas (no solo el admin) puede actualizar los saldos y el tipo de cambio de Félix.
+drop policy if exists permiso_cambiar on public.finanzas_config;
+create policy permiso_cambiar on public.finanzas_config for update to authenticated using (puede('finanzas_editar')) with check (puede('finanzas_editar'));

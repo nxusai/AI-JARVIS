@@ -124,10 +124,10 @@ function menuDe(perm, pros) {
     ...(ve ? ['Prospectos', 'Leads', 'Anuncios', 'Cartera'] : []),
     'Tareas',
     'Equipo',
-    'Mi reloj',
+    'Reloj',
     ...(tiene('finanzas_ver') ? ['Finanzas'] : []),
     ...(tiene('nomina_ver') || tiene('asistencia_ver') ? ['Nómina'] : []),
-    ...(tiene('personas_gestionar') ? ['Personas'] : []),
+    ...(tiene('personas_gestionar') ? ['Usuarios'] : []),
     ...(tiene('bitacora_ver') ? ['Bitácora'] : []),
   ]
 }

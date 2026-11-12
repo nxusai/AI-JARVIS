@@ -511,8 +511,8 @@ body {
 .escena { position: fixed; inset: 0; z-index: -3; overflow: hidden; }
 .escena::before { content: ''; position: absolute; inset: -60px; background: #120d10 url('/fondo.webp') center / cover no-repeat; filter: blur(40px) brightness(0.5) saturate(1.2); }
 /* La foto entera (sin recortar), a su máxima calidad, sea cual sea el tamaño de la pantalla. */
-.escena .foto { position: absolute; inset: 0; background: url('/fondo.webp') center / contain no-repeat; filter: saturate(1.05) brightness(0.92); transition: filter 0.45s; }
-.escena .velo { position: absolute; inset: 0; transition: opacity 0.45s;
+.escena .foto { position: absolute; inset: 0; background: url('/fondo.webp') center / contain no-repeat; filter: saturate(1.05) brightness(0.92); transition: filter 0.2s; }
+.escena .velo { position: absolute; inset: 0; transition: opacity 0.2s;
   background: linear-gradient(90deg, rgba(5, 5, 8, 0.5) 0%, rgba(5, 5, 8, 0.22) 30%, rgba(5, 5, 8, 0.1) 60%, rgba(5, 5, 8, 0.32) 100%),
               linear-gradient(180deg, rgba(5, 5, 8, 0.25), transparent 30%, transparent 70%, rgba(5, 5, 8, 0.55)); }
 .grano { position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: 0.06; mix-blend-mode: overlay;
@@ -521,7 +521,7 @@ body {
 @media (max-aspect-ratio: 4/5) { .escena .foto, .escena::before { background-image: url('/fondo-movil.webp'); } }
 
 /* --- El momento Nueva York: al cambiar de pestaña todo se va 2 segundos --- */
-.firma { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; opacity: 0; transition: opacity 0.35s ease; }
+.firma { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; opacity: 0; transition: opacity 0.18s ease; }
 .firma div { text-align: center; text-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
 .firma b { display: block; font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 6vw, 72px); letter-spacing: 0.5em; margin-right: -0.5em; }
 .firma span { display: block; margin-top: 14px; font-size: 11px; letter-spacing: 0.6em; margin-right: -0.6em; text-transform: uppercase; color: var(--oro); }
@@ -529,7 +529,7 @@ body {
 body.vista-ny .firma { opacity: 1; }
 body.vista-ny .escena .foto { filter: saturate(1.15) brightness(1); }
 body.vista-ny .escena .velo { opacity: 0.15; }
-.hq, .entrada { transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s; }
+.hq, .entrada { transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1), transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), filter 0.18s; }
 body.vista-ny .hq, body.vista-ny .entrada { opacity: 0; transform: scale(0.99); filter: blur(6px); pointer-events: none; }
 body.vista-ny #avisos { opacity: 0; }
 
@@ -894,3 +894,30 @@ main, #vista, .tarjeta, .dos > * { min-width: 0; }
 .cascada th { font-size: 11px; text-align: right; }
 .cascada th:first-child { text-align: left; }
 .grafica-fin svg { max-height: 300px; }
+
+/* Reloj en vivo */
+.en-vivo { color: #7ee2a8; font-weight: 700; letter-spacing: .04em; animation: latido 2s infinite; }
+@keyframes latido { 50% { opacity: .45; } }
+.vivos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 10px; }
+.vivo-t { display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; background: rgba(0,0,0,.3); border: .8px solid rgba(126,226,168,.35); }
+.vivo-t.yo { border-color: rgba(227,200,150,.6); }
+.vivo-t > div { display: grid; gap: 3px; }
+.vivo-t span { font-size: 12.5px; color: rgba(255,255,255,.82); }
+.vivo-t .desde { display: inline-flex; align-items: center; gap: 6px; color: #fff; }
+.vivo-t .desde .punto { width: 8px; height: 8px; }
+.cascada td.junto, .cascada th:nth-child(n+4) { color: #f3dfb4; }
+button.cambio-chip { color: #fff; cursor: pointer; font: inherit; font-size: 12px; font-weight: 650; }
+button.cambio-chip:hover { border-color: rgba(227,200,150,.7); }
+.saldo-hoy .saldos-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 12px 0 8px; }
+.saldo-hoy .saldos-g > div { display: grid; gap: 4px; padding: 14px; border-radius: 14px; background: rgba(0,0,0,.28); border: .8px solid rgba(255,255,255,.14); }
+.saldo-hoy .saldos-g span { font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.8); }
+.saldo-hoy .saldos-g b { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; }
+.saldo-hoy .junto-g { border-color: rgba(227,200,150,.5) !important; }
+.saldo-hoy .junto-g b + b { font-size: 22px; color: #f3dfb4; }
+.q-flujo.con-rojo { border-color: rgba(255,140,120,.55); }
+.q-flujo details { margin-top: 8px; }
+.q-flujo summary { cursor: pointer; color: #e3c896; font-size: 13px; }
+.vivos { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.vivo-t .desde { display: flex; flex-wrap: wrap; gap: 4px 6px; white-space: normal; }
+.envios-plan { margin: 8px 0; }
+.envios-plan small { color: rgba(255,255,255,.75); font-weight: 500; }

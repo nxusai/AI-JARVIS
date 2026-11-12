@@ -242,6 +242,12 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    envios: async () => ok(await tabla('envios').select('*').order('fecha', { ascending: false }).limit(500)),
+    guardarEnvio: (e) => guardar('envios', e),
+    async borrarEnvio(id) {
+      ok(await tabla('envios').delete().eq('id', id))
+      return true
+    },
     cuentas: async () => ok(await tabla('cuentas').select('*').order('orden').order('creado')),
     guardarCuenta: (c) => guardar('cuentas', c),
     async borrarCuenta(id) {
