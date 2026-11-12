@@ -32,16 +32,16 @@ export function languageOf(text) {
  * not carry its accent into the other. Turbo v2.5 is the model that takes the
  * language; a voice note can wait the extra moment for its better sound.
  */
-export async function speakAs(key, voiceId, text, lang) {
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
+export async function speakAs(key, voiceId, text, lang, { natural = false } = {}) {
+  // natural: Multilingual v2, la voz más humana y fluida (para conversar). No acepta
+  // language_code (solo Turbo y Flash), así que ahí el idioma lo da el texto.
+  const cuerpo = natural
+    ? { text, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.42, similarity_boost: 0.8, style: 0.22, use_speaker_boost: true } }
+    : { text, model_id: 'eleven_turbo_v2_5', language_code: lang, voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0, use_speaker_boost: true } }
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_turbo_v2_5',
-      language_code: lang,
-      voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0, use_speaker_boost: true },
-    }),
+    body: JSON.stringify(cuerpo),
   })
   if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 200)}`)
   return Buffer.from(await res.arrayBuffer())

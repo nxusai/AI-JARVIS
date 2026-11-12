@@ -2122,7 +2122,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   // The clients' brains: the owner hears when one stops, is touched, or someone tries to get in.
   startBrainWatch()
   // Ultron, the direction's AI for Mi Semago and Abuelito, answering from the work center (scripts/ultron.mjs).
-  void startUltron({ model: MODEL, effort: EFFORT, elevenKey })
+  void startUltron({ model: MODEL, modeloRapido: SMALL_MODEL, effort: EFFORT, elevenKey })
 }
 
 wss.on('connection', (socket, req) => {
