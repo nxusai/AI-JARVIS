@@ -951,12 +951,12 @@ function cuerpoTareaMovil(t, x) {
       ${x.correcciones.length ? fila('↩︎', '#fbe9e1', 'Correcciones', String(x.correcciones.length), x.correccionesHTML, t.estatus === 'en-correccion' && esEquipo()) : ''}
     </div>
     ${
-      ult
+      ult || x.todasEntregas.length > 1
         ? `<div class="m-grupo">
-            <button class="m-fila-l" data-bajar="${ult.id}"><span class="m-ic" style="background:#efefec">⬇️</span><span class="m-txt">Descargar PDF</span><span class="m-flecha">›</span></button>
+            ${x.todasEntregas.length > 1 ? `<button class="m-fila-l" data-correo-todos="${x.todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…"><span class="m-ic" style="background:#e8eefc">📦</span><span class="m-txt">Mandar los ${x.todasEntregas.length} archivos juntos a mi correo</span><span class="m-flecha">›</span></button>` : ''}
+            ${ult ? `<button class="m-fila-l" data-bajar="${ult.id}"><span class="m-ic" style="background:#efefec">⬇️</span><span class="m-txt">Descargar PDF</span><span class="m-flecha">›</span></button>
             <button class="m-fila-l" data-ver="${ult.id}"><span class="m-ic" style="background:#efefec">👁️</span><span class="m-txt">Verlo aquí</span><span class="m-flecha">›</span></button>
-            <button class="m-fila-l" data-correo="${ult.id}"><span class="m-ic" style="background:#efefec">✉️</span><span class="m-txt">${x.todasEntregas.length > 1 ? 'Mandar el último a mi correo' : 'Mandar a mi correo'}</span><span class="m-flecha">›</span></button>
-            ${x.todasEntregas.length > 1 ? `<button class="m-fila-l" data-correo-todos="${x.todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…"><span class="m-ic" style="background:#e8eefc">📦</span><span class="m-txt">Mandar los ${x.todasEntregas.length} juntos a mi correo</span><span class="m-flecha">›</span></button>` : ''}
+            <button class="m-fila-l" data-correo="${ult.id}"><span class="m-ic" style="background:#efefec">✉️</span><span class="m-txt">${x.todasEntregas.length > 1 ? 'Mandar solo el último a mi correo' : 'Mandar a mi correo'}</span><span class="m-flecha">›</span></button>` : ''}
           </div>`
         : ''
     }
@@ -986,9 +986,10 @@ function abrirTarea(id) {
   const revisa = abierta && entregado && ((esCliente() && mia) || esAdmin())
   const porQuien = esAdmin() && !mia ? primerNombre(nombreCliente(t.cliente_id)) : ''
   const ultimo = [...t.archivos.filter((a) => a.tipo === 'entrega')].sort((a, b) => aFecha(b.subido) - aFecha(a.subido))[0]
-  // Todos los archivos que entregó el equipo (el final y los de cada corrección), para mandarlos juntos.
-  const todasEntregas = t.archivos.filter((a) => a.tipo === 'entrega').sort((a, b) => aFecha(a.subido) - aFecha(b.subido))
-  const juntos = todasEntregas.length > 1 ? `<div class="mandar-todos"><span>📦 Hay <b>${todasEntregas.length} archivos</b> entregados. Mándalos <b>todos juntos</b> en un solo correo, o <b>uno por uno</b> con el ✉️ de cada archivo.</span><button class="btn principal" data-correo-todos="${todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…">✉️ Mandar todos a mi correo</button></div>` : ''
+  // Todos los archivos de la tarea (entregas del equipo primero, luego los de referencia y de las
+  // actualizaciones), para mandarlos juntos en un solo correo. Cada uno conserva su ✉️ para mandarlo solo.
+  const todasEntregas = [...t.archivos].sort((a, b) => Number(b.tipo === 'entrega') - Number(a.tipo === 'entrega') || aFecha(a.subido) - aFecha(b.subido)).slice(0, 20)
+  const juntos = todasEntregas.length > 1 ? `<div class="mandar-todos"><span>📦 Esta tarea tiene <b>${todasEntregas.length} archivos</b>. Mándalos <b>todos juntos</b> en un solo correo, o <b>uno por uno</b> con el ✉️ de cada archivo.</span><button class="btn principal" data-correo-todos="${todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…">✉️ Mandar todos a mi correo</button></div>` : ''
 
   const pedidoHTML = `
       <div class="texto-cliente">${h(t.descripcion || t.titulo)}</div>
@@ -1015,7 +1016,6 @@ function abrirTarea(id) {
           : ''
       }`
   const equipoHTML = `
-      ${juntos}
       ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
       ${
         esEquipo() && abierta
@@ -1081,6 +1081,7 @@ function abrirTarea(id) {
       ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
     </div>
     ${revisa ? `<div class="revisar-ya"><div>${porQuien ? `<b>👉 Le toca a ${h(porQuien)} revisarla.</b> Como administrador, tú también puedes aprobarla o pedir corrección.` : '<b>👉 Te toca revisarla.</b> Si ya quedó, apruébala y se va a “Aprobadas”.'}</div><div class="revisar-botones"><button class="btn" data-accion="m-correccion">Pedir corrección</button><button class="btn ok" data-accion="aprobar" data-ocupado="Aprobando…">✅ Aprobar</button></div></div>` : ''}
+    ${juntos}
     <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
     <div class="fechas" style="margin-bottom:12px">
       <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
