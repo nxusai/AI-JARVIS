@@ -1094,3 +1094,12 @@ body.ver-fondo { cursor: zoom-out; }
   background: rgba(37, 99, 235, .08); border: 1px solid rgba(37, 99, 235, .25); }
 .mandar-todos span { flex: 1 1 260px; }
 @media (max-width: 760px) { .m-det-cuerpo .mandar-todos { display: none; } }
+
+/* Con el letrero de Netlify (abajo a la derecha, ~70 px de alto) la barra, el + y los avisos se suben. */
+@media (max-width: 760px) {
+  body.con-letrero .m-tabs { bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); }
+  body.con-letrero .m-fab { bottom: calc(env(safe-area-inset-bottom, 0px) + 158px); }
+  body.con-letrero #avisos { bottom: calc(env(safe-area-inset-bottom, 0px) + 156px) !important; }
+  body.con-letrero .ultron-panel { bottom: calc(env(safe-area-inset-bottom, 0px) + 154px) !important; }
+  body.con-letrero #app > main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 190px); }
+}
