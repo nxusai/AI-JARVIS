@@ -408,6 +408,14 @@ try {
 const ICONO_MAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>'
 const tieneUltron = () => Boolean(D.ultron && (S.yo.ultron || esAdmin()))
 
+// Netlify (plan gratis) pone su letrero "Powered by Netlify" abajo a la derecha, encima de todo,
+// y no se puede esconder. Si aparece, la barra de abajo del celular se sube para que no la tape.
+;(function vigilarLetrero(intentos = 0) {
+  const hay = Boolean(document.getElementById('nl-badge-frame') || document.getElementById('nl-hud-frame'))
+  document.body?.classList.toggle('con-letrero', hay)
+  if (intentos < 40) setTimeout(() => vigilarLetrero(intentos + 1), 500)
+})()
+
 /** Las 3 secciones que van en la barra de abajo; las demás, en "Más". */
 function pestanasMovil() {
   const v = vistasPermitidas()
