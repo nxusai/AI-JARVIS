@@ -832,11 +832,22 @@ h3.sub { font-size: 14px; margin: 16px 0 6px; }
   --sombra: 0 12px 36px rgba(20, 16, 40, .18), inset 0 1px 0 rgba(255, 255, 255, .75);
 }
 body { background: #3a3346; }
+/* El fondo siempre completo, en cualquier pantalla: la imagen entera, sin recortar ni
+   agrandar (contain). Si a la pantalla le sobra espacio, ese espacio se llena con la
+   misma imagen desenfocada, así nunca quedan franjas. Pantalla horizontal: la de
+   YouTube (16:9); vertical (celular): la de reel (9:16). */
 body::after {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: #3a3346 url("fondo-abuelito.jpg") center 58% / cover no-repeat;
+  content: ""; position: fixed; inset: -60px; z-index: -2; pointer-events: none;
+  background: #3a3346 url("fondo-abuelito.jpg") center / cover no-repeat;
+  filter: blur(40px) saturate(120%) brightness(.92);
 }
-@media (max-aspect-ratio: 4/5) { body::after { background-image: url("fondo-abuelito-movil.jpg"); background-position: center 60%; } }
+.fondo {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: url("fondo-abuelito.jpg") center / contain no-repeat;
+}
+@media (orientation: portrait) {
+  body::after, .fondo { background-image: url("fondo-abuelito-movil.jpg"); }
+}
 
 /* Lo que va directo sobre la foto (saludo, ayudas) se lee sobre un vidrio ligero que cubre la hoja. */
 #app > main {
