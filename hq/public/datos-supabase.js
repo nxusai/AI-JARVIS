@@ -242,6 +242,21 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    // NEX dentro de HQ (solo el admin).
+    nex: (mensajes, pantalla) => funcion('nex-hq', { mensajes, pantalla }),
+    async nexVoz(texto) {
+      const { data } = await sb.auth.getSession()
+      const res = await fetch('/.netlify/functions/nex-voz', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${data?.session?.access_token ?? ''}` }, body: JSON.stringify({ texto }) })
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('audio')) throw new Error((await res.json().catch(() => ({}))).error || 'Sin voz')
+      return await res.blob()
+    },
+    async nexOido(blob) {
+      const { data } = await sb.auth.getSession()
+      const res = await fetch('/.netlify/functions/nex-oido', { method: 'POST', headers: { 'content-type': blob.type || 'audio/webm', authorization: `Bearer ${data?.session?.access_token ?? ''}` }, body: blob })
+      const out = await res.json().catch(() => ({}))
+      if (!out.ok) throw new Error(out.error || 'No te entendí')
+      return out.texto || ''
+    },
     movimientos: async () => ok(await tabla('movimientos').select('*')),
     marcarMovimiento: async (m) => ok(await tabla('movimientos').upsert(m, { onConflict: 'mes,tipo' }).select().single()),
     async borrarMovimiento(mes, tipo) {

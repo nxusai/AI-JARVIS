@@ -654,6 +654,20 @@ export function crearMuestra() {
       db.traspasos = db.traspasos.filter((x) => x.id !== tid)
       return true
     },
+    // NEX en la muestra: sin IA, entiende "llévame a…" y "no encuentro…" para probar la pantalla.
+    async nex(mensajes) {
+      const t = String(mensajes.at(-1)?.content || '').toLowerCase()
+      const destinos = [['entrada', 'finanzas/entradas'], ['personal', 'finanzas/personal'], ['finanza', 'finanzas'], ['gasto', 'finanzas'], ['ahorro', 'metas/ahorro'], ['meta', 'metas'], ['asistencia', 'nomina/asistencia'], ['nómina', 'nomina'], ['nomina', 'nomina'], ['cliente', 'clientes'], ['lead', 'leads'], ['prospecto', 'prospectos'], ['tarea', 'tareas'], ['reloj', 'reloj'], ['usuario', 'personas'], ['permiso', 'personas'], ['pendiente', 'pendientes'], ['equipo', 'equipo']]
+      const d = destinos.find(([k]) => t.includes(k))
+      const acciones = d ? [{ tipo: 'ir', ruta: d[1] }] : []
+      if (/no encuentro|d[oó]nde/.test(t) && t.includes('gasto')) acciones.push({ tipo: 'senalar', objetivo: '+ Gasto' })
+      if (/no encuentro|d[oó]nde/.test(t) && t.includes('permiso')) acciones.push({ tipo: 'senalar', objetivo: '🔑 Permisos' })
+      if (/llam|llegó|llego/.test(t) && t.includes('pago')) acciones.push({ tipo: 'proponer', accion: 'apuntar_pendiente', datos: { texto: 'Revisar pago' }, resumen: 'Apuntar: revisar pago (muestra)' })
+      await new Promise((r) => setTimeout(r, 400))
+      return { ok: true, texto: d ? (acciones.some((a) => a.tipo === 'senalar') ? 'Aquí está, te lo marqué en dorado.' : 'Listo, ya estás ahí.') : 'En la muestra solo entiendo "llévame a…" y "no encuentro…". Con HQ de verdad te contesto todo.', acciones }
+    },
+    nexVoz: async () => null,
+    nexOido: async () => '',
     movimientos: () => espera(admin() ? db.movimientos : []),
     async marcarMovimiento(m) {
       if (!admin()) nunca()

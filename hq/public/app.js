@@ -8,6 +8,7 @@
 import { fraseDelDia, saludo } from './frases.js'
 import { vistaAnuncios } from './anuncios.js'
 import { vistaFinanzas, vistaAhorro, paydaysPendientes, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
+import { iniciarNex } from './nex.js'
 import { editarPermisos, matrizPermisos, alternar, plantillaDe, estadoAcceso, NOMBRE as NOMBRE_PERMISO, CORTO as CORTO_PERMISO } from './permisos.js'
 
 const $ = (s, el = document) => el.querySelector(s)
@@ -323,6 +324,8 @@ export function iniciar(D, { muestra = false } = {}) {
     $('#salir').onclick = async () => {
       await D.salir()
       yo = null
+      document.getElementById('nex-orbe')?.remove()
+      document.getElementById('nex-panel')?.remove()
       onhashchange = null
       location.hash = ''
       pantallaEntrada()
@@ -332,6 +335,8 @@ export function iniciar(D, { muestra = false } = {}) {
     reloj = setInterval(pintarReloj, 30000)
     onhashchange = () => mostrar()
     mostrar()
+    // NEX dentro de HQ: solo para Eduardo.
+    if (esAdmin()) iniciarNex({ D, h, mostrar, aviso, yo, marcarEntrada, marcarSalida, paydays: () => paydaysPendientes(D, ctxFinanzas()) })
   }
 
   function pintarReloj() {
