@@ -50,7 +50,7 @@ function burbuja(m) {
     .join('')
   return `<div class="u-msg ultron"><div class="u-texto">${h(m.texto)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/\n/g, '<br>')}</div>${acciones ? `<div class="u-acciones">${acciones}</div>` : ''}<button class="u-voz" data-u-voz="${m.id}" aria-label="Escuchar">▶ Escuchar</button></div>`
+    .replace(/\n/g, '<br>')}</div>${acciones ? `<div class="u-acciones">${acciones}</div>` : ''}<button class="u-voz" data-u-voz="${m.id}" aria-label="Escuchar"${m.esperandoVoz ? ' disabled' : ''}>${m.esperandoVoz ? '… preparando su voz' : '▶ Escuchar'}</button></div>`
 }
 
 function pintarMensajes(cont) {
@@ -104,6 +104,14 @@ function conectarChat(raiz) {
 // Un solo reproductor para su voz: el iPhone solo deja sonar audio que la persona
 // "desbloqueó" con un toque, así que se reusa el mismo (desbloqueado al prender la llamada).
 let reproductor = null
+/** Con un toque de la persona, el iPhone deja sonar audio después: se desbloquea el reproductor. */
+async function desbloquearAudio() {
+  reproductor = reproductor || new Audio()
+  try {
+    reproductor.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+    await reproductor.play()
+  } catch {}
+}
 function tocar(url) {
   try {
     sonando?.pause()
@@ -153,12 +161,7 @@ function pintarLlamada(fase) {
 async function empezarLlamada() {
   if (llamada) return
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return estado.avisar('Este navegador no puede hablar con Ultron. Escríbele.')
-  // Desbloquea el sonido con este mismo toque (si no, el iPhone no lo deja hablar).
-  reproductor = reproductor || new Audio()
-  try {
-    reproductor.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
-    await reproductor.play()
-  } catch {}
+  await desbloquearAudio()
   grabando?.parar()
   const panel = document.querySelector('.ultron-panel')
   const caja = document.createElement('div')
@@ -219,7 +222,8 @@ async function empezarLlamada() {
       pintarLlamada('pensando')
       estado.porVoz = true
       await enviar(dicho)
-      if (llamada && (!sonando || sonando.paused)) pintarLlamada('escuchando')
+      const ult = estado.mensajes[estado.mensajes.length - 1]
+      if (llamada && !ult?.esperandoVoz && (!sonando || sonando.paused)) pintarLlamada('escuchando')
     },
     error(msg) {
       estado.avisar(`${msg} Puedes escribirle.`)
@@ -251,6 +255,7 @@ function terminarLlamada() {
 let grabando = null
 async function microfono(boton) {
   if (grabando) return grabando.parar()
+  void desbloquearAudio()
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return estado.avisar('Este navegador no puede grabar tu voz. Escríbele.')
   let stream
   try {
@@ -356,10 +361,22 @@ async function enviar(texto) {
   document.querySelectorAll('.orbe-mini').forEach((o) => o.classList.add('piensa'))
   repintarChats()
   try {
-    const r = await estado.preguntar(texto)
-    estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: r.texto, acciones: r.acciones, voz: r.voz })
+    const conVoz = estado.porVoz
+    const msg = { id: ++nMsg, de: 'ultron', texto: '', acciones: [], voz: null }
+    const r = await estado.preguntar(texto, {
+      // Su voz llega unos segundos después del texto.
+      onVoz: (url) => {
+        msg.esperandoVoz = false
+        if (url) msg.voz = url
+        repintarChats()
+        if (url && conVoz) tocar(url)
+        else if (!url && llamada?.fase === 'pensando') pintarLlamada('escuchando')
+      },
+    })
+    Object.assign(msg, { texto: r.texto, acciones: r.acciones, voz: r.voz, esperandoVoz: Boolean(r.vozLuego) })
+    estado.mensajes.push(msg)
     // Si le hablaste, te contesta hablando.
-    if (estado.porVoz && r.voz) tocar(r.voz)
+    if (conVoz && r.voz) tocar(r.voz)
   } catch (err) {
     estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: `No pude responder ahora: ${err.message}` })
   } finally {

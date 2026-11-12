@@ -342,19 +342,29 @@ export function crearSupabase({ url, anon }) {
       ok(await sb.from('empresas').update(cambios).eq('id', id))
     },
     // Ultron: la pregunta va a su buzón; él (en su computadora) contesta ahí.
-    async ultron(texto, canal = 'crm') {
+    // El texto llega primero; su voz (ElevenLabs) unos segundos después: se sigue
+    // esperando aparte y llega por onVoz, sin detener la respuesta.
+    async ultron(texto, canal = 'crm', { onVoz } = {}) {
       const m = ok(await sb.from('ultron_mensajes').insert({ canal, pregunta: texto, persona: yo.id }).select('id').single())
+      const firmar = async (ruta) => (await sb.storage.from('ultron').createSignedUrl(ruta, 3600)).data?.signedUrl ?? null
       const hasta = Date.now() + 120_000
       while (Date.now() < hasta) {
-        await new Promise((r) => setTimeout(r, 1200))
+        await new Promise((r) => setTimeout(r, 700))
         const r = ok(await sb.from('ultron_mensajes').select('estado, respuesta, acciones, voz').eq('id', m.id).single())
         if (r.estado === 'listo' || r.estado === 'error') {
-          let voz = null
-          if (r.voz) {
-            const v = await sb.storage.from('ultron').createSignedUrl(r.voz, 3600)
-            voz = v.data?.signedUrl ?? null
+          if (r.voz) return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz: await firmar(r.voz) }
+          if (onVoz && r.estado === 'listo') {
+            ;(async () => {
+              const fin = Date.now() + 25_000
+              while (Date.now() < fin) {
+                await new Promise((x) => setTimeout(x, 600))
+                const v = await sb.from('ultron_mensajes').select('voz').eq('id', m.id).single()
+                if (v.data?.voz) return onVoz(await firmar(v.data.voz))
+              }
+              onVoz(null)
+            })()
           }
-          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz }
+          return { texto: r.respuesta || 'Listo.', acciones: r.acciones ?? [], voz: null, vozLuego: Boolean(onVoz && r.estado === 'listo') }
         }
       }
       return { texto: 'Ultron está dormido en este momento (su computadora no responde). Intenta en un rato.', acciones: [] }
