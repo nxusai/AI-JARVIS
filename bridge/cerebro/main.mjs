@@ -1,6 +1,7 @@
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
+import { readUltron, startUltron } from '../nucleo/ultron.mjs'
 import { setRemoteFolder } from '../nucleo/etiquetas.mjs'
 import { ASSETS, DATA, SEAL_KEY, TAG } from '../nucleo/lugar.mjs'
 import { transcribe } from '../nucleo/voz.mjs'
@@ -25,6 +26,8 @@ import { checkSeal } from './firma.mjs'
  *   <data>/cerebro.json   { dueno: Telegram id of the owner, modelo?, esfuerzo? }
  *   <data>/llaves.json    { claude, elevenlabs, drive_url?, drive_clave? }  (set with llaves.mjs; the service user only)
  *   <data>/anasofi.json   Ana Sofi's bot, group and voices
+ *   <data>/ultron.json    Ultron: the work center's address and service key (llaves.mjs), his voice and
+ *                         whether he answers from here (prendido, sent by the owner on moving day)
  *   <data>/estado.json    how the brain is, every minute
  */
 
@@ -32,6 +35,8 @@ export const CONFIG_FILE = join(DATA, 'cerebro.json')
 export const KEYS_FILE = join(DATA, 'llaves.json')
 export const STATE_FILE = join(DATA, 'estado.json')
 const MODEL = 'claude-haiku-5-5'
+// Ultron talks with the direction: the stronger model, with the quick one for small turns.
+const ULTRON_MODEL = 'claude-sonnet-5-5'
 const EFFORT = 'low'
 // Written into the package by scripts/cerebro.mjs.
 const VERSION = typeof __CEREBRO_VERSION__ === 'string' ? __CEREBRO_VERSION__ : 'desarrollo'
@@ -121,6 +126,25 @@ export async function main() {
   } else {
     state.ias.anasofi = 'sin bot'
     warn('Ana Sofi no tiene bot todavía: corre llaves.mjs.')
+  }
+
+  // Ultron answers the direction from the work center, once the owner moved him here.
+  const ultron = readUltron()
+  if (ultron && ultron.prendido === true) {
+    state.ias.ultron = 'prendida'
+    beat()
+    startUltron({
+      model: cfg.modelo_ultron || ULTRON_MODEL,
+      modeloRapido: cfg.modelo || MODEL,
+      effort: cfg.esfuerzo || EFFORT,
+      env: claudeEnv,
+      elevenKey: readKeys().elevenlabs ?? null,
+    }).catch((err) => {
+      state.ias.ultron = 'detenida'
+      warn(`Ultron se detuvo: ${err?.message ?? err}`)
+    })
+  } else if (ultron) {
+    state.ias.ultron = 'en espera'
   }
 }
 

@@ -43,7 +43,7 @@ import { EFFECTS_PROMPT, effectsServer } from './efectos.mjs'
 import { startAnaSofi } from './anasofi.mjs'
 import { envFor } from './apikeys.mjs'
 import { adsWatchServer, sharedWriteCheck, startAdsWatch } from './anuncios.mjs'
-import { startBrainWatch } from './cerebros.mjs'
+import { startBrainWatch, ultronMoved } from './cerebros.mjs'
 import { startUltron, ultronServer } from './ultron.mjs'
 import { mailboxGuard, mailboxOf, mailboxServers, mailboxesPrompt } from './correos.mjs'
 import { accountGuard, brandsPrompt, brandsServer, findBrand, listMolds, onBrandsChange, readBrands, saveManualText, setActiveBrand } from './brands.mjs'
@@ -2122,7 +2122,9 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   // The clients' brains: the owner hears when one stops, is touched, or someone tries to get in.
   startBrainWatch()
   // Ultron, the direction's AI for Mi Semago and Abuelito, answering from the work center (scripts/ultron.mjs).
-  void startUltron({ model: MODEL, modeloRapido: SMALL_MODEL, effort: EFFORT, elevenKey })
+  // Once he answers from the client's brain (scripts/cerebro.mjs mudar-ultron), NEX does not start him too.
+  if (ultronMoved()) console.log("[jarvis] Ultron answers from the client's brain")
+  else void startUltron({ model: MODEL, modeloRapido: SMALL_MODEL, effort: EFFORT, elevenKey })
 }
 
 wss.on('connection', (socket, req) => {

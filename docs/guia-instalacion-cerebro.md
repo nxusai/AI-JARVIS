@@ -363,6 +363,36 @@ Después reinicia NEX: Ana Sofi vuelve a contestar desde tu Mac como antes.
 
 ---
 
+## Fase 8 — Mudanza de Ultron (10 min)
+
+Ultron es la IA de la dirección en el Centro de trabajo (el orbe). Después de esto contesta desde el Mac mini; tú sigues viendo sus conversaciones y dándole órdenes desde NEX.
+
+1. **La conexión del Centro de trabajo, en el Mac mini** (como Soporte NXUS):
+   1. En tu Mac abre https://supabase.com/dashboard → el proyecto **Centro de trabajo** (no el de NXUS HQ) → **Project Settings** → **Data API** y copia la **Project URL** (`https://….supabase.co`).
+   2. En **Project Settings** → **API Keys** copia una llave **secret** (si quieres, crea una nueva llamada "Cerebro" para poder cancelarla aparte).
+   3. En el Mac mini, en Terminal:
+      ```
+      sudo node "/Library/Application Support/Cerebro/programa/llaves.mjs"
+      ```
+      Enter en todo, menos en "Dirección del Centro de trabajo" (pegas la URL) y "Llave de servicio del Centro de trabajo" (pegas la secret). El programa la prueba con el Centro antes de guardarla.
+   4. Revisa: `sudo node "/Library/Application Support/Cerebro/programa/llaves.mjs" estado` debe decir "Ultron (Centro): ✅ conectado, en espera de la mudanza".
+2. **En tu Mac:**
+   ```
+   cd ~/Desktop/nexy && node scripts/cerebro.mjs mudar-ultron
+   ```
+   Debe decir "✅ Ultron contesta desde el cerebro".
+3. **Reinicia NEX** (Ctrl + C y `npm start`). En los logs debe salir "Ultron answers from the client's brain".
+4. **Prueba:** entra al Centro de trabajo como dirección (por ejemplo Senen, o tu usuario de prueba con Ultron prendido), abre el orbe y pregúntale "¿qué tareas tengo pendientes?". Debe contestar en unos segundos.
+5. **En tu Mac:** `node scripts/cerebro.mjs estado` debe decir "ultron: prendida".
+
+**Si algo sale mal:**
+```
+cd ~/Desktop/nexy && node scripts/cerebro.mjs regresar-ultron
+```
+y reinicia NEX: Ultron vuelve a contestar desde tu Mac. Ana Sofi sigue en el cerebro.
+
+---
+
 ## Al terminar
 
 - En el Mac mini, como Soporte NXUS:

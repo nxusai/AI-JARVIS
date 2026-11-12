@@ -25,6 +25,20 @@ const CONFIG_FILE = join(DATA, 'cerebro.json')
 const CLAUDE_KEY = /^sk-ant-[\w-]{20,}$/
 const ELEVEN_KEY = /^[\w-]{20,}$/
 const BOT_TOKEN = /^\d{6,12}:[A-Za-z0-9_-]{30,50}$/
+// Ultron reads the work center (Supabase) with its service key.
+const SUPABASE_URL = /^https:\/\/[a-z0-9-]+\.supabase\.co$/
+const SUPABASE_KEY = /^(sb_secret_[\w-]{20,}|eyJ[\w-]+\.[\w-]+\.[\w-]+)$/
+const ULTRON_FILE = join(DATA, 'ultron.json')
+
+/** The work center answers with that key (Ultron's own table). */
+async function centroWorks(url, key) {
+  try {
+    const res = await fetch(`${url}/rest/v1/ultron_tablero?select=id&limit=1`, { headers: { apikey: key, ...(/^eyJ/.test(key) ? { authorization: `Bearer ${key}` } : {}) } })
+    return res.ok ? true : `respondió ${res.status}`
+  } catch (err) {
+    return err.message
+  }
+}
 
 const readJson = (f) => {
   try {
@@ -145,6 +159,8 @@ if (cmd === 'estado') {
   console.log(` Bot de Ana Sofi:      ${bot ? `✅ @${bot.bot ?? '?'}` : '❌ falta'}`)
   console.log(` Dueño (Telegram):     ${config.dueno ? '✅ puesto' : '❌ falta'}`)
   console.log(` Drive (etiquetas):    ${keys.drive_url && keys.drive_clave ? '✅ conectado' : '❌ falta'}`)
+  const u = readJson(ULTRON_FILE)
+  console.log(` Ultron (Centro):      ${u.url && u.servicio ? `✅ conectado${u.prendido ? ', contesta desde aquí' : ', en espera de la mudanza'}` : '❌ falta'}`)
   process.exit(0)
 } else if (cmd) {
   console.log(' Uso: llaves.mjs [estado]')
@@ -177,6 +193,16 @@ if (driveUrl || keys.drive_url) {
   const url = driveUrl ?? keys.drive_url
   driveKey = await ask('Clave de Drive (la que dio preparar)', { has: Boolean(keys.drive_clave) && !driveUrl, shape: DRIVE_KEY, check: (k) => driveWorks(url, k) })
 }
+
+// Ultron: the work center's address and service key (Enter = después).
+const ultron = readJson(ULTRON_FILE)
+const centroUrl = await ask('Dirección del Centro de trabajo en Supabase (https://….supabase.co)', { has: Boolean(ultron.url), shape: SUPABASE_URL, show: true, optional: true })
+let centroKey = null
+if (centroUrl || ultron.url) {
+  const url = centroUrl ?? ultron.url
+  centroKey = await ask('Llave de servicio del Centro de trabajo (Supabase → Settings → API keys → secret)', { has: Boolean(ultron.servicio) && !centroUrl, shape: SUPABASE_KEY, check: (k) => centroWorks(url, k) })
+}
+if (centroUrl || centroKey) writePrivate(ULTRON_FILE, { ...ultron, ...(centroUrl ? { url: centroUrl } : {}), ...(centroKey ? { servicio: centroKey } : {}) })
 
 writePrivate(KEYS_FILE, { ...keys, ...(claude ? { claude } : {}), ...(eleven ? { elevenlabs: eleven } : {}), ...(driveUrl && driveKey ? { drive_url: driveUrl } : {}), ...(driveKey ? { drive_clave: driveKey } : {}) })
 // The group and voices may already be there, sent before the bot (datos): kept.

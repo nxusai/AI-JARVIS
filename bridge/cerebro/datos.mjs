@@ -14,7 +14,7 @@ import { DATA } from '../nucleo/lugar.mjs'
  * Keys never travel this way: those are typed on the brain (llaves.mjs).
  *
  *   { tipo: 'datos', fecha, etiquetas?: { <id>: set }, anasofi?: { grupo, voz, voz_es, voz_en },
- *     cerebro?: { dueno }, canal? }
+ *     cerebro?: { dueno }, canal?, ultron?: { prendido, voz? } }
  */
 
 const LAST_FILE = join(DATA, 'ultimos-datos.json')
@@ -83,6 +83,15 @@ export function applyData(file, publicPem) {
   if (typeof data.canal === 'string' && /^et-[0-9a-f]{32}$/.test(data.canal)) {
     writeLabelConfig({ ...readLabelConfig(), canal: data.canal })
     done.push('la línea directa de la impresora')
+  }
+  if (data.ultron && typeof data.ultron === 'object' && typeof data.ultron.prendido === 'boolean') {
+    // His address and key are typed on the brain (llaves.mjs); this only says whether he answers from here.
+    const file = join(DATA, 'ultron.json')
+    const now = readJson(file, {})
+    const next = { ...now, prendido: data.ultron.prendido }
+    if (typeof data.ultron.voz === 'string' && VOICE.test(data.ultron.voz)) next.voz = data.ultron.voz
+    writePrivate(file, next)
+    done.push(data.ultron.prendido ? 'Ultron contesta desde aquí' : 'Ultron ya no contesta desde aquí')
   }
   writePrivate(LAST_FILE, { fecha: data.fecha, aplicado: new Date().toISOString(), que: done })
   return done

@@ -1,7 +1,6 @@
 # Cerebro del cliente — esquema
 
-Estado: **esquema aprobado por partes; nada construido todavía.** Se construye
-poco a poco, empezando por Ana Sofi.
+Estado: **construido por partes** (ver "Orden de construcción"). El Mac mini del cliente ya está comprado (12 nov 2026).
 
 ## Quién manda
 
@@ -182,7 +181,9 @@ oculta del cerebro el día de la instalación, nunca en un chat.
       `datos --etiquetas` no pisa cambios hechos en el cerebro (pide
       `--forzar`). Cuando Ana Sofi ya contesta desde el cerebro, `espejo` guarda
       en NEX los cambios hechos allá, y NEX ya no prende su propia Ana Sofi;
-   5. prueba completa en una Mac de ensayo.
+   5. ✅ Ultron en el cerebro (12 nov 2026): el cerebro lo arranca cuando el dueño lo muda (`node scripts/cerebro.mjs mudar-ultron`, datos firmados `ultron.prendido`); la dirección y la llave de servicio del Centro de trabajo se escriben en `llaves.mjs`. NEX deja de correrlo pero conserva sus herramientas (ver conversaciones, darle órdenes). Guía: fase 8;
+   6. la línea de ventas de Ana Sofi (leads del Centro de trabajo, llamada al momento, reintento, llamadas entrantes, agendar el Meet) en el cerebro, con un **calendario de ventas propio de NXUS** (decisión del 12 nov: el cerebro nunca toca el calendario personal de Eduardo). El aviso de la mañana y la llamada una hora antes del Meet a Eduardo se quedan en NEX, leyendo ese calendario y el Centro de trabajo;
+   7. prueba completa en una Mac de ensayo.
 
    ✅ Drive: el cerebro corre con su propio usuario escondido y Google Drive
    para escritorio vive en la sesión del cliente, así que el cerebro no
