@@ -5,6 +5,7 @@ Lee también `docs/estado-nxus.md` (cómo trabajar con Eduardo) y, para los lead
 
 ## Qué es
 El sistema de trabajo entre NXUS y su cliente (el mismo dueño: **Senen**) para **Abuelito INC** (Abuelito Cheese, Meat y Corn), **Mi Semago** y **VAYRO** (empresa apagada por ahora).
+- **Diseño Penthouse** (12 nov): de fondo el Abuelito en caricatura en un penthouse de NY (`crm/public/fondo-abuelito.jpg` 4K y `fondo-abuelito-movil.jpg` vertical; hechas con Higgsfield desde `el-abuelito-web/public/img/ui/abuelito.png`), todo encima en vidrio claro con letras oscuras (bloque "Penthouse" al final de `estilo.css`). Al cambiar de sección todo se desvanece 2 s para lucir el fondo (`verFondo()` en `app.js`; un clic o tecla lo regresa antes). Solo al cambiar de sección, no en cada clic, para no estorbar al trabajar.
 - En línea: https://centro-misemago-abuelito.netlify.app (Netlify, proyecto **centro-misemago-abuelito**, publica desde la rama `claude/jarvis-project-setup-gs6uu2`, base directory `crm`).
 - Base de datos: un proyecto de Supabase **aparte** de NXUS HQ (Eduardo lo llama "Centro de trabajo"). Nunca mezclarlo con `nxus-hq`.
 - Guías: `docs/guia-crm.md` (instalación y uso), `docs/guia-ultron.md` (Ultron).
