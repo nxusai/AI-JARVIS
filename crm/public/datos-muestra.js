@@ -272,6 +272,7 @@ export function crearMuestra() {
       t.estatus = 'aprobada'
       t.aprobada = hace(aprobada, 12)
     } else if (estatus !== 'recibida' && !entregas.length) t.estatus = estatus
+    if (t.estatus !== 'recibida') Object.assign(t, { tomada_por: 'u-equipo1', tomada: hace(dias - 0.5, 10) })
     yo = null
     return t
   }
@@ -348,6 +349,9 @@ export function crearMuestra() {
     async empresas() {
       return perfil() ? copia(db.empresas) : []
     },
+    async gente() {
+      return db.perfiles.filter((p) => !p.eliminado).map((p) => ({ id: p.id, nombre: p.nombre, rol: p.rol, activo: p.activo, creador: Boolean(p.dueno) }))
+    },
     async clientes() {
       return equipo() ? db.perfiles.filter((p) => p.rol === 'cliente').map((p) => ({ id: p.id, nombre: p.nombre, activo: p.activo })) : []
     },
@@ -409,6 +413,7 @@ export function crearMuestra() {
       const antes = {}
       for (const k of ['estatus', 'compromiso']) if (k in cambios) { antes[k] = [t[k], cambios[k]]; t[k] = cambios[k] }
       if (t.estatus === 'entregada' && !t.entregada) t.entregada = ahora()
+      if (antes.estatus && antes.estatus[0] === 'recibida' && t.estatus !== 'recibida' && !t.tomada_por) Object.assign(t, { tomada_por: yo, tomada: ahora() })
       anota('cambió', 'tareas', id, antes)
     },
     async subirEntrega(tarea, correccion_id, file) {
