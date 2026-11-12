@@ -315,7 +315,7 @@ async function empezar() {
   if (D.ultron && (S.yo.ultron || esAdmin())) {
     montarUltron({
       yo: S.yo,
-      preguntar: (t) => D.ultron(t, 'crm'),
+      preguntar: (t, opciones) => D.ultron(t, 'crm', opciones),
       transcribir: D.transcribir ? (b) => D.transcribir(b) : null,
       avisar,
       muestra: MUESTRA,
