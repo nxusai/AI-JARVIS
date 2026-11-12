@@ -419,7 +419,7 @@ export function crearMuestra() {
     async corregir(tarea_id, instrucciones) {
       await espera(300)
       const t = db.tareas.find((x) => x.id === tarea_id)
-      if (rol() !== 'cliente' || t.cliente_id !== yo) no('Solo quien pidió la tarea puede pedir correcciones')
+      if (rol() !== 'admin' && (rol() !== 'cliente' || t.cliente_id !== yo)) no('Solo quien pidió la tarea puede pedir correcciones')
       if (!t.entregada || t.estatus === 'aprobada') no('Esta tarea no puede recibir correcciones')
       if (!instrucciones) no('Escribe qué hay que corregir')
       const c = { id: uid(), tarea_id, n: db.correcciones.filter((x) => x.tarea_id === tarea_id).length + 1, instrucciones, pedida: ahora(), pedida_por: yo, estatus: 'pedida', entregada: null }
@@ -437,7 +437,7 @@ export function crearMuestra() {
     async aprobar(tarea_id) {
       await espera(300)
       const t = db.tareas.find((x) => x.id === tarea_id)
-      if (rol() !== 'cliente' || t.cliente_id !== yo) no('Solo quien pidió la tarea la puede aprobar')
+      if (rol() !== 'admin' && (rol() !== 'cliente' || t.cliente_id !== yo)) no('Solo quien pidió la tarea la puede aprobar')
       if (!t.entregada && t.estatus !== 'entregada') no('Todavía no hay nada entregado para aprobar')
       t.estatus = 'aprobada'
       t.aprobada = ahora()
@@ -656,6 +656,15 @@ export function crearMuestra() {
       if (!real || !veoArchivo(real)) no('No puedes ver ese archivo')
       anota('envió por correo', 'archivos', a.id)
       return { para: `${perfil().correo} (en la muestra no sale correo de verdad)` }
+    },
+    async correoVarios(ids) {
+      await espera(800)
+      for (const id of ids) {
+        const real = db.archivos.find((x) => x.id === id)
+        if (!real || !veoArchivo(real)) no('No puedes ver alguno de esos archivos')
+        anota('envió por correo', 'archivos', id)
+      }
+      return { para: `${perfil().correo} (en la muestra no sale correo de verdad)`, n: ids.length }
     },
     anotar(accion, id) {
       anota(accion, 'archivos', id)
