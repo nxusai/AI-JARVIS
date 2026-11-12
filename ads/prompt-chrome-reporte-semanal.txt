@@ -1,0 +1,27 @@
+Eres mi analista de anuncios. Soy Eduardo (NXUS AI). Trabaja en mi Chrome; yo te veo. SOLO LECTURA: no cambies,
+pauses, edites ni publiques nada en Meta, ManyChat ni HQ. Si algo te pide confirmar, detente y pregúntame.
+
+PASO 1. Meta Ads Manager: https://adsmanager.facebook.com/adsmanager/manage/ads?act=736971049130563
+- Rango de fechas: "Last 7 days" / "Últimos 7 días".
+- Solo los anuncios de las campañas "NXUS | MX | Mensajes | Diagnóstico v2" y "NXUS | NY | Mensajes | Diagnóstico".
+- Para cada anuncio (MX | A, MX | B, MX | C, NY | A, NY | B, NY | C) anota: estado (Active / In review / Learning
+  limited…), Amount spent, Impressions, Reach, Frequency, CPM, Messaging conversations started, Cost per messaging
+  conversation started, 3-second video plays, ThruPlays. Si una columna no está, agrégala con Columns → Customize
+  columns SIN guardar el preset; si no existe, pon "no visible".
+- Haz lo mismo con "Lifetime" / "Máximo" (desde el inicio), solo Amount spent y Messaging conversations started.
+- Breakdown por Placement de los últimos 7 días: cuántas conversaciones salieron de Facebook y cuántas de Instagram.
+
+PASO 2. HQ: https://nxus-hq.netlify.app/#anuncios (ya tengo la sesión abierta).
+- Pestaña "Todo" y "Últimos 7 días": copia los 6 números de arriba (Gastado, Chats abiertos, Personas reales,
+  NEX habló con, Citas agendadas, Clientes) y, de cada tarjeta de video, Costo por cita, Gancho (3 s), Ven completo,
+  Chats, Reales, Citas, Clientes y el consejo que aparece abajo.
+- Copia la lista "Por qué no agendan".
+
+PASO 3. Dame el REPORTE en español, en este formato, para pegárselo a mi asesor:
+1. Resumen en 3 líneas: cuánto se gastó esta semana, cuántas citas salieron y el costo por cita.
+2. Tabla por video (MX A, MX B, MX C, NY A, NY B, NY C): gasto 7 días, gasto total, conversaciones, costo por
+   conversación, gancho %, ven completo %, frecuencia, personas reales, citas, clientes, costo por cita, estado.
+3. Facebook vs Instagram (conversaciones de cada uno).
+4. Por qué no agendan (motivos y cuántos).
+5. Cualquier aviso de Meta (anuncio rechazado, cuenta, presupuesto, "learning limited").
+No des recomendaciones de cambios ni hagas cambios: solo los números. Luego espera.

@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600;1,700&family=Montserrat:wght@700;800;900&display=swap">
+<style>html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:transparent}*{box-sizing:border-box}
+#st{position:absolute;inset:0;color:#fff}.capa{position:absolute;inset:0}
+.g{background:linear-gradient(100deg,#00e5ff,#3b82ff 50%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+</style></head><body><div id="st"></div><script>
+const P = window.CFG, MODO = window.MODO
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), sal = (t, a, d) => cl((t - a) / d), ease = (k) => 1 - Math.pow(1 - k, 3)
+const suave = (k) => k * k * (3 - 2 * k)
+const back = (k) => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+function zoom(t) {
+  const Z = P.zoom; let z = Z[0][1]
+  for (let i = 1; i < Z.length; i++) {
+    const [t0, z0] = Z[i - 1], [t1, z1, tipo] = Z[i]
+    if (t < t0) break
+    if (tipo === 'salto') { if (t >= t1) z = z1; continue }
+    if (t <= t1) { const k = t1 > t0 ? (t - t0) / (t1 - t0) : 1; z = z0 + (z1 - z0) * (tipo === 'suave' ? suave(k) : k); break }
+    z = z1
+  }
+  return z
+}
+function cabezaY(t) {
+  const z = zoom(t), k = cl((z - 1) / 0.6), cy = 0.5 + (P.cara[1] - 0.5) * k, h = 1 / z
+  const y0 = cl(cy - h / 2, 0, 1 - h)
+  return (P.cabeza[1] - y0) / h * 1920
+}
+// grupos de subtítulos
+const CLAVE = /^(prueba|ediciones|claude|eficiente|efectos|especiales|cámara|acerca|aleja)/i
+const G = []; { let g = []
+  for (const p of P.pal) { g.push(p); if (g.length === 3 || /[,.]$/.test(p.w) || CLAVE.test(p.w)) { G.push(g); g = [] } }
+  if (g.length) G.push(g) }
+const tapado = (t) => P.atras.some((x) => t >= x.a && t < x.b)
+function render(t) {
+  let h = ''
+  if (MODO === 'atras') {
+    for (const x of P.atras) {
+      if (t < x.a - .02 || t > x.b + .15) continue
+      const k = ease(sal(t, x.a, .28)), o = Math.min(k, cl((x.b + .15 - t) / .15))
+      const yc = cabezaY(t), tam = Math.min(260, Math.floor(1000 / (x.txt.length * 0.74)))
+      h += `<div style="position:absolute;left:0;right:0;top:${yc - tam * .30 - (x.sub ? 95 : 0)}px;white-space:nowrap;text-align:center;opacity:${o};transform:scale(${.86 + .14 * back(k)});transform-origin:50% 80%">
+        ${x.sub ? `<div style="font:italic 700 110px 'Playfair Display';margin-bottom:-20px;color:#0b1240;text-shadow:0 2px 14px rgba(255,255,255,.6)">${x.sub.toLowerCase()}</div>` : ''}
+        <div style="font:900 ${tam}px Montserrat;letter-spacing:${-4 + 6 * k}px;line-height:.9;background:linear-gradient(100deg,#00c8ff,#2f6bff 50%,#8a1cff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 8px 24px rgba(0,0,30,.45))">${x.txt}</div></div>`
+    }
+  } else {
+    const g = G.find((x) => t >= x[0].a - .03 && t < x[x.length - 1].b + .1)
+    // Subtítulos solo en frases clave (Eduardo: no todo lleva subtítulo).
+    const CLAVES = [[-0.1, 1.4], [4.9, 6.1]]
+    const toca = g && CLAVES.some(([a, b]) => g[0].a >= a && g[0].a < b)
+    if (g && toca && !tapado(t)) {
+      const k = ease(sal(t, g[0].a - .03, .14))
+      h += `<div style="position:absolute;left:50px;right:50px;top:1330px;text-align:center;opacity:${k};transform:translateY(${(1 - k) * 22}px)">${g.map((p) => {
+        const on = t >= p.a, clave = CLAVE.test(p.w), w = p.w.replace(/[.,]$/, '')
+        const op = on ? 1 : .0
+        return clave
+          ? `<span class="g" style="font:900 98px Montserrat;text-transform:uppercase;opacity:${op};display:inline-block;margin:0 10px;filter:drop-shadow(0 6px 22px rgba(0,0,0,.55))">${w}</span>`
+          : `<span style="font:italic 700 80px 'Playfair Display';opacity:${op};display:inline-block;margin:0 10px;text-shadow:0 6px 26px rgba(0,0,0,.6)">${w}</span>`
+      }).join(' ')}</div>`
+    }
+    // pastilla de Claude
+    if (t > 3.68 && t < 4.32) {
+      const k = sal(t, 3.70, .25)
+      h += `<div style="position:absolute;left:640px;top:${cabezaY(t) - 40}px;transform:scale(${back(k)});opacity:${Math.min(1, k * 2)}"><span style="display:inline-flex;align-items:center;gap:12px;padding:16px 30px;border-radius:999px;background:rgba(10,12,24,.75);border:3px solid #f6c945;font:800 44px Montserrat;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.4)"><span style="color:#d97757;font-size:52px">✳</span>Claude</span></div>`
+    }
+    // destellos
+    for (const c of [9.09, 14.21]) { const f = cl(1 - Math.abs(t - c) / .1); if (f > 0) h += `<div class="capa" style="background:rgba(255,255,255,${.75 * f})"></div>` }
+  }
+  document.getElementById('st').innerHTML = h
+}
+window.render = render
+</script></body></html>

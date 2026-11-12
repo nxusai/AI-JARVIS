@@ -30,6 +30,7 @@ function claro(error) {
   if (/should be different from the old password/i.test(m)) return new Error('Esa es la misma contraseña que ya tenías. Escribe otra.')
   if (/Password should be at least|weak password|weak_password/i.test(m)) return new Error('El sistema no aceptó esa contraseña. Prueba con otra.')
   if (/reauthenticat/i.test(m)) return new Error('Por seguridad, sal y vuelve a entrar antes de cambiar tu contraseña.')
+  if (/Could not find the .* column|schema cache|does not exist/i.test(m)) return new Error('Falta actualizar la base de datos: corre el esquema en Supabase (SQL Editor) y vuelve a intentar.')
   if (/Failed to fetch|NetworkError/i.test(m)) return new Error('Sin conexión. Revisa tu internet e intenta otra vez.')
   return new Error(m)
 }
@@ -206,6 +207,64 @@ export function crearSupabase({ url, anon }) {
     },
     async catalogos() {
       return ok(await sb.from('archivos').select('*').eq('tipo', 'catalogo').limit(5000))
+    },
+    // Leads de Mi Semago (los llama Ana Sofi; los candados: esquema.sql, "leads").
+    async leads() {
+      const r = await sb.from('leads').select('*, leads_notas(*)').order('creado', { ascending: false }).limit(2000)
+      if (r.error && /leads|schema cache|does not exist|PGRST205|42P01/i.test(`${r.error.code} ${r.error.message}`)) return []
+      return ok(r)
+    },
+    async notaLead(lead_id, texto) {
+      ok(await sb.from('leads_notas').insert({ lead_id, texto: String(texto || '').trim() }))
+    },
+    async etapaLead(id, etapa) {
+      const filas = ok(await sb.from('leads').update({ etapa }).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('Solo el administrador principal cambia la etapa')
+    },
+    async borrarLead(id) {
+      const filas = ok(await sb.from('leads').delete().eq('id', id).select('id'))
+      if (!filas.length) throw new Error('Solo el administrador principal borra leads')
+    },
+    // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
+    async plan() {
+      const r = await sb.from('plan').select('*').order('orden').order('creado').limit(5000)
+      // Si todavía no corren el esquema nuevo, la parrilla funciona igual (sin plan).
+      if (r.error && /plan|schema cache|does not exist|PGRST205|42P01/i.test(`${r.error.code} ${r.error.message}`)) return []
+      return ok(r)
+    },
+    async pedirExtra({ marca, nombre, cantidad, detalle = '', desde }) {
+      ok(await sb.from('plan').insert({ marca, fijo: false, nombre: String(nombre || '').trim(), detalle: String(detalle || '').trim(), cantidad: Math.max(1, Number(cantidad) || 1), desde }))
+    },
+    async guardarFijo({ clave = null, marca, nombre, cantidad, detalle = '' }) {
+      ok(await sb.rpc('plan_fijo_guardar', { p_clave: clave, p_marca: marca, p_nombre: String(nombre || '').trim(), p_cantidad: Number(cantidad), p_detalle: detalle }))
+    },
+    async quitarFijo(clave) {
+      ok(await sb.rpc('plan_fijo_quitar', { p_clave: clave }))
+    },
+    async borrarExtra(id) {
+      const [x] = ok(await sb.from('plan').select('clave').eq('id', id).eq('fijo', false))
+      if (!x) throw new Error('Ese extra ya no está')
+      ok(await sb.from('contenidos').update({ plan_clave: null }).eq('plan_clave', x.clave))
+      const borrados = ok(await sb.from('plan').delete().eq('id', id).select('id'))
+      if (!borrados.length) throw new Error('No tienes permiso para hacer eso')
+    },
+    // La fiesta de empleados: confirman desde /fiesta (función de Netlify); aquí solo se ve y el admin borra.
+    async fiesta() {
+      return ok(await sb.from('fiesta_asistentes').select('*').order('actualizada', { ascending: false }).limit(5000))
+    },
+    async borrarInvitado(id) {
+      ok(await sb.from('fiesta_asistentes').delete().eq('id', id))
+    },
+    // Website leads: llegan del formulario de misemago.com (función de Netlify "leads").
+    async webLeads() {
+      return ok(await sb.from('website_leads').select('*').order('creada', { ascending: false }).limit(5000))
+    },
+    async cambiarWebLead(id, cambios) {
+      const filas = ok(await sb.from('website_leads').update(cambios).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('No tienes permiso para hacer eso')
+    },
+    async borrarWebLead(id) {
+      ok(await sb.from('website_leads').delete().eq('id', id))
     },
     // La parrilla de contenidos de las vendedoras (los candados: supabase/esquema.sql).
     async contenidos() {

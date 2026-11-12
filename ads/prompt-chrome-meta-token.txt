@@ -1,0 +1,37 @@
+Eres mi asistente técnico. Soy Eduardo (NXUS AI). Trabaja en mi Chrome; yo te veo.
+Objetivo: conectar mi panel "Anuncios" de HQ con Meta en SOLO LECTURA, para que muestre lo gastado, las vistas y el
+costo por cita de mis anuncios. Se necesita una llave (token) de Meta con permiso ads_read guardada en Netlify.
+
+REGLAS (obligatorias)
+- NUNCA leas en voz alta, copies, escribas, resumas ni muestres el token en este chat. Cuando el token aparezca en
+  pantalla, DETENTE y dime: "Copia el token". Yo lo copio y lo pego en Netlify. Tú no lo tocas.
+- Permisos del token: SOLO ads_read (y business_management si Meta lo exige para generarlo). Nada de ads_management
+  ni permisos de publicar o pagar.
+- No cambies pagos, no cambies campañas ni anuncios, no borres usuarios ni activos.
+- En Netlify, solo toca las variables META_TOKEN y META_AD_ACCOUNT_ID del sitio nxus-hq. No toques otras variables.
+- Si algo pide contraseña, código o confirmación de seguridad, detente: lo hago yo.
+
+PASO 1. Meta Business: https://business.facebook.com/settings → Users → System users.
+- Dime si ya existe un usuario de sistema (por ejemplo "NXUS HQ" o similar). Si existe, úsalo. Si no, créalo:
+  "+ Add" → nombre: NXUS HQ lectura → rol: Employee (no Admin). Si pide confirmación, pregúntame.
+- Asígnale la cuenta de anuncios "Eduardo's" (act_736971049130563) con permiso de solo ver (View performance /
+  "Ver rendimiento"). Nada de "Manage campaigns".
+
+PASO 2. En ese usuario de sistema: "Generate new token" / "Generar token".
+- App: la que Meta muestre de mi negocio (dime cuáles hay y cuál eliges antes de seguir).
+- Caducidad: "Never" / "Nunca", si aparece.
+- Permisos: marca SOLO ads_read (y business_management solo si es obligatorio).
+- Da clic en Generar. Cuando salga el token: DETENTE y dime "Copia el token". Espera a que yo te diga "listo".
+
+PASO 3. Netlify: https://app.netlify.com → sitio nxus-hq → Site configuration → Environment variables.
+- Si existe META_TOKEN: abre "Edit" y espera; yo pego el token y guardo. Si no existe: "Add a variable" → Key:
+  META_TOKEN → deja el valor vacío y espera a que yo lo pegue y guarde.
+- META_AD_ACCOUNT_ID: si no existe, créala con el valor act_736971049130563. Si existe, dime qué valor tiene y si es
+  distinto, cámbialo a act_736971049130563.
+
+PASO 4. Netlify → Deploys → "Trigger deploy" → "Deploy site". Espera a que diga "Published".
+
+PASO 5. Abre https://nxus-hq.netlify.app/#anuncios (yo ya tengo sesión) y dime:
+- Si arriba ya salen "Gastado" y "Chats abiertos" con números, o si sigue el aviso "Falta conectar Meta" y qué dice.
+
+PASO 6. Informe corto con ✅ / ⚠️ / ❌. Sin mostrar el token.

@@ -151,7 +151,7 @@ const carlos = prospecto({
   etapa: 'cita', cita: dia(1, 11), meet: 'https://meet.google.com/nxs-cmed-ina', asignado: ED, creado: dia(0, 8, 47), actualizado: dia(0, 9, 2),
 })
 lead({
-  nombre: 'Carlos Medina', empresa: 'Medina Logistics', direccion: '410 N Broad St, Elizabeth, NJ', telefono: '+1 908 555 0147', correo: 'carlos@medinalogistics.com', ciudad: 'Elizabeth, NJ', pais: 'usa', canal: 'facebook', fuente: 'Anuncio · "Tu negocio contesta solo"', anuncio_id: '120210000000001',
+  nombre: 'Carlos Medina', empresa: 'Medina Logistics', direccion: '410 N Broad St, Elizabeth, NJ', telefono: '+1 908 555 0147', correo: 'carlos@medinalogistics.com', ciudad: 'Elizabeth, NJ', pais: 'usa', canal: 'facebook', fuente: 'Anuncio NY · Video B', anuncio_id: '120210000000001',
   servicio: 'Automatización de despacho', estado: 'agendado', prospecto_id: carlos.id, creado: dia(0, 8, 47), actualizado: dia(0, 9, 2),
   llamada_id: 'conv_muestra_1', llamada_inicio: dia(0, 8, 49), llamada_seg: 412, grabacion: 'https://elevenlabs.io',
   resumen: 'Empresa de transporte con 14 camiones en NJ. Coordina viajes por WhatsApp y Excel, pierde viajes por no contestar a tiempo. Le interesa que los clientes coticen y agenden solos. Agendó meeting mañana a las 11:00.',
@@ -171,12 +171,18 @@ Object.assign(db.leads.at(-1), {
 })
 db.leads_notas.push({ id: id(), lead_id: db.leads.at(-1).id, autor: ED, texto: 'Llevar ejemplo de cotizador por WhatsApp.', creada: dia(0, 9, 30) })
 lead({ nombre: 'Jessica Brown', empresa: 'Bright Smile Dental', telefono: '+1 201 555 0133', correo: 'jessica@brightsmile.com', ciudad: 'Jersey City, NJ', pais: 'usa', idioma: 'en', servicio: 'AI receptionist / appointment booking', canal: 'instagram', fuente: 'Commented INFO', creado: dia(0, 9, 41), actualizado: dia(0, 9, 41), estado: 'llamando', llamada_inicio: dia(0, 9, 42) })
-lead({ nombre: 'Rosa Elena Vázquez', empresa: 'Panadería La Espiga', direccion: 'Calle Morelos 55, Puebla', telefono: '+52 222 555 0190', correo: 'rosa@laespiga.mx', ciudad: 'Puebla', pais: 'mexico', servicio: 'Pedidos por WhatsApp', canal: 'facebook', fuente: 'Anuncio · "Pedidos que llegan solos"', creado: dia(0, 10, 5), actualizado: dia(0, 10, 5) })
+lead({ nombre: 'Rosa Elena Vázquez', empresa: 'Panadería La Espiga', direccion: 'Calle Morelos 55, Puebla', telefono: '+52 222 555 0190', correo: 'rosa@laespiga.mx', ciudad: 'Puebla', pais: 'mexico', servicio: 'Pedidos por WhatsApp', canal: 'facebook', fuente: 'Anuncio MX · Video C', creado: dia(0, 10, 5), actualizado: dia(0, 10, 5) })
 lead({ nombre: 'Tom Kowalski', empresa: 'TK Roofing', telefono: '+1 732 555 0111', ciudad: 'Edison, NJ', pais: 'usa', idioma: 'en', servicio: 'Lead follow-up', canal: 'instagram', fuente: 'Commented INFO', permiso_llamada: false, estado: 'cartera', motivo: 'sin_permiso', creado: dia(0, 7, 30), actualizado: dia(0, 7, 31) })
 lead({ nombre: 'Miguel Ángel Soto', empresa: 'Autolavado Soto', telefono: '+52 81 5555 0177', correo: 'miguel@autolavadosoto.mx', ciudad: 'Monterrey', pais: 'mexico', servicio: 'Página web y redes', canal: 'instagram', estado: 'cartera', motivo: 'no_contesto', creado: dia(-1, 17, 12), actualizado: dia(-1, 17, 15), llamada_inicio: dia(-1, 17, 13), llamada_seg: 0, resumen: 'No contestó. Se dejó mensaje en el buzón.' })
-lead({ nombre: 'Laura Peña', empresa: 'Inmobiliaria Peña', telefono: '+52 55 5555 0122', correo: 'laura@inmopena.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Chatbot para clientes', canal: 'facebook', fuente: 'Anuncio · "Tu negocio contesta solo"', estado: 'cartera', motivo: 'ahora_no', creado: dia(-2, 12), actualizado: dia(-2, 12, 20), llamada_inicio: dia(-2, 12, 2), llamada_seg: 148, resumen: 'Le interesa, pero está cerrando el trimestre. Pidió que la busquen en diciembre.', puntos: { necesidad: 'Contestar a los interesados en propiedades fuera de horario', decide: 'Sí, con su socio', urgencia: 'Baja: después de diciembre' } })
+lead({ nombre: 'Laura Peña', empresa: 'Inmobiliaria Peña', telefono: '+52 55 5555 0122', correo: 'laura@inmopena.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Chatbot para clientes', canal: 'facebook', fuente: 'Anuncio MX · Video A', estado: 'cartera', motivo: 'ahora_no', creado: dia(-2, 12), actualizado: dia(-2, 12, 20), llamada_inicio: dia(-2, 12, 2), llamada_seg: 148, resumen: 'Le interesa, pero está cerrando el trimestre. Pidió que la busquen en diciembre.', puntos: { necesidad: 'Contestar a los interesados en propiedades fuera de horario', decide: 'Sí, con su socio', urgencia: 'Baja: después de diciembre' } })
 lead({ nombre: 'Kevin Ortiz', empresa: 'Ortiz Cleaning', telefono: '+1 973 555 0166', ciudad: 'Paterson, NJ', pais: 'usa', idioma: 'en', servicio: 'Social media', canal: 'instagram', estado: 'cartera', motivo: 'colgo', creado: dia(-2, 15), actualizado: dia(-2, 15, 3), llamada_inicio: dia(-2, 15, 1), llamada_seg: 21, resumen: 'Colgó después de la presentación.' })
 lead({ nombre: 'Daniela Ríos', empresa: 'Estética Dany', telefono: '+52 33 5555 0155', ciudad: 'Guadalajara', pais: 'mexico', servicio: 'Agenda de citas', canal: 'instagram', estado: 'no_llamar', creado: dia(-3, 11), actualizado: dia(-3, 11, 6), llamada_inicio: dia(-3, 11, 2), llamada_seg: 35, resumen: 'Dijo que ya no le interesa y que no le vuelvan a llamar.' })
+lead({ nombre: 'Humberto Olvera', empresa: 'Laboratorio Dental Olvera', telefono: '+52 55 5555 0101', correo: 'h@olvera.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Sucursales: 2 a 5 · WhatsApp con IA', canal: 'facebook', fuente: 'Anuncio MX · Video C', estado: 'agendado', creado: dia(-1, 3, 15), actualizado: dia(-1, 3, 30), llamada_inicio: dia(-1, 3, 23), llamada_seg: 590 })
+lead({ nombre: 'Mariana Ortiz', empresa: 'Grupo La Terraza', telefono: '+52 55 5555 0102', correo: 'mo@laterraza.mx', ciudad: 'CDMX', pais: 'mexico', servicio: 'Sucursales: 6 o más · Reservas', canal: 'facebook', fuente: 'Anuncio MX · Video A', estado: 'agendado', creado: dia(-3, 22, 10), actualizado: dia(-3, 22, 30), llamada_inicio: dia(-3, 22, 12), llamada_seg: 410 })
+lead({ nombre: 'Ricardo Salas', empresa: 'Mariscos Salas', telefono: '+52 81 5555 0103', ciudad: 'Monterrey', pais: 'mexico', servicio: 'Sucursales: 2 a 5', canal: 'facebook', fuente: 'Anuncio MX · Video A', estado: 'cartera', motivo: 'no_contesto', creado: dia(-2, 20), actualizado: dia(-2, 20, 5) })
+lead({ nombre: '', empresa: '', canal: 'facebook', fuente: 'Anuncio MX · Video B', estado: 'incompleto', permiso_llamada: false, creado: dia(-1, 11), actualizado: dia(-1, 11) })
+lead({ nombre: 'Luis Pérez', empresa: 'Pérez Remodeling', telefono: '+1 201 555 0104', correo: 'luis@perezremodel.com', ciudad: 'Union City, NJ', pais: 'usa', servicio: 'Sucursales: 1', canal: 'facebook', fuente: 'Anuncio NY · Video A', estado: 'agendado', creado: dia(-4, 19), actualizado: dia(-4, 19, 20), llamada_inicio: dia(-4, 19, 2), llamada_seg: 330 })
+lead({ nombre: 'Ana Gómez', empresa: 'Clínica Gómez', telefono: '+1 973 555 0105', ciudad: 'Paterson, NJ', pais: 'usa', servicio: 'Sucursales: 2 a 5', canal: 'facebook', fuente: 'Anuncio NY · Video C', estado: 'cartera', motivo: 'ahora_no', creado: dia(-5, 15), actualizado: dia(-5, 15, 10), llamada_inicio: dia(-5, 15, 1), llamada_seg: 95 })
 lead({ nombre: 'Jorge Ruiz', empresa: 'Taquería El Güero', telefono: '5512345678', ciudad: '', pais: '', servicio: 'Pedidos por WhatsApp', canal: 'instagram', fuente: 'Comentó RESTAURANTES', llamada_error: 'No sé de qué país es el número "5512345678" (no trae lada y no dijo el país). Corrígelo con "Editar datos" y dale "Llamar ahora".', creado: dia(0, 9, 40), actualizado: dia(0, 9, 41) })
 lead({ nombre: 'Pedro', empresa: '', telefono: '', ciudad: '', pais: '', servicio: '', canal: 'instagram', permiso_llamada: false, estado: 'incompleto', creado: dia(0, 8, 15), actualizado: dia(0, 8, 16) })
 lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León', pais: 'mexico', servicio: 'Contenido para redes', canal: 'facebook', permiso_llamada: false, estado: 'incompleto', creado: dia(-1, 20, 40), actualizado: dia(-1, 20, 44) })
@@ -348,6 +354,25 @@ export function crearMuestra() {
     // Leads: las mismas reglas que la base de datos (supabase/esquema.sql).
     leads: () => espera(db.leads.filter(veLead).map(({ transcripcion, ...l }) => l).sort((a, b) => b.creado.localeCompare(a.creado))),
     lead: (lid) => espera(db.leads.find((l) => l.id === lid && veLead(l)) ?? null),
+    // Números de Meta de muestra (en la versión real los trae la función "anuncios").
+    metaAnuncios: () => {
+      const f = (anuncio, campana, gasto, impresiones, conversaciones, vistas3s, thruplays, frecuencia) => ({ anuncio, campana, gasto, impresiones, alcance: Math.round(impresiones / frecuencia), frecuencia, cpm: (gasto / impresiones) * 1000, clics: Math.round(conversaciones * 1.6), conversaciones, vistas3s, thruplays, dia: '' })
+      const total = [
+        f('MX | A | 11:48', 'NXUS | MX | Mensajes | Diagnóstico v2', 61.2, 9800, 21, 2750, 610, 1.9),
+        f('MX | B | Empleado', 'NXUS | MX | Mensajes | Diagnóstico v2', 48.5, 8100, 12, 1620, 300, 1.8),
+        f('MX | C | Sucursales', 'NXUS | MX | Mensajes | Diagnóstico v2', 30.3, 5200, 9, 1350, 340, 1.7),
+        f('NY | A | 11:48', 'NXUS | NY | Mensajes | Diagnóstico', 52.0, 3900, 7, 900, 160, 1.6),
+        f('NY | B | Empleado', 'NXUS | NY | Mensajes | Diagnóstico', 39.4, 3100, 6, 700, 150, 1.5),
+        f('NY | C | Sucursales', 'NXUS | NY | Mensajes | Diagnóstico', 28.6, 2400, 3, 410, 70, 1.4),
+        f('MX | D | Promo octubre', 'NXUS | MX | Mensajes | Diagnóstico', 120.5, 68000, 27, 9100, 1200, 2.6),
+      ]
+      const dias = [...Array(30)].flatMap((_, i) => {
+        const d = new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10)
+        return i < 23 ? [] : [{ ...f('', 'NXUS | MX | Mensajes | Diagnóstico v2', 18 + (i % 3) * 3, 3000, 5, 0, 0, 1), dia: d }, { ...f('', 'NXUS | NY | Mensajes | Diagnóstico', 15 + (i % 2) * 4, 1200, 2, 0, 0, 1), dia: d }]
+      })
+      const creado = new Date(Date.now() - 9 * 864e5).toISOString()
+      return espera({ ok: true, conectado: true, moneda: 'USD', total, semana: total.map((x) => ({ ...x, gasto: x.gasto * 0.7, impresiones: Math.round(x.impresiones * 0.7), conversaciones: Math.round(x.conversaciones * 0.7), vistas3s: Math.round(x.vistas3s * 0.7), thruplays: Math.round(x.thruplays * 0.7) })), dias, estados: total.map((x) => (x.anuncio.startsWith('MX | D') ? { anuncio: x.anuncio, campana: x.campana, estado: 'PAUSED', creado: '2026-10-12T15:00:00Z', actualizado: '2026-10-28T15:00:00Z' } : { anuncio: x.anuncio, campana: x.campana, estado: 'ACTIVE', creado })), al: new Date().toISOString() })
+    },
     async guardarLead(l) {
       const viejo = l.id && db.leads.find((x) => x.id === l.id && veLead(x))
       if (l.id && !viejo) nunca()

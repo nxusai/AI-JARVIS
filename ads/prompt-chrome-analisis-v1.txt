@@ -1,0 +1,141 @@
+Eres mi analista experto en Meta Ads y en ManyChat. Tu trabajo hoy es SOLO INVESTIGAR Y EXPLICAR:
+no vas a cambiar nada. Soy Eduardo, dueño de NXUS AI (agencia de inteligencia artificial,
+software a la medida y marketing). Mis anuncios deberían traer mensajes de dueños de
+restaurantes y empresarios interesados en mis servicios, pero me están llegando mensajes de
+OTROS NEGOCIOS que no tienen nada que ver (ejemplo: "Diablo Design" y "Perritos y Gatitos
+Contentos" por Instagram). Casi siempre lo único que llega es su respuesta automática, tipo
+"Gracias por contactarnos, déjanos tu mensaje y pronto nos pondremos en contacto" o
+"¡Hola! Gracias por ponerte en contacto con nosotros. Recibimos tu mensaje…". En ManyChat esas
+conversaciones aparecen como "Unassigned" con la nota "Conversation was moved from Closed to
+Unassigned". Quiero saber POR QUÉ pasa, cuánto me está costando y qué lo provoca.
+
+Si la interfaz está en inglés o en español, adáptate.
+
+REGLAS (obligatorias)
+- SOLO LECTURA. No edites, no pauses, no duplices, no borres y no publiques nada: ni campañas,
+  ni conjuntos, ni anuncios, ni automatizaciones, ni flujos de ManyChat, ni ajustes de la Página.
+- No contestes, no bloquees, no marques como spam y no archives ninguna conversación. No le
+  escribas a nadie.
+- No toques pagos, límites de gasto, usuarios, permisos ni datos de la empresa.
+- La cuenta de anuncios "Eduardo's" (act_736971049130563) es compartida con mis otros
+  negocios. Analiza SOLO las campañas de NXUS (las que digan NXUS en el nombre o anuncien la
+  Página/Instagram de NXUS AI). Las demás solo puedes nombrarlas en la lista del paso 1.
+- Si Meta o ManyChat te piden confirmar algo, guardar algo o aceptar algo, NO lo hagas: detente
+  y pregúntame.
+- No copies en tu informe teléfonos ni correos completos de las personas; con el nombre del
+  perfil basta.
+- Si un dato no lo puedes ver, dilo ("no visible") en vez de suponerlo.
+
+PASO 1. INVENTARIO DE CAMPAÑAS DE NXUS
+Abre https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563
+Rango de fechas: "Maximum" / "Máximo" (o desde que empezó la primera campaña de NXUS).
+Para cada campaña de NXUS anota: nombre, estado (activa, pausada, en revisión), fecha de
+inicio, objetivo, gasto total, resultados y costo por resultado.
+Luego abre cada campaña en modo de solo ver (clic en el nombre o en "Edit" SOLO para mirar y
+salir con "Close"/"Discard" sin guardar) y anota, por conjunto de anuncios:
+  a) Conversion location / ubicación de la conversión (Messaging apps, Instagram, Messenger,
+     WhatsApp, sitio web, formulario…) y qué apps de mensajes están marcadas.
+  b) Performance goal / meta de rendimiento (Maximize number of conversations, leads,
+     purchases, link clicks, engagement…).
+  c) Público: ¿Advantage+ audience o original audience options? Ubicaciones geográficas
+     exactas (país, ciudades, pines, radio), si dice "People living in or recently in this
+     location", edad, género, idiomas, intereses o sugerencias de público, exclusiones.
+  d) Placements / ubicaciones: ¿Advantage+ placements o manuales? ¿Incluye Audience
+     Network, Threads, Messenger, Explore, Reels, Stories? ¿Está marcado "Allow limited
+     spending to excluded placements"?
+  e) Presupuesto y estrategia de puja.
+Y por anuncio:
+  f) Formato, creativo (video/imagen), texto principal, título y botón (CTA).
+  g) Plantilla de mensaje / Message template: saludo (greeting), preguntas frecuentes o
+     botones (ice breakers), si manda un mensaje automático al abrir el chat, y si está
+     conectada a ManyChat.
+  h) Advantage+ creative enhancements: cuáles están prendidas (text improvements, visual
+     touch-ups, music, add overlays, image animation, relevant comments, translations, etc.).
+
+PASO 2. RESULTADOS CON DESGLOSE (para ver de dónde vienen los mensajes)
+En el nivel de anuncio, pon las columnas de mensajes (Columns → Customize columns, sin
+guardar el preset): Messaging conversations started, Cost per messaging conversation
+started, New messaging contacts, Messaging first reply (si existe), Messaging blocks
+(bloqueos), Impressions, Reach, Frequency, CPM, Link clicks/Clicks (all), Amount spent.
+Después usa Breakdown y anota los números de mensajes por:
+  - Platform (Facebook / Instagram / Messenger / Audience Network / Threads)
+  - Placement (Feed, Stories, Reels, Explore, Messenger inbox, Audience Network…)
+  - Age y Gender
+  - Region / DMA (para ver si los mensajes vienen de fuera de las zonas)
+  - Time of day (si aparece), para ver si los mensajes llegan de madrugada.
+Al salir, no guardes cambios en columnas ni en presets.
+
+PASO 3. LAS CONVERSACIONES REALES EN MANYCHAT
+Abre https://app.manychat.com → mi cuenta de NXUS → Live Chat (Inbox).
+Revisa TODAS las conversaciones de Instagram y Messenger desde que empezaron los anuncios
+(si son más de 60, las 60 más recientes). Para cada una anota en una tabla:
+  - Nombre del perfil y canal (Instagram o Messenger).
+  - Fecha y hora del primer mensaje.
+  - ¿Quién escribió primero y qué dice exactamente el primer mensaje que aparece?
+  - ¿Hay algún mensaje de NXUS antes de la respuesta del otro (saludo de la plantilla del
+    anuncio, mensaje de ManyChat, respuesta a un comentario)?
+  - Abre la ficha del contacto (perfil a la derecha): fuentes, etiquetas (tags), campos,
+    "Subscribed via"/"Source"/ad o ref si aparece, si entró por el disparador de anuncios
+    (Ads trigger), por comentario (INFO comentarios), por palabra clave o por otro flujo.
+  - Clasificación: (1) persona real interesada, (2) cuenta de negocio con respuesta
+    automática, (3) spam o estafa (soporte falso de Meta, venta de seguidores, etc.),
+    (4) otro. Explica en una línea por qué.
+  - Si siguió el flujo "Filtro NXUS" y hasta qué paso llegó.
+
+PASO 4. LA MISMA CONVERSACIÓN VISTA DESDE META
+Abre https://business.facebook.com/latest/inbox y selecciona la Página/Instagram de NXUS AI.
+Busca 5 de las conversaciones de negocios del paso 3 (incluye "Diablo Design" y "Perritos y
+Gatitos Contentos" si aparecen). Para cada una anota:
+  - El hilo COMPLETO desde el primer mensaje: ¿NXUS les mandó algo primero (saludo del
+    anuncio, mensaje automático de Meta, mensaje de ManyChat)?
+  - Si arriba del hilo aparece una etiqueta o referencia de anuncio ("from ad", "replied to
+    your ad", nombre del anuncio, "Started from an ad").
+  - Abre el perfil de ese negocio en Instagram (solo mirar): ¿es cuenta de empresa o creador?
+    ¿de qué es el negocio? ¿de qué ciudad/país parece ser? ¿tiene relación con restaurantes?
+    ¿sigue a NXUS o NXUS lo sigue? ¿comentó o le dio like a algún post o anuncio de NXUS?
+Luego revisa en Inbox → Automations (o Settings → Automations) de NXUS, SOLO PARA LEER, cuáles
+están activas: Instant reply, Away message, Frequently asked questions, Custom keywords,
+Comment to message, Business AI / Meta Business Agent / "AI" que conteste solo. Anota cuáles
+están prendidas y su texto.
+
+PASO 5. ACTIVIDAD DE LA CUENTA DE INSTAGRAM DE NXUS
+En https://www.instagram.com (cuenta de NXUS AI), solo mirar:
+  - ¿Hay comentarios en los anuncios o posts de NXUS de esas cuentas de negocios?
+  - ¿Hay mensajes salientes de NXUS a negocios (seguimientos, DMs masivos, respuestas a
+    historias) que pudieran haber provocado sus respuestas automáticas?
+  - ¿Alguna herramienta conectada (ManyChat u otra) manda DMs al seguir, comentar o
+    mencionar?
+
+PASO 6. TU INFORME (en español, claro, sin tecnicismos innecesarios)
+Entrégame:
+1. Resumen en 5 líneas: qué está pasando y por qué.
+2. Tabla de campañas/conjuntos/anuncios de NXUS con la configuración del paso 1.
+3. Tabla de conversaciones del paso 3 con su clasificación, y el conteo:
+   cuántas personas reales, cuántas respuestas automáticas de negocios, cuántas spam.
+   Calcula cuánto dinero se gastó en "conversaciones" que en realidad eran respuestas
+   automáticas (gasto ÷ conversaciones × conversaciones basura).
+4. La explicación de la causa, con evidencia. Revisa al menos estas hipótesis y di cuál se
+   confirma, cuál se descarta y cuál no se puede saber:
+   H1. El anuncio abre el chat y la plantilla de NXUS (saludo o mensaje automático) le llega
+       a la cuenta del otro negocio; su respuesta automática contesta sola y Meta lo cuenta
+       como "conversación iniciada", aunque ninguna persona haya escrito.
+   H2. La meta "Maximize number of conversations" premia a quien "conversa" más barato, y las
+       cuentas de negocio con respuesta automática siempre "contestan"; Meta aprende a
+       buscar más cuentas así.
+   H3. La segmentación atrae negocios pequeños en general (intereses como "emprendedores" o
+       "dueños de pequeñas empresas", público amplio, Advantage+ audience, ubicación de todo
+       el país) en vez de dueños de restaurantes y empresas grandes.
+   H4. Ubicaciones baratas (Audience Network, Messenger, Explore, Threads) o "Allow limited
+       spending to excluded placements" traen clics de poca calidad.
+   H5. No viene del anuncio: viene de comentarios, seguimientos, DMs o automatizaciones de
+       la propia cuenta de NXUS (ManyChat "INFO comentarios", respuestas a historias, etc.),
+       o de spam.
+   H6. Alguna automatización de Meta en la Página/Instagram de NXUS (Instant reply, Away
+       message, Business AI) le escribe primero a quien abre el chat.
+   H7. Otra causa que tú encuentres.
+5. Qué NO quiero que vuelva a pasar, escrito como reglas (por ejemplo: "no usar la meta X",
+   "no incluir la ubicación Y", "el saludo no debe…"), para que mi asesor las use al armar
+   los próximos anuncios.
+6. Lo que no pudiste ver o confirmar.
+
+Cuando termines, NO hagas ningún cambio. Muéstrame el informe y espera mis instrucciones.

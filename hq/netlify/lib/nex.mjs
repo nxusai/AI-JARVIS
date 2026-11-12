@@ -55,9 +55,10 @@ export function variables(l) {
     servicio: l.servicio || '',
     correo: l.correo || '',
     idioma: en ? 'English' : 'Español',
-    saludo: en
-      ? `Hi${nombre ? ` ${nombre}` : ''}, this is NEX, the artificial intelligence assistant from NXUS AI. You left your details in our Instagram chat a little while ago and gave us permission to call you. This call may be recorded. Do you have a couple of minutes?`
-      : `Hola${nombre ? ` ${nombre}` : ''}, habla NEX, el asistente de inteligencia artificial de NXUS AI. Hace un rato dejaste tus datos en nuestro chat de Instagram y nos diste permiso de llamarte. Esta llamada se puede grabar. ¿Tienes un par de minutos?`,
+    // Por dónde escribió (el anuncio abre Messenger aunque lo vea en Instagram).
+    canal: l.canal === 'facebook' ? 'Messenger' : 'Instagram',
+    // Primer mensaje corto, como una llamada normal: primero que conteste; la presentación (IA y grabación) va en su segundo turno.
+    saludo: en ? `Hello${nombre ? `, is this ${nombre}` : ''}?` : `¿Hola${nombre ? `? ¿Hablo con ${nombre}` : ''}?`,
   }
 }
 

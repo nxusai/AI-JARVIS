@@ -6,7 +6,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { llamarYa } from '../lib/nex.mjs'
 import { json, sb } from '../lib/sb.mjs'
-import { normalizar } from '../lib/telefono.mjs'
+import { ladaDe, normalizar, preguntarIA } from '../lib/telefono.mjs'
 
 // Lo que acepta en el chat, tal cual se le enseña (lo que queda como registro).
 export const PERMISO = {
@@ -42,14 +42,17 @@ export function canal(v) {
 }
 
 /**
- * El teléfono con su lada (+52 / +1): por el país que dijo, si no por su ciudad
- * o dirección. Si así no se sabe, se guarda como lo escribió y al llamar la IA
- * decide (lib/telefono.mjs).
+ * El teléfono con su lada (+52 / +1). Si la escribió, se respeta tal cual. Si no: el botón
+ * "¿Tu número es de México o de USA?" (lada), si no el país que dijo, si no su ciudad o
+ * dirección. Si así no se sabe, se guarda como lo escribió y al llamar decide la IA
+ * (lib/telefono.mjs).
  */
-export function telefono(v, p, ...lugar) {
+export function telefono(v, p, lada, ...lugar) {
   const t = texto(v, 40)
   if (!t) return ''
-  return normalizar(t, p, ...lugar).telefono || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
+  const n = normalizar(t, p, lada, ...lugar)
+  // En duda (flujo viejo: +1 pero dijo México): se guarda como lo dio y la IA decide al recibirlo.
+  return (n.duda ? n.original : n.telefono) || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
 }
 
 const correo = (v) => {
@@ -68,15 +71,16 @@ export function fila(b) {
     nombre: texto(b.nombre, 80),
     empresa: texto(b.empresa, 120),
     direccion: texto(b.direccion, 200),
-    telefono: telefono(b.telefono, p, texto(b.ciudad, 80), texto(b.direccion, 200)),
+    telefono: telefono(b.telefono, p, ladaDe(texto(b.lada, 40)), texto(b.ciudad, 80), texto(b.direccion, 200)),
     correo: correo(b.correo),
     ciudad: texto(b.ciudad, 80),
     pais: p,
-    servicio: texto(b.servicio, 200),
+    // Cuántas sucursales dijo en el botón de ManyChat: va al inicio de lo que necesita.
+    servicio: [texto(b.sucursales, 20) && `Sucursales: ${texto(b.sucursales, 20)}`, texto(b.servicio, 200)].filter(Boolean).join(' · ').slice(0, 200),
   }
   // Si no dijo el país (u "Otro"), se deduce del número y de su ciudad o dirección.
   if ((!f.pais || f.pais === 'otro') && f.telefono) {
-    const n = normalizar(texto(b.telefono, 40), p, f.ciudad, f.direccion)
+    const n = normalizar(texto(b.telefono, 40), p, ladaDe(texto(b.lada, 40)), f.ciudad, f.direccion)
     if (n.pais === 'mexico' || n.pais === 'usa') f.pais = n.pais
   }
   // El idioma solo si viene: un aviso sin él no regresa a español a quien habla inglés.
@@ -107,6 +111,11 @@ export default async (req) => {
   const b = await req.json().catch(() => null)
   if (!b || typeof b !== 'object') return json({ ok: false, error: 'El cuerpo no es JSON' }, 400)
   const f = fila(b)
+  // Flujo viejo (sin botón de lada): +1 y dijo México puede ser el +1 que ponía ManyChat. Decide la IA ahora.
+  if (f.telefono && !ladaDe(texto(b.lada, 40)) && normalizar(texto(b.telefono, 40), f.pais, '', f.ciudad, f.direccion).duda) {
+    const ia = await preguntarIA({ ...f, telefono: f.telefono }).catch(() => null)
+    if (ia?.telefono) f.telefono = ia.telefono
+  }
   if (!/^\d{1,60}$/.test(f.manychat_id ?? '')) return json({ ok: false, error: 'falta manychat_id (el Contact Id de ManyChat)' }, 400)
 
   try {

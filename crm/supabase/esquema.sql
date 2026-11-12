@@ -61,6 +61,11 @@ create table if not exists public.perfiles (
 
 -- Quién habla con Ultron (la dirección). Lo prende el admin en Usuarios.
 alter table public.perfiles add column if not exists ultron boolean not null default false;
+-- Parrilla: si la ve, y si puede pedir contenidos extra del mes (lo decide el admin).
+alter table public.perfiles add column if not exists ve_parrilla boolean not null default true;
+alter table public.perfiles add column if not exists pide_extras boolean not null default false;
+-- Leads de Mi Semago (los que llegan de WhatsApp y llama Ana Sofi): quién los ve.
+alter table public.perfiles add column if not exists ve_leads boolean not null default false;
 
 -- El dueño (Eduardo): a su perfil y a su acceso solo los toca él. Hay uno solo.
 alter table public.perfiles add column if not exists dueno boolean not null default false;
@@ -92,20 +97,23 @@ language sql stable security definer set search_path = public as $$
   select coalesce(yo_rol() = 'admin', false)
 $$;
 
--- Si puedo ver una empresa en una sección ('tareas', 'biblioteca', 'catalogos').
+-- Si puedo ver una empresa en una sección ('tareas', 'biblioteca', 'catalogos',
+-- 'parrilla'). El admin ve todo; el equipo y los clientes, según sus permisos
+-- (empresas y secciones que el admin les prende en Usuarios).
 create or replace function public.veo(seccion text, empresa text) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from perfiles p
     where p.id = auth.uid() and p.activo
       and (
-        p.rol in ('admin', 'equipo')
+        p.rol = 'admin'
         or (
           (p.empresas is null or empresa = any (p.empresas))
           and case seccion
             when 'tareas' then p.ve_tareas
             when 'biblioteca' then p.ve_biblioteca
             when 'catalogos' then p.ve_catalogos
+            when 'parrilla' then p.ve_parrilla
             else false
           end
         )
@@ -670,18 +678,19 @@ create policy perfiles_ver on public.perfiles for select to authenticated using 
 drop policy if exists perfiles_admin on public.perfiles;
 create policy perfiles_admin on public.perfiles for update to authenticated using (es_admin()) with check (es_admin());
 
--- Tareas: el cliente solo las suyas; el equipo todas.
+-- Tareas: el cliente solo las suyas; el equipo las de las empresas que le tocan.
 drop policy if exists tareas_ver on public.tareas;
 create policy tareas_ver on public.tareas for select to authenticated
-  using (es_equipo() or (cliente_id = auth.uid() and veo('tareas', empresa_id)));
+  using (veo('tareas', empresa_id) and (es_equipo() or cliente_id = auth.uid()));
 drop policy if exists tareas_pedir on public.tareas;
 create policy tareas_pedir on public.tareas for insert to authenticated
   with check (
     (cliente_id = auth.uid() and yo_rol() = 'cliente' and veo('tareas', empresa_id))
-    or (es_equipo() and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente'))
+    -- El equipo registra a nombre de un cliente que pueda entrar (no apagado ni eliminado).
+    or (es_equipo() and veo('tareas', empresa_id) and exists (select 1 from perfiles p where p.id = cliente_id and p.rol = 'cliente' and p.activo and not p.eliminado))
   );
 drop policy if exists tareas_equipo on public.tareas;
-create policy tareas_equipo on public.tareas for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy tareas_equipo on public.tareas for update to authenticated using (es_equipo() and veo('tareas', empresa_id)) with check (es_equipo() and veo('tareas', empresa_id));
 drop policy if exists tareas_borrar on public.tareas;
 create policy tareas_borrar on public.tareas for delete to authenticated using (es_admin());
 
@@ -727,9 +736,9 @@ create policy notas_borrar on public.notas for delete to authenticated using (es
 drop policy if exists carpetas_ver on public.carpetas;
 create policy carpetas_ver on public.carpetas for select to authenticated using (veo('biblioteca', empresa_id));
 drop policy if exists carpetas_crear on public.carpetas;
-create policy carpetas_crear on public.carpetas for insert to authenticated with check (es_equipo());
+create policy carpetas_crear on public.carpetas for insert to authenticated with check (es_equipo() and veo('biblioteca', empresa_id));
 drop policy if exists carpetas_cambiar on public.carpetas;
-create policy carpetas_cambiar on public.carpetas for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy carpetas_cambiar on public.carpetas for update to authenticated using (es_equipo() and veo('biblioteca', empresa_id)) with check (es_equipo() and veo('biblioteca', empresa_id));
 drop policy if exists carpetas_borrar on public.carpetas;
 create policy carpetas_borrar on public.carpetas for delete to authenticated using (es_admin());
 
@@ -749,7 +758,10 @@ create policy archivos_subir on public.archivos for insert to authenticated with
     when 'referencia' then
       exists (select 1 from tareas t where t.id = tarea_id and (t.cliente_id = auth.uid() or es_equipo()))
       and (es_equipo() or ruta like 'ref/' || auth.uid()::text || '/%')
-    else es_equipo()
+    when 'biblioteca' then es_equipo() and veo('biblioteca', empresa_id)
+    when 'catalogo' then es_equipo() and veo('catalogos', empresa_id)
+    when 'contenido' then es_equipo() and veo('parrilla', empresa_id)
+    else es_equipo() and exists (select 1 from tareas t where t.id = tarea_id)
   end
 );
 drop policy if exists archivos_cambiar on public.archivos;
@@ -951,17 +963,12 @@ alter table public.contenidos enable row level security;
 
 -- Los ve todo el que entra, de las empresas que le tocan.
 drop policy if exists contenidos_ver on public.contenidos;
-create policy contenidos_ver on public.contenidos for select to authenticated using (
-  es_equipo() or exists (
-    select 1 from public.perfiles p
-    where p.id = auth.uid() and p.activo and (p.empresas is null or contenidos.empresa_id = any (p.empresas))
-  )
-);
--- Solo el admin y el equipo los ponen y los cambian.
+create policy contenidos_ver on public.contenidos for select to authenticated using (veo('parrilla', empresa_id));
+-- Solo el admin y el equipo (de esas empresas) los ponen y los cambian.
 drop policy if exists contenidos_crear on public.contenidos;
-create policy contenidos_crear on public.contenidos for insert to authenticated with check (es_equipo());
+create policy contenidos_crear on public.contenidos for insert to authenticated with check (es_equipo() and veo('parrilla', empresa_id));
 drop policy if exists contenidos_cambiar on public.contenidos;
-create policy contenidos_cambiar on public.contenidos for update to authenticated using (es_equipo()) with check (es_equipo());
+create policy contenidos_cambiar on public.contenidos for update to authenticated using (es_equipo() and veo('parrilla', empresa_id)) with check (es_equipo() and veo('parrilla', empresa_id));
 -- Borrar, solo el admin.
 drop policy if exists contenidos_borrar on public.contenidos;
 create policy contenidos_borrar on public.contenidos for delete to authenticated using (es_admin());
@@ -983,3 +990,425 @@ create policy archivos_ver on public.archivos for select to authenticated using 
     else exists (select 1 from tareas t where t.id = tarea_id)
   end
 );
+
+-- ---------------------------------------------------------------------------
+-- Lo que se espera cada mes en la Parrilla (el plan)
+-- ---------------------------------------------------------------------------
+-- Por marca: "abuelito" (Cheese, Meat y Corn juntas) y "mi-semago". Cada cosa
+-- del plan tiene su color; en el calendario, cada contenido lleva el punto de
+-- la cosa del plan que cumple (contenidos.plan_clave).
+-- · Fijos: los pone, cambia y quita solo el administrador principal. Cambiar
+--   uno cuenta desde el mes en curso; los meses pasados se quedan como
+--   estaban (cada cambio es una versión nueva con la misma "clave").
+-- · Extras: los pide quien tenga el permiso "pide extras", para este mes o el
+--   siguiente; queda quién lo pidió. Solo el administrador principal los cambia
+--   o los borra.
+
+alter table public.empresas add column if not exists marca text;
+update public.empresas set marca = case when id like 'abuelito-%' then 'abuelito' else id end where marca is null;
+
+create or replace function public.mes_actual() returns date
+language sql stable as $$
+  select date_trunc('month', now() at time zone 'America/New_York')::date
+$$;
+
+create table if not exists public.plan (
+  id uuid primary key default gen_random_uuid(),
+  clave uuid not null default gen_random_uuid(),
+  marca text not null check (marca in ('abuelito', 'mi-semago')),
+  fijo boolean not null default false,
+  nombre text not null check (char_length(nombre) between 1 and 80),
+  detalle text not null default '' check (char_length(detalle) <= 500),
+  cantidad int not null default 1 check (cantidad between 1 and 100),
+  color text not null default '#868e96' check (color ~ '^#[0-9a-f]{6}$'),
+  orden int not null default 0,
+  desde date not null,
+  hasta date,
+  pedido_por uuid references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now(),
+  check (hasta is null or hasta >= desde)
+);
+create index if not exists plan_marca on public.plan (marca, desde);
+-- El nombre de quien lo pidió, para que todos lo vean (los clientes no leen perfiles ajenos).
+alter table public.plan add column if not exists pedido_nombre text not null default '';
+
+-- Los colores: los fijos con los primeros; los extras con los que siguen.
+create or replace function public.plan_color(p_marca text, p_desde date, p_fijo boolean) returns text
+language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select c from unnest(case when p_fijo
+        then array['#2f9e44', '#f08c00', '#1c7ed6', '#7048e8', '#e03131', '#e8b100', '#0c8599', '#d6336c']
+        else array['#d6336c', '#0c8599', '#8d5a3b', '#5c940d', '#364fc7', '#ae3ec9', '#c2255c', '#087f5b'] end) with ordinality as x(c, n)
+     where not exists (
+       select 1 from plan p where p.marca = p_marca and p.color = x.c
+         and (case when p_fijo then p.fijo and p.hasta is null else not p.fijo and p.desde = p_desde end)
+     )
+     order by n limit 1),
+    '#868e96')
+$$;
+
+create or replace function public.antes_plan() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    new.desde := date_trunc('month', new.desde)::date;
+    if not new.fijo then
+      new.clave := new.id;
+      new.hasta := (new.desde + interval '1 month')::date;
+      if not es_consola() then
+        new.pedido_por := auth.uid();
+        new.pedido_nombre := coalesce((select nombre from perfiles where id = auth.uid()), '');
+      end if;
+      if not es_consola() and not es_dueno() and new.desde not in (mes_actual(), (mes_actual() + interval '1 month')::date) then
+        raise exception 'Los extras se piden para este mes o el siguiente';
+      end if;
+      if new.color = '#868e96' then new.color := plan_color(new.marca, new.desde, false); end if;
+    end if;
+  else
+    if not es_consola() then
+      new.id := old.id; new.clave := old.clave; new.marca := old.marca; new.fijo := old.fijo;
+      new.pedido_por := old.pedido_por; new.pedido_nombre := old.pedido_nombre; new.creado := old.creado;
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_plan on public.plan;
+create trigger crm_antes_plan before insert or update on public.plan
+  for each row execute function public.antes_plan();
+
+drop trigger if exists crm_bitacora on public.plan;
+create trigger crm_bitacora after insert or update or delete on public.plan
+  for each row execute function public.anotar_cambio();
+
+alter table public.plan enable row level security;
+
+create or replace function public.veo_marca(p_marca text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from empresas e where e.marca = p_marca and e.activa and veo('parrilla', e.id))
+$$;
+
+create or replace function public.pido_extras() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfiles where id = auth.uid() and activo and not eliminado and pide_extras)
+$$;
+
+drop policy if exists plan_ver on public.plan;
+create policy plan_ver on public.plan for select to authenticated using (veo_marca(marca));
+drop policy if exists plan_dueno on public.plan;
+create policy plan_dueno on public.plan for all to authenticated using (es_dueno()) with check (es_dueno());
+drop policy if exists plan_pedir on public.plan;
+create policy plan_pedir on public.plan for insert to authenticated with check (not fijo and pido_extras() and veo_marca(marca));
+
+-- El administrador principal pone o cambia un fijo (cuenta desde este mes).
+create or replace function public.plan_fijo_guardar(p_clave uuid, p_marca text, p_nombre text, p_cantidad int, p_detalle text default '')
+returns uuid language plpgsql as $$
+declare
+  mes date := mes_actual();
+  v public.plan;
+begin
+  if not es_dueno() then raise exception 'Solo el administrador principal cambia lo fijo'; end if;
+  if p_clave is null then
+    insert into plan (marca, fijo, nombre, detalle, cantidad, color, orden, desde)
+    values (p_marca, true, p_nombre, coalesce(p_detalle, ''), p_cantidad, plan_color(p_marca, mes, true),
+            coalesce((select max(orden) + 1 from plan where marca = p_marca and fijo), 1), mes)
+    returning * into v;
+    return v.clave;
+  end if;
+  select * into v from plan where clave = p_clave and fijo and (hasta is null or hasta > mes) order by desde desc limit 1;
+  if v.id is null then raise exception 'Eso ya no está en el plan'; end if;
+  if v.desde >= mes then
+    update plan set nombre = p_nombre, detalle = coalesce(p_detalle, ''), cantidad = p_cantidad where id = v.id;
+  else
+    update plan set hasta = mes where id = v.id;
+    insert into plan (clave, marca, fijo, nombre, detalle, cantidad, color, orden, desde, hasta)
+    values (v.clave, v.marca, true, p_nombre, coalesce(p_detalle, ''), p_cantidad, v.color, v.orden, mes, v.hasta);
+  end if;
+  return v.clave;
+end $$;
+
+-- Quitar un fijo: deja de salir desde el mes siguiente (este mes se queda,
+-- porque ya puede tener contenidos programados).
+create or replace function public.plan_fijo_quitar(p_clave uuid) returns void
+language plpgsql as $$
+declare
+  sig date := (mes_actual() + interval '1 month')::date;
+begin
+  if not es_dueno() then raise exception 'Solo el administrador principal cambia lo fijo'; end if;
+  delete from plan where clave = p_clave and fijo and desde >= sig;
+  update plan set hasta = sig where clave = p_clave and fijo and (hasta is null or hasta > sig);
+end $$;
+
+-- Lo fijo de cada marca, una sola vez (correr el esquema otra vez no lo repite).
+insert into public.plan (marca, fijo, nombre, cantidad, color, orden, desde)
+select m.marca, true, f.nombre, f.cantidad, f.color, f.orden, public.mes_actual()
+from (values ('abuelito'), ('mi-semago')) as m(marca),
+     (values ('Stupid content', 1, '#2f9e44', 1), ('Chef Saúl', 2, '#f08c00', 2), ('Imágenes IA', 8, '#1c7ed6', 3),
+             ('Imágenes reales', 8, '#7048e8', 4), ('Video IA', 1, '#e03131', 5), ('ADS', 3, '#e8b100', 6)) as f(nombre, cantidad, color, orden)
+where not exists (select 1 from public.plan p where p.marca = m.marca and p.fijo);
+
+-- Cada contenido puede decir qué cosa del plan cumple (su punto de color).
+alter table public.contenidos add column if not exists plan_clave uuid;
+
+create or replace function public.cuidar_plan_contenido() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.plan_clave is null then return new; end if;
+  if not exists (
+    select 1 from plan p join empresas e on e.marca = p.marca
+    where p.clave = new.plan_clave and e.id = new.empresa_id
+      and p.desde <= date_trunc('month', new.fecha)::date
+      and (p.hasta is null or p.hasta > date_trunc('month', new.fecha)::date)
+  ) then
+    raise exception 'Eso no está en lo que se espera de esa marca en ese mes';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_plan_contenido on public.contenidos;
+create trigger crm_plan_contenido before insert or update on public.contenidos
+  for each row execute function public.cuidar_plan_contenido();
+
+-- ============================================================================
+-- Fiesta de empleados (4 de diciembre de 2026): quién confirmó asistencia.
+-- Los empleados confirman desde la invitación pública (/fiesta). Esa página no
+-- toca la base directo: manda los datos a la función de Netlify "fiesta", que
+-- revisa todo y guarda con la llave de servicio. Aquí, dentro del Centro de
+-- trabajo, cualquier usuario activo ve la lista; solo el admin borra.
+-- ============================================================================
+create table if not exists public.fiesta_asistentes (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null check (length(btrim(nombre)) between 2 and 80),
+  telefono text not null unique check (telefono ~ '^[0-9]{10,15}$'),
+  empresa text not null check (empresa in ('MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE')),
+  creada timestamptz not null default now(),
+  actualizada timestamptz not null default now()
+);
+create index if not exists fiesta_asistentes_creada on public.fiesta_asistentes (creada desc);
+
+alter table public.fiesta_asistentes enable row level security;
+drop policy if exists fiesta_ver on public.fiesta_asistentes;
+create policy fiesta_ver on public.fiesta_asistentes for select to authenticated using (yo_rol() is not null);
+drop policy if exists fiesta_borrar on public.fiesta_asistentes;
+create policy fiesta_borrar on public.fiesta_asistentes for delete to authenticated using (es_admin());
+-- Sin políticas de insert/update: nadie escribe directo, solo la función con la llave de servicio.
+
+drop trigger if exists crm_bitacora on public.fiesta_asistentes;
+create trigger crm_bitacora after insert or update or delete on public.fiesta_asistentes
+  for each row execute function public.anotar_cambio();
+
+-- ---------------------------------------------------------------------------
+-- Leads de Mi Semago
+-- ---------------------------------------------------------------------------
+-- Llegan de WhatsApp (ManyChat): nombre, negocio, ciudad, su número y el
+-- permiso por escrito para que le llamen. Ana Sofi les llama desde la
+-- computadora del sistema (con la llave de servicio, que no pasa por estas
+-- reglas), los califica, les da precios, pide su correo y, si quieren, agenda
+-- el Google Meet con Eduardo.
+-- Los ve quien tenga "Ve Leads" (y el admin). Todos ellos agregan notas; solo
+-- el administrador principal cambia la etapa o borra.
+
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  manychat_id text unique,
+  origen text not null default 'manychat' check (origen in ('manychat', 'sheet', 'manual')),
+  nombre text not null default '' check (char_length(nombre) <= 80),
+  negocio text not null default '' check (char_length(negocio) <= 120),
+  ciudad text not null default '' check (char_length(ciudad) <= 80),
+  telefono text not null default '' check (char_length(telefono) <= 30),
+  correo text not null default '' check (char_length(correo) <= 120),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  hora_pedida text not null default '' check (char_length(hora_pedida) <= 200),
+  zona text not null default '' check (char_length(zona) <= 60),
+  -- El permiso por escrito para que una IA le llame (en EE.UU. es ley). Una vez guardado, no se cambia.
+  permiso_llamada boolean not null default false,
+  permiso_fecha timestamptz,
+  permiso_texto text not null default '' check (char_length(permiso_texto) <= 500),
+  etapa text not null default 'nuevo' check (etapa in ('nuevo', 'programada', 'no_contesto', 'hablo', 'meet', 'cerrado', 'no_califica', 'no_llamar')),
+  -- Lo que saca Ana Sofi en la llamada.
+  calificacion text not null default '' check (calificacion in ('', 'caliente', 'medio', 'frio')),
+  tipo_negocio text not null default '' check (char_length(tipo_negocio) <= 200),
+  quesos text not null default '' check (char_length(quesos) <= 300),
+  libras text not null default '' check (char_length(libras) <= 120),
+  frecuencia text not null default '' check (char_length(frecuencia) <= 120),
+  marca_propia text not null default '' check (char_length(marca_propia) <= 200),
+  precios text not null default '' check (char_length(precios) <= 500),
+  resumen text not null default '' check (char_length(resumen) <= 4000),
+  transcripcion text not null default '' check (char_length(transcripcion) <= 60000),
+  -- Las llamadas.
+  llamada_programada timestamptz,
+  intentos int not null default 0 check (intentos >= 0),
+  ultima_llamada timestamptz,
+  llamada_estado text not null default '' check (llamada_estado in ('', 'marcando', 'en_llamada', 'termino', 'no_salio')),
+  llamada_id text not null default '' check (char_length(llamada_id) <= 120),
+  -- El Google Meet con Eduardo.
+  meet_inicio timestamptz,
+  meet_link text not null default '' check (meet_link = '' or meet_link ~ '^https://'),
+  meet_evento text not null default '' check (char_length(meet_evento) <= 200),
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists leads_etapa on public.leads (etapa, creado desc);
+
+create table if not exists public.leads_notas (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.leads (id) on delete cascade,
+  texto text not null check (char_length(texto) between 1 and 2000),
+  autor uuid references public.perfiles (id) on delete set null,
+  autor_nombre text not null default '',
+  creada timestamptz not null default now()
+);
+create index if not exists leads_notas_lead on public.leads_notas (lead_id, creada);
+-- De qué anuncio o campaña llegó (lo marca ManyChat, p. ej. "Anuncio · Capacidad").
+alter table public.leads add column if not exists fuente text not null default '' check (char_length(fuente) <= 120);
+
+create or replace function public.antes_lead() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creado := now();
+    if new.permiso_llamada and new.permiso_fecha is null then new.permiso_fecha := now(); end if;
+  else
+    new.id := old.id; new.creado := old.creado;
+    if old.permiso_llamada and not es_consola() then
+      new.permiso_llamada := old.permiso_llamada; new.permiso_fecha := old.permiso_fecha; new.permiso_texto := old.permiso_texto;
+    elsif new.permiso_llamada and new.permiso_fecha is null then
+      new.permiso_fecha := now();
+    end if;
+  end if;
+  new.actualizado := now();
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_lead on public.leads;
+create trigger crm_antes_lead before insert or update on public.leads
+  for each row execute function public.antes_lead();
+
+-- En la Bitácora: cuándo llega, cambios de etapa y de Meet, y si se borra (sin la conversación completa).
+create or replace function public.anotar_lead() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'creó', 'leads', new.id::text, jsonb_build_object('nombre', new.nombre, 'negocio', new.negocio, 'origen', new.origen));
+  elsif tg_op = 'DELETE' then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'borró', 'leads', old.id::text, jsonb_build_object('nombre', old.nombre, 'negocio', old.negocio, 'etapa', old.etapa));
+    return old;
+  elsif new.etapa is distinct from old.etapa or new.meet_inicio is distinct from old.meet_inicio then
+    insert into bitacora (quien, accion, tabla, fila, detalle)
+    values (auth.uid(), 'cambió', 'leads', new.id::text,
+      jsonb_build_object('nombre', new.nombre, 'etapa', jsonb_build_array(old.etapa, new.etapa), 'meet', jsonb_build_array(old.meet_inicio, new.meet_inicio)));
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_bitacora on public.leads;
+create trigger crm_bitacora after insert or update or delete on public.leads
+  for each row execute function public.anotar_lead();
+
+create or replace function public.antes_nota_lead() returns trigger
+language plpgsql as $$
+begin
+  new.creada := now();
+  if not es_consola() and auth.uid() is not null then
+    new.autor := auth.uid();
+    new.autor_nombre := coalesce((select nombre from perfiles where id = auth.uid()), '');
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists crm_antes_nota_lead on public.leads_notas;
+create trigger crm_antes_nota_lead before insert on public.leads_notas
+  for each row execute function public.antes_nota_lead();
+
+drop trigger if exists crm_bitacora on public.leads_notas;
+create trigger crm_bitacora after insert or update or delete on public.leads_notas
+  for each row execute function public.anotar_cambio();
+
+create or replace function public.veo_leads() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from perfiles where id = auth.uid() and activo and not eliminado and (rol = 'admin' or ve_leads))
+$$;
+
+alter table public.leads enable row level security;
+alter table public.leads_notas enable row level security;
+
+drop policy if exists leads_ver on public.leads;
+create policy leads_ver on public.leads for select to authenticated using (veo_leads());
+drop policy if exists leads_dueno on public.leads;
+create policy leads_dueno on public.leads for all to authenticated using (es_dueno()) with check (es_dueno());
+
+drop policy if exists leads_notas_ver on public.leads_notas;
+create policy leads_notas_ver on public.leads_notas for select to authenticated using (veo_leads());
+drop policy if exists leads_notas_agregar on public.leads_notas;
+create policy leads_notas_agregar on public.leads_notas for insert to authenticated with check (veo_leads());
+drop policy if exists leads_notas_borrar on public.leads_notas;
+create policy leads_notas_borrar on public.leads_notas for delete to authenticated using (es_dueno());
+
+-- ---------------------------------------------------------------------------
+-- Website leads: las solicitudes del formulario «Cotizar / Get a quote» de
+-- misemago.com (aparte de los Leads de WhatsApp que llama Ana Sofi).
+-- ---------------------------------------------------------------------------
+-- El sitio no toca la base directo: manda los datos a la función de Netlify
+-- "leads", que revisa todo y guarda con la llave de servicio. Los ve quien ve
+-- Leads (el admin y quien tenga "Ve Leads"); ellos cambian el estatus y las
+-- notas. Lo que escribió la persona en el sitio no se cambia. Solo el admin borra.
+
+create table if not exists public.website_leads (
+  id uuid primary key default gen_random_uuid(),
+  folio serial unique,
+  creada timestamptz not null default now(),
+  nombre text not null check (length(btrim(nombre)) between 2 and 80),
+  empresa text not null default '' check (char_length(empresa) <= 120),
+  correo text not null check (char_length(correo) <= 160),
+  telefono text not null default '' check (char_length(telefono) <= 40),
+  tipo text,
+  intereses text[] not null default '{}',
+  mensaje text not null default '' check (char_length(mensaje) <= 4000),
+  propuesta text not null default '' check (char_length(propuesta) <= 2000),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  origen text not null default '',
+  estatus text not null default 'nuevo' check (estatus in ('nuevo', 'contactado', 'cotizado', 'ganado', 'perdido')),
+  notas text not null default '' check (char_length(notas) <= 5000),
+  actualizada timestamptz not null default now()
+);
+create index if not exists website_leads_creada on public.website_leads (creada desc);
+
+create or replace function public.cuidar_website_lead() returns trigger
+language plpgsql as $$
+begin
+  if not es_sistema()
+    and row(new.folio, new.creada, new.nombre, new.empresa, new.correo, new.telefono, new.tipo, new.intereses, new.mensaje, new.propuesta, new.idioma, new.origen)
+      is distinct from row(old.folio, old.creada, old.nombre, old.empresa, old.correo, old.telefono, old.tipo, old.intereses, old.mensaje, old.propuesta, old.idioma, old.origen) then
+    raise exception 'Lo que escribió la persona en el sitio no se puede cambiar';
+  end if;
+  new.actualizada := now();
+  return new;
+end $$;
+
+drop trigger if exists crm_cuidar_website_lead on public.website_leads;
+create trigger crm_cuidar_website_lead before update on public.website_leads
+  for each row execute function public.cuidar_website_lead();
+
+alter table public.website_leads enable row level security;
+drop policy if exists website_leads_ver on public.website_leads;
+create policy website_leads_ver on public.website_leads for select to authenticated using (veo_leads());
+drop policy if exists website_leads_cambiar on public.website_leads;
+create policy website_leads_cambiar on public.website_leads for update to authenticated using (veo_leads()) with check (veo_leads());
+drop policy if exists website_leads_borrar on public.website_leads;
+create policy website_leads_borrar on public.website_leads for delete to authenticated using (es_admin());
+-- Sin política de insert: nadie escribe directo, solo la función con la llave de servicio.
+revoke all on public.website_leads from anon;
+
+drop trigger if exists crm_bitacora on public.website_leads;
+create trigger crm_bitacora after insert or update or delete on public.website_leads
+  for each row execute function public.anotar_cambio();
+
+-- Los website leads que piden que les llamen también entran a Leads (origen
+-- 'web') para que Ana Sofi les llame; website_leads guarda a cuál.
+alter table public.leads drop constraint if exists leads_origen_check;
+alter table public.leads add constraint leads_origen_check check (origen in ('manychat', 'sheet', 'manual', 'web'));
+alter table public.website_leads add column if not exists lead_id uuid references public.leads (id) on delete set null;
+notify pgrst, 'reload schema';

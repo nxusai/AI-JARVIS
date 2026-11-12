@@ -26,6 +26,15 @@ const COLORES = {
 const ESTATUS_CLIENTE = { ...ESTATUS, entregada: 'Lista para revisar', 'en-correccion': 'Corrigiendo' }
 const AVANCE = ['Pedida', 'En proceso', 'Para revisar', 'Aprobada']
 const pasoDe = (estatus) => ({ recibida: 0, 'en-proceso': 1, 'en-correccion': 1, entregada: 2, aprobada: 3 })[estatus] ?? 0
+// Las tareas van por hojas, una por paso: se mueven solas de hoja cuando cambia su estatus.
+// "toca": a quién le toca hacer algo en esa hoja (equipo o cliente).
+const HOJAS = [
+  { k: 'pedidas', titulo: 'Pedidas', estatus: ['recibida'], toca: 'equipo' },
+  { k: 'proceso', titulo: 'En proceso', estatus: ['en-proceso', 'en-correccion'], toca: 'equipo' },
+  { k: 'revisar', titulo: 'Para revisar', estatus: ['entregada'], toca: 'cliente' },
+  { k: 'aprobadas', titulo: 'Aprobadas', estatus: ['aprobada'], toca: '' },
+]
+const hojaDe = (estatus) => HOJAS.find((x) => x.estatus.includes(estatus)) ?? HOJAS[0]
 
 let nLogo = 0
 /** El logo NXUS (N y X con el degradado cian → azul → violeta). */
@@ -41,6 +50,9 @@ const ICONOS = {
   usuarios: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>',
   bitacora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 }
+ICONOS.leads = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'
+ICONOS.fiesta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 9 9-14 5z"/><path d="M13 6c1-2 3-2 4-3M17 11c2-1 3 0 4-1M15 3l1 1M20 7l1 1M19 3l.5.5"/></svg>'
+ICONOS.web = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>'
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
 import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
@@ -58,14 +70,27 @@ const S = {
   biblioteca: [],
   catalogos: [],
   contenidos: [],
+  fiesta: [],
+  leads: [],
+  leadsBusca: '',
+  leadAbierto: null,
+  fiestaBusca: '',
+  web: [],
+  webBusca: '',
+  webEstatus: '',
+  fiestaEmpresa: '',
+  plan: [],
   usuarios: [],
   parrillaMes: (() => {
     const x = new Date()
     return new Date(x.getFullYear(), x.getMonth(), 1)
   })(),
   parrillaEmpresa: '',
+  parrillaMarca: '',
+  parrillaTipo: '',
   vista: 'tareas',
   mes: 'pendientes',
+  hoja: null,
   anio: new Date().getFullYear(),
   filtroCliente: '',
   filtroEmpresa: '',
@@ -122,12 +147,13 @@ function avisar(texto, mal = false) {
 }
 const falla = (err) => avisar(err?.message || String(err), true)
 
+/** Si veo una empresa en una sección (como veo() en la base de datos): el admin todo; los demás según sus permisos. */
+const veoEmpresa = (id, seccion) => esAdmin() || ((!S.yo.empresas || S.yo.empresas.includes(id)) && S.yo[`ve_${seccion}`] !== false)
 /** Las empresas que veo en una sección, activas y en orden. */
 function misEmpresas(seccion) {
-  const yo = S.yo
   return S.empresas
     .filter((e) => e.activa)
-    .filter((e) => esEquipo() || ((!yo.empresas || yo.empresas.includes(e.id)) && yo[`ve_${seccion}`] !== false))
+    .filter((e) => veoEmpresa(e.id, seccion))
     .sort((a, b) => a.orden - b.orden)
 }
 /** [{grupo, empresas}] respetando el orden. */
@@ -180,16 +206,20 @@ async function ocupado(boton, trabajo) {
 // -- cargar ------------------------------------------------------------------
 
 async function cargarTodo() {
-  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos] = await Promise.all([
+  const [empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan] = await Promise.all([
     D.empresas(),
-    S.yo.ve_tareas !== false || esEquipo() ? D.tareas() : [],
+    S.yo.ve_tareas !== false || esAdmin() ? D.tareas() : [],
     D.carpetas(),
     D.biblioteca(),
     D.catalogos(),
     esEquipo() ? D.clientes() : [],
     D.contenidos ? D.contenidos() : [],
+    D.plan ? D.plan() : [],
   ])
-  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos })
+  Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
+  S.fiesta = D.fiesta ? await D.fiesta().catch(() => null) : []
+  S.web = D.webLeads && veoLeads() ? await D.webLeads().catch(() => null) : []
+  S.leads = D.leads && veoLeads() ? await D.leads() : []
   if (esAdmin()) S.usuarios = await D.usuarios()
 }
 
@@ -197,7 +227,8 @@ async function recargar() {
   try {
     await cargarTodo()
     pintar()
-    if (S.abierta) abrirTarea(S.abierta)
+    if (S.leadAbierto) abrirLead(S.leadAbierto)
+    else if (S.abierta) abrirTarea(S.abierta)
     else if (S.contenidoAbierto) abrirContenido(S.contenidoAbierto)
   } catch (err) {
     falla(err)
@@ -253,7 +284,27 @@ const marcaEntrada = () => `
   <div class="entrada-marca">${logo()}<b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo</span></div>`
 const firma = () => `<div class="firma">${logo()}<span>Hecho por NXUS AI</span></div>`
 
+/** Todo se desvanece 2 segundos para que se luzca el fondo; un clic lo regresa antes. */
+let tiempoFondo
+function verFondo(ms = 2000) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  clearTimeout(tiempoFondo)
+  document.body.classList.add('ver-fondo')
+  const volver = () => {
+    clearTimeout(tiempoFondo)
+    document.body.classList.remove('ver-fondo')
+    removeEventListener('pointerdown', volver, true)
+    removeEventListener('keydown', volver, true)
+  }
+  setTimeout(() => {
+    addEventListener('pointerdown', volver, true)
+    addEventListener('keydown', volver, true)
+  }, 50)
+  tiempoFondo = setTimeout(volver, ms)
+}
+
 async function empezar() {
+  S.hoja = null
   $('#app').innerHTML = '<div class="cargando">Cargando…</div>'
   await cargarTodo()
   const vistas = vistasPermitidas()
@@ -300,18 +351,24 @@ async function empezar() {
 
 function vistasPermitidas() {
   const v = []
-  if (esEquipo() || S.yo.ve_tareas !== false) v.push('tareas')
-  // La parrilla la ven todos; solo el equipo la cambia.
-  v.push('parrilla')
-  if (esEquipo() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
-  if (esEquipo() || S.yo.ve_catalogos !== false) v.push('catalogos')
+  if (esAdmin() || S.yo.ve_tareas !== false) v.push('tareas')
+  // La parrilla: quien tenga el permiso; solo el equipo la llena.
+  if (esAdmin() || S.yo.ve_parrilla !== false) v.push('parrilla')
+  if (esAdmin() || S.yo.ve_biblioteca !== false) v.push('biblioteca')
+  if (esAdmin() || S.yo.ve_catalogos !== false) v.push('catalogos')
+  // Los leads de Mi Semago que llama Ana Sofi: el admin y quien tenga el permiso.
+  if (veoLeads()) v.push('leads')
+  // Website leads: las solicitudes del formulario de misemago.com. Los ve quien ve Leads.
+  if (veoLeads()) v.push('web')
+  // La fiesta de empleados: todos los usuarios del centro ven quién confirmó.
+  v.push('fiesta')
   if (esAdmin()) v.push('usuarios', 'bitacora')
   return v
 }
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', web: 'WEBSITE LEADS', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -327,7 +384,7 @@ function pintar() {
       </div>
       <nav class="pestanas">
         ${vistasPermitidas()
-          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${ICONOS[v]}${NOMBRES_VISTA[v]}</button>`)
+          .map((v) => `<button class="pestana ${S.vista === v ? 'activa' : ''}" data-vista="${v}">${ICONOS[v]}${NOMBRES_VISTA[v]}${v === 'web' && webNuevos() ? `<span class="pestana-num">${webNuevos()}</span>` : ''}</button>`)
           .join('')}
       </nav>
     </header>
@@ -362,11 +419,191 @@ function pintarVista() {
     parrilla: vistaParrilla,
     biblioteca: vistaBiblioteca,
     catalogos: vistaCatalogos,
+    web: vistaWeb,
+    fiesta: vistaFiesta,
+    leads: vistaLeads,
     usuarios: vistaUsuarios,
     bitacora: vistaBitacora,
   }[S.vista]
   el.innerHTML = v ? v() : ''
   if (S.vista === 'bitacora') cargarBitacora()
+}
+
+// -- website leads ------------------------------------------------------------
+// Las solicitudes del formulario «Cotizar / Get a quote» de misemago.com (función
+// de Netlify «leads»). Aparte de los Leads de WhatsApp que llama Ana Sofi.
+
+const ESTATUS_WEB = { nuevo: 'Nuevo', contactado: 'Contactado', cotizado: 'Cotizado', ganado: 'Ganado', perdido: 'Perdido' }
+const webNuevos = () => (S.web || []).filter((x) => x.estatus === 'nuevo').length
+
+function webFiltrados() {
+  const q = sinAcentos(S.webBusca)
+  return (S.web || []).filter((x) => (!S.webEstatus || x.estatus === S.webEstatus) && (!q || sinAcentos([x.nombre, x.empresa, x.correo, x.telefono, x.mensaje].join(' ')).includes(q)))
+}
+
+function vistaWeb() {
+  if (S.web === null) return '<div class="vacio-msg">Falta actualizar la base de datos para ver los website leads: corre el esquema en Supabase (SQL Editor → Run).</div>'
+  const todos = S.web
+  const lista = webFiltrados()
+  return `
+    <div class="fiesta-cabeza">
+      <div><h2>🌐 Website leads</h2><p class="ayuda">Las solicitudes de cotización que llegan del formulario de <b>misemago.com</b>. Mueve el estatus conforme avanzas y deja notas para el equipo.</p></div>
+      <div class="fiesta-botones">
+        <a class="btn chico" href="https://misemago.com/#contacto" target="_blank" rel="noopener">Ver formulario ↗</a>
+        <button class="btn chico" data-accion="recargar-web">↻ Actualizar</button>
+        <button class="btn chico" data-accion="csv-web" ${todos.length ? '' : 'disabled'}>⬇️ Descargar lista</button>
+      </div>
+    </div>
+    <div class="fiesta-cuentas wl-cuentas">
+      <button class="fiesta-cuenta total ${S.webEstatus ? '' : 'activa'}" data-web-filtro=""><b>${todos.length}</b><span>Todos</span></button>
+      ${Object.entries(ESTATUS_WEB)
+        .map(([k, n]) => `<button class="fiesta-cuenta wl-${k} ${S.webEstatus === k ? 'activa' : ''}" data-web-filtro="${k}"><b>${todos.filter((x) => x.estatus === k).length}</b><span>${n}</span></button>`)
+        .join('')}
+    </div>
+    <div class="barra">
+      <input type="search" class="crece" data-filtro="webBusca" value="${h(S.webBusca)}" placeholder="Buscar por nombre, empresa, correo o mensaje" aria-label="Buscar website lead">
+    </div>
+    ${
+      !todos.length
+        ? '<div class="vacio-msg">Todavía no llega ningún website lead. Aquí aparece cada solicitud que manden desde misemago.com.</div>'
+        : !lista.length
+          ? '<div class="vacio-msg">Ningún lead coincide.</div>'
+          : `<div class="wl-lista">${lista.map(tarjetaWeb).join('')}</div>`
+    }`
+}
+
+function tarjetaWeb(x) {
+  return `<article class="wl wl-${x.estatus}">
+    <header class="wl-cabeza">
+      <div>
+        <b class="wl-nombre">${h(x.nombre)}</b>${x.empresa ? ` <span class="wl-empresa">· ${h(x.empresa)}</span>` : ''}
+        <div class="ayuda">#${x.folio} · ${fecha(x.creada, true)}${x.idioma === 'en' ? ' · en inglés' : ''}${x.lead_id ? ' · <b>📞 Pidió que le llamen: Ana Sofi le llama</b>' : ''}</div>
+      </div>
+      <select class="wl-estatus" data-web-estatus="${x.id}" aria-label="Estatus del lead">
+        ${Object.entries(ESTATUS_WEB).map(([k, n]) => `<option value="${k}" ${x.estatus === k ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>
+    </header>
+    <div class="wl-botones">
+      <a class="btn chico" href="mailto:${h(x.correo)}">✉️ ${h(x.correo)}</a>
+      ${x.telefono ? `<a class="btn chico" href="tel:${h(x.telefono.replace(/[^\d+]/g, ''))}">📞 ${h(x.telefono)}</a>` : ''}
+    </div>
+    ${x.tipo || x.intereses?.length ? `<div class="chips">${x.tipo ? `<span class="chip">${h(x.tipo)}</span>` : ''}${(x.intereses || []).map((i) => `<span class="chip">🧀 ${h(i)}</span>`).join('')}</div>` : ''}
+    ${x.mensaje ? `<p class="wl-mensaje">${h(x.mensaje)}</p>` : ''}
+    ${x.propuesta ? `<details class="wl-propuesta"><summary>✦ Diseño del Estudio de Marca</summary><pre>${h(x.propuesta)}</pre></details>` : ''}
+    <footer class="wl-pie">
+      ${x.notas ? `<p class="wl-notas"><b>Notas:</b> ${h(x.notas)}</p>` : '<span class="ayuda">Sin notas</span>'}
+      <div class="wl-botones">
+        <button class="btn chico" data-notas-web="${x.id}">📝 ${x.notas ? 'Editar notas' : 'Agregar nota'}</button>
+        ${x.lead_id ? `<button class="btn chico" data-lead="${x.lead_id}">📞 Ver llamada de Ana Sofi</button>` : ''}
+        ${esAdmin() ? `<button class="btn chico peligro" data-borrar-web="${x.id}" title="Borrar">✕</button>` : ''}
+      </div>
+    </footer>
+  </article>`
+}
+
+function formNotasWeb(id) {
+  const x = S.web.find((l) => l.id === id)
+  if (!x) return
+  abrirVentana(
+    `Notas · ${h(x.nombre)}`,
+    `<form id="form-notas-web">
+      <div class="campo"><label for="nw-notas">Lo que se habló, siguientes pasos, precios cotizados…</label><textarea id="nw-notas" rows="6" maxlength="5000">${h(x.notas)}</textarea></div>
+      <button class="btn principal" data-ocupado="Guardando…">Guardar notas</button>
+    </form>`,
+    { chica: true },
+  )
+  $('#nw-notas').focus()
+  $('#form-notas-web').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.cambiarWebLead(x.id, { notas: $('#nw-notas').value.trim() })
+        cerrarVentana()
+        avisar('Notas guardadas')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+function csvWeb() {
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const filas = [
+    ['Folio', 'Fecha', 'Estatus', 'Nombre', 'Empresa', 'Correo', 'Teléfono', 'Tipo de negocio', 'Le interesa', 'Mensaje', 'Diseño del Estudio', 'Notas'],
+    ...webFiltrados().map((x) => [x.folio, fecha(x.creada, true), ESTATUS_WEB[x.estatus], x.nombre, x.empresa, x.correo, x.telefono, x.tipo, (x.intereses || []).join(', '), x.mensaje, x.propuesta, x.notas]),
+  ]
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + filas.map((f) => f.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
+  a.download = 'website-leads.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+// -- fiesta de empleados -------------------------------------------------------
+
+const FIESTA_EMPRESAS = ['MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE']
+const FIESTA_URL = () => `${location.origin}/fiesta/`
+const telBonito = (t) => (t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : t)
+
+function invitadosFiltrados() {
+  const q = S.fiestaBusca.trim().toLowerCase()
+  return (S.fiesta || []).filter(
+    (x) => (!S.fiestaEmpresa || x.empresa === S.fiestaEmpresa) && (!q || x.nombre.toLowerCase().includes(q) || x.telefono.includes(q.replace(/\D/g, '') || '~')),
+  )
+}
+
+function vistaFiesta() {
+  if (S.fiesta === null) return '<div class="vacio-msg">Falta actualizar la base de datos para ver la fiesta: corre el esquema en Supabase (SQL Editor → Run).</div>'
+  const todos = S.fiesta
+  const lista = invitadosFiltrados()
+  const porEmpresa = FIESTA_EMPRESAS.map((e) => [e, todos.filter((x) => x.empresa === e).length])
+  const cerrado = Date.now() >= Date.parse('2026-11-17T05:00:00Z')
+  return `
+    <div class="fiesta-cabeza">
+      <div><h2>🎉 Fiesta de empleados</h2><p class="ayuda">Viernes 4 de diciembre de 2026 · 7:00 PM a 1:00 AM · Milan Banquets, 32 Passaic St, Garfield, NJ 07026 · ${cerrado ? '<b>La confirmación ya cerró</b>' : 'Confirman hasta el <b>16 de noviembre</b>'}</p></div>
+      <div class="fiesta-botones">
+        <a class="btn chico" href="/fiesta/" target="_blank" rel="noopener">Ver invitación ↗</a>
+        <button class="btn chico" data-accion="copiar-fiesta">🔗 Copiar enlace</button>
+        <button class="btn chico" data-accion="csv-fiesta" ${todos.length ? '' : 'disabled'}>⬇️ Descargar lista</button>
+      </div>
+    </div>
+    <div class="fiesta-cuentas">
+      <div class="fiesta-cuenta total"><b>${todos.length}</b><span>Confirmados</span></div>
+      ${porEmpresa.map(([e, n]) => `<button class="fiesta-cuenta ${S.fiestaEmpresa === e ? 'activa' : ''}" data-fiesta-empresa="${h(e)}"><b>${n}</b><span>${h(e)}</span></button>`).join('')}
+    </div>
+    <div class="barra">
+      <input type="search" data-filtro="fiestaBusca" value="${h(S.fiestaBusca)}" placeholder="Buscar por nombre o teléfono" aria-label="Buscar invitado">
+      ${S.fiestaEmpresa ? `<button class="btn chico" data-fiesta-empresa="">Ver todas las empresas</button>` : ''}
+    </div>
+    ${
+      !todos.length
+        ? '<div class="vacio-msg">Todavía nadie confirma. Comparte la invitación o pega el código QR en las empresas.</div>'
+        : !lista.length
+          ? '<div class="vacio-msg">Nadie coincide con esa búsqueda.</div>'
+          : `<div class="tabla-envoltura"><table class="tabla">
+      <thead><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Empresa</th><th>Confirmó</th>${esAdmin() ? '<th></th>' : ''}</tr></thead>
+      <tbody>${lista
+        .map(
+          (x, i) => `<tr><td>${lista.length - i}</td><td><b>${h(x.nombre)}</b></td><td><a href="tel:${h(x.telefono)}">${h(telBonito(x.telefono))}</a></td><td><span class="chip">${h(x.empresa)}</span></td><td>${fecha(x.actualizada || x.creada, true)}</td>${
+            esAdmin() ? `<td><button class="btn chico peligro" data-borrar-invitado="${x.id}" title="Borrar">✕</button></td>` : ''
+          }</tr>`,
+        )
+        .join('')}</tbody></table></div>`
+    }`
+}
+
+function csvFiesta() {
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const filas = [['Nombre', 'Teléfono', 'Empresa', 'Confirmó'], ...invitadosFiltrados().map((x) => [x.nombre, telBonito(x.telefono), x.empresa, fecha(x.actualizada || x.creada, true)])]
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['﻿' + filas.map((f) => f.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
+  a.download = 'fiesta-confirmados.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 // -- tareas ------------------------------------------------------------------
@@ -392,29 +629,48 @@ function tareasFiltradas() {
   return l
 }
 
+/** La hoja que se abre sola: al cliente, lo que le toca revisar; al equipo, lo que le toca trabajar. */
+function hojaInicial(base) {
+  const hay = (k) => base.some((t) => HOJAS.find((x) => x.k === k).estatus.includes(t.estatus))
+  const orden = esCliente() ? ['revisar', 'proceso', 'pedidas'] : ['pedidas', 'proceso', 'revisar']
+  return orden.find(hay) ?? orden[0]
+}
+
+/** Las aprobadas se ordenan por el mes en que se aprobaron. */
+const fechaHoja = (t) => aFecha(t.estatus === 'aprobada' && t.aprobada ? t.aprobada : t.pedida)
+
 function vistaTareas() {
   const base = tareasFiltradas()
+  if (!S.hoja) S.hoja = hojaInicial(base)
+  const hoja = HOJAS.find((x) => x.k === S.hoja) ?? HOJAS[0]
   const busca = S.busca.trim()
+  if (hoja.k === 'aprobadas' && S.mes === 'pendientes') S.mes = new Date().getMonth()
   let lista
   let titulo
   if (busca) {
     lista = base.filter((t) => coincide(textoTarea(t), busca)).sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida))
-    titulo = `Resultados de “${h(busca)}” en todos los meses`
-  } else if (S.mes === 'pendientes') {
-    lista = base.filter((t) => t.estatus !== 'aprobada').sort((a, b) => Number(b.urgente) - Number(a.urgente) || aFecha(a.pedida) - aFecha(b.pedida))
-    titulo = 'Todo lo que no se ha aprobado, de cualquier mes'
+    titulo = `Resultados de “${h(busca)}” en todas las hojas y meses`
+  } else if (hoja.k !== 'aprobadas') {
+    lista = base.filter((t) => hoja.estatus.includes(t.estatus)).sort((a, b) => Number(b.urgente) - Number(a.urgente) || aFecha(a.pedida) - aFecha(b.pedida))
+    const mia = (hoja.toca === 'cliente') === esCliente()
+    titulo = {
+      pedidas: esCliente() ? '⏳ Le toca al equipo: recibirlas y empezar.' : '👉 Te toca: abre cada una y dale “Recibir y empezar”.',
+      proceso: esCliente() ? '⏳ Le toca al equipo: está trabajando en estas (y en tus correcciones).' : '👉 Te toca: termínalas y sube el PDF final.',
+      revisar: esCliente() ? '👉 Te toca a ti: revisa cada una y apruébala o pide una corrección.' : '⏳ Le toca al cliente: revisarlas y aprobarlas o pedir corrección.',
+    }[hoja.k]
+    titulo = `<span class="${mia ? 'te-toca' : ''}">${titulo}</span>`
   } else {
     lista = base
       .filter((t) => {
-        const d = aFecha(t.pedida)
-        return d.getFullYear() === S.anio && d.getMonth() === S.mes
+        const d = fechaHoja(t)
+        return t.estatus === 'aprobada' && d.getFullYear() === S.anio && d.getMonth() === S.mes
       })
-      .sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida))
-    titulo = `Pedidas en ${MESES_LARGOS[S.mes]} ${S.anio}`
+      .sort((a, b) => fechaHoja(b) - fechaHoja(a))
+    titulo = `Aprobadas en ${MESES_LARGOS[S.mes]} ${S.anio}`
   }
-  const pendientes = base.filter((t) => t.estatus !== 'aprobada').length
-  const anios = [...new Set([new Date().getFullYear(), ...S.tareas.map((t) => aFecha(t.pedida).getFullYear())])].sort((a, b) => b - a)
-  const porMes = MESES.map((_, m) => base.filter((t) => { const d = aFecha(t.pedida); return d.getFullYear() === S.anio && d.getMonth() === m }).length)
+  const aprobadas = base.filter((t) => t.estatus === 'aprobada')
+  const anios = [...new Set([new Date().getFullYear(), ...aprobadas.map((t) => fechaHoja(t).getFullYear())])].sort((a, b) => b - a)
+  const porMes = MESES.map((_, m) => aprobadas.filter((t) => { const d = fechaHoja(t); return d.getFullYear() === S.anio && d.getMonth() === m }).length)
   const empresasTareas = misEmpresas('tareas')
   return `
     ${saludo(base)}
@@ -424,14 +680,17 @@ function vistaTareas() {
       ${esEquipo() ? `<select data-filtro="filtroCliente" aria-label="Cliente"><option value="">Todos los clientes</option>${S.clientes.map((c) => `<option value="${c.id}" ${S.filtroCliente === c.id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select>` : ''}
       ${empresasTareas.length > 1 ? `<select data-filtro="filtroEmpresa" aria-label="Empresa"><option value="">Todas las empresas</option>${opcionesEmpresa(empresasTareas, S.filtroEmpresa)}</select>` : ''}
     </div>
-    <div class="meses" role="tablist">
-      <button class="mes pend ${S.mes === 'pendientes' && !busca ? 'activo' : ''}" data-mes="pendientes">Pendientes<small>${pendientes}</small></button>
+    ${
+      hoja.k === 'aprobadas' && !busca
+        ? `<div class="meses" role="tablist">
       <select data-filtro="anio" aria-label="Año" style="width:auto;border-radius:999px;min-height:34px;padding:4px 10px">${anios.map((a) => `<option ${a === S.anio ? 'selected' : ''}>${a}</option>`).join('')}</select>
-      ${MESES.map((m, i) => `<button class="mes ${S.mes === i && !busca ? 'activo' : ''} ${porMes[i] ? '' : 'vacio'}" data-mes="${i}">${m}${porMes[i] ? `<small>${porMes[i]}</small>` : ''}</button>`).join('')}
-    </div>
-    <p class="ayuda" style="margin:0 0 10px">${titulo}</p>
+      ${MESES.map((m, i) => `<button class="mes ${S.mes === i ? 'activo' : ''} ${porMes[i] ? '' : 'vacio'}" data-mes="${i}">${m}${porMes[i] ? `<small>${porMes[i]}</small>` : ''}</button>`).join('')}
+    </div>`
+        : ''
+    }
+    <p class="ayuda hoja-aviso">${titulo}</p>
     <div class="lista">
-      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : S.mes === 'pendientes' ? '<b>¡Todo al día! 🎉</b>No hay tareas pendientes.' : '<b>Mes tranquilo</b>No hay tareas pedidas en este mes.'}</div>`}
+      ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : hoja.k === 'aprobadas' ? '<b>Mes tranquilo</b>No se aprobó nada en este mes.' : `<b>Nada en “${hoja.titulo}” 🎉</b>${hoja.toca && (hoja.toca === 'cliente') === esCliente() ? 'No tienes nada pendiente aquí.' : 'Aquí aparecen solas cuando les toque.'}`}</div>`}
     </div>`
 }
 
@@ -460,11 +719,13 @@ function saludo(base) {
   } catch {}
   return `
     <div class="hola"><div><h1>${hola}, <span class="grad">${h(primerNombre(S.yo.nombre))}</span></h1><p>${frase}</p></div></div>
-    <div class="resumen">
-      <button class="dato d-pend" data-mes="pendientes"><b>${pend}</b><span>Pendientes</span></button>
-      <button class="dato d-proceso" data-mes="pendientes"><b>${proceso}</b><span>${esCliente() ? 'En manos del equipo' : 'Por trabajar'}</span></button>
-      <button class="dato d-revisar ${revisar && esCliente() ? 'llama' : ''}" data-mes="pendientes"><b>${revisar}</b><span>${esCliente() ? 'Listas para revisar' : 'Esperando al cliente'}</span></button>
-      <button class="dato d-ok" data-mes="${hoy.getMonth()}"><b>${aprobadasMes}</b><span>Aprobadas este mes</span></button>
+    <div class="resumen hojas" role="tablist" aria-label="Hojas de tareas">
+      ${HOJAS.map((x) => {
+        const n = x.k === 'aprobadas' ? aprobadasMes : base.filter((t) => x.estatus.includes(t.estatus)).length
+        const mia = x.toca && (x.toca === 'cliente') === esCliente()
+        const sub = x.k === 'aprobadas' ? 'Este mes' : !n ? (mia ? 'Nada pendiente' : 'Nada aquí') : mia ? '👉 Te toca a ti' : esCliente() ? '⏳ Le toca al equipo' : '⏳ Le toca al cliente'
+        return `<button class="dato d-${x.k} ${S.hoja === x.k && !S.busca.trim() ? 'activo' : ''} ${mia && n ? 'llama' : ''}" role="tab" aria-selected="${S.hoja === x.k}" data-hoja="${x.k}"><span class="hoja-nombre">${x.titulo}</span><b>${n}</b><span>${sub}</span></button>`
+      }).join('')}
     </div>
     ${
       mostrarPasos
@@ -484,6 +745,13 @@ function avance(estatus) {
   return `<div class="avance ${estatus === 'aprobada' ? 'fin' : ''}" aria-label="Avance: ${AVANCE[p]}">${AVANCE.map((n, i) => `<div class="${i < p ? 'hecho' : i === p ? 'aqui' : ''}"><i></i>${n}</div>`).join('')}</div>`
 }
 
+/** "👉 Te toca" o "⏳ Le toca al equipo / al cliente", según la hoja y quién mira. */
+function tocaChip(t) {
+  const toca = hojaDe(t.estatus).toca
+  if (!toca) return ''
+  return (toca === 'cliente') === esCliente() ? '<span class="chip te-toca">👉 Te toca</span>' : `<span class="chip le-toca">⏳ Le toca ${toca === 'cliente' ? 'al cliente' : 'al equipo'}</span>`
+}
+
 function tarjetaTarea(t) {
   const e = empresa(t.empresa_id)
   const nCorr = t.correcciones.length
@@ -494,6 +762,7 @@ function tarjetaTarea(t) {
       <div class="chips">
         <span class="chip emp">${h(e.nombre)}</span>
         <span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span>
+        ${tocaChip(t)}
         ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
         ${(t.notas ?? []).length ? `<span class="chip nuevo">${t.notas.length} ${t.notas.length === 1 ? 'actualización' : 'actualizaciones'}</span>` : ''}
         ${esEquipo() ? `<span class="chip">${h(nombreCliente(t.cliente_id))}</span>` : ''}
@@ -547,6 +816,7 @@ function formNuevaTarea() {
         cerrarVentana()
         avisar(`Listo: tarea #${t.folio} registrada`)
         S.mes = 'pendientes'
+        S.hoja = 'pedidas'
         S.busca = ''
         await recargar()
       } catch (err) {
@@ -639,6 +909,7 @@ function abrirTarea(id) {
 
     <div class="seccion">
       <h3>Trabajo del equipo ${esCliente() ? '<span class="candado">🔒 Lo actualiza el equipo</span>' : ''}</h3>
+      ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
       ${
         esEquipo() && abierta
           ? `<div class="dos">
@@ -926,22 +1197,81 @@ const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const isoDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const horaCorta = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : '')
 
+const MARCAS = { abuelito: 'Abuelito', 'mi-semago': 'Mi Semago' }
+const marcaDe = (empresaId) => empresa(empresaId).marca ?? (String(empresaId).startsWith('abuelito') ? 'abuelito' : empresaId)
+/** El primer día de un mes en 'AAAA-MM-01'. */
+const mesISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+const mesDe = (fechaISO) => `${String(fechaISO).slice(0, 7)}-01`
+const nombreMes = (iso) => aFecha(iso).toLocaleDateString('es-MX', { month: 'long' })
+/** Las marcas cuya parrilla puedo ver. */
+const marcasParrilla = () => Object.keys(MARCAS).filter((m) => S.empresas.some((e) => e.activa && e.marca === m && veoEmpresa(e.id, 'parrilla')))
+function marcaActual() {
+  const ms = marcasParrilla()
+  if (!ms.includes(S.parrillaMarca)) S.parrillaMarca = ms[0] ?? ''
+  return S.parrillaMarca
+}
+/** Lo que se espera de una marca en un mes: primero lo fijo (en su orden), luego los extras. */
+const planDelMes = (marca, mes) =>
+  S.plan
+    .filter((p) => p.marca === marca && p.desde <= mes && (!p.hasta || p.hasta > mes))
+    .sort((a, b) => Number(b.fijo) - Number(a.fijo) || a.orden - b.orden || String(a.creado).localeCompare(String(b.creado)))
+/** La cosa del plan que cumple un contenido (la versión de su mes). */
+const tipoDe = (c) => (c.plan_clave ? planDelMes(marcaDe(c.empresa_id), mesDe(c.fecha)).find((p) => p.clave === c.plan_clave) ?? S.plan.find((p) => p.clave === c.plan_clave) : null)
+const nombreDe = (id) => (!id ? '' : id === S.yo.id ? S.yo.nombre : (S.usuarios.find((u) => u.id === id)?.nombre ?? S.clientes.find((u) => u.id === id)?.nombre ?? ''))
+const puedoPedirExtras = () => S.yo.dueno || (S.yo.pide_extras && S.yo.ve_parrilla !== false)
+
 function contenidosDelMes() {
   const m = S.parrillaMes
   const prefijo = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`
+  const marca = marcaActual()
   return S.contenidos
-    .filter((c) => c.fecha.startsWith(prefijo) && (!S.parrillaEmpresa || c.empresa_id === S.parrillaEmpresa))
+    .filter((c) => c.fecha.startsWith(prefijo) && marcaDe(c.empresa_id) === marca && (!S.parrillaEmpresa || c.empresa_id === S.parrillaEmpresa))
     .sort((a, b) => a.fecha.localeCompare(b.fecha) || String(a.hora ?? '').localeCompare(String(b.hora ?? '')))
 }
 
 function chipContenido(c) {
   const n = c.archivos?.length ?? 0
-  return `<button class="contenido c-${c.estado}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
-    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}${n ? ` · 📎${n}` : ''}</span><b>${h(c.titulo)}</b></button>`
+  const t = tipoDe(c)
+  const atenuado = S.parrillaTipo && (S.parrillaTipo === 'sin' ? Boolean(t) : t?.clave !== S.parrillaTipo)
+  return `<button class="contenido c-${c.estado}${atenuado ? ' atenuado' : ''}" style="--color-emp:${color(c.empresa_id)}" data-contenido="${c.id}" title="${h(t ? `${t.nombre} · ` : '')}${h(empresa(c.empresa_id).nombre)} · ${h(CANALES[c.canal])}">
+    <span>${c.hora ? `${horaCorta(c.hora)} · ` : ''}${h(CANALES[c.canal])}${n ? ` · 📎${n}` : ''}</span><b><i class="punto-plan" style="background:${t ? t.color : '#adb5bd'}"></i>${h(c.titulo)}</b></button>`
+}
+
+/** Arriba del calendario: lo que se espera en el mes, con su punto y cuántos van. */
+function bloquePlan(marca, mes, delMes) {
+  const plan = planDelMes(marca, mes)
+  const sinTipo = delMes.filter((c) => !tipoDe(c)).length
+  const items = plan.map((p) => {
+    const van = delMes.filter((c) => c.plan_clave === p.clave).length
+    const pct = Math.min(100, Math.round((van / p.cantidad) * 100))
+    const quien = p.fijo ? '' : p.pedido_nombre || nombreDe(p.pedido_por)
+    return `<div class="plan-item ${van >= p.cantidad ? 'completo' : ''} ${S.parrillaTipo === p.clave ? 'activo' : ''}">
+      <button class="plan-boton" data-parrilla-tipo="${p.clave}" title="Ver solo esto en el calendario">
+        <i class="punto-plan grande" style="background:${p.color}"></i>
+        <span class="plan-nombre"><b>${h(p.nombre)}</b>${p.detalle ? `<small>${h(p.detalle)}</small>` : ''}${p.fijo ? '' : `<small class="plan-pidio">Extra · Pidió: <b>${h(quien || 'alguien')}</b></small>`}</span>
+        <span class="plan-cuenta"><b>${van}</b> de ${p.cantidad}${van >= p.cantidad ? ' ✓' : ''}<span class="barrita"><span style="width:${pct}%;background:${p.color}"></span></span></span>
+      </button>
+      ${!p.fijo && S.yo.dueno ? `<button class="btn chico peligro" data-borrar-extra="${p.id}" title="Borrar este extra">✕</button>` : ''}
+    </div>`
+  })
+  if (sinTipo) items.push(`<div class="plan-item ${S.parrillaTipo === 'sin' ? 'activo' : ''}"><button class="plan-boton" data-parrilla-tipo="sin"><i class="punto-plan grande" style="background:#adb5bd"></i><span class="plan-nombre"><b>Sin tipo</b><small>Contenidos que todavía no dicen qué son</small></span><span class="plan-cuenta"><b>${sinTipo}</b></span></button></div>`)
+  return `<section class="plan">
+    <div class="plan-cabeza">
+      <h3>Lo que se espera en ${h(nombreMes(mes))} · ${h(MARCAS[marca])}</h3>
+      <div class="plan-acciones">
+        ${S.parrillaTipo ? '<button class="btn chico" data-parrilla-tipo="">Ver todo</button>' : ''}
+        ${puedoPedirExtras() ? '<button class="btn chico" data-accion="pedir-extra">+ Pedir algo extra</button>' : ''}
+        ${S.yo.dueno ? '<button class="btn chico" data-accion="plan-fijo">⚙️ Lo fijo</button>' : ''}
+      </div>
+    </div>
+    ${items.length ? `<div class="plan-lista">${items.join('')}</div>` : '<p class="ayuda" style="margin:0">No hay nada esperado para este mes.</p>'}
+  </section>`
 }
 
 function vistaParrilla() {
   const m = S.parrillaMes
+  const marca = marcaActual()
+  if (!marca) return '<div class="vacio-msg">No tienes parrillas disponibles.</div>'
   const mes = contenidosDelMes()
   const hoy = isoDia(new Date())
   // La cuadrícula del mes, de lunes a domingo.
@@ -960,15 +1290,18 @@ function vistaParrilla() {
       ${delDia.map(chipContenido).join('')}
     </div>`)
   }
-  const emps = S.empresas.filter((e) => e.activa && (esEquipo() || !S.yo.empresas || S.yo.empresas.includes(e.id)))
+  const emps = S.empresas.filter((e) => e.activa && e.marca === marca && veoEmpresa(e.id, 'parrilla'))
   const titulo = m.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+  const marcas = marcasParrilla()
   return `
-    <p class="ayuda" style="margin-top:0">Lo que las vendedoras publican y mandan cada día. ${esEquipo() ? 'Tú y tu equipo la llenan; todos la ven.' : 'La prepara el equipo de NXUS.'}</p>
+    ${marcas.length > 1 ? `<div class="marcas" role="tablist">${marcas.map((k) => `<button class="marca-boton ${k === marca ? 'activa' : ''}" data-marca="${k}" role="tab" aria-selected="${k === marca}">Parrilla ${h(MARCAS[k])}</button>`).join('')}</div>` : ''}
+    <p class="ayuda" style="margin-top:0">Lo que las vendedoras publican y mandan cada día. ${esEquipo() ? 'Tú y tu equipo la llenan; al agregar un contenido elige en <b>¿Qué es?</b> para que salga su punto de color.' : 'La prepara el equipo de NXUS.'}</p>
     <div class="barra parrilla-barra">
       <div class="mes-nav"><button class="btn chico" data-parrilla-mes="-1" aria-label="Mes anterior">←</button><b>${h(titulo[0].toUpperCase() + titulo.slice(1))}</b><button class="btn chico" data-parrilla-mes="1" aria-label="Mes siguiente">→</button><button class="btn chico" data-parrilla-mes="0">Hoy</button></div>
-      <select data-filtro="parrillaEmpresa"><option value="">Todas las empresas</option>${opcionesEmpresa(emps, S.parrillaEmpresa)}</select>
+      ${emps.length > 1 ? `<select data-filtro="parrillaEmpresa" aria-label="Empresa"><option value="">Todas (${h(MARCAS[marca])})</option>${opcionesEmpresa(emps, S.parrillaEmpresa)}</select>` : ''}
       ${esEquipo() ? `<button class="btn principal" data-nuevo-contenido="">+ Contenido</button>` : ''}
     </div>
+    ${bloquePlan(marca, mesISO(m), mes)}
     <div class="calendario">
       ${DIAS_SEMANA.map((d) => `<div class="dia-nombre">${d}</div>`).join('')}
       ${celdas.join('')}
@@ -976,6 +1309,108 @@ function vistaParrilla() {
     <div class="parrilla-lista">
       ${mes.length ? mes.map((c) => `<div class="fila-contenido"><div class="fecha-contenido">${h(fecha(c.fecha))}</div>${chipContenido(c)}</div>`).join('') : '<div class="vacio-msg">No hay contenidos este mes.</div>'}
     </div>`
+}
+
+/** Pedir algo extra para este mes o el siguiente (queda quién lo pidió). */
+function formExtra() {
+  const marcas = marcasParrilla()
+  const hoy = new Date()
+  const este = mesISO(hoy)
+  const sig = mesISO(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1))
+  const visto = mesISO(S.parrillaMes)
+  abrirVentana(
+    'Pedir algo extra',
+    `<form id="form-extra">
+      <p style="margin-top:0" class="ayuda">Se suma a lo que se espera de ese mes, con tu nombre para que todos vean quién lo pidió. Ya no se puede cambiar ni borrar (solo el administrador).</p>
+      <div class="campo"><label for="x-nombre">¿Qué necesitas?</label><input id="x-nombre" maxlength="80" required placeholder="Ej. Promo Día de Muertos"></div>
+      <div class="dos-campos">
+        <div class="campo"><label for="x-cantidad">¿Cuántos?</label><input id="x-cantidad" type="number" min="1" max="100" value="1" required></div>
+        <div class="campo"><label for="x-mes">¿Para qué mes?</label><select id="x-mes"><option value="${este}" ${visto !== sig ? 'selected' : ''}>${h(nombreMes(este))} (este mes)</option><option value="${sig}" ${visto === sig ? 'selected' : ''}>${h(nombreMes(sig))} (el siguiente)</option></select></div>
+      </div>
+      ${marcas.length > 1 ? `<div class="campo"><label for="x-marca">¿De qué marca?</label><select id="x-marca">${marcas.map((k) => `<option value="${k}" ${k === S.parrillaMarca ? 'selected' : ''}>${h(MARCAS[k])}</option>`).join('')}</select></div>` : ''}
+      <div class="campo"><label for="x-detalle">Detalles (opcional)</label><textarea id="x-detalle" rows="3" maxlength="500" placeholder="Lo que deba saber el diseñador"></textarea></div>
+      <button class="btn principal" data-ocupado="Pidiendo…">Pedir</button>
+    </form>`,
+    { chica: true },
+  )
+  $('#form-extra').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        const marca = $('#x-marca')?.value ?? S.parrillaMarca
+        const desde = $('#x-mes').value
+        await D.pedirExtra({ marca, nombre: $('#x-nombre').value, cantidad: $('#x-cantidad').value, detalle: $('#x-detalle').value, desde })
+        S.parrillaMarca = marca
+        S.parrillaMes = aFecha(desde)
+        cerrarVentana()
+        avisar('Listo. Ya está en lo que se espera de ese mes.')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+}
+
+/** Lo fijo de cada marca: solo el administrador principal lo cambia (cuenta desde este mes). */
+function formFijo() {
+  const marca = marcaActual()
+  const mes = mesISO(new Date())
+  const fijos = planDelMes(marca, mes).filter((p) => p.fijo)
+  abrirVentana(
+    `Lo fijo de ${h(MARCAS[marca])}`,
+    `<form id="form-fijo" novalidate>
+      <p style="margin-top:0" class="ayuda">Lo que se espera <b>cada mes</b>. Los cambios cuentan desde ${h(nombreMes(mes))}; los meses pasados se quedan como estaban. Si quitas algo, deja de salir desde el mes siguiente.</p>
+      <div class="fijos">
+        ${fijos
+          .map(
+            (p) => `<div class="fijo-fila" data-fijo="${p.clave}">
+          <i class="punto-plan grande" style="background:${p.color}"></i>
+          <input data-campo="nombre" maxlength="80" value="${h(p.nombre)}" aria-label="Nombre">
+          <input data-campo="cantidad" type="number" min="1" max="100" value="${p.cantidad}" aria-label="Cuántos al mes">
+          <button type="button" class="btn chico" data-guardar-fijo="${p.clave}">Guardar</button>
+          <button type="button" class="btn chico peligro" data-quitar-fijo="${p.clave}">Quitar</button>
+        </div>`,
+          )
+          .join('')}
+      </div>
+      <div class="etiqueta" style="margin-top:12px">Agregar otro fijo</div>
+      <div class="fijo-fila">
+        <i class="punto-plan grande" style="background:#dee2e6"></i>
+        <input id="f-nombre" maxlength="80" placeholder="Nombre">
+        <input id="f-cantidad" type="number" min="1" max="100" value="1" aria-label="Cuántos al mes">
+        <button type="button" class="btn chico principal" data-guardar-fijo="">Agregar</button>
+      </div>
+    </form>`,
+    { chica: true },
+  )
+  $('#form-fijo').addEventListener('click', async (e) => {
+    const b = e.target.closest('button')
+    if (!b) return
+    const guardar = b.dataset.guardarFijo
+    const quitar = b.dataset.quitarFijo
+    if (guardar === undefined && quitar === undefined) return
+    e.stopPropagation()
+    try {
+      if (quitar) {
+        const p = fijos.find((x) => x.clave === quitar)
+        if (!(await preguntar(`Quitar "${p.nombre}"`, `Deja de esperarse desde el mes siguiente. Este mes y los pasados se quedan como están. ¿Seguro?`, { boton: 'Quitar', peligro: true }))) return
+        await ocupado(b, () => D.quitarFijo(quitar))
+        avisar(`"${p.nombre}" ya no se espera desde el mes siguiente.`)
+      } else {
+        const fila = guardar ? b.closest('[data-fijo]') : null
+        const nombre = (fila ? fila.querySelector('[data-campo="nombre"]') : $('#f-nombre')).value.trim()
+        const cantidad = Number((fila ? fila.querySelector('[data-campo="cantidad"]') : $('#f-cantidad')).value)
+        if (!nombre || !(cantidad >= 1)) return falla(new Error('Falta el nombre o cuántos al mes'))
+        await ocupado(b, () => D.guardarFijo({ clave: guardar || null, marca, nombre, cantidad }))
+        avisar(guardar ? 'Guardado. Cuenta desde este mes.' : `Listo: "${nombre}" ya se espera cada mes.`)
+      }
+      await recargar()
+      formFijo()
+    } catch (err) {
+      falla(err)
+    }
+  })
 }
 
 /** El material de un contenido: una vista previa grande de cada imagen o video, con Ver y Descargar. */
@@ -1015,7 +1450,7 @@ function abrirContenido(id, fechaNueva = '') {
   if (!esEquipo()) {
     abrirVentana(
       h(c.titulo),
-      `<div class="barra" style="margin-top:0"><span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
+      `<div class="barra" style="margin-top:0">${tipoDe(c) ? `<span class="chip"><i class="punto-plan" style="background:${tipoDe(c).color}"></i>${h(tipoDe(c).nombre)}</span>` : ''}<span class="chip emp" style="--color-emp:${color(c.empresa_id)}">${h(empresa(c.empresa_id).nombre)}</span><span class="chip">${h(CANALES[c.canal])}</span><span class="chip">${h(fecha(c.fecha))}${c.hora ? ` · ${horaCorta(c.hora)}` : ''}</span></div>
       ${c.texto ? `<div class="texto-contenido">${h(c.texto)}</div><button class="btn" data-copiar="${c.id}">Copiar texto</button>` : ''}
       ${c.enlace ? ` <a class="btn" href="${h(c.enlace)}" target="_blank" rel="noopener">Abrir link ↗</a>` : ''}
       ${bloqueMaterial(c) || (c.enlace ? '' : '<p class="ayuda">Este contenido todavía no tiene imagen ni video.</p>')}`,
@@ -1024,8 +1459,10 @@ function abrirContenido(id, fechaNueva = '') {
     cargarPrevias()
     return
   }
-  const emps = S.empresas.filter((e) => e.activa)
-  const v = c ?? { empresa_id: S.parrillaEmpresa || emps[0]?.id, fecha: fechaNueva || isoDia(new Date()), hora: '', canal: 'whatsapp', titulo: '', texto: '', enlace: '', estado: 'borrador' }
+  const marca = c ? marcaDe(c.empresa_id) : marcaActual()
+  const emps = S.empresas.filter((e) => (e.activa || e.id === c?.empresa_id) && e.marca === marca && veoEmpresa(e.id, 'parrilla'))
+  const enMes = S.parrillaMes.getMonth() === new Date().getMonth() && S.parrillaMes.getFullYear() === new Date().getFullYear()
+  const v = c ?? { empresa_id: S.parrillaEmpresa || emps[0]?.id, fecha: fechaNueva || (enMes ? isoDia(new Date()) : mesISO(S.parrillaMes)), hora: '', canal: 'whatsapp', titulo: '', texto: '', enlace: '', estado: 'borrador', plan_clave: S.parrillaTipo && S.parrillaTipo !== 'sin' ? S.parrillaTipo : null }
   abrirVentana(
     c ? 'Editar contenido' : 'Nuevo contenido',
     `<form id="form-contenido">
@@ -1035,6 +1472,7 @@ function abrirContenido(id, fechaNueva = '') {
         <div class="campo"><label for="ct-fecha">Día</label><input id="ct-fecha" type="date" required value="${h(v.fecha)}"></div>
         <div class="campo"><label for="ct-hora">Hora (opcional)</label><input id="ct-hora" type="time" value="${h(String(v.hora ?? '').slice(0, 5))}"></div>
       </div>
+      <div class="campo"><label for="ct-tipo">¿Qué es? <span class="ayuda">(de lo que se espera ese mes; le pone su punto de color)</span></label><div class="con-punto"><i class="punto-plan grande" id="ct-punto"></i><select id="ct-tipo"></select></div></div>
       <div class="campo"><label for="ct-titulo">Título</label><input id="ct-titulo" maxlength="200" required value="${h(v.titulo)}" placeholder="Promo de quesos frescos"></div>
       <div class="campo"><label for="ct-texto">Texto para las vendedoras</label><textarea id="ct-texto" rows="5" maxlength="4000" placeholder="Lo que van a publicar o mandar, tal cual">${h(v.texto)}</textarea></div>
       <div class="campo"><label for="ct-material">Imágenes o videos</label><input id="ct-material" type="file" multiple accept="image/*,video/*"><span class="ayuda">Hasta 50 MB cada uno. No se ven en el calendario: se abren al dar clic en el contenido.</span></div>
@@ -1050,6 +1488,19 @@ function abrirContenido(id, fechaNueva = '') {
     { alCerrar },
   )
   cargarPrevias()
+  // "¿Qué es?": lo que se espera de esa marca en el mes del día elegido.
+  const tipos = () => {
+    const mes = mesDe($('#ct-fecha').value || v.fecha)
+    const antes = $('#ct-tipo').value || v.plan_clave || ''
+    const plan = planDelMes(marca, mes)
+    const van = (p) => S.contenidos.filter((x) => x.plan_clave === p.clave && mesDe(x.fecha) === mes && x.id !== c?.id).length
+    $('#ct-tipo').innerHTML = `<option value="">— Sin tipo —</option>${plan.map((p) => `<option value="${p.clave}" ${p.clave === antes ? 'selected' : ''}>${h(p.nombre)}${p.fijo ? '' : ' (extra)'} · van ${van(p)} de ${p.cantidad}</option>`).join('')}`
+    const t = plan.find((p) => p.clave === $('#ct-tipo').value)
+    $('#ct-punto').style.background = t ? t.color : '#adb5bd'
+  }
+  tipos()
+  $('#ct-fecha').addEventListener('change', tipos)
+  $('#ct-tipo').addEventListener('change', tipos)
   $('#form-contenido').addEventListener('submit', async (e) => {
     e.preventDefault()
     await ocupado(e.submitter, async () => {
@@ -1067,6 +1518,8 @@ function abrirContenido(id, fechaNueva = '') {
           texto: $('#ct-texto').value.trim(),
           enlace: $('#ct-enlace').value.trim(),
           estado: $('#ct-estado').value,
+          // Si la base de datos todavía no tiene el plan (no han corrido el esquema), no se manda.
+          ...(S.plan.length ? { plan_clave: $('#ct-tipo').value || null } : {}),
         })
         for (const file of archivos) await D.subirMaterial(guardado, file)
         const f = aFecha($('#ct-fecha').value)
@@ -1103,14 +1556,168 @@ function vistaCatalogos() {
     </div>`
 }
 
+// -- leads de Mi Semago -------------------------------------------------------
+
+const veoLeads = () => esAdmin() || Boolean(S.yo?.ve_leads)
+const ETAPAS_LEAD = {
+  nuevo: { t: 'Nuevo', ayuda: 'Llegó de WhatsApp; Ana Sofi le va a programar la llamada' },
+  programada: { t: 'Llamada programada', ayuda: 'Ana Sofi le llama a la hora que pidió' },
+  no_contesto: { t: 'No contestó', ayuda: 'Se le vuelve a llamar una vez' },
+  hablo: { t: 'Ya habló', ayuda: 'Ana Sofi ya habló con él; no agendó Meet' },
+  meet: { t: 'Meet agendado', ayuda: 'Videollamada con Eduardo' },
+  cerrado: { t: 'Cerrado', ayuda: 'Ya es cliente' },
+  no_califica: { t: 'No califica', ayuda: 'No le conviene o no le interesa' },
+  no_llamar: { t: 'No llamar', ayuda: 'Pidió que no le llamen' },
+}
+const COLUMNAS_LEAD = ['nuevo', 'programada', 'no_contesto', 'hablo', 'meet', 'cerrado', 'no_califica']
+const CALIFICACION = { caliente: '🔥 Caliente', medio: '🙂 Medio', frio: '🧊 Frío' }
+const ZONA_ESTE = 'America/New_York'
+
+/** "jue 12 nov, 11:00 a.m." en una zona horaria. */
+function horaEn(iso, zona = ZONA_ESTE, conDia = true) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString('es-MX', { timeZone: zona || ZONA_ESTE, ...(conDia ? { weekday: 'short', day: 'numeric', month: 'short' } : {}), hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return new Date(iso).toLocaleString('es-MX')
+  }
+}
+/** La hora del Este y, si el lead vive en otra zona, también la suya. */
+function horaLead(iso, l) {
+  if (!iso) return ''
+  const este = `${horaEn(iso)} (hora del Este)`
+  return l.zona && l.zona !== ZONA_ESTE ? `${este} · ${horaEn(iso, l.zona, false)} en ${h(l.ciudad || 'su ciudad')}` : este
+}
+
+function tarjetaLead(l) {
+  const notas = l.leads_notas?.length ?? 0
+  const proximo =
+    l.etapa === 'meet' && l.meet_inicio
+      ? `🎥 ${horaEn(l.meet_inicio)}`
+      : ['programada', 'no_contesto'].includes(l.etapa) && l.llamada_programada
+        ? `📞 ${horaEn(l.llamada_programada)}`
+        : ''
+  return `<button class="lead-tarjeta" data-lead="${l.id}">
+    <b>${h(l.negocio || l.nombre || 'Sin nombre')}</b>
+    <span>${h([l.negocio ? l.nombre : '', l.ciudad].filter(Boolean).join(' · '))}</span>
+    <span class="lead-chips">${l.origen === 'web' ? '<span class="chip">🌐 Web</span>' : ''}${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${l.llamada_estado === 'marcando' || l.llamada_estado === 'en_llamada' ? '<span class="chip vivo">● En llamada</span>' : ''}${notas ? `<span class="chip">📝 ${notas}</span>` : ''}</span>
+    ${proximo ? `<small>${proximo}</small>` : ''}
+  </button>`
+}
+
+function vistaLeads() {
+  const q = sinAcentos(S.leadsBusca)
+  const lista = S.leads.filter((l) => !q || sinAcentos(`${l.nombre} ${l.negocio} ${l.ciudad} ${l.telefono} ${l.correo}`).includes(q))
+  const cuenta = (e) => S.leads.filter((l) => l.etapa === e).length
+  const hoyEste = horaEn(new Date().toISOString(), ZONA_ESTE, true).split(',')[0]
+  const meetsHoy = S.leads.filter((l) => l.etapa === 'meet' && l.meet_inicio && horaEn(l.meet_inicio).split(',')[0] === hoyEste && new Date(l.meet_inicio) > Date.now() - 3600_000)
+  return `
+    <p class="ayuda" style="margin-top:0">Los que escriben a Mi Semago por WhatsApp. Ana Sofi les llama a la hora que pidieron, les da precios, pide sus datos y, si quieren, agenda el Google Meet con Eduardo.</p>
+    ${meetsHoy.length ? `<div class="aviso-meet">${meetsHoy.map((l) => `<div>🎥 <b>Hoy ${h(horaEn(l.meet_inicio, ZONA_ESTE, false))}</b> · ${h(l.negocio || l.nombre)}</div><a class="btn principal chico" href="${h(l.meet_link)}" target="_blank" rel="noopener">Unirse al meeting</a>`).join('')}</div>` : ''}
+    <div class="resumen-leads">
+      ${['nuevo', 'programada', 'hablo', 'meet', 'cerrado'].map((e) => `<div><b>${cuenta(e)}</b><span>${ETAPAS_LEAD[e].t}</span></div>`).join('')}
+    </div>
+    <div class="barra"><input type="search" data-filtro="leadsBusca" value="${h(S.leadsBusca)}" placeholder="Buscar por nombre, negocio, ciudad, teléfono…" aria-label="Buscar leads"></div>
+    ${
+      S.leads.length
+        ? `<div class="tablero-leads">${COLUMNAS_LEAD.map((e) => {
+            const enCol = lista.filter((l) => l.etapa === e || (e === 'no_califica' && l.etapa === 'no_llamar'))
+            return `<section class="col-lead"><h3 title="${h(ETAPAS_LEAD[e].ayuda)}">${ETAPAS_LEAD[e].t} <span>${enCol.length}</span></h3>${enCol.map(tarjetaLead).join('') || '<p class="ayuda vacia">—</p>'}</section>`
+          }).join('')}</div>`
+        : '<div class="vacio-msg">Todavía no hay leads. Llegan solos de WhatsApp en cuanto alguien termina el chat de Mi Semago.</div>'
+    }`
+}
+
+function abrirLead(id) {
+  const l = S.leads.find((x) => x.id === id)
+  if (!l) return
+  S.leadAbierto = id
+  const dato = (t, v) => (v ? `<div class="dato"><span>${t}</span><b>${h(v)}</b></div>` : '')
+  const notas = [...(l.leads_notas ?? [])].sort((a, b) => String(a.creada).localeCompare(String(b.creada)))
+  const llamada =
+    l.llamada_estado === 'marcando' ? 'Marcando…' : l.llamada_estado === 'en_llamada' ? 'En llamada ahora' : l.llamada_estado === 'no_salio' ? 'La llamada no salió' : ''
+  abrirVentana(
+    h(l.negocio || l.nombre || 'Lead'),
+    `<div class="barra" style="margin-top:0"><span class="chip etapa-${l.etapa}">${ETAPAS_LEAD[l.etapa]?.t ?? l.etapa}</span>${l.calificacion ? `<span class="chip cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>` : ''}${llamada ? `<span class="chip vivo">● ${llamada}</span>` : ''}</div>
+    ${
+      l.meet_inicio
+        ? `<div class="meet-caja"><div><span>Google Meet con Eduardo</span><b>${horaLead(l.meet_inicio, l)}</b></div>${l.meet_link ? `<a class="btn principal" href="${h(l.meet_link)}" target="_blank" rel="noopener">🎥 Unirse al meeting</a>` : ''}</div>`
+        : ''
+    }
+    <h3 class="sub">Datos</h3>
+    <div class="datos">
+      ${dato('Nombre', l.nombre)}${dato('Negocio', l.negocio)}${dato('Ciudad', l.ciudad)}
+      ${l.telefono ? `<div class="dato"><span>Teléfono</span><b><a href="tel:${h(l.telefono.replace(/[^\d+]/g, ''))}">${h(l.telefono)}</a></b></div>` : ''}
+      ${l.correo ? `<div class="dato"><span>Correo</span><b><a href="mailto:${h(l.correo)}">${h(l.correo)}</a></b></div>` : ''}
+      ${dato('Idioma', l.idioma === 'en' ? 'Inglés' : 'Español')}${dato('Llegó', horaEn(l.creado))}${dato('De qué anuncio', l.fuente)}${l.origen === 'web' ? dato('Llegó por', 'misemago.com (WEBSITE LEADS)') : ''}
+    </div>
+    ${
+      l.tipo_negocio || l.quesos || l.libras || l.frecuencia || l.marca_propia || l.precios
+        ? `<h3 class="sub">Lo que contó en la llamada</h3><div class="datos">${dato('Tipo de negocio', l.tipo_negocio)}${dato('Quesos', l.quesos)}${dato('Libras', l.libras)}${dato('Cada cuánto', l.frecuencia)}${dato('Marca propia', l.marca_propia)}${dato('Precios que se le dieron', l.precios)}</div>`
+        : ''
+    }
+    ${l.resumen ? `<h3 class="sub">Resumen de Ana Sofi</h3><div class="texto-contenido">${h(l.resumen)}</div>` : ''}
+    <h3 class="sub">Llamadas</h3>
+    <div class="datos">
+      ${dato('Pidió que le llamaran', l.hora_pedida)}
+      ${l.llamada_programada && ['nuevo', 'programada', 'no_contesto'].includes(l.etapa) ? `<div class="dato"><span>Próxima llamada</span><b>${horaLead(l.llamada_programada, l)}</b></div>` : ''}
+      ${dato('Llamadas hechas', l.intentos ? String(l.intentos) : '')}
+      ${l.ultima_llamada ? `<div class="dato"><span>Última llamada</span><b>${horaLead(l.ultima_llamada, l)}</b></div>` : ''}
+      ${l.permiso_llamada ? `<div class="dato"><span>Permiso por escrito</span><b>“${h(l.permiso_texto || 'Sí')}” · ${h(horaEn(l.permiso_fecha))}</b></div>` : '<div class="dato"><span>Permiso por escrito</span><b>No dio permiso: no se le llama</b></div>'}
+    </div>
+    ${l.transcripcion ? `<details class="conversacion"><summary>Ver la conversación completa</summary><div class="texto-contenido">${h(l.transcripcion)}</div></details>` : ''}
+    <h3 class="sub">Notas</h3>
+    <div class="notas-lead">${notas.length ? notas.map((n) => `<div class="nota-lead"><b>${h(n.autor_nombre || 'Alguien')}</b> <span class="ayuda">${h(horaEn(n.creada))}</span><p>${h(n.texto)}</p></div>`).join('') : '<p class="ayuda">Todavía no hay notas.</p>'}</div>
+    <form id="form-nota-lead" class="barra" style="align-items:flex-end">
+      <textarea id="nl-texto" rows="2" maxlength="2000" required placeholder="Agregar una nota (todos los que ven Leads la verán)" style="flex:1;min-height:60px"></textarea>
+      <button class="btn principal" data-ocupado="Guardando…">Agregar nota</button>
+    </form>
+    ${
+      S.yo.dueno
+        ? `<div class="barra" style="margin-top:14px;border-top:1px solid var(--linea);padding-top:12px">
+        <label for="l-etapa" class="etiqueta" style="margin:0">Etapa</label>
+        <select id="l-etapa" style="width:auto">${Object.entries(ETAPAS_LEAD).map(([k, v]) => `<option value="${k}" ${k === l.etapa ? 'selected' : ''}>${v.t}</option>`).join('')}</select>
+        <button type="button" class="btn peligro" data-borrar-lead="${l.id}" style="margin-left:auto">Borrar lead</button>
+      </div>`
+        : ''
+    }`,
+    { alCerrar: () => (S.leadAbierto = null) },
+  )
+  $('#form-nota-lead').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.notaLead(l.id, $('#nl-texto').value)
+        avisar('Nota agregada')
+        await recargar()
+      } catch (err) {
+        falla(err)
+      }
+    })
+  })
+  $('#l-etapa')?.addEventListener('change', async (e) => {
+    try {
+      await D.etapaLead(l.id, e.target.value)
+      avisar(`Ahora está en: ${ETAPAS_LEAD[e.target.value].t}`)
+      await recargar()
+    } catch (err) {
+      falla(err)
+      e.target.value = l.etapa
+    }
+  })
+}
+
 // -- usuarios (admin) ---------------------------------------------------------
 
 function vistaUsuarios() {
   const orden = { admin: 0, equipo: 1, cliente: 2 }
   const lista = S.usuarios.filter((u) => !u.eliminado).sort((a, b) => orden[a.rol] - orden[b.rol] || a.nombre.localeCompare(b.nombre, 'es'))
   const eliminados = S.usuarios.filter((u) => u.eliminado).length
-  const nombresEmp = (u) => (u.rol !== 'cliente' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
-  const ve = (u) => (u.rol !== 'cliente' ? 'Todo' : [u.ve_tareas && 'Sus tareas', u.ve_biblioteca && 'Biblioteca', u.ve_catalogos && 'Catálogos', u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada')
+  const nombresEmp = (u) => (u.rol === 'admin' || !u.empresas ? 'Todas' : u.empresas.map((id) => empresa(id).nombre).join(', ') || 'Ninguna')
+  const ve = (u) =>
+    u.rol === 'admin'
+      ? 'Todo'
+      : [u.ve_tareas !== false && (u.rol === 'cliente' ? 'Sus tareas' : 'Tareas'), u.ve_biblioteca !== false && 'Biblioteca', u.ve_catalogos !== false && 'Catálogos', u.ve_parrilla !== false && 'Parrilla',  u.ve_parrilla !== false && u.pide_extras && 'Pide extras', u.ve_leads && 'Leads', u.rol === 'cliente' && u.ultron && 'Ultron'].filter(Boolean).join(', ') || 'Nada'
   return `
     <div class="barra"><button class="btn principal" data-accion="nuevo-usuario">+ Nuevo usuario</button></div>
     <div class="tabla-envoltura"><table class="tabla">
@@ -1159,25 +1766,42 @@ function formUsuario(id) {
         <option value="cliente" ${u?.rol === 'cliente' || !u ? 'selected' : ''}>Cliente (pide tareas, ve y descarga)</option>
         <option value="equipo" ${u?.rol === 'equipo' ? 'selected' : ''}>Equipo (trabaja las tareas, sube y organiza)</option>
       </select></div>
-      <div id="u-permisos">
+      <div id="u-permisos" class="seccion" style="padding:10px 12px;margin:4px 0 8px">
+        <div class="etiqueta" style="margin-top:0">Permisos · a qué tiene acceso</div>
         <div class="etiqueta">Empresas que ve</div>
         <label class="casilla"><input type="checkbox" id="u-todas" ${todas ? 'checked' : ''}> Todas</label>
         <div id="u-lista" ${todas ? 'hidden' : ''} style="padding-left:18px">${emps.map((e) => `<label class="casilla"><input type="checkbox" data-u-emp="${e.id}" ${u?.empresas?.includes(e.id) ? 'checked' : ''}> ${h(e.nombre)}</label>`).join('')}</div>
         <div class="etiqueta" style="margin-top:8px">Secciones</div>
-        <label class="casilla"><input type="checkbox" id="u-tareas" ${u?.ve_tareas !== false ? 'checked' : ''}> Sus tareas (pedir, corregir, aprobar)</label>
+        <label class="casilla"><input type="checkbox" id="u-tareas" ${u?.ve_tareas !== false ? 'checked' : ''}> <span id="u-tareas-txt">Tareas</span></label>
         <label class="casilla"><input type="checkbox" id="u-bib" ${u?.ve_biblioteca !== false ? 'checked' : ''}> Biblioteca</label>
         <label class="casilla"><input type="checkbox" id="u-cat" ${u?.ve_catalogos !== false ? 'checked' : ''}> Catálogos</label>
-        <div class="etiqueta" style="margin-top:8px">Dirección</div>
-        <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
+        <label class="casilla"><input type="checkbox" id="u-parrilla" ${u?.ve_parrilla !== false ? 'checked' : ''}> Parrilla de contenidos</label>
+        <label class="casilla" style="padding-left:22px"><input type="checkbox" id="u-extras" ${u?.pide_extras ? 'checked' : ''}> Puede pedir extras en la Parrilla (este mes y el siguiente)</label>
+        <label class="casilla"><input type="checkbox" id="u-leads" ${u?.ve_leads ? 'checked' : ''}> Leads de Mi Semago (ve todo, el link del Meet y agrega notas)</label>
+        <div id="u-direccion">
+          <div class="etiqueta" style="margin-top:8px">Dirección</div>
+          <label class="casilla"><input type="checkbox" id="u-ultron" ${u?.ultron ? 'checked' : ''}> Habla con Ultron (dueños y gerentes)</label>
+        </div>
       </div>
       ${u ? `<label class="casilla" style="margin-top:8px"><input type="checkbox" id="u-activo" ${u.activo ? 'checked' : ''}> Puede entrar (desmárcalo para quitarle el acceso)</label>` : ''}
       <button class="btn principal" style="margin-top:12px" data-ocupado="Guardando…">${u ? 'Guardar' : 'Crear usuario'}</button>
     </form>`,
     { chica: true },
   )
-  const permisos = () => ($('#u-permisos').hidden = $('#u-rol').value !== 'cliente')
+  // Los permisos aplican a clientes y equipo; Ultron, solo a clientes (la dirección).
+  const permisos = () => {
+    const cliente = $('#u-rol').value === 'cliente'
+    $('#u-direccion').hidden = !cliente
+    $('#u-tareas-txt').textContent = cliente ? 'Sus tareas (pedir, corregir, aprobar)' : 'Tareas (trabajarlas: estatus, PDFs, actualizaciones)'
+  }
+  const extras = () => {
+    $('#u-extras').disabled = !$('#u-parrilla').checked
+    if (!$('#u-parrilla').checked) $('#u-extras').checked = false
+  }
   permisos()
+  extras()
   $('#u-rol').addEventListener('change', permisos)
+  $('#u-parrilla').addEventListener('change', extras)
   $('#u-todas').addEventListener('change', () => ($('#u-lista').hidden = $('#u-todas').checked))
   // El usuario sale solo del nombre ("Senén Ramos" → "senen") mientras no lo escriban a mano.
   let usuarioAMano = Boolean(u?.usuario)
@@ -1202,6 +1826,9 @@ function formUsuario(id) {
       ve_tareas: $('#u-tareas').checked,
       ve_biblioteca: $('#u-bib').checked,
       ve_catalogos: $('#u-cat').checked,
+      ve_parrilla: $('#u-parrilla').checked,
+      pide_extras: $('#u-parrilla').checked && $('#u-extras').checked,
+      ve_leads: $('#u-leads').checked,
       ultron: $('#u-rol').value === 'cliente' && $('#u-ultron').checked,
     }
     const usuario = normalizarUsuario($('#u-usuario').value)
@@ -1366,7 +1993,7 @@ function vistaBitacora() {
   return `<p class="ayuda" style="margin-top:0">Quién hizo qué y cuándo (lo último primero). Nadie la puede borrar ni cambiar.</p><div id="bitacora"><div class="cargando">Cargando…</div></div>`
 }
 
-const NOMBRE_TABLA = { tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
+const NOMBRE_TABLA = { leads: 'lead', leads_notas: 'nota de lead', plan: 'plan de la parrilla', contenidos: 'contenido', tareas: 'tarea', correcciones: 'corrección', notas: 'actualización', archivos: 'archivo', carpetas: 'carpeta', perfiles: 'usuario', empresas: 'empresa' }
 async function cargarBitacora() {
   try {
     const filas = await D.bitacora()
@@ -1523,13 +2150,16 @@ async function alClic(e) {
       S.yo = await D.entrar(d.entrarMuestra)
       S.vista = 'tareas'
       S.mes = 'pendientes'
+      S.hoja = null
       Object.assign(S, { filtroCliente: '', filtroEmpresa: '', busca: '', bibBusca: '', bibCarpeta: null })
       await empezar()
       return
     }
     if (d.vista) {
+      const otra = S.vista !== d.vista
       S.vista = d.vista
       pintar()
+      if (otra) verFondo()
       return
     }
     if (d.parrillaMes !== undefined) {
@@ -1537,6 +2167,36 @@ async function alClic(e) {
       const m = paso === 0 ? new Date() : new Date(S.parrillaMes.getFullYear(), S.parrillaMes.getMonth() + paso, 1)
       S.parrillaMes = new Date(m.getFullYear(), m.getMonth(), 1)
       pintarVista()
+      return
+    }
+    if (d.marca) {
+      S.parrillaMarca = d.marca
+      S.parrillaEmpresa = ''
+      S.parrillaTipo = ''
+      pintarVista()
+      return
+    }
+    if (d.parrillaTipo !== undefined) {
+      S.parrillaTipo = S.parrillaTipo === d.parrillaTipo ? '' : d.parrillaTipo
+      pintarVista()
+      return
+    }
+    if (d.borrarExtra) {
+      const x = S.plan.find((p) => p.id === d.borrarExtra)
+      if (!(await preguntar('Borrar extra', `Se quita "${x?.nombre}" de lo que se espera ese mes. Los contenidos que ya lo tenían se quedan sin tipo. ¿Seguro?`, { boton: 'Borrar', peligro: true }))) return
+      await ocupado(b, () => D.borrarExtra(d.borrarExtra))
+      avisar('Extra borrado')
+      await recargar()
+      return
+    }
+    if (d.lead) return abrirLead(d.lead)
+    if (d.borrarLead) {
+      const l = S.leads.find((x) => x.id === d.borrarLead)
+      if (!(await preguntar('Borrar lead', `Se borra ${l?.negocio || l?.nombre || 'este lead'} con sus notas. No se puede deshacer. ¿Seguro?`, { boton: 'Borrar', peligro: true }))) return
+      await ocupado(b, () => D.borrarLead(d.borrarLead))
+      cerrarVentana()
+      avisar('Lead borrado')
+      await recargar()
       return
     }
     if (d.contenido) return abrirContenido(d.contenido)
@@ -1553,6 +2213,12 @@ async function alClic(e) {
       cerrarVentana()
       avisar('Borrado')
       await recargar()
+      return
+    }
+    if (d.hoja) {
+      S.hoja = d.hoja
+      S.busca = ''
+      pintarVista()
       return
     }
     if (d.mes !== undefined) {
@@ -1663,6 +2329,33 @@ async function alClic(e) {
       campo.dispatchEvent(new Event('input'))
       return
     }
+    if (d.webFiltro !== undefined) {
+      S.webEstatus = d.webFiltro
+      pintarVista()
+      return
+    }
+    if (d.notasWeb) return formNotasWeb(d.notasWeb)
+    if (d.borrarWeb) {
+      const x = S.web.find((v) => v.id === d.borrarWeb)
+      if (!x || !(await preguntar('Borrar website lead', `¿Borrar la solicitud de ${x.nombre}? No se puede deshacer.`, { boton: 'Borrar', peligro: true }))) return
+      await D.borrarWebLead(x.id)
+      avisar('Lead borrado')
+      await recargar()
+      return
+    }
+    if (d.fiestaEmpresa !== undefined) {
+      S.fiestaEmpresa = d.fiestaEmpresa
+      pintarVista()
+      return
+    }
+    if (d.borrarInvitado) {
+      const x = S.fiesta.find((v) => v.id === d.borrarInvitado)
+      if (!x || !(await preguntar('Borrar confirmación', `¿Borrar a ${x.nombre} de la lista de la fiesta?`, { boton: 'Borrar', peligro: true }))) return
+      await D.borrarInvitado(x.id)
+      avisar('Borrado de la lista')
+      await recargar()
+      return
+    }
     if (d.editarUsuario) return formUsuario(d.editarUsuario)
     if (d.claveUsuario) return formClave(d.claveUsuario)
     if (d.eliminarUsuario) return eliminarUsuario(d.eliminarUsuario, b)
@@ -1682,12 +2375,33 @@ async function alClic(e) {
         desmontarUltron()
         S.yo = null
         return pintarEntrada()
+      case 'copiar-fiesta':
+        try {
+          await navigator.clipboard.writeText(FIESTA_URL())
+          avisar('Enlace copiado. Pégalo en WhatsApp.')
+        } catch {
+          avisar(`Cópialo a mano: ${FIESTA_URL()}`, true)
+        }
+        return
+      case 'csv-web':
+        return csvWeb()
+      case 'recargar-web':
+        await recargar()
+        avisar('Website leads al día')
+        return
+      case 'csv-fiesta':
+        return csvFiesta()
       case 'nueva-tarea':
         return formNuevaTarea()
       case 'abrir-nota':
         $('#form-nota').hidden = false
         b.hidden = true
         $('#n-texto').focus()
+        return
+      case 'recibir-tarea':
+        await ocupado(b, () => D.cambiarTarea(S.abierta, { estatus: 'en-proceso' }))
+        avisar('Recibida: pasó a “En proceso”')
+        await recargar()
         return
       case 'cerrar-pasos':
         try {
@@ -1753,6 +2467,10 @@ async function alClic(e) {
         await recargar()
         return
       }
+      case 'pedir-extra':
+        return formExtra()
+      case 'plan-fijo':
+        return formFijo()
       case 'nuevo-usuario':
         return formUsuario(null)
     }
@@ -1771,7 +2489,7 @@ async function alCambiar(e) {
         if (S.mes === 'pendientes') S.mes = 0
       } else S[d.filtro] = el.value
       if (d.filtro === 'bibEmpresa') S.bibCarpeta = null
-      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca') {
+      if (e.type === 'change' || d.filtro === 'busca' || d.filtro === 'bibBusca' || d.filtro === 'fiestaBusca' || d.filtro === 'leadsBusca' || d.filtro === 'webBusca') {
         const foco = document.activeElement === el
         const pos = el.selectionStart
         pintarVista()
@@ -1784,6 +2502,12 @@ async function alCambiar(e) {
       return
     }
     if (e.type !== 'change') return
+    if (d.webEstatus) {
+      await D.cambiarWebLead(d.webEstatus, { estatus: el.value })
+      avisar(`Estatus: ${ESTATUS_WEB[el.value]}`)
+      await recargar()
+      return
+    }
     if (d.cambiarTarea) {
       await D.cambiarTarea(S.abierta, { [d.cambiarTarea]: el.value || null })
       avisar('Guardado')
@@ -1837,7 +2561,7 @@ export async function iniciar(datos, { muestra = false } = {}) {
   document.addEventListener('click', alClic)
   document.addEventListener('change', alCambiar)
   document.addEventListener('input', (e) => {
-    if (e.target.dataset.filtro === 'busca' || e.target.dataset.filtro === 'bibBusca') alCambiar(e)
+    if (['busca', 'bibBusca', 'leadsBusca'].includes(e.target.dataset.filtro)) alCambiar(e)
   })
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('#modal').hidden && !$('.capa-dialogo')) cerrarVentana()

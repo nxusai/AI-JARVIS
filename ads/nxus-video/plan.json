@@ -1,0 +1,211 @@
+{
+ "A": {
+  "gancho": "A",
+  "H": 6.336,
+  "T": 34.07,
+  "frases": [
+   {
+    "a": 0.0,
+    "b": 2.037,
+    "txt": "Son las 11:48 de la noche."
+   },
+   {
+    "a": 2.589,
+    "b": 3.766,
+    "txt": "Tu negocio está cerrado…"
+   },
+   {
+    "a": 4.318,
+    "b": 6.215,
+    "txt": "y tus clientes te siguen escribiendo."
+   },
+   {
+    "a": 6.336,
+    "b": 7.71,
+    "txt": "Mensajes sin contestar,"
+   },
+   {
+    "a": 8.046,
+    "b": 11.168,
+    "txt": "reservas que se pierden y clientes que se van con la competencia."
+   },
+   {
+    "a": 11.607,
+    "b": 12.495,
+    "txt": "Con Nexus AI,"
+   },
+   {
+    "a": 12.691,
+    "b": 15.542,
+    "txt": "una inteligencia artificial atiende a tus clientes al instante,"
+   },
+   {
+    "a": 15.729,
+    "b": 16.915,
+    "txt": "las 24 horas,"
+   },
+   {
+    "a": 17.149,
+    "b": 19.065,
+    "txt": "por WhatsApp, Instagram y teléfono."
+   },
+   {
+    "a": 19.383,
+    "b": 22.757,
+    "txt": "Agenda, da seguimiento y te deja las ventas listas para cerrar."
+   },
+   {
+    "a": 23.149,
+    "b": 25.859,
+    "txt": "Además, software a la medida y marketing que vende,"
+   },
+   {
+    "a": 26.093,
+    "b": 28.644,
+    "txt": "para restaurantes y empresas que quieren crecer."
+   },
+   {
+    "a": 29.747,
+    "b": 32.271,
+    "txt": "Agenda tu diagnóstico gratis de 30 minutos."
+   }
+  ],
+  "ganchoFin": 6.78
+ },
+ "B": {
+  "gancho": "B",
+  "H": 5.206,
+  "T": 32.94,
+  "frases": [
+   {
+    "a": 0.0,
+    "b": 3.121,
+    "txt": "Este empleado atiende a tus clientes a las 3 de la mañana…"
+   },
+   {
+    "a": 3.57,
+    "b": 5.084,
+    "txt": "y nunca pide horas extra."
+   },
+   {
+    "a": 5.206,
+    "b": 6.58,
+    "txt": "Mensajes sin contestar,"
+   },
+   {
+    "a": 6.916,
+    "b": 10.038,
+    "txt": "reservas que se pierden y clientes que se van con la competencia."
+   },
+   {
+    "a": 10.477,
+    "b": 11.365,
+    "txt": "Con Nexus AI,"
+   },
+   {
+    "a": 11.561,
+    "b": 14.412,
+    "txt": "una inteligencia artificial atiende a tus clientes al instante,"
+   },
+   {
+    "a": 14.599,
+    "b": 15.785,
+    "txt": "las 24 horas,"
+   },
+   {
+    "a": 16.019,
+    "b": 17.935,
+    "txt": "por WhatsApp, Instagram y teléfono."
+   },
+   {
+    "a": 18.253,
+    "b": 21.627,
+    "txt": "Agenda, da seguimiento y te deja las ventas listas para cerrar."
+   },
+   {
+    "a": 22.019,
+    "b": 24.729,
+    "txt": "Además, software a la medida y marketing que vende,"
+   },
+   {
+    "a": 24.963,
+    "b": 27.514,
+    "txt": "para restaurantes y empresas que quieren crecer."
+   },
+   {
+    "a": 28.617,
+    "b": 31.141,
+    "txt": "Agenda tu diagnóstico gratis de 30 minutos."
+   }
+  ],
+  "ganchoFin": 5.57
+ },
+ "C": {
+  "gancho": "C",
+  "H": 4.86,
+  "T": 32.59,
+  "frases": [
+   {
+    "a": 0.15,
+    "b": 2.234,
+    "txt": "¿Tienes un restaurante con varias sucursales?"
+   },
+   {
+    "a": 2.617,
+    "b": 4.766,
+    "txt": "Mira lo que se pierde cuando nadie contesta."
+   },
+   {
+    "a": 4.86,
+    "b": 6.234,
+    "txt": "Mensajes sin contestar,"
+   },
+   {
+    "a": 6.57,
+    "b": 9.692,
+    "txt": "reservas que se pierden y clientes que se van con la competencia."
+   },
+   {
+    "a": 10.131,
+    "b": 11.019,
+    "txt": "Con Nexus AI,"
+   },
+   {
+    "a": 11.215,
+    "b": 14.066,
+    "txt": "una inteligencia artificial atiende a tus clientes al instante,"
+   },
+   {
+    "a": 14.253,
+    "b": 15.439,
+    "txt": "las 24 horas,"
+   },
+   {
+    "a": 15.673,
+    "b": 17.589,
+    "txt": "por WhatsApp, Instagram y teléfono."
+   },
+   {
+    "a": 17.907,
+    "b": 21.281,
+    "txt": "Agenda, da seguimiento y te deja las ventas listas para cerrar."
+   },
+   {
+    "a": 21.673,
+    "b": 24.383,
+    "txt": "Además, software a la medida y marketing que vende,"
+   },
+   {
+    "a": 24.617,
+    "b": 27.168,
+    "txt": "para restaurantes y empresas que quieren crecer."
+   },
+   {
+    "a": 28.271,
+    "b": 30.795,
+    "txt": "Agenda tu diagnóstico gratis de 30 minutos."
+   }
+  ],
+  "ganchoFin": 5.2
+ }
+}

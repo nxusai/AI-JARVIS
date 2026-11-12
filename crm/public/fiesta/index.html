@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¡Estás invitado! · Mi Semago & El Abuelito</title>
+<meta name="description" content="Invitación a la fiesta de empleados de Mi Semago y El Abuelito. Viernes 4 de diciembre de 2026, Milan Banquets.">
+<meta name="theme-color" content="#06122b">
+<link rel="icon" href="misemago.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@500;600;700;800;900&family=Great+Vibes&display=swap">
+<style>
+:root{
+  --navy:#06122b;--navy-2:#0b2050;--navy-3:#123067;--oro:#d4af37;--oro-claro:#f1d27a;--oro-luz:#fff3c4;--oro-osc:#9c7414;
+  --texto:#eef2ff;--suave:#b9c6e6;--ok:#4ade80;--mal:#fca5a5;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:var(--navy);color:var(--texto);font-family:Montserrat,system-ui,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body.cerrado-sobre{overflow:hidden}
+#chispas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.fondo{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 800px at 50% -10%,#1a3f86 0%,rgba(18,48,103,.0) 60%),radial-gradient(900px 700px at 100% 100%,rgba(212,175,55,.12),transparent 60%),linear-gradient(180deg,#081a3d,#040b1d)}
+.oro{background:linear-gradient(180deg,var(--oro-luz) 0%,var(--oro-claro) 28%,var(--oro) 60%,var(--oro-osc) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brillo{background-size:200% 100%;animation:brillo 4s linear infinite;background-image:linear-gradient(100deg,var(--oro-osc) 0%,var(--oro) 25%,var(--oro-luz) 45%,var(--oro) 60%,var(--oro-osc) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes brillo{to{background-position:-200% 0}}
+.pf{font-family:'Playfair Display',serif}
+.gv{font-family:'Great Vibes',cursive;font-weight:400}
+main{position:relative;z-index:1}
+.envoltura{max-width:1100px;margin:0 auto;padding:0 20px}
+
+/* ---------- Sobre de entrada ---------- */
+#sobre{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#123067,#050c20 75%);transition:opacity .9s ease,visibility .9s}
+#sobre.fuera{opacity:0;visibility:hidden}
+.sobre{position:relative;width:min(86vw,460px);aspect-ratio:1.45;perspective:1400px;filter:drop-shadow(0 40px 60px rgba(0,0,0,.55))}
+.sobre .cuerpo{position:absolute;inset:0;border-radius:14px;background:linear-gradient(160deg,#16367a,#0a1d48);border:2px solid rgba(212,175,55,.65);overflow:hidden}
+.sobre .cuerpo::before,.sobre .cuerpo::after{content:"";position:absolute;bottom:0;width:72%;height:100%;background:linear-gradient(160deg,#122e69,#081739)}
+.sobre .cuerpo::before{left:0;clip-path:polygon(0 0,100% 100%,0 100%)}
+.sobre .cuerpo::after{right:0;clip-path:polygon(100% 0,100% 100%,0 100%)}
+.sobre .carta{position:absolute;left:7%;right:7%;top:10%;bottom:8%;border-radius:10px;background:linear-gradient(180deg,#fffaf0,#f6ead0);display:grid;place-items:center;text-align:center;color:#0b2050;transition:transform 1.1s cubic-bezier(.2,.8,.2,1) .55s;z-index:1}
+.sobre .carta b{font:900 clamp(13px,3.6vw,16px) Montserrat;letter-spacing:4px}
+.sobre .carta .gv{font-size:clamp(34px,10vw,52px);color:var(--oro-osc);line-height:1}
+.sobre .tapa{position:absolute;left:0;right:0;top:0;height:58%;transform-origin:top;background:linear-gradient(180deg,#1b3f8c,#0f2759);clip-path:polygon(0 0,100% 0,50% 100%);border-top:2px solid rgba(212,175,55,.65);z-index:3;transition:transform .8s cubic-bezier(.6,0,.3,1),z-index 0s .4s}
+.sello{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);z-index:4;width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f7dc8a,#c9971f 55%,#8a6410);display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 0 0 4px rgba(255,255,255,.18);font:900 16px 'Playfair Display';color:#5a3f05;letter-spacing:1px;transition:transform .5s,opacity .4s;animation:latido 2.2s ease-in-out infinite}
+@keyframes latido{50%{transform:translate(-50%,-50%) scale(1.07)}}
+#sobre.abierto .sello{opacity:0;transform:translate(-50%,-50%) scale(1.6);animation:none}
+#sobre.abierto .tapa{transform:rotateX(180deg);z-index:0}
+#sobre.abierto .carta{transform:translateY(-62%)}
+.sobre-texto{position:absolute;left:0;right:0;bottom:max(6vh,30px);text-align:center}
+.sobre-texto p{margin:0 0 14px;color:var(--suave);font-weight:600;letter-spacing:2px;font-size:13px;text-transform:uppercase}
+
+/* ---------- Botones ---------- */
+.btn{appearance:none;border:0;cursor:pointer;font:800 17px Montserrat;letter-spacing:1px;border-radius:999px;padding:18px 34px;color:#0a1d44;background:linear-gradient(180deg,#fbe7a6,#e2bb4f 45%,#b8881c);box-shadow:0 10px 30px rgba(212,175,55,.35),inset 0 1px 0 rgba(255,255,255,.7);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;text-decoration:none;display:inline-flex;align-items:center;gap:10px;justify-content:center}
+.btn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:destello 3.2s ease-in-out infinite}
+@keyframes destello{0%,60%{left:-60%}100%{left:130%}}
+.btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 16px 40px rgba(212,175,55,.5),inset 0 1px 0 rgba(255,255,255,.7)}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.btn.grande{font-size:clamp(17px,2.2vw,21px);padding:22px 44px}
+.btn.fantasma{background:rgba(255,255,255,.06);color:var(--oro-claro);border:1.5px solid rgba(212,175,55,.55);box-shadow:none}
+.btn.fantasma::after{display:none}
+.btn[disabled]{opacity:.6;cursor:wait}
+.pulso{animation:pulso 2.4s ease-in-out infinite}
+@keyframes pulso{0%,100%{box-shadow:0 10px 30px rgba(212,175,55,.35),0 0 0 0 rgba(241,210,122,.55)}50%{box-shadow:0 10px 30px rgba(212,175,55,.45),0 0 0 16px rgba(241,210,122,0)}}
+
+/* ---------- Portada ---------- */
+.portada{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px 70px;position:relative}
+.logos{display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,28px);flex-wrap:wrap;margin-bottom:clamp(18px,4vh,34px)}
+.logo-tarjeta{background:#fff;border-radius:22px;padding:14px 22px;display:grid;place-items:center;box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 2px rgba(212,175,55,.7),0 0 40px rgba(212,175,55,.25)}
+.logo-tarjeta img{display:block;height:auto}
+.logo-ms img{width:clamp(190px,30vw,300px)}
+.logo-ab img{width:clamp(130px,19vw,190px)}
+.y{font:italic 700 clamp(30px,4vw,44px) 'Playfair Display'}
+.eyebrow{font-weight:800;letter-spacing:clamp(4px,1vw,9px);font-size:clamp(12px,1.5vw,15px);color:var(--oro-claro);text-transform:uppercase;margin:0}
+h1{margin:6px 0 4px;line-height:.95}
+h1 .gv{font-size:clamp(70px,13vw,150px);display:block;filter:drop-shadow(0 8px 30px rgba(0,0,0,.45))}
+.lema{font:italic 700 clamp(20px,2.6vw,30px) 'Playfair Display';margin:8px auto 0;max-width:720px;color:var(--texto)}
+.insignia{display:inline-flex;align-items:center;gap:10px;margin:22px 0 26px;padding:10px 22px;border-radius:999px;background:rgba(212,175,55,.12);border:1.5px solid rgba(212,175,55,.55);color:var(--oro-claro);font-weight:800;letter-spacing:3px;font-size:clamp(11px,1.4vw,13px);text-transform:uppercase}
+.bajar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:var(--suave);font-size:12px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bajar span{width:22px;height:36px;border:2px solid rgba(255,255,255,.4);border-radius:12px;position:relative}
+.bajar span::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:8px;border-radius:2px;background:var(--oro-claro);transform:translateX(-50%);animation:rueda 1.8s infinite}
+@keyframes rueda{0%{opacity:0;top:6px}30%{opacity:1}100%{opacity:0;top:20px}}
+
+/* ---------- Cuenta regresiva ---------- */
+.cuenta{display:flex;justify-content:center;gap:clamp(8px,2vw,18px);margin:6px 0 30px}
+.cuenta div{min-width:clamp(68px,12vw,110px);padding:clamp(12px,2vw,18px) 8px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.cuenta b{display:block;font:900 clamp(28px,5vw,50px) 'Playfair Display';line-height:1}
+.cuenta small{display:block;margin-top:6px;font-size:clamp(10px,1.2vw,12px);letter-spacing:2px;color:var(--suave);text-transform:uppercase;font-weight:700}
+
+/* ---------- Secciones ---------- */
+section{padding:clamp(60px,10vh,110px) 0}
+.titulo-sec{text-align:center;margin:0 0 clamp(28px,5vh,48px)}
+.titulo-sec .gv{font-size:clamp(48px,7vw,80px);line-height:1}
+.titulo-sec p{margin:8px 0 0;color:var(--suave);font-weight:600}
+.datos{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,24px)}
+.dato{position:relative;padding:34px 26px 30px;border-radius:26px;text-align:center;background:linear-gradient(165deg,rgba(25,58,124,.75),rgba(8,20,48,.85));border:1.5px solid rgba(212,175,55,.45);box-shadow:0 30px 60px rgba(0,0,0,.35),inset 0 0 0 8px rgba(6,18,43,.6),inset 0 0 0 9px rgba(212,175,55,.25);overflow:hidden;transition:transform .35s,box-shadow .35s}
+.dato:hover{transform:translateY(-6px);box-shadow:0 40px 70px rgba(0,0,0,.45),inset 0 0 0 8px rgba(6,18,43,.6),inset 0 0 0 9px rgba(212,175,55,.45)}
+.dato .ico{width:62px;height:62px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:radial-gradient(circle at 35% 30%,rgba(255,243,196,.35),rgba(212,175,55,.12));border:1px solid rgba(212,175,55,.5)}
+.dato h3{margin:0 0 4px;font-weight:800;font-size:13px;letter-spacing:4px;color:var(--oro-claro);text-transform:uppercase}
+.dato .grande{font:900 clamp(30px,3.2vw,40px) 'Playfair Display';line-height:1.1;margin:6px 0}
+.dato p{margin:4px 0 0;color:var(--suave);font-weight:600;line-height:1.5}
+.dato a{color:var(--oro-claro);font-weight:700}
+.mapa{margin-top:clamp(14px,2vw,24px);border-radius:26px;overflow:hidden;border:1.5px solid rgba(212,175,55,.45);box-shadow:0 30px 60px rgba(0,0,0,.35);height:clamp(240px,40vh,380px);background:#0b1a3a}
+.mapa iframe{width:100%;height:100%;border:0;filter:grayscale(.2) contrast(1.05)}
+.aviso{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center;margin:clamp(24px,4vh,40px) auto 0;padding:22px 26px;border-radius:22px;max-width:820px;background:rgba(212,175,55,.08);border:1.5px dashed rgba(212,175,55,.55)}
+.aviso b{color:var(--oro-claro)}
+.aviso p{margin:0;font-weight:600;line-height:1.5}
+
+/* ---------- Confirmar ---------- */
+.rsvp{max-width:620px;margin:0 auto;border-radius:30px;padding:clamp(26px,5vw,48px);background:linear-gradient(170deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1.5px solid rgba(212,175,55,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 40px 90px rgba(0,0,0,.45)}
+.campo{margin-bottom:18px;text-align:left}
+.campo label{display:block;font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--oro-claro);margin-bottom:8px}
+.campo input,.campo select{width:100%;font:600 18px Montserrat;color:#fff;background:rgba(4,11,29,.65);border:1.5px solid rgba(185,198,230,.3);border-radius:16px;padding:16px 18px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+.campo select{background-image:linear-gradient(45deg,transparent 50%,var(--oro-claro) 50%),linear-gradient(135deg,var(--oro-claro) 50%,transparent 50%);background-position:calc(100% - 26px) 50%,calc(100% - 19px) 50%;background-size:7px 7px;background-repeat:no-repeat;padding-right:48px}
+.campo select option{color:#0a1d44;background:#fff}
+.campo input::placeholder{color:rgba(185,198,230,.55)}
+.campo input:focus,.campo select:focus{border-color:var(--oro-claro);box-shadow:0 0 0 4px rgba(212,175,55,.2)}
+.campo .error{display:none;color:var(--mal);font-size:14px;font-weight:600;margin-top:6px}
+.campo.mal input,.campo.mal select{border-color:var(--mal)}
+.campo.mal .error{display:block}
+.trampa{position:absolute;left:-5000px;width:1px;height:1px;overflow:hidden}
+.mensaje{margin:14px 0 0;text-align:center;font-weight:700;min-height:1.4em}
+.mensaje.mal{color:var(--mal)}
+.listo{text-align:center;display:none}
+.listo .check{width:96px;height:96px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#86efac,#16a34a);box-shadow:0 0 0 10px rgba(74,222,128,.15),0 20px 40px rgba(0,0,0,.35);animation:aparece .6s cubic-bezier(.2,1.6,.4,1)}
+.listo .check svg{width:52px;height:52px;stroke:#fff;stroke-width:3.5;fill:none;stroke-dasharray:60;stroke-dashoffset:60;animation:trazo .6s .35s forwards}
+@keyframes trazo{to{stroke-dashoffset:0}}
+@keyframes aparece{from{transform:scale(0)}to{transform:scale(1)}}
+.listo h3{font-size:clamp(52px,8vw,72px);margin:0;line-height:1}
+.listo p{color:var(--suave);font-weight:600;line-height:1.6}
+.acciones{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.cerrado{text-align:center;display:none}
+footer{text-align:center;padding:40px 20px 60px;color:var(--suave);font-size:13px;font-weight:600;letter-spacing:1px}
+footer .gv{font-size:38px;display:block;margin-bottom:6px}
+
+/* ---------- Música ---------- */
+#musica{position:fixed;right:18px;top:calc(18px + env(safe-area-inset-top));z-index:40;display:flex;align-items:center;gap:10px;padding:10px 16px 10px 12px;border-radius:999px;border:1.5px solid rgba(212,175,55,.6);background:rgba(6,18,43,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--oro-claro);font:800 12px Montserrat;letter-spacing:2px;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(-20px);transition:opacity .6s,transform .6s}
+body.listo-ver #musica{opacity:1;transform:none}
+#musica .barras{display:flex;align-items:flex-end;gap:3px;height:18px;width:22px}
+#musica .barras i{flex:1;background:linear-gradient(180deg,var(--oro-luz),var(--oro));border-radius:2px;height:30%;transition:height .3s}
+#musica.sonando .barras i{animation:eq 1s ease-in-out infinite}
+#musica.sonando .barras i:nth-child(2){animation-delay:-.4s}#musica.sonando .barras i:nth-child(3){animation-delay:-.7s}#musica.sonando .barras i:nth-child(4){animation-delay:-.2s}
+@keyframes eq{0%,100%{height:25%}50%{height:100%}}
+#musica:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media (max-width:600px){.portada{padding-top:76px}#musica{right:12px;top:calc(12px + env(safe-area-inset-top));padding:11px}#musica #musica-txt{display:none}}
+
+/* ---------- Animaciones al bajar ---------- */
+.revela{opacity:0;transform:translateY(40px) scale(.98);transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1)}
+.revela.visto{opacity:1;transform:none}
+.retraso-1{transition-delay:.12s}.retraso-2{transition-delay:.24s}.retraso-3{transition-delay:.36s}
+.entra{opacity:0;transform:translateY(30px);animation:entra 1s cubic-bezier(.2,.8,.2,1) forwards;animation-play-state:paused}
+body.listo-ver .entra{animation-play-state:running}
+@keyframes entra{to{opacity:1;transform:none}}
+
+@media (max-width:820px){
+  .datos{grid-template-columns:1fr}
+  .logo-tarjeta{padding:10px 16px;border-radius:18px}
+}
+@media (max-width:520px){
+  .logos{flex-wrap:nowrap;gap:10px}
+  .logo-tarjeta{padding:8px 10px;border-radius:14px}
+  .logo-ms img{width:150px}
+  .logo-ab img{width:86px}
+  .y{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body class="cerrado-sobre">
+<div class="fondo"></div>
+<canvas id="chispas" aria-hidden="true"></canvas>
+
+<!-- Sobre de entrada -->
+<div id="sobre" role="dialog" aria-label="Invitación">
+  <div class="sobre" id="sobre-caja">
+    <div class="cuerpo"></div>
+    <div class="carta"><div><b>INVITACIÓN</b><div class="gv">Para ti</div></div></div>
+    <div class="tapa"></div>
+    <div class="sello">MS·EA</div>
+  </div>
+  <div class="sobre-texto">
+    <p>Tienes una invitación especial</p>
+    <button class="btn grande pulso" id="abrir">✉️ Abrir invitación</button>
+  </div>
+</div>
+
+<audio id="jazz" src="jazz.mp3" loop preload="auto"></audio>
+<button id="musica" type="button" aria-pressed="false" aria-label="Música"><span class="barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="musica-txt">Música</span></button>
+
+<main>
+  <header class="portada">
+    <div class="logos entra" style="animation-delay:.1s">
+      <div class="logo-tarjeta logo-ms"><img src="misemago.png" alt="Mi Semago · The Better Latin Dairy Company"></div>
+      <span class="y oro">&amp;</span>
+      <div class="logo-tarjeta logo-ab"><img src="abuelito.png" alt="El Abuelito · ¡Solo lo mejor!"></div>
+    </div>
+    <p class="eyebrow entra" style="animation-delay:.3s">Te invitan a celebrar</p>
+    <h1 class="entra" style="animation-delay:.45s"><span class="gv brillo">¡Estás invitado!</span></h1>
+    <p class="lema entra" style="animation-delay:.65s">Una noche especial, solo para nuestra familia de trabajo</p>
+    <div class="insignia entra" style="animation-delay:.8s">★ Evento exclusivo para empleados ★</div>
+    <div class="cuenta entra" style="animation-delay:.95s" id="cuenta" aria-label="Cuenta regresiva para la fiesta">
+      <div><b id="c-dias">--</b><small>Días</small></div>
+      <div><b id="c-horas">--</b><small>Horas</small></div>
+      <div><b id="c-min">--</b><small>Min</small></div>
+      <div><b id="c-seg">--</b><small>Seg</small></div>
+    </div>
+    <div class="entra" style="animation-delay:1.1s"><a class="btn grande pulso" href="#confirmar">✓ Confirmar asistencia</a></div>
+    <a class="bajar" href="#detalles"><span></span>Detalles</a>
+  </header>
+
+  <section id="detalles">
+    <div class="envoltura">
+      <div class="titulo-sec revela"><div class="gv oro">Los detalles</div><p>Aparta la fecha: te esperamos</p></div>
+      <div class="datos">
+        <div class="dato revela retraso-1"><div class="ico">📅</div><h3>Fecha</h3><div class="grande oro">Viernes 4</div><p>de diciembre de 2026</p></div>
+        <div class="dato revela retraso-2"><div class="ico">🕖</div><h3>Hora</h3><div class="grande oro">7:00 PM</div><p>a 1:00 AM</p></div>
+        <div class="dato revela retraso-3"><div class="ico">📍</div><h3>Lugar</h3><div class="grande oro">Milan Banquets</div><p>32 Passaic St<br>Garfield, NJ 07026</p><p><a href="https://www.google.com/maps/search/?api=1&query=Milan%20Banquets%2032%20Passaic%20St%20Garfield%20NJ%2007026" target="_blank" rel="noopener">Cómo llegar ↗</a></p></div>
+      </div>
+      <div class="mapa revela"><iframe title="Mapa de Milan Banquets" loading="lazy" referrerpolicy="no-referrer" src="https://www.google.com/maps?q=Milan+Banquets,+32+Passaic+St,+Garfield,+NJ+07026&output=embed"></iframe></div>
+      <div class="aviso revela"><span style="font-size:30px">⏳</span><p>Tienes hasta el <b>16 de noviembre</b> para confirmar tu asistencia.<br>Es un evento <b>solo para empleados</b> de Mi Semago y El Abuelito.</p></div>
+    </div>
+  </section>
+
+  <section id="confirmar">
+    <div class="envoltura">
+      <div class="titulo-sec revela"><div class="gv oro">Confirma tu asistencia</div><p>Solo te toma 30 segundos</p></div>
+      <div class="rsvp revela">
+        <form id="forma" novalidate>
+          <div class="campo" id="f-nombre"><label for="nombre">Nombre completo</label><input id="nombre" name="nombre" autocomplete="name" placeholder="Ej. María López" maxlength="80"><div class="error">Escribe tu nombre completo</div></div>
+          <div class="campo" id="f-telefono"><label for="telefono">Número de teléfono</label><input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="(973) 555-0123" maxlength="20"><div class="error">Escribe tu número a 10 dígitos</div></div>
+          <div class="campo" id="f-empresa"><label for="empresa">¿En qué empresa trabajas?</label>
+            <select id="empresa" name="empresa"><option value="">Elige tu empresa…</option><option>MI SEMAGO</option><option>ABUELITO CORN</option><option>ABUELITO MEAT</option><option>ABUELITO CHEESE</option></select>
+            <div class="error">Elige la empresa donde trabajas</div></div>
+          <div class="trampa" aria-hidden="true"><label>No llenar <input id="sitio" tabindex="-1" autocomplete="off"></label></div>
+          <button class="btn grande" style="width:100%" id="enviar" type="submit">✓ Confirmar asistencia</button>
+          <p class="mensaje" id="mensaje" role="status"></p>
+        </form>
+        <div class="listo" id="listo">
+          <div class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3 class="gv oro">¡Te esperamos!</h3>
+          <p id="listo-texto">Tu asistencia quedó confirmada.<br>Viernes 4 de diciembre · 7:00 PM · Milan Banquets</p>
+          <div class="acciones"><button class="btn" id="calendario">📅 Agregar a mi calendario</button><button class="btn fantasma" id="otra">Confirmar a otra persona</button></div>
+        </div>
+        <div class="cerrado" id="cerrado"><h3 class="gv oro" style="font-size:56px;margin:0">Confirmación cerrada</h3><p style="color:var(--suave);font-weight:600;line-height:1.6">El plazo para confirmar terminó el 16 de noviembre.<br>Si tienes dudas, pregunta a tu gerente.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer><span class="gv oro">Solo lo mejor para nuestra gente</span>Mi Semago · El Abuelito · Viernes 4 de diciembre de 2026</footer>
+</main>
+
+<script>
+(() => {
+  const FIESTA = Date.parse('2026-12-04T19:00:00-05:00')
+  const LIMITE = Date.parse('2026-11-17T00:00:00-05:00')
+  const $ = (s) => document.querySelector(s)
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  // ---- Chispas doradas de fondo + confeti ----
+  const cv = $('#chispas'), cx = cv.getContext('2d')
+  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 2)
+  const chispas = [], confeti = []
+  function medir() { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0) }
+  medir(); addEventListener('resize', medir)
+  const n = W < 700 ? 40 : 80
+  for (let i = 0; i < n; i++) chispas.push({ x: Math.random() * W, y: Math.random() * H, r: .6 + Math.random() * 2.2, v: .15 + Math.random() * .5, f: Math.random() * 6, a: .25 + Math.random() * .6 })
+  const COLORES = ['#f1d27a', '#d4af37', '#fff3c4', '#ffffff', '#3b82f6']
+  function lanzarConfeti(x = W / 2, y = H * .35, cuantos = 160) {
+    if (quieto) return
+    for (let i = 0; i < cuantos; i++) {
+      const ang = Math.random() * Math.PI * 2, vel = 4 + Math.random() * 11
+      confeti.push({ x, y, vx: Math.cos(ang) * vel, vy: Math.sin(ang) * vel - 6, w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, rot: Math.random() * 6, vr: (Math.random() - .5) * .4, c: COLORES[(Math.random() * COLORES.length) | 0], vida: 1 })
+    }
+  }
+  window.lanzarConfeti = lanzarConfeti
+  let t = 0
+  function cuadro() {
+    t += 1
+    cx.clearRect(0, 0, W, H)
+    for (const p of chispas) {
+      p.y -= p.v; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W }
+      const a = p.a * (.55 + .45 * Math.sin(t * .03 + p.f))
+      const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4)
+      g.addColorStop(0, `rgba(255,236,170,${a})`); g.addColorStop(1, 'rgba(212,175,55,0)')
+      cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, p.r * 4, 0, 7); cx.fill()
+    }
+    for (let i = confeti.length - 1; i >= 0; i--) {
+      const p = confeti[i]
+      p.vy += .25; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vida -= .006
+      if (p.y > H + 40 || p.vida <= 0) { confeti.splice(i, 1); continue }
+      cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.scale(Math.cos(p.rot * 3), 1)
+      cx.globalAlpha = Math.min(1, p.vida * 2); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore()
+    }
+    requestAnimationFrame(cuadro)
+  }
+  if (!quieto) requestAnimationFrame(cuadro)
+
+  // ---- Música (jazz): empieza al abrir el sobre; el navegador solo deja sonar después de un toque ----
+  const jazz = $('#jazz'), bm = $('#musica'), VOL = .45
+  let quiereMusica = true
+  try { quiereMusica = localStorage.getItem('fiesta-musica') !== 'no' } catch {}
+  let rampa
+  function volumenA(meta, ms = 1800) {
+    clearInterval(rampa)
+    const ini = jazz.volume, t0 = performance.now()
+    rampa = setInterval(() => {
+      const k = Math.min(1, (performance.now() - t0) / ms)
+      jazz.volume = ini + (meta - ini) * k
+      if (k >= 1) { clearInterval(rampa); if (meta === 0) jazz.pause() }
+    }, 40)
+  }
+  function pintarBoton() { const on = !jazz.paused; bm.classList.toggle('sonando', on); bm.setAttribute('aria-pressed', on); $('#musica-txt').textContent = on ? 'Música' : 'Sin música' }
+  async function sonar() {
+    if (!quiereMusica || !jazz.paused) return
+    jazz.volume = 0
+    try { await jazz.play(); volumenA(VOL) } catch {}
+    pintarBoton()
+  }
+  jazz.addEventListener('play', pintarBoton); jazz.addEventListener('pause', pintarBoton)
+  bm.addEventListener('click', () => {
+    if (jazz.paused) { quiereMusica = true; sonar() } else { quiereMusica = false; volumenA(0, 500) }
+    try { localStorage.setItem('fiesta-musica', quiereMusica ? 'si' : 'no') } catch {}
+  })
+  // Si entran directo a confirmar (sin abrir el sobre), la música arranca con su primer toque.
+  const primerToque = (e) => { if (e.target.closest && e.target.closest('#musica')) return; sonar(); removeEventListener('pointerdown', primerToque); removeEventListener('keydown', primerToque) }
+  addEventListener('pointerdown', primerToque); addEventListener('keydown', primerToque)
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !jazz.paused) { jazz.pause(); jazz.dataset.volver = '1' } else if (!document.hidden && jazz.dataset.volver) { delete jazz.dataset.volver; jazz.play().catch(() => {}) } })
+
+  // ---- Sobre ----
+  function abrirSobre() {
+    const s = $('#sobre')
+    if (s.classList.contains('abierto')) return
+    s.classList.add('abierto')
+    sonar()
+    setTimeout(() => lanzarConfeti(W / 2, H * .4, 220), 900)
+    setTimeout(() => { s.classList.add('fuera'); document.body.classList.remove('cerrado-sobre'); document.body.classList.add('listo-ver') }, quieto ? 50 : 1900)
+  }
+  $('#abrir').addEventListener('click', abrirSobre)
+  $('#sobre-caja').addEventListener('click', abrirSobre)
+  // Si llegan directo a confirmar (#confirmar), no los hacemos esperar.
+  if (location.hash === '#confirmar') { $('#sobre').classList.add('fuera'); document.body.classList.remove('cerrado-sobre'); document.body.classList.add('listo-ver') }
+
+  // ---- Cuenta regresiva ----
+  const dos = (x) => String(x).padStart(2, '0')
+  function contar() {
+    const d = Math.max(0, FIESTA - Date.now())
+    $('#c-dias').textContent = Math.floor(d / 864e5)
+    $('#c-horas').textContent = dos(Math.floor(d / 36e5) % 24)
+    $('#c-min').textContent = dos(Math.floor(d / 6e4) % 60)
+    $('#c-seg').textContent = dos(Math.floor(d / 1e3) % 60)
+  }
+  contar(); setInterval(contar, 1000)
+
+  // ---- Aparecer al bajar ----
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('visto'); io.unobserve(e.target) } }), { threshold: .15 })
+  document.querySelectorAll('.revela').forEach((el) => io.observe(el))
+
+  // ---- Confirmar ----
+  const forma = $('#forma'), msg = $('#mensaje'), boton = $('#enviar')
+  function plazoCerrado() { forma.style.display = 'none'; $('#cerrado').style.display = 'block'; document.querySelectorAll('a[href="#confirmar"]').forEach((a) => (a.textContent = 'Ver detalles')) }
+  if (Date.now() >= LIMITE) plazoCerrado()
+  const tel = $('#telefono')
+  tel.addEventListener('input', () => {
+    let d = tel.value.replace(/\D/g, '')
+    if (d.length === 11 && d[0] === '1') d = d.slice(1)
+    if (d.length <= 10) tel.value = d.length > 6 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : d.length > 3 ? `(${d.slice(0, 3)}) ${d.slice(3)}` : d
+  })
+  const marcar = (id, mal) => $(id).classList.toggle('mal', mal)
+  forma.addEventListener('input', (e) => e.target.closest('.campo')?.classList.remove('mal'))
+  forma.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    msg.textContent = ''; msg.className = 'mensaje'
+    const nombre = $('#nombre').value.trim().replace(/\s+/g, ' ')
+    let digitos = tel.value.replace(/\D/g, ''); if (digitos.length === 11 && digitos[0] === '1') digitos = digitos.slice(1)
+    const empresa = $('#empresa').value
+    marcar('#f-nombre', nombre.length < 2)
+    marcar('#f-telefono', digitos.length < 10 || digitos.length > 15)
+    marcar('#f-empresa', !empresa)
+    const primero = forma.querySelector('.campo.mal input, .campo.mal select')
+    if (primero) { primero.focus(); return }
+    boton.disabled = true; boton.textContent = 'Confirmando…'
+    try {
+      const r = await fetch('/.netlify/functions/fiesta', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nombre, telefono: digitos, empresa, sitio: $('#sitio').value }) })
+      const d = await r.json().catch(() => ({}))
+      if (r.status === 410) { plazoCerrado(); return }
+      if (!r.ok || !d.ok) throw new Error(d.error || 'No pudimos guardar tu confirmación. Intenta otra vez.')
+      forma.style.display = 'none'
+      $('#listo-texto').innerHTML = `¡Listo, <b>${nombre.split(' ')[0].replace(/[<>&]/g, '')}</b>! Tu asistencia quedó confirmada.<br>Viernes 4 de diciembre · 7:00 PM · Milan Banquets`
+      $('#listo').style.display = 'block'
+      const caja = $('#listo').getBoundingClientRect()
+      lanzarConfeti(W / 2, caja.top + 60, 240)
+    } catch (err) {
+      msg.textContent = err.message === 'Failed to fetch' ? 'Sin conexión. Revisa tu internet e intenta otra vez.' : err.message
+      msg.className = 'mensaje mal'
+    } finally {
+      boton.disabled = false; boton.textContent = '✓ Confirmar asistencia'
+    }
+  })
+  $('#otra').addEventListener('click', () => { forma.reset(); $('#listo').style.display = 'none'; forma.style.display = 'block'; $('#nombre').focus() })
+
+  // ---- Agregar al calendario (.ics) ----
+  $('#calendario').addEventListener('click', () => {
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Fiesta Mi Semago El Abuelito//ES', 'BEGIN:VEVENT', 'UID:fiesta-2026-misemago-abuelito', 'DTSTAMP:20261106T000000Z',
+      'DTSTART:20261205T000000Z', 'DTEND:20261205T060000Z', 'SUMMARY:Fiesta Mi Semago & El Abuelito', 'LOCATION:Milan Banquets\\, 32 Passaic St\\, Garfield\\, NJ 07026',
+      'DESCRIPTION:Evento exclusivo para empleados. ¡Te esperamos!', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
+    a.download = 'fiesta-misemago-abuelito.ics'
+    document.body.appendChild(a); a.click(); a.remove()
+  })
+})()
+</script>
+</body>
+</html>

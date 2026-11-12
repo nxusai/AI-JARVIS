@@ -122,6 +122,16 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 
    Tú (el dueño) sigues entrando con tu correo. Los usuarios creados antes de esto entran con su correo hasta que les pongas un usuario en **Editar** (con una contraseña nueva).
 
+### Permisos
+En **Nuevo usuario** y **Editar** está el cuadro **Permisos · a qué tiene acceso**, para clientes y para tu equipo: qué empresas ve, qué secciones (Tareas, Biblioteca, Catálogos, Parrilla), si **puede pedir extras en la Parrilla** y, para clientes, si habla con Ultron. Lo que quitas ahí ya no lo ve (lo cuida la base de datos). En la tabla de Usuarios, la columna **Puede ver** lo resume.
+
+### Parrilla: lo que se espera cada mes
+- Arriba: **Parrilla Abuelito** (Cheese, Meat y Corn juntas) o **Parrilla Mi Semago**.
+- **Lo que se espera en <mes>**: cada cosa con su punto de color y cuántos van. Clic en una para ver solo esas en el calendario (**Ver todo** para regresar).
+- Tu diseñador, al agregar un contenido, elige en **¿Qué es?** qué cosa cumple: en el calendario sale con ese punto y el contador sube solo.
+- **⚙️ Lo fijo** (solo tú): cambia cuántos al mes, agrega o quita. Cuenta desde este mes; los meses pasados se quedan como estaban. Si quitas algo, deja de salir desde el mes siguiente.
+- **+ Pedir algo extra** (quien tenga el permiso): qué, cuántos, para este mes o el siguiente. Sale con **Pidió: <nombre>** para todos. Solo tú lo puedes borrar (✕).
+
 ### Cambios a los usuarios
 - **Cambiarle el usuario o corregir su correo:** Usuarios → **Editar** → **Guardar**. Si además escribes una contraseña nueva y tiene correo, se la puedes mandar.
 - **Reenviar acceso (si la olvidó o no le llegó):** Usuarios → **✉️ Reenviar acceso**. Lleva una contraseña nueva (la de antes nadie la conoce; puedes poner la que quieras) → **Reenviar acceso**. Si tiene correo se la manda; si no, te enseña sus datos con **📋 Copiar para WhatsApp**.
@@ -134,7 +144,7 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 
 | | Cliente (Senen, Gerardo) | Equipo | Admin (tú) |
 |---|---|---|---|
-| Pedir tarea / corrección | ✅ las suyas | registra a nombre de un cliente | igual que el equipo |
+| Pedir tarea / corrección | ✅ las suyas | registra tareas a nombre de un cliente activo (no pide correcciones: lo que el cliente cambie por WhatsApp va como actualización) | igual que el equipo |
 | Agregar instrucciones o PDFs a una tarea ya pedida (actualizaciones, con fecha) | ✅ las suyas | ✅ (lo que el cliente pidió por WhatsApp) | ✅ |
 | Ver tareas | solo las suyas | todas | todas |
 | Cambiar lo que escribió el cliente | ❌ | ❌ | ❌ |
@@ -143,6 +153,8 @@ Este sí va con **tu cuenta de NXUS** (contacto@nxusai.org): los accesos les lle
 | Aprobado | ✅ solo quien la pidió | ❌ | ❌ |
 | Biblioteca y catálogos | ver, descargar, a su correo | subir, carpetas, versiones | igual que el equipo |
 | Borrar (tareas, correcciones, actualizaciones, archivos, carpetas) | ❌ | ❌ | ✅ solo tú |
+| Parrilla: lo que se espera cada mes (lo fijo) | 👁️ | 👁️ | ✅ solo tú |
+| Parrilla: pedir extras (este mes o el siguiente) | si le das el permiso | si le das el permiso | ✅ (y solo tú los cambias o borras) |
 | Usuarios, empresas, bitácora | ❌ | ❌ | ✅ |
 | Cambiar su propia contraseña | ✅ | ✅ | ✅ |
 
@@ -158,3 +170,14 @@ Nada se reemplaza. Cada PDF nuevo (entrega, corrección o versión) se guarda ju
 3. Debe decir **Success. No rows returned**.
 
 La página se actualiza sola en Netlify con cada cambio en la rama.
+
+## Website leads (formulario de misemago.com)
+
+La pestaña **WEBSITE LEADS** junta cada solicitud del formulario «Cotizar / Get a quote» de misemago.com: nombre, empresa, correo, teléfono, tipo de negocio, quesos que le interesan, mensaje y, si lo armó, su diseño del Estudio de Marca. Va aparte de **Leads** (los de WhatsApp que llama Ana Sofi).
+
+- **Quién la ve:** los mismos que ven Leads: el admin y quien tenga **Ve Leads** (Usuarios → editar). Ellos cambian el estatus (Nuevo → Contactado → Cotizado → Ganado o Perdido) y escriben notas. Lo que la persona escribió en el sitio no se puede cambiar. Solo el admin borra.
+- **El numerito rojo** en la pestaña son los que están en «Nuevo».
+- **Cómo llega:** el sitio manda los datos a la función `crm/netlify/functions/leads.mjs`, que los revisa (trampa para robots, correo válido, máximo 5 por minuto por persona) y los guarda con la llave de servicio. El sitio no toca la base de datos.
+- **Si el CRM no responde,** el sitio abre el correo con la solicitud escrita, para que no se pierda ningún cliente.
+- **Para activarla** solo hay que correr el esquema otra vez (sección de arriba). No hace falta ninguna llave nueva: usa `SUPABASE_SERVICE_KEY`, que ya está en Netlify.
+- **Ana Sofi les llama:** si la persona marca «Quiero que me llamen ahora» (su permiso por escrito), el lead también entra a **Leads** con 🌐 Web y Ana Sofi le llama en unos minutos, saltándose lo que ya contestó. Detalles en `docs/estado-ana-sofi.md`.

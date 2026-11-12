@@ -3,14 +3,30 @@
 // Nada sale a internet y al recargar la página vuelve a empezar.
 
 const EMPRESAS = [
-  { id: 'abuelito-cheese', nombre: 'Abuelito Cheese', grupo: 'Abuelito INC', orden: 1, activa: true },
-  { id: 'abuelito-meat', nombre: 'Abuelito Meat', grupo: 'Abuelito INC', orden: 2, activa: true },
-  { id: 'abuelito-corn', nombre: 'Abuelito Corn', grupo: 'Abuelito INC', orden: 3, activa: true },
-  { id: 'mi-semago', nombre: 'Mi Semago', grupo: null, orden: 4, activa: true },
-  { id: 'vayro', nombre: 'VAYRO', grupo: null, orden: 5, activa: false },
+  { id: 'abuelito-cheese', nombre: 'Abuelito Cheese', grupo: 'Abuelito INC', orden: 1, activa: true, marca: 'abuelito' },
+  { id: 'abuelito-meat', nombre: 'Abuelito Meat', grupo: 'Abuelito INC', orden: 2, activa: true, marca: 'abuelito' },
+  { id: 'abuelito-corn', nombre: 'Abuelito Corn', grupo: 'Abuelito INC', orden: 3, activa: true, marca: 'abuelito' },
+  { id: 'mi-semago', nombre: 'Mi Semago', grupo: null, orden: 4, activa: true, marca: 'mi-semago' },
+  { id: 'vayro', nombre: 'VAYRO', grupo: null, orden: 5, activa: false, marca: 'vayro' },
 ]
 
 import { CLAVE_MINIMA, normalizarUsuario, usuarioValido } from './acceso.js'
+
+/** El primer día del mes (local) en 'AAAA-MM-01', moviéndose n meses. */
+export function mesISO(n = 0, base = new Date()) {
+  const d = new Date(base.getFullYear(), base.getMonth() + n, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+const FIJOS = [
+  ['Stupid content', 1, '#2f9e44'],
+  ['Chef Saúl', 2, '#f08c00'],
+  ['Imágenes IA', 8, '#1c7ed6'],
+  ['Imágenes reales', 8, '#7048e8'],
+  ['Video IA', 1, '#e03131'],
+  ['ADS', 3, '#e8b100'],
+]
+const COLORES_FIJOS = ['#2f9e44', '#f08c00', '#1c7ed6', '#7048e8', '#e03131', '#e8b100', '#0c8599', '#d6336c']
+const COLORES_EXTRAS = ['#d6336c', '#0c8599', '#8d5a3b', '#5c940d', '#364fc7', '#ae3ec9', '#c2255c', '#087f5b']
 
 const PERSONAS = [
   { id: 'u-senen', nombre: 'Senen', correo: 'senen@ejemplo.com', rol: 'cliente', explica: 'Cliente (dueño): pide sus tareas, corrige, aprueba · tiene a Ultron' },
@@ -57,7 +73,43 @@ function logo(nombre, colorFondo) {
 }
 
 export function crearMuestra() {
-  const db = { empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [] }
+  const haceWeb = (dias) => new Date(Date.now() - dias * 864e5).toISOString()
+  const web = [
+    { id: 'w3', folio: 3, creada: haceWeb(0.2), nombre: 'Carlos Méndez', empresa: 'Supermercados La Placita', correo: 'compras@laplacita.example', telefono: '(201) 555-0142', tipo: 'Cadena de supermercados', intereses: ['Fresco', 'Oaxaca'], mensaje: 'Tenemos 6 tiendas en NJ y queremos sacar queso fresco y Oaxaca con nuestra marca.', propuesta: 'Propuesta del Estudio de Marca\n- Marca: La Placita\n- Queso: Queso Fresco con Hoja de Plátano 4" · 12 oz\n- Volumen: 300 cajas/semana de 6 (1,800 piezas, 1,350 lb, 1.7 tarimas)\n- Destino: New Jersey (~1 día en camino)', idioma: 'es', origen: 'misemago.com', estatus: 'nuevo', notas: '', actualizada: haceWeb(0.2) },
+    { id: 'w2', folio: 2, creada: haceWeb(2), nombre: 'Rosa Alvarado', empresa: 'Alvarado Foods', correo: 'rosa@alvaradofoods.example', telefono: '(713) 555-0199', tipo: 'Distribuidor', intereses: ['Panela', 'Canastón'], mensaje: 'We distribute in Houston and need panela and canastón for food service.', propuesta: '', idioma: 'en', origen: 'misemago.com', estatus: 'contactado', notas: 'Le llamé el martes. Manda muestras a Houston.', actualizada: haceWeb(1) },
+    { id: 'w1', folio: 1, creada: haceWeb(6), nombre: 'Luis Ortega', empresa: 'Sabor Catracho', correo: 'luis@saborcatracho.example', telefono: '', tipo: 'Marca propia nueva', intereses: ['Fresco'], mensaje: 'Quiero lanzar mi marca de queso hondureño.', propuesta: '', idioma: 'es', origen: 'misemago.com', estatus: 'cotizado', notas: 'Cotización enviada el lunes.', actualizada: haceWeb(3) },
+  ]
+  const db = { web, empresas: copia(EMPRESAS), perfiles: [], tareas: [], correcciones: [], notas: [], carpetas: [], archivos: [], bitacora: [], contenidos: [], plan: [], leads: [], leads_notas: [], fiesta: [
+    { id: 'f1', nombre: 'María López', telefono: '9735550123', empresa: 'MI SEMAGO', creada: ahora(), actualizada: ahora() },
+    { id: 'f2', nombre: 'José Hernández', telefono: '2015550188', empresa: 'ABUELITO MEAT', creada: ahora(), actualizada: ahora() },
+    { id: 'f3', nombre: 'Ana Martínez', telefono: '9735550144', empresa: 'ABUELITO CHEESE', creada: ahora(), actualizada: ahora() },
+    { id: 'f4', nombre: 'Luis Ramírez', telefono: '8625550199', empresa: 'ABUELITO CORN', creada: ahora(), actualizada: ahora() },
+  ] }
+  {
+    // Leads de ejemplo, en varias etapas (los trae ManyChat; los llama Ana Sofi).
+    const en = (dias, hora = 10) => {
+      const x = new Date()
+      x.setDate(x.getDate() + dias)
+      x.setUTCHours(hora + 5, 0, 0, 0) // la hora, aprox. en hora del Este
+      return x.toISOString()
+    }
+    const base = { origen: 'manychat', idioma: 'es', zona: 'America/Chicago', permiso_llamada: true, permiso_texto: 'Sí, pueden llamarme', calificacion: '', tipo_negocio: '', quesos: '', libras: '', frecuencia: '', marca_propia: '', precios: '', resumen: '', transcripcion: '', correo: '', intentos: 0, ultima_llamada: null, llamada_programada: null, llamada_estado: '', llamada_id: '', meet_inicio: null, meet_link: '', meet_evento: '' }
+    const l = (o) => db.leads.push({ id: uid(), manychat_id: uid(), creado: en(o.hace ?? 0, 9), actualizado: ahora(), ...base, ...o })
+    l({ nombre: 'Rosa Martínez', negocio: 'Tienda La Esperanza', ciudad: 'Houston, TX', telefono: '+1 713 555 0100', hora_pedida: 'hoy en la tarde', etapa: 'nuevo', hace: 0 })
+    l({ nombre: 'Luis Herrera', negocio: 'Carnicería El Toro', ciudad: 'Dallas, TX', telefono: '+1 214 555 0144', hora_pedida: 'mañana a las 10', etapa: 'programada', llamada_programada: en(1, 10), hace: 0 })
+    l({ nombre: 'Ana Cruz', negocio: 'Pupusería Doña Ana', ciudad: 'Los Angeles, CA', telefono: '+1 323 555 0177', zona: 'America/Los_Angeles', hora_pedida: 'a las 2', etapa: 'no_contesto', intentos: 1, ultima_llamada: en(-1, 14), llamada_programada: en(0, 17), llamada_estado: 'termino', hace: -1 })
+    l({ nombre: 'Jorge Peña', negocio: 'Mercado Latino JP', ciudad: 'Charlotte, NC', zona: 'America/New_York', telefono: '+1 704 555 0123', correo: 'jorge@mercadolatinojp.com', etapa: 'hablo', intentos: 1, ultima_llamada: en(-1, 11), llamada_estado: 'termino', calificacion: 'medio', tipo_negocio: 'Supermercado latino', quesos: 'Queso fresco, quesillo', libras: '200 lb', frecuencia: 'Cada 2 semanas', marca_propia: 'Todavía no; lo está pensando', precios: 'Queso fresco $3.90/lb, quesillo $4.60/lb (más de 150 lb)', resumen: 'Le interesan queso fresco y quesillo para su mercado. Compra hoy a otro proveedor. Quiere comparar precios y lo va a hablar con su socio; pidió que le marquen la próxima semana.', hace: -2 })
+    l({ nombre: 'María López', negocio: 'Distribuidora El Sol', ciudad: 'Atlanta, GA', zona: 'America/New_York', telefono: '+1 404 555 0199', correo: 'maria@distribuidoraelsol.com', etapa: 'meet', intentos: 1, ultima_llamada: en(-1, 12), llamada_estado: 'termino', calificacion: 'caliente', tipo_negocio: 'Distribuidora a tiendas latinas', quesos: 'Queso fresco, cuajada, crema', libras: '800 lb', frecuencia: 'Semanal', marca_propia: 'Sí, con la marca El Sol', precios: 'Queso fresco $3.70/lb, cuajada $3.95/lb, crema $2.80/lb (más de 500 lb)', resumen: 'Distribuidora con 40 tiendas. Quiere quesos con su propia marca. Le parecieron bien los precios y pidió hablar con Eduardo para ver etiquetas, tiempos de entrega y crédito.', meet_inicio: en(1, 11), meet_link: 'https://meet.google.com/abc-defg-hij', meet_evento: 'ejemplo', hace: -3 })
+    l({ nombre: 'Pedro Gil', negocio: 'Taquería Gil', ciudad: 'Phoenix, AZ', zona: 'America/Phoenix', telefono: '+1 602 555 0111', etapa: 'no_califica', intentos: 1, ultima_llamada: en(-4, 13), llamada_estado: 'termino', calificacion: 'frio', tipo_negocio: 'Taquería', libras: '20 lb', resumen: 'Compra muy poco (20 lb al mes) y en tienda. No le conviene el mínimo de pedido.', hace: -5 })
+    db.leads_notas.push({ id: uid(), lead_id: db.leads[4].id, texto: 'La conozco: le vende a varias tiendas de mi zona. Buen cliente.', autor: 'u-senen', autor_nombre: 'Senen', creada: en(-1, 16) })
+  }
+  // Lo que se espera cada mes, por marca (igual que en esquema.sql).
+  for (const marca of ['abuelito', 'mi-semago'])
+    FIJOS.forEach(([nombre, cantidad, color], i) => {
+      const id = uid()
+      db.plan.push({ id, clave: id, marca, fijo: true, nombre, detalle: '', cantidad, color, orden: i + 1, desde: mesISO(-1), hasta: null, pedido_por: null, creado: ahora() })
+    })
+  const clave = (marca, nombre) => db.plan.find((p) => p.marca === marca && p.nombre === nombre)?.clave ?? null
   {
     // Una parrilla de ejemplo para este mes.
     const d = (n) => {
@@ -65,13 +117,16 @@ export function crearMuestra() {
       x.setDate(x.getDate() + n)
       return x.toISOString().slice(0, 10)
     }
-    const c = (dia, empresa_id, canal, titulo, texto, hora, estado = 'listo') =>
-      db.contenidos.push({ id: uid(), empresa_id, fecha: d(dia), hora, canal, titulo, texto, enlace: '', estado, enviado: estado === 'enviado' ? ahora() : null, creado_por: 'u-equipo1', creada: ahora(), actualizada: ahora() })
-    c(-3, 'mi-semago', 'whatsapp', 'Lista de precios de la semana', 'Buen día. Les comparto los quesos disponibles esta semana. Pedidos antes del jueves para entrega el viernes.', '09:00', 'enviado')
-    c(-1, 'abuelito-cheese', 'estado', 'Receta: pupusas con quesillo', 'Hoy en casa: pupusas con quesillo Abuelito. ¿Ya lo probaste? Pídelo con tu vendedora.', '11:00', 'enviado')
-    c(0, 'abuelito-meat', 'instagram', 'Chorizo salvadoreño estilo casero', 'Nuevo empaque, mismo sabor de siempre. Disponible con tu distribuidor.', '10:00')
-    c(1, 'mi-semago', 'whatsapp', 'Promo cliente nuevo', 'Si tu tienda es nueva con nosotros, el primer pedido lleva 10% de descuento en quesos frescos.', '09:30')
-    c(3, 'abuelito-corn', 'estado', 'Tortillas recién hechas', 'Tortillas de maíz Abuelito, recién salidas. Pregunta por el paquete de 30.', '12:00', 'borrador')
+    const marcaDe = (e) => (e.startsWith('abuelito') ? 'abuelito' : e)
+    const c = (dia, empresa_id, canal, titulo, texto, hora, estado = 'listo', tipo = null) => {
+      // El punto solo si el día cae en un mes con ese plan (siempre, en la muestra).
+      db.contenidos.push({ id: uid(), empresa_id, fecha: d(dia), hora, canal, titulo, texto, enlace: '', estado, enviado: estado === 'enviado' ? ahora() : null, creado_por: 'u-equipo1', creada: ahora(), actualizada: ahora(), plan_clave: tipo ? clave(marcaDe(empresa_id), tipo) : null })
+    }
+    c(-3, 'mi-semago', 'whatsapp', 'Lista de precios de la semana', 'Buen día. Les comparto los quesos disponibles esta semana. Pedidos antes del jueves para entrega el viernes.', '09:00', 'enviado', 'Imágenes reales')
+    c(-1, 'abuelito-cheese', 'estado', 'Receta: pupusas con quesillo', 'Hoy en casa: pupusas con quesillo Abuelito. ¿Ya lo probaste? Pídelo con tu vendedora.', '11:00', 'enviado', 'Chef Saúl')
+    c(0, 'abuelito-meat', 'instagram', 'Chorizo salvadoreño estilo casero', 'Nuevo empaque, mismo sabor de siempre. Disponible con tu distribuidor.', '10:00', 'listo', 'Imágenes IA')
+    c(1, 'mi-semago', 'whatsapp', 'Promo cliente nuevo', 'Si tu tienda es nueva con nosotros, el primer pedido lleva 10% de descuento en quesos frescos.', '09:30', 'listo', 'ADS')
+    c(3, 'abuelito-corn', 'estado', 'Tortillas recién hechas', 'Tortillas de maíz Abuelito, recién salidas. Pregunta por el paquete de 30.', '12:00', 'borrador', 'Stupid content')
     c(6, 'abuelito-cheese', 'facebook', 'Queso fresco para el fin de semana', '¿Carne asada este fin? No olvides el queso fresco Abuelito.', '17:00', 'borrador')
   }
   const blobs = new Map()
@@ -79,31 +134,41 @@ export function crearMuestra() {
   let folio = 0
 
   const CABEZAS = ['u-senen', 'u-gerardo', 'u-marisol', 'u-miguel']
-  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ultron: CABEZAS.includes(p.id) })
+  for (const p of PERSONAS) db.perfiles.push({ id: p.id, nombre: p.nombre, usuario: p.id === 'u-admin' ? null : normalizarUsuario(p.nombre), correo: p.correo, rol: p.rol, activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: ['u-senen', 'u-gerardo'].includes(p.id), ve_leads: p.id === 'u-senen', ultron: CABEZAS.includes(p.id) })
   db.perfiles.find((p) => p.id === 'u-admin').dueno = true
+  // Un extra que pidió Senen para este mes.
+  {
+    const id = uid()
+    db.plan.push({ id, clave: id, marca: 'mi-semago', fijo: false, nombre: 'Promo Día de Muertos', detalle: 'Pan de muerto con queso fresco', cantidad: 1, color: COLORES_EXTRAS[0], orden: 0, desde: mesISO(0), hasta: mesISO(1), pedido_por: 'u-senen', pedido_nombre: 'Senen', creado: ahora() })
+  }
   // Miguel todavía tiene la contraseña que le puso el admin: al entrar se le ofrece cambiarla.
   db.perfiles.find((p) => p.id === 'u-miguel').clave_temporal = true
-  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', usuario: 'disenador2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true })
+  db.perfiles.push({ id: 'u-equipo2', nombre: 'Diseñador 2', usuario: 'disenador2', correo: 'equipo2@ejemplo.com', rol: 'equipo', activo: true, empresas: null, ve_tareas: true, ve_biblioteca: true, ve_catalogos: true, ve_parrilla: true, pide_extras: false })
 
   // -- reglas (las mismas que la base de datos) --------------------------------
   const perfil = () => db.perfiles.find((p) => p.id === yo && p.activo)
   const rol = () => perfil()?.rol
   const equipo = () => ['admin', 'equipo'].includes(rol())
   const admin = () => rol() === 'admin'
+  // El admin ve todo; el equipo y los clientes según sus empresas y secciones.
   const veo = (seccion, empresa) => {
     const p = perfil()
     if (!p) return false
-    if (equipo()) return true
-    return (!p.empresas || p.empresas.includes(empresa)) && p[`ve_${seccion}`]
+    if (admin()) return true
+    return (!p.empresas || p.empresas.includes(empresa)) && p[`ve_${seccion}`] !== false
   }
-  const veoTarea = (t) => equipo() || (t.cliente_id === yo && veo('tareas', t.empresa_id))
+  const veoTarea = (t) => veo('tareas', t.empresa_id) && (equipo() || t.cliente_id === yo)
+  const marcaDe = (empresa) => db.empresas.find((e) => e.id === empresa)?.marca
+  const veoMarca = (marca) => db.empresas.some((e) => e.marca === marca && e.activa && veo('parrilla', e.id))
+  const dueno = () => Boolean(perfil()?.dueno)
+  const enMes = (p, mes) => p.desde <= mes && (!p.hasta || p.hasta > mes)
   const veoArchivo = (a) =>
     a.tipo === 'biblioteca'
       ? veo('biblioteca', a.empresa_id)
       : a.tipo === 'catalogo'
         ? veo('catalogos', a.empresa_id)
         : a.tipo === 'contenido'
-          ? Boolean(perfil()) && (equipo() || !perfil().empresas || perfil().empresas.includes(a.empresa_id))
+          ? veo('parrilla', a.empresa_id)
           : veoTarea(db.tareas.find((t) => t.id === a.tarea_id) ?? {})
   const no = (m) => {
     throw new Error(m)
@@ -299,7 +364,7 @@ export function crearMuestra() {
       await espera(300)
       if (!empresa_id) no('Elige la empresa')
       if (!titulo) no('Escribe qué necesitas')
-      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente'))) no('No tienes permiso para pedir esa tarea')
+      if (rol() === 'cliente' ? cliente_id !== yo || !veo('tareas', empresa_id) : !(equipo() && veo('tareas', empresa_id) && db.perfiles.some((p) => p.id === cliente_id && p.rol === 'cliente' && p.activo && !p.eliminado))) no('No tienes permiso para pedir esa tarea')
       const t = { id: uid(), folio: ++folio, cliente_id, empresa_id, titulo, descripcion, urgente, pedida: ahora(), creada_por: yo, estatus: 'recibida', compromiso: null, entregada: null, aprobada: null, actualizada: ahora() }
       db.tareas.push(t)
       anota('creó', 'tareas', t.id, { titulo })
@@ -404,7 +469,7 @@ export function crearMuestra() {
     },
     async subirBiblioteca({ empresa_id, carpeta_id, file, anterior_id }) {
       await espera(400)
-      if (!equipo()) no('Solo el equipo sube a la biblioteca')
+      if (!equipo() || !veo('biblioteca', empresa_id)) no('Solo el equipo sube a la biblioteca')
       nuevoArchivo({ tipo: 'biblioteca', empresa_id, carpeta_id, anterior_id, nombre: file.name }, file)
     },
     async cambiarArchivo(id, { nombre, carpeta_id, notas }) {
@@ -427,17 +492,129 @@ export function crearMuestra() {
     async catalogos() {
       return copia(db.archivos.filter((a) => a.tipo === 'catalogo' && veoArchivo(a)))
     },
+    // Leads de Mi Semago (las mismas reglas que esquema.sql, "leads").
+    async leads() {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) return []
+      return copia(db.leads.map((x) => ({ ...x, leads_notas: db.leads_notas.filter((n) => n.lead_id === x.id) })))
+    },
+    async notaLead(lead_id, texto) {
+      await espera(200)
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) no('No tienes permiso para ver leads')
+      texto = String(texto || '').trim()
+      if (!texto) no('Escribe la nota')
+      db.leads_notas.push({ id: uid(), lead_id, texto, autor: yo, autor_nombre: p.nombre, creada: ahora() })
+    },
+    async etapaLead(id, etapa) {
+      if (!dueno()) no('Solo el administrador principal cambia la etapa')
+      const x = db.leads.find((v) => v.id === id)
+      anota('cambió', 'leads', id, { nombre: x.nombre, etapa: [x.etapa, etapa] })
+      x.etapa = etapa
+    },
+    async borrarLead(id) {
+      if (!dueno()) no('Solo el administrador principal borra leads')
+      const x = db.leads.find((v) => v.id === id)
+      db.leads = db.leads.filter((v) => v.id !== id)
+      db.leads_notas = db.leads_notas.filter((n) => n.lead_id !== id)
+      anota('borró', 'leads', id, { nombre: x?.nombre })
+    },
+    // Lo que se espera cada mes en la parrilla (los candados: esquema.sql, "plan").
+    async plan() {
+      if (!perfil()) return []
+      return copia(db.plan.filter((p) => dueno() || veoMarca(p.marca)))
+    },
+    async pedirExtra({ marca, nombre, cantidad, detalle = '', desde }) {
+      await espera(300)
+      const p = perfil()
+      if (!dueno() && !(p?.pide_extras && veoMarca(marca))) no('No tienes permiso para pedir extras')
+      desde = mesISO(0, new Date(desde.slice(0, 7) + '-15T12:00'))
+      if (!dueno() && ![mesISO(0), mesISO(1)].includes(desde)) no('Los extras se piden para este mes o el siguiente')
+      nombre = String(nombre || '').trim()
+      if (!nombre) no('Falta qué quieres')
+      const usados = db.plan.filter((x) => x.marca === marca && !x.fijo && x.desde === desde).map((x) => x.color)
+      const id = uid()
+      db.plan.push({ id, clave: id, marca, fijo: false, nombre, detalle: String(detalle || '').trim(), cantidad: Math.max(1, Number(cantidad) || 1), color: COLORES_EXTRAS.find((c) => !usados.includes(c)) ?? '#868e96', orden: 0, desde, hasta: mesISO(1, new Date(desde + 'T12:00')), pedido_por: yo, pedido_nombre: p?.nombre ?? '', creado: ahora() })
+      anota('creó', 'plan', id, { nombre })
+    },
+    async guardarFijo({ clave: cl, marca, nombre, cantidad, detalle = '' }) {
+      await espera(300)
+      if (!dueno()) no('Solo el administrador principal cambia lo fijo')
+      const mes = mesISO(0)
+      cantidad = Number(cantidad)
+      if (!nombre?.trim() || !(cantidad >= 1)) no('Falta el nombre o la cantidad')
+      if (!cl) {
+        const usados = db.plan.filter((x) => x.marca === marca && x.fijo && !x.hasta).map((x) => x.color)
+        const id = uid()
+        db.plan.push({ id, clave: id, marca, fijo: true, nombre: nombre.trim(), detalle, cantidad, color: COLORES_FIJOS.find((c) => !usados.includes(c)) ?? '#868e96', orden: Math.max(0, ...db.plan.filter((x) => x.marca === marca && x.fijo).map((x) => x.orden)) + 1, desde: mes, hasta: null, pedido_por: null, creado: ahora() })
+        anota('creó', 'plan', id, { nombre })
+        return
+      }
+      const v = db.plan.filter((x) => x.clave === cl && x.fijo && (!x.hasta || x.hasta > mes)).sort((a, b) => b.desde.localeCompare(a.desde))[0]
+      if (!v) no('Eso ya no está en el plan')
+      if (v.desde >= mes) Object.assign(v, { nombre: nombre.trim(), detalle, cantidad })
+      else {
+        const hasta = v.hasta
+        v.hasta = mes
+        db.plan.push({ ...v, id: uid(), nombre: nombre.trim(), detalle, cantidad, desde: mes, hasta })
+      }
+      anota('cambió', 'plan', cl, { nombre })
+    },
+    async quitarFijo(cl) {
+      await espera(300)
+      if (!dueno()) no('Solo el administrador principal cambia lo fijo')
+      const sig = mesISO(1)
+      db.plan = db.plan.filter((x) => !(x.clave === cl && x.fijo && x.desde >= sig))
+      for (const x of db.plan) if (x.clave === cl && x.fijo && (!x.hasta || x.hasta > sig)) x.hasta = sig
+      anota('cambió', 'plan', cl, { quitado: true })
+    },
+    async borrarExtra(id) {
+      if (!dueno()) no('Solo el administrador principal borra extras')
+      const x = db.plan.find((p) => p.id === id && !p.fijo)
+      if (!x) no('Ese extra ya no está')
+      db.plan = db.plan.filter((p) => p.id !== id)
+      for (const c of db.contenidos) if (c.plan_clave === x.clave) c.plan_clave = null
+      anota('borró', 'plan', id, { nombre: x.nombre })
+    },
+    async fiesta() {
+      if (!perfil()) return []
+      return copia(db.fiesta)
+    },
+    async borrarInvitado(id) {
+      if (!admin()) no('Solo el admin borra')
+      db.fiesta = db.fiesta.filter((x) => x.id !== id)
+      anota('borró', 'fiesta_asistentes', id)
+    },
+    async webLeads() {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) return []
+      return copia(db.web)
+    },
+    async cambiarWebLead(id, cambios) {
+      const p = perfil()
+      if (!p || !(admin() || p.ve_leads)) no('No tienes permiso para ver leads')
+      const x = db.web.find((l) => l.id === id)
+      if (!x) no('Ese lead ya no está')
+      Object.assign(x, { estatus: cambios.estatus ?? x.estatus, notas: cambios.notas ?? x.notas, actualizada: ahora() })
+      anota('cambió', 'website_leads', id, cambios)
+    },
+    async borrarWebLead(id) {
+      if (!admin()) no('Solo el admin borra')
+      db.web = db.web.filter((x) => x.id !== id)
+      anota('borró', 'website_leads', id)
+    },
     async contenidos() {
       const p = perfil()
       if (!p) return []
       return copia(
         db.contenidos
-          .filter((c) => equipo() || !p.empresas || p.empresas.includes(c.empresa_id))
+          .filter((c) => veo('parrilla', c.empresa_id))
           .map((c) => ({ ...c, archivos: db.archivos.filter((a) => a.tipo === 'contenido' && a.contenido_id === c.id) })),
       )
     },
     async guardarContenido({ id, ...c }) {
-      if (!equipo()) no('Solo tu equipo llena la parrilla')
+      if (!equipo() || !veo('parrilla', c.empresa_id)) no('Solo tu equipo llena la parrilla')
+      if (c.plan_clave && !db.plan.some((p) => p.clave === c.plan_clave && p.marca === marcaDe(c.empresa_id) && enMes(p, c.fecha.slice(0, 8) + '01'))) no('Eso no está en lo que se espera de esa marca en ese mes')
       if (id) {
         const x = db.contenidos.find((v) => v.id === id)
         Object.assign(x, c, { actualizada: ahora() })
@@ -457,12 +634,12 @@ export function crearMuestra() {
     },
     async subirMaterial(contenido, file) {
       await espera(300)
-      if (!equipo()) no('Solo tu equipo sube material')
+      if (!equipo() || !veo('parrilla', contenido.empresa_id)) no('Solo tu equipo sube material')
       nuevoArchivo({ tipo: 'contenido', contenido_id: contenido.id, empresa_id: contenido.empresa_id, nombre: file.name }, file)
     },
     async subirCatalogo({ empresa_id, file, anterior_id }) {
       await espera(400)
-      if (!equipo()) no('Solo el equipo sube catálogos')
+      if (!equipo() || !veo('catalogos', empresa_id)) no('Solo el equipo sube catálogos')
       nuevoArchivo({ tipo: 'catalogo', empresa_id, anterior_id, nombre: file.name }, file)
     },
     async url(a) {

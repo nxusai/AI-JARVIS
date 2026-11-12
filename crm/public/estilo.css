@@ -143,6 +143,17 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .dato.d-proceso b { color: var(--info); }
 .dato.d-ok b { color: var(--ok); }
 .dato.d-pend b { color: var(--cian); }
+.hojas .dato { text-align: left; }
+.hojas .dato .hoja-nombre { display: block; font: 600 13.5px/1.2 var(--display); color: var(--texto); margin-bottom: 4px; }
+.hojas .dato.activo { border: 2px solid var(--cian); background: var(--panel-2); padding: 11px 13px; }
+.dato.d-pedidas b { color: var(--cian); }
+.dato.d-aprobadas b { color: var(--ok); }
+.hoja-aviso { margin: 0 0 10px; font-size: 14px; }
+.hoja-aviso .te-toca { color: var(--texto); font-weight: 600; }
+.chip.te-toca { background: rgba(192, 140, 255, .18); color: var(--morado); border-color: rgba(192, 140, 255, .45); font-weight: 600; }
+.chip.le-toca { color: var(--suave); }
+.recibir { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(0, 229, 255, .45); background: rgba(0, 229, 255, .07); }
+.recibir .btn { margin-left: auto; }
 .dato.llama { border-color: rgba(192, 140, 255, .55); box-shadow: 0 0 24px rgba(162, 28, 255, .25); animation: latido 2.4s ease-in-out infinite; }
 @keyframes latido { 50% { box-shadow: 0 0 34px rgba(162, 28, 255, .45); } }
 
@@ -685,3 +696,173 @@ select option, select optgroup { background: #fff; }
 /* El botón verde (Aprobado) conserva su color al pasar el mouse. */
 .btn.ok, .btn.ok:hover { background: var(--ok); color: var(--sobre-ok); border-color: var(--ok); }
 .btn.ok:hover { filter: brightness(1.07); }
+
+/* Parrilla: marcas y lo que se espera cada mes (el plan) */
+.marcas { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--linea); }
+.marca-boton { border: 0; background: none; font: inherit; font-weight: 700; font-size: 14px; color: var(--suave); padding: 8px 18px; border-radius: 999px; cursor: pointer; }
+.marca-boton.activa { background: var(--texto); color: #fff; }
+.punto-plan { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.punto-plan.grande { width: 12px; height: 12px; margin-right: 0; }
+.plan { background: var(--panel); border: 1px solid var(--linea); border-radius: 16px; padding: 12px 14px; margin-top: 12px; }
+.plan-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.plan-cabeza h3 { margin: 0; font-size: 16px; }
+.plan-cabeza h3::first-letter { text-transform: uppercase; }
+.plan-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.plan-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.plan-item { display: flex; align-items: stretch; gap: 4px; }
+.plan-boton { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--texto); background: color-mix(in srgb, var(--panel) 60%, #fff); border: 1px solid var(--linea); border-radius: 12px; padding: 8px 10px; cursor: pointer; }
+.plan-item.activo .plan-boton { border-color: var(--texto); box-shadow: inset 0 0 0 1px var(--texto); }
+.plan-item.completo .plan-cuenta b { color: var(--ok); }
+.plan-nombre { flex: 1; min-width: 0; display: grid; }
+.plan-nombre b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-nombre small { font-size: 11.5px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-pidio b { font-size: 11.5px; color: var(--texto); }
+.plan-cuenta { flex: none; display: grid; justify-items: end; gap: 3px; font-size: 12px; color: var(--suave); white-space: nowrap; }
+.plan-cuenta b { font-size: 15px; color: var(--texto); }
+.barrita { display: block; width: 54px; height: 4px; border-radius: 4px; background: var(--linea); overflow: hidden; }
+.barrita span { display: block; height: 100%; border-radius: 4px; }
+.contenido.atenuado { opacity: .25; }
+.con-punto { display: flex; align-items: center; gap: 8px; }
+.con-punto select { flex: 1; }
+.fijos { display: grid; gap: 6px; }
+.fijo-fila { display: grid; grid-template-columns: 14px 1fr 64px auto auto; align-items: center; gap: 6px; }
+.fijo-fila input { min-width: 0; }
+@media (max-width: 760px) {
+  .marcas { display: flex; }
+  .marca-boton { flex: 1; padding: 8px 10px; }
+  .plan-lista { grid-template-columns: 1fr; }
+  .fijo-fila { grid-template-columns: 14px 1fr 56px; }
+  .fijo-fila .btn { grid-column: span 1; }
+}
+input[type=number], input[type=time], input[type=url], input:not([type]), .fijo-fila input { width: 100%; padding: 8px 10px; border: 1px solid var(--linea-2); border-radius: 10px; background: rgba(255, 255, 255, .5); min-height: 38px; }
+
+/* ---------- Fiesta de empleados ---------- */
+.fiesta-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.fiesta-cabeza h2 { margin: 0 0 4px; }
+.fiesta-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.fiesta-cuentas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fiesta-cuenta { text-align: left; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--linea-2, rgba(0,0,0,.1)); background: var(--superficie, #fff); color: inherit; font: inherit; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.fiesta-cuenta:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0, 0, 0, .08); }
+.fiesta-cuenta b { display: block; font-size: 28px; line-height: 1.1; font-family: var(--display); }
+.fiesta-cuenta span { display: block; font-size: 12px; letter-spacing: .5px; opacity: .75; font-weight: 600; }
+.fiesta-cuenta.total { cursor: default; background: linear-gradient(160deg, #0b2050, #06122b); color: #fff; border-color: rgba(212, 175, 55, .6); }
+.fiesta-cuenta.total b { color: #f1d27a; }
+.fiesta-cuenta.activa { outline: 2px solid #d4af37; }
+@media (max-width: 760px) { .fiesta-cuentas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fiesta-cuenta.total { grid-column: 1 / -1; } }
+
+/* Leads de Mi Semago */
+.resumen-leads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.resumen-leads div { background: var(--panel); border: 1px solid var(--linea); border-radius: 14px; padding: 10px 12px; display: grid; }
+.resumen-leads b { font-size: 22px; font-family: var(--display); }
+.resumen-leads span { font-size: 12px; color: var(--suave); }
+.tablero-leads { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-top: 10px; }
+.col-lead { background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--linea); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.col-lead h3 { margin: 0 0 2px; font-size: 13px; display: flex; justify-content: space-between; color: var(--suave); }
+.col-lead h3 span { color: var(--texto); }
+.col-lead .vacia { margin: 0; text-align: center; }
+.lead-tarjeta { display: grid; gap: 3px; text-align: left; font: inherit; color: var(--texto); background: rgba(255, 255, 255, .7); border: 1px solid var(--linea); border-radius: 12px; padding: 9px 10px; cursor: pointer; min-width: 0; }
+.lead-tarjeta:hover { border-color: var(--texto); }
+.lead-tarjeta b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-tarjeta > span { font-size: 12px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead-tarjeta small { font-size: 12px; font-weight: 600; }
+.lead-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lead-chips:empty { display: none; }
+.lead-chips .chip { font-size: 11px; padding: 1px 7px; }
+.chip.cal-caliente { background: #ffe3e3; color: #c92a2a; }
+.chip.cal-medio { background: #fff3bf; color: #9c6b00; }
+.chip.cal-frio { background: #e7f5ff; color: #1864ab; }
+.chip.vivo { background: #d3f9d8; color: #2b8a3e; }
+.chip.etapa-meet { background: #e5dbff; color: #5f3dc4; }
+.chip.etapa-cerrado { background: #d3f9d8; color: #2b8a3e; }
+.aviso-meet { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; background: #f3f0ff; border: 1px solid #d0bfff; border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; }
+.meet-caja { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: #f3f0ff; border: 1px solid #d0bfff; border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.meet-caja span { display: block; font-size: 12px; color: var(--suave); }
+h3.sub { font-size: 14px; margin: 16px 0 6px; }
+.datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; }
+.dato { display: grid; gap: 1px; min-width: 0; }
+.dato span { font-size: 12px; color: var(--suave); }
+.dato b { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.notas-lead { display: grid; gap: 8px; margin-bottom: 8px; }
+.nota-lead { background: var(--panel); border: 1px solid var(--linea); border-radius: 12px; padding: 8px 12px; }
+.nota-lead p { margin: 4px 0 0; white-space: pre-wrap; }
+.conversacion summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
+@media (max-width: 760px) {
+  .resumen-leads { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tablero-leads { grid-auto-columns: 78%; }
+}
+
+/* ---------- Website leads (formulario de misemago.com) ---------- */
+.pestana-num { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #e5484d; color: #fff; font-size: 11px; font-weight: 800; }
+.wl-cuentas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.wl-cuentas .fiesta-cuenta.total { cursor: pointer; }
+.fiesta-cuenta.wl-nuevo b { color: #e5484d; }
+.fiesta-cuenta.wl-ganado b { color: #1f9d55; }
+.wl-lista { display: grid; gap: 12px; }
+.wl { border: 1px solid var(--linea-2); border-left: 5px solid #8a96a8; border-radius: 18px; background: var(--panel); padding: 16px 18px; display: grid; gap: 10px; }
+.wl-nuevo { border-left-color: #e5484d; }
+.wl-contactado { border-left-color: #2f7bff; }
+.wl-cotizado { border-left-color: #d4af37; }
+.wl-ganado { border-left-color: #1f9d55; }
+.wl-perdido { border-left-color: #8a96a8; opacity: .8; }
+.wl-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.wl-nombre { font-size: 17px; }
+.wl-empresa { opacity: .8; font-weight: 600; }
+.wl-estatus { width: auto; font-weight: 700; }
+.wl-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.wl-mensaje { margin: 0; white-space: pre-wrap; line-height: 1.5; }
+.wl-propuesta summary { cursor: pointer; font-weight: 700; }
+.wl-propuesta pre { white-space: pre-wrap; font: inherit; font-size: 13px; margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--gris-fondo); }
+.wl-pie { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; border-top: 1px dashed var(--linea-2); padding-top: 10px; }
+.wl-notas { margin: 0; flex: 1 1 260px; white-space: pre-wrap; }
+@media (max-width: 760px) { .wl-cuentas { grid-template-columns: repeat(3, minmax(0, 1fr)); } .wl-cuentas .fiesta-cuenta.total { grid-column: auto; } }
+
+/* ===========================================================================
+   Penthouse: el Abuelito en su penthouse de Nueva York de fondo (4K), y todo
+   el centro de trabajo como vidrio claro encima. Las letras van oscuras sobre
+   vidrio blanco esmerilado para que se lean igual que antes; los colores de
+   cada empresa y de cada estado se quedan. Va al final para ganarle a todo.
+   =========================================================================== */
+:root {
+  --vidrio: rgba(255, 255, 255, .56);
+  --panel: rgba(255, 255, 255, .62);
+  --panel-2: rgba(255, 255, 255, .42);
+  --linea: rgba(255, 255, 255, .62);
+  --linea-2: rgba(255, 255, 255, .85);
+  --esmerilado: blur(30px) saturate(165%);
+  --sombra: 0 12px 36px rgba(20, 16, 40, .18), inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+body { background: #3a3346; }
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: #3a3346 url("fondo-abuelito.jpg") center 58% / cover no-repeat;
+}
+@media (max-aspect-ratio: 4/5) { body::after { background-image: url("fondo-abuelito-movil.jpg"); background-position: center 60%; } }
+
+/* Lo que va directo sobre la foto (saludo, ayudas) se lee sobre un vidrio ligero que cubre la hoja. */
+#app > main {
+  max-width: 1200px; margin: 14px auto 18px; width: calc(100% - 24px);
+  background: rgba(255, 255, 255, .32); border: 1px solid rgba(255, 255, 255, .5); border-radius: 30px;
+  backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 24px 70px rgba(20, 16, 40, .22), inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+.cabeza { background: rgba(255, 255, 255, .6); }
+.tarjeta, .dato, .carpeta, .cat, .vacio-msg, .pasos, .arbol, .tabla, .dia { background: var(--vidrio); }
+.tarjeta:hover, .dato:hover, .carpeta:hover { background: rgba(255, 255, 255, .72); }
+.seccion, .material-uno, .fecha-caja { background: rgba(255, 255, 255, .5); }
+.ventana { background: rgba(255, 255, 255, .78); }
+.frase { background: rgba(255, 255, 255, .7); }
+.entrada-caja { background: rgba(255, 255, 255, .6); }
+.ayuda, .hoja-aviso { color: #3f3a36; }
+@media (max-width: 760px) { #app > main { width: calc(100% - 16px); margin: 10px auto 12px; border-radius: 24px; } }
+
+/* Al cambiar de sección todo se desvanece 2 segundos para que se luzca el fondo (un clic lo regresa antes). */
+#app, #avisos, .orbe { transition: opacity .55s ease, filter .55s ease; }
+body.ver-fondo #app, body.ver-fondo .orbe { opacity: 0; filter: blur(6px); pointer-events: none; }
+body.ver-fondo { cursor: zoom-out; }
+@media (prefers-reduced-motion: reduce) { #app, #avisos, .orbe { transition: none; } }
+
+/* Si el navegador no sabe esmerilar, que se lea igual. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --vidrio: rgba(255, 255, 255, .88); }
+  #app > main { background: rgba(255, 255, 255, .55); }
+}
