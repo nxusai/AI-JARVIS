@@ -1663,3 +1663,57 @@ end $$;
 -- Quien edita finanzas (no solo el admin) puede actualizar los saldos y el tipo de cambio de Félix.
 drop policy if exists permiso_cambiar on public.finanzas_config;
 create policy permiso_cambiar on public.finanzas_config for update to authenticated using (puede('finanzas_editar')) with check (puede('finanzas_editar'));
+
+-- Gastos como en el Notion de Eduardo (12 nov 2026): dos tablas por mes, "del 1 al 14" y "del 15 al 31".
+-- Cada gasto dice en qué mitad va, su día (texto libre: "29 - 2") y si está automatizado. El estado
+-- (se debe / pagado / cancelado) se marca cada mes. HQ ya no adivina nada: solo suma lo que él pone.
+alter table public.gastos add column if not exists quincena text check (quincena is null or quincena in ('primera', 'segunda', 'ambas'));
+alter table public.gastos add column if not exists dia_texto text not null default '' check (char_length(dia_texto) <= 30);
+alter table public.gastos add column if not exists automatico boolean not null default false;
+alter table public.gastos add column if not exists orden int not null default 0;
+create table if not exists public.gastos_estado (
+  gasto_id uuid not null references public.gastos (id) on delete cascade,
+  mes text not null check (mes ~ '^\d{4}-\d{2}-(1|2)$'), -- 2026-11-1 = del 1 al 14 · 2026-11-2 = del 15 al 31
+  estado text not null check (estado in ('debe', 'pagado', 'cancelado')),
+  actualizado timestamptz not null default now(),
+  primary key (gasto_id, mes)
+);
+do $$
+begin
+  execute 'drop trigger if exists hq_bitacora on public.gastos_estado';
+  execute 'alter table public.gastos_estado enable row level security';
+  execute 'drop policy if exists permiso_ver on public.gastos_estado';
+  execute 'drop policy if exists permiso_crear on public.gastos_estado';
+  execute 'drop policy if exists permiso_cambiar on public.gastos_estado';
+  execute 'drop policy if exists permiso_borrar on public.gastos_estado';
+  -- Ve y cambia el estado de un gasto quien puede ver ese gasto (lo personal, solo el admin).
+  execute 'create policy permiso_ver on public.gastos_estado for select to authenticated using (exists (select 1 from gastos g where g.id = gasto_id))';
+  execute 'create policy permiso_crear on public.gastos_estado for insert to authenticated with check (puede(''finanzas_editar'') and exists (select 1 from gastos g where g.id = gasto_id))';
+  execute 'create policy permiso_cambiar on public.gastos_estado for update to authenticated using (puede(''finanzas_editar'') and exists (select 1 from gastos g where g.id = gasto_id)) with check (puede(''finanzas_editar''))';
+  execute 'create policy permiso_borrar on public.gastos_estado for delete to authenticated using (puede(''finanzas_editar''))';
+end $$;
+
+-- Los gastos de NXUS que Eduardo llevaba en Notion (se cargan una sola vez; después los edita en HQ).
+insert into public.gastos (concepto, categoria, tipo, empresa, monto, moneda, frecuencia, quincena, dia_texto, automatico, notas, activo, orden)
+select v.concepto, v.categoria, 'negocio', 'NXUS AI', v.monto, 'USD', 'mensual', v.quincena, v.dia, v.auto, v.notas, v.activo, v.orden
+from (values
+  ('Pago Luis Bermudez (empleado)', 'profesionales', 295.00, 'primera', '29 - 2', false, 'Tarjeta México', true, 1),
+  ('Pago Ángeles (empleada)', 'profesionales', 148.00, 'primera', '29 - 2', false, 'Tarjeta México', true, 2),
+  ('Deudas', 'prestamos', 253.00, 'primera', '', false, 'Destinar a una deuda', true, 3),
+  ('Canva', 'software', 14.99, 'primera', '1', true, 'Automatizado', true, 4),
+  ('Google account', 'software', 106.00, 'primera', '2', true, 'Automatizado', true, 5),
+  ('Internet México', 'servicios', 100.00, 'primera', '5', false, 'Tarjeta México', true, 6),
+  ('Goodnotes', 'software', 0.90, 'primera', '6', true, 'Automatizado', true, 7),
+  ('Adobe', 'software', 31.97, 'primera', '9', true, 'Automatizado', true, 8),
+  ('ChatGPT NXUS', 'software', 20.00, 'primera', '11', true, 'Automatizado', true, 9),
+  ('ChatGPT', 'software', 20.00, 'primera', '12', true, 'Automatizado', true, 10),
+  ('Pago Luis Bermudez (empleado)', 'profesionales', 295.00, 'segunda', '15 - 17', false, 'Tarjeta de México', true, 11),
+  ('Pago Ángeles (empleada)', 'profesionales', 148.00, 'segunda', '15 - 17', false, 'Tarjeta de México', true, 12),
+  ('Deudas', 'prestamos', 253.00, 'segunda', '', false, 'Destinar a una deuda', true, 13),
+  ('StackBlitz (Bolt)', 'software', 20.00, 'segunda', '23', true, 'Automatizado', true, 14),
+  ('Notion', 'software', 24.00, 'segunda', '23', true, 'Automatizado', true, 15),
+  ('The Real World', 'software', 50.00, 'segunda', '29', true, 'Automatizado', true, 16),
+  ('ElevenLabs (voces)', 'software', 22.00, 'segunda', '29 - 31', true, 'Automatizado', true, 17),
+  ('Runway AI', 'software', 0.00, 'segunda', '29 - 31', true, 'Cancelada', false, 18)
+) v(concepto, categoria, monto, quincena, dia, auto, notas, activo, orden)
+where not exists (select 1 from public.gastos g where g.quincena is not null and g.empresa = 'NXUS AI');

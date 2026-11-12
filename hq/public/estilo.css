@@ -921,3 +921,26 @@ button.cambio-chip:hover { border-color: rgba(227,200,150,.7); }
 .vivo-t .desde { display: flex; flex-wrap: wrap; gap: 4px 6px; white-space: normal; }
 .envios-plan { margin: 8px 0; }
 .envios-plan small { color: rgba(255,255,255,.75); font-weight: 500; }
+
+/* Finanzas como Notion: dos tablas por mes */
+.notion-t h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; }
+.punto-n { width: 12px; height: 12px; border-radius: 50%; background: #e05a5a; box-shadow: 0 0 10px rgba(224,90,90,.6); flex: none; }
+.punto-n.vivo { background: #f5c451; box-shadow: 0 0 10px rgba(245,196,81,.7); }
+.resumen-n { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 14px; }
+.resumen-n > div { padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.3); border: .8px solid rgba(255,255,255,.14); display: grid; gap: 4px; }
+.resumen-n > div > span { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); }
+.resumen-n b { font-size: 18px; display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; }
+.resumen-n .pos { border-color: rgba(126,226,168,.5); }
+.resumen-n .pos b { color: #7ee2a8; }
+.resumen-n .neg { border-color: rgba(255,140,120,.55); }
+.resumen-n small { font-size: 11.5px; color: rgba(255,255,255,.75); }
+.tabla-n td { vertical-align: middle; }
+.tabla-n tr.suma-n td { border-top: .8px solid rgba(227,200,150,.45); font-weight: 700; color: #f3dfb4; }
+.estado-n { appearance: none; font: inherit; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: .8px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35); color: #fff; cursor: pointer; white-space: nowrap; }
+span.estado-n { cursor: default; display: inline-block; }
+.estado-n.debe { color: #ffb48a; border-color: rgba(255,180,138,.55); }
+.estado-n.pagado { color: #7ee2a8; border-color: rgba(126,226,168,.55); }
+.estado-n.cancelado { color: rgba(255,255,255,.6); }
+.ent-n { margin-top: 10px; }
+.ent-n summary { cursor: pointer; color: #e3c896; font-size: 13px; }
+.resumen-n b span { font-size: 18px; letter-spacing: 0; text-transform: none; color: inherit; font-weight: 700; }

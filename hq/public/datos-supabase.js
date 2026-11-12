@@ -234,7 +234,7 @@ export function crearSupabase({ url, anon }) {
     },
     cobrosOmitidos: async () => ok(await tabla('cobros_omitidos').select('*')),
     omitirCobro: async (o) => ok(await tabla('cobros_omitidos').upsert(o, { onConflict: 'cliente_id,fecha' }).select().single()),
-    gastos: async () => ok(await tabla('gastos').select('*').order('concepto')),
+    gastos: async () => ok(await tabla('gastos').select('*').order('orden').order('concepto')),
     guardarGasto: (g) => guardar('gastos', g),
     async borrarGasto(id) {
       ok(await tabla('gastos').delete().eq('id', id))
@@ -242,6 +242,8 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    gastosEstado: async () => ok(await tabla('gastos_estado').select('*')),
+    marcarGasto: async (gasto_id, mes, estado) => ok(await tabla('gastos_estado').upsert({ gasto_id, mes, estado, actualizado: new Date().toISOString() }, { onConflict: 'gasto_id,mes' }).select().single()),
     envios: async () => ok(await tabla('envios').select('*').order('fecha', { ascending: false }).limit(500)),
     guardarEnvio: (e) => guardar('envios', e),
     async borrarEnvio(id) {

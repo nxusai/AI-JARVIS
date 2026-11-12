@@ -66,6 +66,7 @@ const db = {
   ],
   traspasos: [],
   envios: [],
+  gastos_estado: [],
 }
 
 const cliente = (c, dinero) => {
@@ -100,13 +101,29 @@ cliente({ nombre: 'Grupo Norte (contrato MX)', equipo: 'mexico', servicios: ['Ce
   const mesHoy = (d) => new Date(hoy.getFullYear(), hoy.getMonth(), d).toLocaleDateString('en-CA')
   db.cobros.push({ id: id(), cliente_id: abuelito.id, concepto: '', monto: 1500, moneda: 'USD', fecha: viernesPagado, para_fecha: viernesPagado, metodo: 'Zelle', nota: '', creado: dia(-7) })
   if (hoy.getDate() > 1) db.cobros.push({ id: id(), cliente_id: semago.id, concepto: '', monto: 1200, moneda: 'USD', fecha: mesHoy(1), para_fecha: mesHoy(1), metodo: 'Transferencia', nota: '', creado: dia(-3) })
-  const g = (x) => db.gastos.push({ id: id(), categoria: 'otros', tipo: 'negocio', empresa: 'NXUS AI', moneda: 'USD', frecuencia: 'mensual', ancla: null, dias: [], hasta: null, activo: true, notas: '', creado: dia(-30), ...x })
-  g({ concepto: 'Oficina', categoria: 'renta', monto: 1800, dias: [1] })
-  g({ concepto: 'Software (Claude, Netlify, Supabase…)', categoria: 'software', monto: 260, dias: [15] })
-  g({ concepto: 'Anuncios en Meta', categoria: 'publicidad', monto: 1200, dias: [20] })
-  g({ concepto: 'Contador', categoria: 'profesionales', monto: 3500, moneda: 'MXN', dias: [28], cuenta_id: 'c-mx' })
-  g({ concepto: 'Hipoteca', categoria: 'casa', tipo: 'personal', empresa: '', monto: 2400, dias: [5] })
-  g({ concepto: 'Colegiatura', categoria: 'familia', tipo: 'personal', empresa: '', monto: 7000, moneda: 'MXN', frecuencia: 'quincenal', dias: [15, 31], cuenta_id: 'c-mx' })
+  const g = (x) => db.gastos.push({ id: id(), categoria: 'software', tipo: 'negocio', empresa: 'NXUS AI', moneda: 'USD', frecuencia: 'mensual', ancla: null, dias: [], hasta: null, activo: true, automatico: false, notas: '', creado: dia(-30), orden: db.gastos.length, ...x })
+  // Como el Notion de Eduardo (gastos de NXUS).
+  for (const [concepto, monto, quincena, dia_texto, automatico, notas, activo = true] of [
+    ['Pago Luis Bermudez (empleado)', 295, 'primera', '29 - 2', false, 'Tarjeta México'],
+    ['Pago Ángeles (empleada)', 148, 'primera', '29 - 2', false, 'Tarjeta México'],
+    ['Deudas', 253, 'primera', '', false, 'Destinar a una deuda'],
+    ['Canva', 14.99, 'primera', '1', true, 'Automatizado'],
+    ['Google account', 106, 'primera', '2', true, 'Automatizado'],
+    ['Internet México', 100, 'primera', '5', false, 'Tarjeta México'],
+    ['Goodnotes', 0.9, 'primera', '6', true, 'Automatizado'],
+    ['Adobe', 31.97, 'primera', '9', true, 'Automatizado'],
+    ['ChatGPT NXUS', 20, 'primera', '11', true, 'Automatizado'],
+    ['ChatGPT', 20, 'primera', '12', true, 'Automatizado'],
+    ['Pago Luis Bermudez (empleado)', 295, 'segunda', '15 - 17', false, 'Tarjeta de México'],
+    ['Pago Ángeles (empleada)', 148, 'segunda', '15 - 17', false, 'Tarjeta de México'],
+    ['Deudas', 253, 'segunda', '', false, 'Destinar a una deuda'],
+    ['StackBlitz (Bolt)', 20, 'segunda', '23', true, 'Automatizado'],
+    ['Notion', 24, 'segunda', '23', true, 'Automatizado'],
+    ['The Real World', 50, 'segunda', '29', true, 'Automatizado'],
+    ['ElevenLabs (voces)', 22, 'segunda', '29 - 31', true, 'Automatizado'],
+    ['Runway AI', 0, 'segunda', '29 - 31', true, 'Cancelada', false],
+  ])
+    g({ concepto, monto, quincena, dia_texto, automatico, notas, activo })
   const casa = { id: id(), area: 'patrimonio', titulo: 'Casa multifamiliar para rentar', porque: 'Que la renta pague la casa y me deje ingreso', periodo: 'año', fecha_limite: null, progreso: 0, estado: 'activa', monto_objetivo: 800000, moneda: 'USD', aporte_monto: 500, aporte_frecuencia: 'quincenal', creado: dia(-20), actualizado: dia(-1) }
   db.metas.push(casa)
   db.metas_aportes.push({ id: id(), meta_id: casa.id, monto: 30, moneda: 'USD', fecha: fecha(-6), nota: 'Primer apartado', creado: dia(-6) })
@@ -623,6 +640,13 @@ export function crearMuestra() {
     async borrarTraspaso(tid) {
       if (!admin()) nunca()
       db.traspasos = db.traspasos.filter((x) => x.id !== tid)
+      return true
+    },
+    gastosEstado: () => espera(db.gastos_estado.filter((e) => { const g = db.gastos.find((x) => x.id === e.gasto_id); return g && (admin() || (g.tipo === 'negocio' && tiene('finanzas_ver'))) })),
+    async marcarGasto(gasto_id, mes, estado) {
+      if (!tiene('finanzas_editar')) nunca()
+      db.gastos_estado = db.gastos_estado.filter((e) => !(e.gasto_id === gasto_id && e.mes === mes))
+      db.gastos_estado.push({ gasto_id, mes, estado })
       return true
     },
     envios: () => espera(tiene('finanzas_ver') ? db.envios : []),

@@ -401,294 +401,138 @@ export function motor(datos, { calcularPago }, cambio = null) {
 }
 
 // ----------------------------------------------------------- la vista
+// Como el Notion de Eduardo: cada mes, dos tablas ("del 1 al 14" y "del 15 al 31") con sus gastos,
+// lo que hay que tener, las entradas que registró y lo que sobra. HQ no adivina nada.
+
+/** En qué mitad del mes va un gasto: la que él eligió; si no, por su día. */
+export function mitadDe(g) {
+  if (g.quincena) return g.quincena
+  if (g.frecuencia === 'quincenal') return 'ambas'
+  const d = Number((g.dias ?? [])[0] || String(g.dia_texto || '').match(/\d+/)?.[0] || (g.ancla ? deIso(g.ancla).getDate() : 1))
+  return d >= 15 ? 'segunda' : 'primera'
+}
+const MITAD = { 1: { clave: 'primera', titulo: 'Dinero a tener para gastos del 1 al 14', corto: '1–14' }, 2: { clave: 'segunda', titulo: 'Dinero a tener para gastos del 15 al 31', corto: '15–31' } }
+const ESTADOS = { debe: 'Se debe', pagado: 'Pagado', cancelado: 'Cancelada' }
+
 export async function vistaFinanzas(v, ctx) {
   const { D, h, $, $$, titulo, dinero, intenta, mostrar, puede, esAdmin } = ctx
   titulo('Finanzas')
   const admin = esAdmin()
-  const TABS = { resumen: 'Quincena', ingresos: 'Ingresos', gastos: 'Gastos', flujo: 'Flujo de dinero', ...(admin ? { metas: 'Ahorro para metas' } : {}) }
-  let tab = sessionStorage.getItem('hq-fin')
-  if (!TABS[tab]) tab = 'resumen'
-  const salto = Number(sessionStorage.getItem('hq-fin-q') || 0)
-  const ahora = new Date()
-  const desdeDatos = new Date(ahora.getFullYear(), ahora.getMonth() - 4, 1)
-  const hastaDatos = new Date(ahora.getFullYear(), ahora.getMonth() + 5, 1)
+  const TABS = { gastos: 'Gastos del mes', entradas: 'Entradas', ...(admin ? { metas: 'Ahorro para metas' } : {}) }
+  let tab = sessionStorage.getItem('hq-fin2')
+  if (!TABS[tab]) tab = 'gastos'
+  const salto = Number(sessionStorage.getItem('hq-fin-mes') || 0)
+  const hoy = new Date()
+  const ref = new Date(hoy.getFullYear(), hoy.getMonth() + salto, 1)
+  const Y = ref.getFullYear()
+  const Mo = ref.getMonth()
+  const mesTxt = (() => {
+    const t = ref.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+    return t.charAt(0).toUpperCase() + t.slice(1)
+  })()
   const vacio = () => Promise.resolve([])
-  const [clientes, din, cobros, omitidos, pagosPros, gastos, aportes, metas, nomina, jornadas, ajustes, comisiones, config, envios, cambio] = await Promise.all([
+  const [clientes, cobros, pagosPros, gastos, estados, aportes, metas, config, cambio] = await Promise.all([
     D.clientes(),
-    D.dinero().catch(() => []),
     D.cobros().catch(() => []),
-    D.cobrosOmitidos().catch(() => []),
     D.pagosProspectos().catch(() => []),
     D.gastos().catch(() => []),
+    D.gastosEstado ? D.gastosEstado().catch(() => []) : vacio(),
     admin ? D.aportes().catch(() => []) : vacio(),
     admin ? D.metas().catch(() => []) : vacio(),
-    puede('nomina_ver') ? D.nomina().catch(() => []) : vacio(),
-    puede('nomina_ver') ? D.jornadas(desdeDatos, hastaDatos).catch(() => []) : vacio(),
-    puede('nomina_ver') ? D.ajustes().catch(() => []) : vacio(),
-    puede('nomina_ver') ? D.comisiones().catch(() => []) : vacio(),
     D.finanzasConfig().catch(() => null),
-    D.envios ? D.envios().catch(() => []) : vacio(),
     cambioDelDia(),
   ])
-  const datos = { clientes, dinero: din, cobros, omitidos, pagosPros, gastos, aportes, metas, nomina, jornadas, ajustes, comisiones, config, envios }
-  const M = motor(datos, ctx, cambio)
-  const $b = (n) => dinero(Math.round(n), M.base)
-  const signo = (n, mon = M.base) => (n < 0 ? `−${dinero(Math.round(-n), mon)}` : dinero(Math.round(n), mon))
-  const dos = (o, cls = '') => {
-    const p = ['USD', 'MXN'].filter((m) => Math.round(o[m]))
-    return p.length ? p.map((m) => `<span class="${cls} ${o[m] < 0 ? 'rojo' : ''}">${signo(o[m], m)}</span>`).join('<i class="mas">+</i>') : `<span>${dinero(0, M.base)}</span>`
-  }
-  /** Todo junto, en dólares y en pesos. */
-  const junto = (o) => `<span class="${M.en(o, 'USD') < 0 ? 'rojo' : ''}">${signo(M.en(o, 'USD'), 'USD')}</span><i class="mas">=</i><span class="${M.en(o, 'MXN') < 0 ? 'rojo' : ''}">${signo(M.en(o, 'MXN'), 'MXN')}</span>`
+  const tc = Number(config?.tc_felix) || cambio?.tc || Number(config?.tipo_cambio) || 18.5
   const editar = puede('finanzas_editar')
-  const c2 = { ...ctx, M }
-
-  const cambioTxt =
-    M.fuenteTc === 'felix'
-      ? `Félix: 1 USD = ${M.tc.toFixed(2)} MXN${M.cfg.tc_felix_fecha ? ` · ${fechaBonita(iso(new Date(M.cfg.tc_felix_fecha)))}` : ''}${M.mercado ? ` · mercado ${M.mercado.toFixed(2)}` : ''}`
-      : `1 USD = ${M.tc.toFixed(2)} MXN · ${M.fuenteTc === 'mercado' ? 'mercado (pon el de Félix)' : 'a mano'}`
-  const pestanas = `<div class="acciones fin-tabs"><div class="segmento">${Object.entries(TABS).map(([k, t]) => `<button data-ft="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div><button class="cambio-chip" id="fin-felix" title="El tipo de cambio que usa HQ (el de Félix)">💱 ${cambioTxt}</button>${admin ? '<button class="btn chico" id="fin-ajustes">⚙ Ajustes</button>' : ''}</div>`
-  const pie = `<p class="nota">Lo de USA se lleva en dólares y lo de México en pesos. "Todo junto" convierte con el tipo de cambio de Félix. ${admin ? 'Solo tú ves los gastos personales y el ahorro para tus metas.' : 'Ves lo del negocio; lo personal no aparece aquí.'}</p>`
-
-  // ------------------------------------------------- Quincena
-  function resumen() {
-    const Q = quincenaDe(new Date(), salto)
-    const x = M.periodo(Q.desde, Q.hasta)
-    const libre = admin ? x.libre : x.ganancia
-    const fl = M.flujo(4, { personal: admin })
-    const sug = salto >= 0 ? M.sugerencias(fl) : []
-    const color = libre < 0 ? 'rojo' : x.margen < 0.2 || Math.round(M.enBase(x.vencido)) > 0 || sug.length ? 'amarillo' : 'verde'
-    const frase = {
-      verde: `Vas en verde: ${x.pasado ? 'te sobró' : 'te van a sobrar'} ${$b(libre)} esta quincena.`,
-      amarillo: `En verde, pero con cuidado: ${sug.length ? 'te van a faltar pesos' : Math.round(M.enBase(x.vencido)) ? `hay ${$b(M.enBase(x.vencido))} de cobros atrasados` : `el margen es de ${Math.round(x.margen * 100)}%`}.`,
-      rojo: `Vas en rojo: ${x.pasado ? 'faltaron' : 'van a faltar'} ${$b(-libre)} esta quincena.`,
-    }[color]
-    const metaQ = Number(M.cfg.meta_libre || 0)
-    const avance = metaQ ? Math.max(0, Math.min(100, Math.round((libre / metaQ) * 100))) : 0
-    const porPagar = x.gastos.filter((g) => admin || g.tipo === 'negocio')
-    const nomQ = x.nomina
-    const filaMon = (t, o, cls = '') => `<tr class="${cls}"><td>${t}</td><td class="num">${Math.round(o.USD) ? signo(o.USD, 'USD') : '—'}</td><td class="num">${Math.round(o.MXN) ? signo(o.MXN, 'MXN') : '—'}</td><td class="num junto">${signo(M.en(o, 'USD'), 'USD')}</td><td class="num junto">${signo(M.en(o, 'MXN'), 'MXN')}</td></tr>`
-    const neg = (o) => ({ USD: -o.USD, MXN: -o.MXN })
-    const alertas = []
-    const s1 = sug[0]
-    if (s1) alertas.push(`<li class="mal">💸 <b>Te van a faltar pesos</b>: manda <b>unos ${dinero(s1.dolares, 'USD')}</b> con Félix (≈ ${dinero(s1.pesos, 'MXN')}) <b>antes del ${fechaBonita(s1.antes)}</b>.${s1.alcanzaUSD ? '' : ' <span class="rojo">Ojo: tampoco alcanzan los dólares.</span>'}${sug.length > 1 ? ` <a href="#" data-ir-tab="flujo">Ver los siguientes envíos</a>` : ''} ${editar ? '<button class="btn chico" data-envio>Ya lo mandé</button>' : ''}</li>`)
-    const venc = M.cobrosProgramados(sumarDias(M.hoy, -75), M.hoy).filter((c) => c.estado === 'vencido')
-    if (venc.length) alertas.push(`<li class="mal">⏳ <b>${venc.length} cobro${venc.length > 1 ? 's' : ''} sin confirmar</b>: ${[...new Set(venc.map((c) => c.cliente.nombre))].slice(0, 4).map(h).join(', ')}. <a href="#" data-ir-tab="ingresos">Confirmar</a></li>`)
-    if (!M.cfg.saldo_fecha && editar) alertas.push('<li>Pon cuánto tienes hoy en dólares y en pesos en <a href="#" data-ir-tab="flujo">Flujo de dinero</a> para saber si te alcanza.</li>')
-    if (M.fuenteTc !== 'felix' && editar) alertas.push('<li>Toca 💱 arriba y pon el tipo de cambio que te da <b>Félix</b> hoy.</li>')
-    if (!M.planes.length) alertas.push('<li>Pon cómo te paga cada cliente en <a href="#" data-ir-tab="ingresos">Ingresos</a>.</li>')
-    if (!gastos.length) alertas.push('<li>Agrega tus gastos en <a href="#" data-ir-tab="gastos">Gastos</a>, con sus días.</li>')
-    if (!puede('nomina_ver')) alertas.push('<li>No tienes permiso de ver la nómina: no se resta aquí.</li>')
-    return `
-      <div class="acciones mes-nav"><div class="segmento"><button data-q="-1" aria-label="Quincena anterior">←</button><button class="on">${h(Q.nombre)}</button><button data-q="1" aria-label="Quincena siguiente">→</button></div>${salto ? '<button class="btn chico" data-q="0">Esta quincena</button>' : ''}<span class="nota-corte">Corte el ${Q.q ? 'último día' : '15'} · se paga el ${fechaBonita(Q.paga)}</span></div>
-      <div class="tarjeta semaforo ${color}"><span class="luz"></span><div><b>${frase}</b><small>${x.antes ? 'Antes de llevar las cuentas en HQ.' : x.pasado ? 'Quincena cerrada: con lo que de verdad se cobró.' : 'Lo ya cobrado más lo que falta cobrar y pagar en la quincena.'}</small></div></div>
-      ${alertas.length ? `<div class="tarjeta"><h3>Para tu atención</h3><ul class="alertas-fin">${alertas.join('')}</ul></div>` : ''}
-      <div class="kpis">
-        <div class="kpi"><span>Entra</span><b>${$b(x.ingresos)}</b><small class="dos-mon">${dos(x.entra)}</small></div>
-        <div class="kpi"><span>Sale (negocio)</span><b>${$b(M.enBase(x.negocio) + M.enBase(nomQ))}</b><small class="dos-mon">${dos({ USD: x.negocio.USD + nomQ.USD, MXN: x.negocio.MXN + nomQ.MXN })}</small></div>
-        <div class="kpi"><span>Ganancia</span><b class="${x.ganancia < 0 ? 'rojo' : ''}">${signo(x.ganancia)}</b><small>margen ${Math.round(x.margen * 100)}%</small></div>
-        ${admin ? `<div class="kpi"><span>Te queda libre</span><b class="${x.libre < 0 ? 'rojo' : ''}">${signo(x.libre)}</b><small>después de lo personal y tus metas</small></div>` : `<div class="kpi"><span>Por cobrar</span><b>${$b(M.enBase(x.porCobrar))}</b><small class="dos-mon">${dos(x.porCobrar)}</small></div>`}
-      </div>
-      ${admin && metaQ ? `<div class="tarjeta meta"><div class="fila"><b>Meta: ${$b(metaQ)} libres cada quincena</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div></div>` : ''}
-      <div class="tarjeta"><h3>La quincena: dólares, pesos y todo junto</h3><div class="tabla-scroll"><table class="tabla cascada"><tr><th></th><th>Dólares (USA)</th><th>Pesos (México)</th><th>Todo junto en dólares</th><th>Todo junto en pesos</th></tr>
-          ${filaMon('Entra', x.entra)}${filaMon('− Gastos del negocio', neg(x.negocio))}${filaMon('− Nómina', neg(nomQ))}${filaMon('= Ganancia', x.netoNegocio, 'total')}
-          ${admin ? `${filaMon('− Gastos personales', neg(x.personal))}${filaMon('− Para tus metas', neg(x.metas))}${filaMon('= Te queda', x.netoTodo, 'total')}` : ''}
-        </table></div><p class="nota">Si los pesos salen en rojo y los dólares en verde, no te faltó dinero: te toca mandar dólares a México con Félix.</p></div>
-      <div class="dos">
-        <div class="tarjeta"><h3>Por pagar esta quincena</h3>${listaPagos(porPagar, nomQ, Q)}</div>
-        <div class="tarjeta"><h3>Por cobrar esta quincena</h3>${listaCobros(x.prog)}</div>
-      </div>
-      <div class="tarjeta"><h3>12 quincenas <small>pasado real · futuro proyectado · todo junto en ${M.base === 'USD' ? 'dólares' : 'pesos'}</small></h3>${grafica()}</div>`
+  const c2 = { ...ctx, tc }
+  const sum = (xs) => {
+    const o = suma()
+    for (const x of xs) o[x.moneda || 'USD'] += Number(x.monto || 0)
+    return o
   }
+  const verMon = (o, cls = '') => {
+    const p = ['USD', 'MXN'].filter((m) => Math.round(o[m] * 100))
+    return p.length ? p.map((m) => `<span class="${cls} ${o[m] < 0 ? 'rojo' : ''}">${o[m] < 0 ? '−' : ''}${dinero(Math.abs(o[m]), m)}</span>`).join('<i class="mas">+</i>') : `<span>${dinero(0, 'USD')}</span>`
+  }
+  const juntoUSD = (o) => o.USD + o.MXN / tc
+  const tieneDos = (o) => Math.round(o.USD * 100) && Math.round(o.MXN * 100)
 
-  function listaPagos(gs, nomQ, Q) {
-    const items = [
-      ...gs.map((g) => ({ fecha: g.fecha, que: g.g.concepto, monto: g.monto, moneda: g.moneda, personal: g.tipo === 'personal' })),
-      ...['MXN', 'USD'].filter((m) => nomQ[m]).map((m) => ({ fecha: Q.paga, que: 'Nómina', monto: nomQ[m], moneda: m })),
+  // Entradas de cada mitad del mes (solo lo que se registró).
+  const rango = (n) => ({ desde: iso(new Date(Y, Mo, n === 1 ? 1 : 15)), hasta: iso(n === 1 ? new Date(Y, Mo, 15) : new Date(Y, Mo + 1, 1)) })
+  const entradasDe = (n) => {
+    const r = rango(n)
+    return [
+      ...cobros.filter((x) => x.fecha >= r.desde && x.fecha < r.hasta).map((x) => ({ ...x, es: 'cobro', de: x.cliente_id ? clientes.find((c) => c.id === x.cliente_id)?.nombre || 'Cliente' : x.concepto || 'Otra entrada' })),
+      ...pagosPros.filter((g) => { const f = iso(new Date(g.fecha)); return f >= r.desde && f < r.hasta }).map((g) => ({ id: g.id, fecha: iso(new Date(g.fecha)), monto: g.monto, moneda: g.moneda, es: 'stripe', de: `${g.concepto || 'Consultoría'} · Stripe` })),
     ].sort((a, b) => a.fecha.localeCompare(b.fecha))
-    if (!items.length) return '<p class="vacio">Nada por pagar en esta quincena.</p>'
-    return ['USD', 'MXN']
-      .map((m) => {
-        const xs = items.filter((i) => i.moneda === m)
-        if (!xs.length) return ''
-        const tot = xs.reduce((s, i) => s + i.monto, 0)
-        return `<div class="grupo-cuenta"><div class="fila"><b>${m === 'USD' ? 'En dólares (USA)' : 'En pesos (México)'}</b><span>${dinero(tot, m)}</span></div><ul class="lista">${xs.map((i) => `<li><span>${fechaBonita(i.fecha)} · ${h(i.que)}${i.personal ? ' <span class="chip personal">personal</span>' : ''}</span><b>${dinero(i.monto, i.moneda)}</b></li>`).join('')}</ul></div>`
-      })
-      .join('')
   }
-  function listaCobros(prog) {
-    const xs = prog.filter((p) => p.estado !== 'omitido')
-    if (!xs.length) return '<p class="vacio">No hay cobros programados en esta quincena.</p>'
-    return `<ul class="lista">${xs.map((p) => `<li><span>${fechaBonita(p.fecha)} · ${h(p.cliente.nombre)}</span><b class="${p.estado === 'cobrado' ? 'verde' : p.estado === 'vencido' ? 'rojo' : ''}">${dinero(p.monto, p.moneda)}${p.estado === 'cobrado' ? ' ✓' : p.estado === 'vencido' ? ' · sin confirmar' : ''}</b></li>`).join('')}</ul>`
-  }
+  const claveMes = (n) => `${Y}-${String(Mo + 1).padStart(2, '0')}-${n}`
+  const estadoDe = (g, n) => estados.find((e) => e.gasto_id === g.id && e.mes === claveMes(n))?.estado ?? (g.activo === false ? 'cancelado' : g.automatico ? 'pagado' : 'debe')
 
-  function grafica() {
-    const qs = []
-    for (let k = -5; k <= 6; k++) {
-      const Q = quincenaDe(new Date(), k)
-      const x = M.periodo(Q.desde, Q.hasta)
-      const sale = M.enBase(x.negocio) + M.enBase(x.nomina) + (admin ? M.enBase(x.personal) : 0)
-      qs.push({ Q, x, entra: x.antes ? 0 : x.ingresos, sale: x.antes ? 0 : sale, futuro: k > 0, actual: k === 0 })
-    }
-    const max = Math.max(1, ...qs.flatMap((q) => [q.entra, q.sale]))
-    const W = 560, H = 220, top = 14, abajo = 30, izq = 52
-    const ancho = (W - izq) / qs.length
-    const barra = Math.min(14, (ancho - 8) / 2)
-    const y = (n) => top + (H - top - abajo) * (1 - n / max)
-    const rect = (x0, n, cls, fut) => {
-      const alto = Math.max(n > 0 ? 2 : 0, H - abajo - y(n))
-      const yy = H - abajo - alto
-      const r = Math.min(4, alto / 2)
-      return alto ? `<path class="${cls}${fut ? ' futuro' : ''}" d="M${x0},${H - abajo} V${yy + r} Q${x0},${yy} ${x0 + r},${yy} H${x0 + barra - r} Q${x0 + barra},${yy} ${x0 + barra},${yy + r} V${H - abajo} Z"/>` : ''
-    }
-    const barras = qs
-      .map((q, i) => {
-        const cx = izq + i * ancho + ancho / 2
-        const libre = admin ? q.x.libre : q.x.ganancia
-        const tip = q.x.antes ? `${q.Q.nombre}&#10;Antes de llevar las cuentas en HQ` : `${q.Q.nombre}${q.futuro ? ' (proyección)' : ''}&#10;Entra: ${$b(q.entra)}&#10;Sale: ${$b(q.sale)}&#10;${admin ? 'Queda' : 'Ganancia'}: ${signo(libre)}`
-        const mes = q.Q.q === 0 ? new Date(q.Q.y, q.Q.m, 1).toLocaleDateString('es-MX', { month: 'short' }).replace('.', '') : ''
-        return `<g class="mes-g${q.actual ? ' actual' : ''}" data-tip="${tip}" tabindex="0"><rect class="hit" x="${izq + i * ancho}" y="0" width="${ancho}" height="${H}"/>${rect(cx - barra - 1, q.entra, 'entra', q.futuro)}${rect(cx + 1, q.sale, 'sale', q.futuro)}<text x="${cx}" y="${H - 16}" text-anchor="middle">${q.Q.q ? '16' : '1'}</text>${mes ? `<text class="eje" x="${cx + ancho / 2}" y="${H - 3}" text-anchor="middle">${mes}</text>` : ''}</g>`
-      })
-      .join('')
-    const lineas = [0.5, 1].map((f) => `<line class="grid" x1="${izq}" x2="${W}" y1="${y(max * f)}" y2="${y(max * f)}"/><text class="eje" x="${izq - 6}" y="${y(max * f) + 3}" text-anchor="end">${$b(max * f)}</text>`).join('')
-    return `<div class="leyenda-fin"><span><i class="entra"></i>Entra</span><span><i class="sale"></i>Sale${admin ? ' (todo)' : ' (negocio)'}</span><span><i class="futuro-m"></i>Proyección</span></div>
-      <div class="grafica-fin"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lo que entra y sale cada quincena">${lineas}<line class="base" x1="${izq}" x2="${W}" y1="${H - abajo}" y2="${H - abajo}"/>${barras}</svg><div class="tip-fin" hidden></div></div>
-      <details class="tabla-ver"><summary>Ver como tabla</summary><div class="tabla-scroll"><table class="tabla"><tr><th>Quincena</th><th>Entra</th><th>Sale</th><th>${admin ? 'Queda' : 'Ganancia'}</th></tr>${qs.map((q) => `<tr><td>${h(q.Q.nombre)}${q.futuro ? ' <small>proyección</small>' : q.x.antes ? ' <small>antes de HQ</small>' : ''}</td><td>${$b(q.entra)}</td><td>${$b(q.sale)}</td><td>${q.x.antes ? '—' : signo(admin ? q.x.libre : q.x.ganancia)}</td></tr>`).join('')}</table></div></details>`
-  }
+  const cambioTxt = `💱 1 USD = ${tc.toFixed(2)} MXN${Number(config?.tc_felix) ? ' · Félix' : ' · mercado'}`
+  const pestanas = `<div class="acciones fin-tabs"><div class="segmento">${Object.entries(TABS).map(([k, t]) => `<button data-ft="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div><button class="cambio-chip" id="fin-felix" title="Solo para sumar pesos y dólares juntos">${cambioTxt}</button></div>`
+  const navMes = `<div class="acciones mes-nav"><div class="segmento"><button data-mes="-1" aria-label="Mes anterior">←</button><button class="on">${h(mesTxt)}</button><button data-mes="1" aria-label="Mes siguiente">→</button></div>${salto ? '<button class="btn chico" data-mes="0">Este mes</button>' : ''}</div>`
 
-  // ------------------------------------------------- Ingresos
-  function ingresos() {
-    const prog = M.cobrosProgramados(sumarDias(M.hoy, -75), sumarDias(M.hoy, 46))
-    const vencidos = prog.filter((x) => x.estado === 'vencido')
-    const proximos = prog.filter((x) => x.estado === 'pendiente')
-    const filaCobro = (x) => `<li class="cobro-fila ${x.estado}">
-        <div><b>${h(x.cliente.nombre)}</b><small>${fechaBonita(x.fecha)} · ${dinero(x.monto, x.moneda)}</small></div>
-        ${editar ? `<div class="acciones"><button class="btn chico primario" data-cobrado="${x.cliente.id}|${x.fecha}">✓ Ya pagó</button><button class="btn chico" data-omitir="${x.cliente.id}|${x.fecha}">No pagó / se recorre</button></div>` : `<span class="chip">${x.estado === 'vencido' ? 'sin confirmar' : 'por cobrar'}</span>`}
-      </li>`
-    const clientesTabla = clientes
-      .filter((c) => c.estado !== 'terminado')
-      .map((c) => {
-        const d = din.find((x) => x.cliente_id === c.id)
-        const p = planCliente(d)
-        const prox = p.monto ? fechas(p, M.hoy, sumarDias(M.hoy, 400))[0] : null
-        return `<tr><td><a href="#cliente/${c.id}">${h(c.nombre)}</a>${c.estado !== 'activo' ? ` <span class="chip ${c.estado}">${c.estado}</span>` : ''}</td><td>${d ? describirPlan(p) : '<span class="vacio-txt">Sin poner</span>'}</td><td>${p.monto ? dinero(p.monto, p.moneda) : '—'}</td><td>${p.monto ? dinero(alMes(p.monto, p.frecuencia, p.dias), p.moneda) : '—'}</td><td>${prox ? fechaBonita(prox) : '—'}</td><td>${editar ? `<button class="btn chico" data-plan="${c.id}">Cómo paga</button>` : ''}</td></tr>`
-      })
-      .join('')
-    const desdeH = sumarDias(M.hoy, -92)
-    const historial = [...cobros.filter((x) => x.fecha >= desdeH).map((x) => ({ ...x, es: 'cobro' })), ...pagosPros.filter((g) => iso(new Date(g.fecha)) >= desdeH).map((g) => ({ id: g.id, fecha: iso(new Date(g.fecha)), monto: g.monto, moneda: g.moneda, concepto: `${g.concepto || 'Consultoría'} · Stripe`, es: 'stripe' }))].sort((a, b) => b.fecha.localeCompare(a.fecha))
-    const alMesT = suma()
-    for (const p of M.planes) alMesT[p.moneda] += alMes(p.monto, p.frecuencia, p.dias)
-    const tot = (xs) => {
-      const o = suma()
-      for (const x of xs) o[x.moneda] += x.monto
-      return o
-    }
-    return `
-      <div class="kpis">
-        <div class="kpi"><span>Al mes (clientes activos)</span><b>${$b(M.enBase(alMesT))}</b><small class="dos-mon">${dos(alMesT)}</small></div>
-        <div class="kpi"><span>Por cobrar · 45 días</span><b>${$b(M.enBase(tot(proximos)))}</b><small class="dos-mon">${dos(tot(proximos))}</small></div>
-        <div class="kpi"><span>Sin confirmar</span><b class="${vencidos.length ? 'rojo' : ''}">${$b(M.enBase(tot(vencidos)))}</b><small>${vencidos.length ? `${vencidos.length} ya pasaron` : 'todo al día'}</small></div>
-      </div>
-      ${vencidos.length ? `<div class="tarjeta"><h3>¿Ya te pagaron? <small>la fecha ya pasó</small></h3><ul class="cobros-lista">${vencidos.map(filaCobro).join('')}</ul></div>` : ''}
-      <div class="tarjeta"><div class="fila"><h3>Próximos cobros <small>45 días</small></h3>${editar ? '<button class="btn chico" id="fin-cobro">+ Registrar un cobro</button>' : ''}</div>${proximos.length ? `<ul class="cobros-lista">${proximos.map(filaCobro).join('')}</ul>` : '<p class="vacio">No hay cobros programados. Pon cómo te paga cada cliente abajo.</p>'}</div>
-      <div class="tarjeta"><h3>Cómo te paga cada cliente</h3><div class="tabla-scroll"><table class="tabla"><tr><th>Cliente</th><th>Cuándo</th><th>Cada cobro</th><th>Al mes</th><th>Próximo</th><th></th></tr>${clientesTabla}</table></div>
-        <p class="nota">¿Te paga "cada dos viernes"? Elige <b>Cada dos semanas</b> y pon la fecha de <b>un viernes en que sí te pagó</b>. El contrato de México va en <b>pesos</b>: así se suma a lo que tienes en México.</p></div>
-      <div class="tarjeta"><h3>Cobros recibidos <small>últimos 3 meses</small></h3>${
-        historial.length
-          ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Fecha</th><th>De</th><th>Monto</th><th>Método</th><th></th></tr>${historial.map((x) => `<tr><td>${fechaBonita(x.fecha)}</td><td>${h(x.es === 'stripe' ? x.concepto : x.cliente_id ? clientes.find((c) => c.id === x.cliente_id)?.nombre || '—' : x.concepto || 'Otro ingreso')}${x.nota ? `<small> · ${h(x.nota)}</small>` : ''}</td><td><b>${dinero(x.monto, x.moneda)}</b></td><td>${h(x.metodo || (x.es === 'stripe' ? 'Stripe' : ''))}</td><td>${x.es === 'cobro' && editar ? `<button class="enlace" data-borrar-cobro="${x.id}">quitar</button>` : ''}</td></tr>`).join('')}</table></div>`
-          : '<p class="vacio">Aún no registras cobros.</p>'
-      }</div>`
-  }
-
-  // ------------------------------------------------- Gastos
+  // ------------------------------------------------- Gastos del mes (como Notion)
   function vistaGastos() {
-    const filtro = sessionStorage.getItem('hq-fin-g') || 'todos'
-    const lista = gastos.filter((g) => filtro === 'todos' || g.tipo === filtro)
-    const porQ = (tipo) => {
-      const o = suma()
-      for (const g of gastos) if (g.activo !== false && (!tipo || g.tipo === tipo)) o[g.moneda] += alMes(g.monto, g.frecuencia, g.dias) / 2
-      return o
-    }
-    const Q = quincenaDe(new Date(), 0)
-    const Q2 = quincenaDe(new Date(), 1)
-    const prox = M.gastosEn(Q.desde, Q2.hasta).filter((x) => filtro === 'todos' || x.tipo === filtro)
-    const porCat = {}
-    for (const g of lista) (porCat[g.categoria] ??= []).push(g)
-    const grupos = Object.entries(porCat)
-      .sort((a, b) => (CATEGORIAS[a[0]] || a[0]).localeCompare(CATEGORIAS[b[0]] || b[0]))
-      .map(
-        ([cat, gs]) => `<tr class="dia-asis"><td colspan="5">${h(CATEGORIAS[cat] || cat)}</td></tr>${gs
-          .map((g) => {
-            const sig = fechas({ frecuencia: g.frecuencia, ancla: g.ancla, dias: g.dias, fin: g.hasta }, M.hoy, sumarDias(M.hoy, 400))[0]
-            const qn = sig ? quincenaDe(deIso(sig)) : null
-            return `<tr class="${g.activo === false ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b>${admin ? ` <span class="chip ${g.tipo === 'personal' ? 'personal' : ''}">${g.tipo === 'personal' ? 'Personal' : h(g.empresa || 'Negocio')}</span>` : ''}${g.notas ? `<small> · ${h(g.notas)}</small>` : ''}</td><td>${dinero(g.monto, g.moneda)}</td><td>${describirPlan({ frecuencia: g.frecuencia, ancla: g.ancla, dias: g.dias })}${g.hasta ? `<small> · hasta ${fechaBonita(g.hasta)}</small>` : ''}</td><td>${sig ? `${fechaBonita(sig)}<small class="bloque">quincena ${qn.q ? '16–fin' : '1–15'}</small>` : '—'}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="btn chico" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
-          })
-          .join('')}`,
-      )
-      .join('')
-    const lq = (xs) => {
-      if (!xs.length) return '<p class="vacio">Nada.</p>'
-      const t = suma()
-      for (const x of xs) t[x.moneda] += x.monto
-      return `<ul class="lista">${xs.map((x) => `<li><span>${fechaBonita(x.fecha)} · ${h(x.g.concepto)}${admin && x.tipo === 'personal' ? ' <span class="chip personal">personal</span>' : ''}</span><b>${dinero(x.monto, x.moneda)}</b></li>`).join('')}</ul><div class="fila total-q"><span>Total</span><b>${dos(t)}</b></div>`
-    }
-    return `
-      <div class="kpis">
-        <div class="kpi"><span>Negocio por quincena</span><b>${$b(M.enBase(porQ('negocio')))}</b><small class="dos-mon">${dos(porQ('negocio'))}</small></div>
-        ${admin ? `<div class="kpi"><span>Personal por quincena</span><b>${$b(M.enBase(porQ('personal')))}</b><small class="dos-mon">${dos(porQ('personal'))}</small></div>` : ''}
-        <div class="kpi"><span>Total por quincena</span><b>${$b(M.enBase(porQ(admin ? '' : 'negocio')))}</b><small>promedio, sin nómina</small></div>
-      </div>
-      <div class="acciones">${admin ? `<div class="segmento">${[['todos', 'Todos'], ['negocio', 'Negocio'], ['personal', 'Personal']].map(([k, t]) => `<button data-gf="${k}" class="${filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''}${editar ? '<button class="btn primario" id="fin-gasto">+ Agregar gasto</button>' : ''}</div>
-      <div class="dos">
-        <div class="tarjeta"><h3>Quincena ${h(Q.nombre)}</h3>${lq(prox.filter((x) => x.fecha < Q.hasta))}</div>
-        <div class="tarjeta"><h3>Quincena ${h(Q2.nombre)}</h3>${lq(prox.filter((x) => x.fecha >= Q2.desde))}</div>
-      </div>
-      <div class="tarjeta">${lista.length ? `<div class="tabla-scroll"><table class="tabla tabla-asis"><tr><th>Gasto</th><th>Monto</th><th>Cuándo se paga</th><th>Próximo</th><th></th></tr>${grupos}</table></div>` : '<p class="vacio">Sin gastos todavía. Agrega renta, software, publicidad, tarjetas… con los días en que se pagan.</p>'}</div>`
-  }
-
-  // ------------------------------------------------- Flujo de dinero
-  function vistaFlujo() {
-    const fl = M.flujo(4, { personal: admin })
-    const sug = M.sugerencias(fl)
-    const tarjetaQ = (q, i) => {
-      const fila = (t, o, cls = '') => `<tr class="${cls}"><td>${t}</td><td class="num">${signo(o.USD, 'USD')}</td><td class="num">${signo(o.MXN, 'MXN')}</td><td class="num junto">${signo(M.en(o, 'USD'), 'USD')}</td><td class="num junto">${signo(M.en(o, 'MXN'), 'MXN')}</td></tr>`
-      return `<div class="tarjeta q-flujo ${q.rojo ? 'con-rojo' : ''}">
-        <div class="fila"><h3>${i === 0 ? 'Lo que queda de esta quincena' : 'Quincena'} <small>${h(q.Q.nombre)}</small></h3>${q.rojo ? `<span class="chip rojo-chip">faltan ${q.rojo.moneda === 'MXN' ? 'pesos' : 'dólares'} el ${fechaBonita(q.rojo.fecha)}</span>` : '<span class="chip verde-chip">alcanza</span>'}</div>
-        <div class="tabla-scroll"><table class="tabla cascada"><tr><th></th><th>Dólares</th><th>Pesos</th><th>Todo junto en dólares</th><th>Todo junto en pesos</th></tr>
-          ${fila(i === 0 ? 'Tienes hoy' : 'Empiezas con', q.empieza)}
-          ${fila('+ Entra', q.entra)}
-          ${fila('− Sale', { USD: -q.sale.USD, MXN: -q.sale.MXN })}
-          ${fila('= Terminas con', q.termina, 'total')}
+    const tabla = (n) => {
+      const M2 = MITAD[n]
+      const lista = gastos.filter((g) => [M2.clave, 'ambas'].includes(mitadDe(g))).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || String(a.concepto).localeCompare(String(b.concepto)))
+      const vivos = lista.filter((g) => estadoDe(g, n) !== 'cancelado')
+      const aTener = sum(vivos)
+      const ent = entradasDe(n)
+      const income = sum(ent)
+      const sobran = { USD: income.USD - aTener.USD, MXN: income.MXN - aTener.MXN }
+      const pagados = vivos.filter((g) => estadoDe(g, n) === 'pagado').length
+      const enCurso = new Date() >= deIso(rango(n).desde) && new Date() < deIso(rango(n).hasta)
+      return `<div class="tarjeta notion-t">
+        <div class="fila"><h3><span class="punto-n ${enCurso ? 'vivo' : ''}"></span>${M2.titulo}</h3>${editar ? `<button class="btn chico" data-nuevo="${M2.clave}">+ Gasto</button>` : ''}</div>
+        <div class="resumen-n">
+          <div><span>A tener</span><b>${verMon(aTener)}</b></div>
+          <div><span>Entradas</span><b>${verMon(income)}</b></div>
+          <div class="${juntoUSD(sobran) < 0 ? 'neg' : 'pos'}"><span>Sobran</span><b>${verMon(sobran)}</b>${tieneDos(sobran) ? `<small>todo junto ≈ ${juntoUSD(sobran) < 0 ? '−' : ''}${dinero(Math.abs(juntoUSD(sobran)), 'USD')}</small>` : ''}</div>
+          <div><span>Pagados</span><b>${pagados}/${vivos.length}</b></div>
+        </div>
+        <div class="tabla-scroll"><table class="tabla tabla-n"><tr><th>Gasto</th><th>Día</th><th class="num">Monto</th><th>Estado</th><th>Notas</th><th></th></tr>
+          ${
+            lista
+              .map((g) => {
+                const e = estadoDe(g, n)
+                return `<tr class="${e === 'cancelado' ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b>${admin && g.tipo === 'personal' ? ' <span class="chip personal">personal</span>' : ''}</td><td>${h(g.dia_texto || (g.dias ?? []).join(', ') || '—')}</td><td class="num">${dinero(g.monto, g.moneda)}</td><td>${editar ? `<button class="estado-n ${e}" data-estado="${g.id}|${n}" title="Toca para cambiar">${ESTADOS[e]}</button>` : `<span class="estado-n ${e}">${ESTADOS[e]}</span>`}</td><td class="nota-asis">${h(g.notas || '')}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="enlace" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
+              })
+              .join('') || '<tr><td colspan="6" class="vacio">Sin gastos en esta mitad.</td></tr>'
+          }
+          <tr class="suma-n"><td>Suma</td><td></td><td class="num">${verMon(aTener)}</td><td colspan="3"></td></tr>
         </table></div>
-        ${q.xs.length ? `<details><summary>Ver qué entra y qué sale (${q.xs.length})</summary><ul class="lista">${q.xs.map((x) => `<li><span>${fechaBonita(x.fecha)} · ${h(x.que)}${x.personal ? ' <span class="chip personal">personal</span>' : ''}</span><b class="${x.monto > 0 ? 'verde' : ''}">${x.monto > 0 ? '+' : '−'}${dinero(Math.abs(x.monto), x.moneda)}</b></li>`).join('')}</ul></details>` : ''}
+        ${ent.length ? `<details class="ent-n"><summary>Entradas de ${M2.corto} (${ent.length})</summary><ul class="lista">${ent.map((x) => `<li><span>${fechaBonita(x.fecha)} · ${h(x.de)}</span><b>${dinero(x.monto, x.moneda)}</b></li>`).join('')}</ul></details>` : `<p class="nota">Sin entradas registradas del ${M2.corto}. ${editar ? 'Regístralas en <a href="#" data-ir-tab="entradas">Entradas</a>.' : ''}</p>`}
       </div>`
     }
-    const hist = [...(envios ?? [])].sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 12)
-    return `
-      <div class="tarjeta saldo-hoy">
-        <div class="fila"><h3>Hoy tienes</h3>${editar ? '<div class="acciones"><button class="btn chico primario" id="fin-saldos">Actualizar saldos</button><button class="btn chico" data-envio>Envié con Félix</button></div>' : ''}</div>
-        <div class="saldos-g">
-          <div><span>En dólares (USA)</span><b class="${fl.hoy.USD < 0 ? 'rojo' : ''}">${signo(fl.hoy.USD, 'USD')}</b></div>
-          <div><span>En pesos (México)</span><b class="${fl.hoy.MXN < 0 ? 'rojo' : ''}">${signo(fl.hoy.MXN, 'MXN')}</b></div>
-          <div class="junto-g"><span>Todo junto</span><b>${signo(M.en(fl.hoy, 'USD'), 'USD')}</b><b>${signo(M.en(fl.hoy, 'MXN'), 'MXN')}</b></div>
-        </div>
-        <small>${M.cfg.saldo_fecha ? `Saldos que pusiste el ${fechaBonita(fl.saldoDia)}${fl.saldoDia < M.hoy ? ', más lo que entró y salió desde entonces' : ''}.` : 'Pon tus saldos de hoy (todos tus bancos de USA juntos en dólares, y los de México en pesos).'}</small>
-      </div>
-      ${sug.length ? `<div class="tarjeta semaforo amarillo"><span class="luz"></span><div><b>Te van a faltar pesos. Con Félix, manda:</b><ul class="lista envios-plan">${sug.map((s) => `<li><span>Antes del <b>${fechaBonita(s.antes)}</b> <small>(quincena ${h(s.q.corto)})</small></span><b>${dinero(s.dolares, 'USD')} <small>≈ ${dinero(s.pesos, 'MXN')}</small></b></li>`).join('')}</ul><small>Con el cambio de Félix (${M.tc.toFixed(2)}) y un colchón de 3%. Si mandas antes o más, regístralo con "Envié con Félix" y esto se ajusta solo.</small></div></div>` : ''}
-      ${fl.qs.map(tarjetaQ).join('')}
-      <div class="tarjeta"><h3>Envíos con Félix</h3>${
-        hist.length
-          ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Fecha</th><th>Mandaste</th><th>Llegaron</th><th>Cambio</th><th></th></tr>${hist.map((e) => `<tr><td>${fechaBonita(e.fecha)}</td><td>${dinero(e.dolares, 'USD')}</td><td>${dinero(e.pesos, 'MXN')}</td><td>${(e.pesos / e.dolares).toFixed(2)}</td><td>${admin ? `<button class="enlace" data-borrar-envio="${e.id}">quitar</button>` : ''}</td></tr>`).join('')}</table></div>`
-          : '<p class="vacio">Cuando mandes dinero a México, toca "Envié con Félix": se resta de tus dólares, se suma a tus pesos y HQ aprende el tipo de cambio real.</p>'
-      }</div>`
+    return `${navMes}${tabla(1)}${tabla(2)}<p class="nota">Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. Los gastos se repiten cada mes: edítalos cuando cambien. "A tener" es la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
+  }
+
+  // ------------------------------------------------- Entradas
+  function vistaEntradas() {
+    const e1 = entradasDe(1)
+    const e2 = entradasDe(2)
+    const todas = [...e1, ...e2]
+    const total = sum(todas)
+    const lista = (xs) =>
+      xs.length
+        ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Fecha</th><th>De</th><th class="num">Monto</th><th>Método</th><th></th></tr>${xs.map((x) => `<tr><td>${fechaBonita(x.fecha)}</td><td>${h(x.de)}${x.nota ? `<small> · ${h(x.nota)}</small>` : ''}</td><td class="num"><b>${dinero(x.monto, x.moneda)}</b></td><td>${h(x.metodo || (x.es === 'stripe' ? 'Stripe' : ''))}</td><td>${x.es === 'cobro' && editar ? `<button class="enlace" data-borrar-cobro="${x.id}">quitar</button>` : ''}</td></tr>`).join('')}</table></div>`
+        : '<p class="vacio">Sin entradas.</p>'
+    return `${navMes}
+      <div class="kpis"><div class="kpi"><span>Entradas de ${h(mesTxt.toLowerCase())}</span><b class="dos-mon">${verMon(total)}</b>${tieneDos(total) ? `<small>todo junto ≈ ${dinero(juntoUSD(total), 'USD')}</small>` : ''}</div>
+        <div class="kpi"><span>Del 1 al 14</span><b class="dos-mon">${verMon(sum(e1))}</b></div><div class="kpi"><span>Del 15 al 31</span><b class="dos-mon">${verMon(sum(e2))}</b></div></div>
+      ${editar ? '<div class="acciones"><button class="btn primario" id="fin-cobro">+ Registrar entrada</button></div>' : ''}
+      <div class="tarjeta"><h3>Del 1 al 14</h3>${lista(e1)}</div>
+      <div class="tarjeta"><h3>Del 15 al 31</h3>${lista(e2)}</div>`
   }
 
   // ------------------------------------------------- Ahorro para metas (solo admin)
   function vistaMetas() {
+    const M = motor({ clientes: [], dinero: [], cobros: [], omitidos: [], pagosPros: [], gastos: [], aportes, metas, nomina: [], jornadas: [], ajustes: [], comisiones: [], config }, ctx, cambio)
     const ms = M.metasDinero()
     const sinPrecio = metas.filter((m) => !(Number(m.monto_objetivo) > 0) && m.estado !== 'lograda')
-    const totalAhorrado = ms.reduce((s, x) => s + M.conv(x.ahorrado, x.mt.moneda), 0)
-    const planMes = ms.reduce((s, x) => s + M.conv(x.planMes, x.mt.moneda), 0)
     const tarjeta = (x) => `<div class="tarjeta meta-dinero">
         <div class="fila"><div><b>${h(x.mt.titulo)}</b>${x.mt.porque ? `<small>${h(x.mt.porque)}</small>` : ''}</div><span class="pct">${x.pct > 0 && x.pct < 1 ? '<1' : Math.floor(x.pct)}%</span></div>
         <div class="barra grande"><i style="width:${x.pct}%"></i></div>
@@ -698,90 +542,36 @@ export async function vistaFinanzas(v, ctx) {
         ${x.aps.length ? `<details><summary>Historial (${x.aps.length})</summary><ul class="lista">${x.aps.map((a) => `<li><b class="${a.monto < 0 ? 'rojo' : ''}">${a.monto < 0 ? '−' : '+'}${dinero(Math.abs(a.monto), a.moneda)}</b><small>${fechaBonita(a.fecha)}${a.nota ? ` · ${h(a.nota)}` : ''}</small> <button class="enlace" data-borrar-aporte="${a.id}">quitar</button></li>`).join('')}</ul></details>` : ''}
       </div>`
     return `
-      <div class="kpis">
-        <div class="kpi"><span>Apartado para tus metas</span><b>${$b(totalAhorrado)}</b><small>${ms.length} meta${ms.length === 1 ? '' : 's'} con precio</small></div>
-        <div class="kpi"><span>Tu plan</span><b>${$b(planMes / 2)}</b><small>por quincena</small></div>
-      </div>
       <div class="acciones"><button class="btn primario" id="fin-meta-nueva">+ Meta con precio</button></div>
       <div class="rejilla-metas">${ms.map(tarjeta).join('') || '<div class="tarjeta"><p class="vacio">Ponle precio a una meta (ej. "Casa multifamiliar para rentar · $800,000") y registra lo que vas apartando.</p></div>'}</div>
       ${sinPrecio.length ? `<div class="tarjeta"><h3>Metas sin precio</h3><ul class="lista">${sinPrecio.map((m) => `<li><b>${h(m.titulo)}</b> <button class="btn chico" data-plan-meta="${m.id}">Ponerle precio</button></li>`).join('')}</ul></div>` : ''}
-      <p class="nota">El dinero lo apartas tú; aquí llevas la cuenta. Lo apartado se resta de lo que te queda libre.</p>`
+      <p class="nota">El dinero lo apartas tú; aquí llevas la cuenta.</p>`
   }
 
-  // ------------------------------------------------- acciones
-  const conectar = {
-    resumen() {
-      $$('[data-q]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-q', b.dataset.q === '0' ? '0' : String(salto + Number(b.dataset.q))), mostrar())))
-      $$('[data-ir-tab]', v).forEach((a) => (a.onclick = (e) => (e.preventDefault(), sessionStorage.setItem('hq-fin', a.dataset.irTab), mostrar())))
-      tooltips()
-    },
-    ingresos() {
-      $$('[data-cobrado]', v).forEach(
-        (b) =>
-          (b.onclick = () => {
-            const [cid, f] = b.dataset.cobrado.split('|')
-            const p = M.planes.find((x) => x.c.id === cid)
-            registrarCobro(c2, { clientes, cliente_id: cid, para_fecha: f, monto: p?.monto, moneda: p?.moneda })
-          }),
-      )
-      $$('[data-omitir]', v).forEach(
-        (b) =>
-          (b.onclick = async () => {
-            const [cid, f] = b.dataset.omitir.split('|')
-            const motivo = prompt('¿Qué pasó? (ej. se recorrió al siguiente viernes, no pagó, pausó el servicio)') ?? null
-            if (motivo === null) return
-            if (await intenta(() => D.omitirCobro({ cliente_id: cid, fecha: f, motivo: motivo.slice(0, 200) }), 'Anotado')) mostrar()
-          }),
-      )
-      $$('[data-plan]', v).forEach((b) => (b.onclick = () => editarPlanCliente(c2, clientes.find((c) => c.id === b.dataset.plan), din.find((x) => x.cliente_id === b.dataset.plan))))
-      $('#fin-cobro', v)?.addEventListener('click', () => registrarCobro(c2, { clientes }))
-      $$('[data-borrar-cobro]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este cobro?') && (await intenta(() => D.borrarCobro(b.dataset.borrarCobro), 'Quitado')) && mostrar()))
-    },
-    gastos() {
-      $$('[data-gf]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-g', b.dataset.gf), mostrar())))
-      $('#fin-gasto', v)?.addEventListener('click', () => editarGasto(c2, null))
-      $$('[data-gasto]', v).forEach((b) => (b.onclick = () => editarGasto(c2, gastos.find((g) => g.id === b.dataset.gasto))))
-    },
-    flujo() {
-      $('#fin-saldos', v)?.addEventListener('click', () => saldos(c2, M.flujo(1, { personal: admin }).hoy))
-      $$('[data-borrar-envio]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este envío? (No cambia tus saldos: ajústalos si hace falta.)') && (await intenta(() => D.borrarEnvio(b.dataset.borrarEnvio), 'Quitado')) && mostrar()))
-    },
-    metas() {
-      $('#fin-meta-nueva', v)?.addEventListener('click', () => planMeta(c2, null))
-      $$('[data-plan-meta]', v).forEach((b) => (b.onclick = () => planMeta(c2, metas.find((m) => m.id === b.dataset.planMeta))))
-      $$('[data-aportar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.aportar), 1)))
-      $$('[data-sacar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.sacar), -1)))
-      $$('[data-borrar-aporte]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este movimiento?') && (await intenta(() => D.borrarAporte(b.dataset.borrarAporte), 'Quitado')) && mostrar()))
-    },
-  }
-  function tooltips() {
-    const caja = $('.grafica-fin', v)
-    const tip = $('.tip-fin', v)
-    if (!caja) return
-    $$('.mes-g', v).forEach((g) => {
-      const ver = () => {
-        tip.innerHTML = g.dataset.tip.split('\n').map((l, i) => (i ? `<span>${h(l)}</span>` : `<b>${h(l)}</b>`)).join('')
-        tip.hidden = false
-        const r = g.getBoundingClientRect()
-        const c = caja.getBoundingClientRect()
-        tip.style.left = `${Math.min(c.width - 170, Math.max(0, r.left - c.left + r.width / 2 - 85))}px`
-        g.classList.add('foco')
-      }
-      const ocultar = () => ((tip.hidden = true), g.classList.remove('foco'))
-      g.addEventListener('mouseenter', ver)
-      g.addEventListener('focus', ver)
-      g.addEventListener('mouseleave', ocultar)
-      g.addEventListener('blur', ocultar)
-    })
-  }
-
-  const cuerpo = { resumen, ingresos, gastos: vistaGastos, flujo: vistaFlujo, metas: vistaMetas }[tab]
-  v.innerHTML = pestanas + cuerpo() + pie
-  $$('[data-ft]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin', b.dataset.ft), mostrar())))
-  $('#fin-ajustes', v)?.addEventListener('click', () => ajustesFinanzas(c2, config, cambio))
-  $('#fin-felix', v)?.addEventListener('click', () => (editar ? cambioFelix(c2, cambio) : null))
-  $$('[data-envio]', v).forEach((b) => (b.onclick = () => envioFelix(c2)))
-  conectar[tab]?.()
+  const cuerpo = { gastos: vistaGastos, entradas: vistaEntradas, metas: vistaMetas }[tab]
+  v.innerHTML = pestanas + cuerpo() + `<p class="nota">${admin ? 'Solo tú ves los gastos personales y el ahorro para tus metas.' : 'Ves lo del negocio; lo personal no aparece aquí.'}</p>`
+  $$('[data-ft]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin2', b.dataset.ft), mostrar())))
+  $$('[data-mes]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-mes', b.dataset.mes === '0' ? '0' : String(salto + Number(b.dataset.mes))), mostrar())))
+  $$('[data-ir-tab]', v).forEach((a) => (a.onclick = (e) => (e.preventDefault(), sessionStorage.setItem('hq-fin2', a.dataset.irTab), mostrar())))
+  $('#fin-felix', v)?.addEventListener('click', () => (editar ? cambioFelix(c2, cambio, config) : null))
+  $$('[data-nuevo]', v).forEach((b) => (b.onclick = () => editarGasto(c2, null, b.dataset.nuevo)))
+  $$('[data-gasto]', v).forEach((b) => (b.onclick = () => editarGasto(c2, gastos.find((g) => g.id === b.dataset.gasto))))
+  $$('[data-estado]', v).forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const [gid, n] = b.dataset.estado.split('|')
+        const g = gastos.find((x) => x.id === gid)
+        const sig = { debe: 'pagado', pagado: 'cancelado', cancelado: 'debe' }[estadoDe(g, Number(n))]
+        if (await intenta(() => D.marcarGasto(gid, claveMes(n), sig))) mostrar()
+      }),
+  )
+  $('#fin-cobro', v)?.addEventListener('click', () => registrarCobro(c2, { clientes }))
+  $$('[data-borrar-cobro]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar esta entrada?') && (await intenta(() => D.borrarCobro(b.dataset.borrarCobro), 'Quitada')) && mostrar()))
+  $('#fin-meta-nueva', v)?.addEventListener('click', () => planMeta(c2, null))
+  $$('[data-plan-meta]', v).forEach((b) => (b.onclick = () => planMeta(c2, metas.find((m) => m.id === b.dataset.planMeta))))
+  $$('[data-aportar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.aportar), 1)))
+  $$('[data-sacar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.sacar), -1)))
+  $$('[data-borrar-aporte]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este movimiento?') && (await intenta(() => D.borrarAporte(b.dataset.borrarAporte), 'Quitado')) && mostrar()))
 }
 
 // ----------------------------------------------------------- formularios
@@ -850,9 +640,9 @@ const ctxAviso = (caja, t) => {
 
 function registrarCobro({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones }, { clientes, cliente_id = '', para_fecha = '', monto = '', moneda = 'USD' }) {
   abrirModal(
-    `<form id="f-cobro"><h2>${para_fecha ? 'Ya pagó' : 'Registrar un cobro'}</h2>
+    `<form id="f-cobro"><h2>${para_fecha ? 'Ya pagó' : 'Registrar entrada'}</h2>
       <div class="campos">
-        <label class="ancho">De<select name="cliente_id"><option value="">Otro ingreso (no es de un cliente)</option>${clientes.map((c) => `<option value="${c.id}" ${c.id === cliente_id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select></label>
+        <label class="ancho">De<select name="cliente_id"><option value="">Otra entrada (no es de un cliente)</option>${clientes.map((c) => `<option value="${c.id}" ${c.id === cliente_id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select></label>
         <label class="ancho" data-otro>Concepto<input name="concepto" maxlength="200" placeholder="Ej. Venta de equipo, reembolso…"></label>
         <label>Monto<input name="monto" type="number" min="0.01" step="0.01" required value="${h(monto)}"></label>
         <label>Moneda<select name="moneda">${opciones(MONEDAS, moneda)}</select></label>
@@ -871,152 +661,77 @@ function registrarCobro({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, op
         e.preventDefault()
         const x = Object.fromEntries(new FormData(f))
         const fila = { cliente_id: x.cliente_id || null, concepto: x.cliente_id ? '' : String(x.concepto || 'Otro ingreso').trim(), monto: Number(x.monto), moneda: x.moneda, fecha: x.fecha, para_fecha: x.cliente_id && para_fecha ? para_fecha : null, metodo: x.metodo.trim(), nota: x.nota.trim() }
-        if (await intenta(() => D.guardarCobro(fila), 'Cobro registrado')) (cerrarModal(), mostrar())
+        if (await intenta(() => D.guardarCobro(fila), 'Entrada registrada')) (cerrarModal(), mostrar())
       }
     },
   )
 }
 
-function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones, esAdmin }, g) {
-  const n = g ?? { tipo: 'negocio', frecuencia: 'mensual', moneda: 'USD', categoria: 'otros', empresa: 'NXUS AI', dias: [], activo: true }
+function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones, esAdmin }, g, mitad = 'primera') {
+  const n = g ?? { tipo: 'negocio', moneda: 'USD', categoria: 'otros', empresa: 'NXUS AI', quincena: mitad, dia_texto: '', automatico: false, activo: true, notas: '' }
   const admin = esAdmin()
   abrirModal(
     `<form id="f-gasto"><h2>${g ? h(g.concepto) : 'Nuevo gasto'}</h2>
       <div class="campos">
-        <label class="ancho">Qué es<input name="concepto" required maxlength="200" value="${h(n.concepto || '')}" placeholder="Renta de la oficina, Adobe, tarjeta Amex…"></label>
-        ${admin ? `<label>Es<select name="tipo">${opciones({ negocio: 'Del negocio', personal: 'Personal (solo tú lo ves)' }, n.tipo)}</select></label>` : ''}
-        <label>Categoría<select name="categoria">${opciones(CATEGORIAS, n.categoria)}</select></label>
-        <label data-neg>Empresa<input name="empresa" maxlength="60" value="${h(n.empresa || 'NXUS AI')}" list="empresas-l"><datalist id="empresas-l"><option>NXUS AI</option><option>Mi Semago</option><option>Abuelito</option><option>Aurelius</option><option>VAYRO</option></datalist></label>
+        <label class="ancho">Gasto<input name="concepto" required maxlength="200" value="${h(n.concepto || '')}" placeholder="Canva, Pago Luis, Internet México…"></label>
+        <label>Va en<select name="quincena">${opciones({ primera: 'Del 1 al 14', segunda: 'Del 15 al 31', ambas: 'Las dos mitades' }, mitadDe(n))}</select></label>
+        <label>Día <small>como lo escribes: "5", "29 - 2"</small><input name="dia_texto" maxlength="30" value="${h(n.dia_texto || (n.dias ?? []).join(', ') || '')}"></label>
         <label>Monto<input name="monto" type="number" min="0" step="0.01" required value="${h(n.monto ?? '')}"></label>
-        <label>Moneda <small>pesos = se paga en México</small><select name="moneda">${opciones(MONEDAS, n.moneda)}</select></label>
-        <label class="ancho">Cada cuándo<select name="frecuencia">${opciones(FREC_GASTO, n.frecuencia)}</select></label>
-        <label class="ancho" data-si="mensual quincenal">Días en que se paga <small>"1" · "15, 30" · 31 = el último</small><input name="dias" value="${h((n.dias ?? []).join(', '))}" placeholder="1"></label>
-        <label data-si="catorcenal semanal bimestral trimestral semestral anual unico">Fecha <small>la del pago (o la primera)</small><input name="ancla" type="date" value="${h(n.ancla || '')}"></label>
-        <label data-si="mensual quincenal catorcenal semanal bimestral trimestral semestral anual">Se termina <small>opcional (ej. un préstamo)</small><input name="hasta" type="date" value="${h(n.hasta || '')}"></label>
-        <label class="ancho">Notas<input name="notas" maxlength="1000" value="${h(n.notas || '')}"></label>
-        ${g ? `<label class="check ancho"><input type="checkbox" name="activo" ${n.activo !== false ? 'checked' : ''}> Sigue activo</label>` : ''}
+        <label>Moneda<select name="moneda">${opciones(MONEDAS, n.moneda || 'USD')}</select></label>
+        <label class="ancho">Notas <small>ej. Tarjeta México, Automatizado, Destinar a una deuda</small><input name="notas" maxlength="1000" value="${h(n.notas || '')}"></label>
+        <label class="check ancho"><input type="checkbox" name="automatico" ${n.automatico ? 'checked' : ''}> Automatizado (se cobra solo: sale como "Pagado" cada mes)</label>
+        ${admin ? `<label>Es<select name="tipo">${opciones({ negocio: 'Del negocio', personal: 'Personal (solo tú lo ves)' }, n.tipo || 'negocio')}</select></label>` : ''}
+        <label>Categoría<select name="categoria">${opciones(CATEGORIAS, n.categoria || 'otros')}</select></label>
+        ${g ? `<label class="check ancho"><input type="checkbox" name="activo" ${n.activo !== false ? 'checked' : ''}> Sigue activo (si lo cancelaste para siempre, quítalo)</label>` : ''}
       </div>
-      <p class="nota" data-vista></p>
       <div class="acciones"><button class="btn primario">Guardar</button>${g ? '<button type="button" class="btn peligro" id="g-borrar">Borrar</button>' : ''}<button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
     (caja) => {
       const f = $('#f-gasto', caja)
-      const leer = () => {
-        const x = Object.fromEntries(new FormData(f))
-        return { x, frecuencia: x.frecuencia, dias: String(x.dias || '').split(/[,\sy]+/).map(Number).filter((k) => k >= 1 && k <= 31), ancla: x.ancla || null, fin: x.hasta || null }
-      }
-      const pintar = () => {
-        const q = leer()
-        caja.querySelectorAll('[data-si]').forEach((el) => (el.hidden = !el.dataset.si.split(' ').includes(q.frecuencia)))
-        const neg = caja.querySelector('[data-neg]')
-        if (neg) neg.hidden = (q.x.tipo || 'negocio') !== 'negocio'
-        const prox = fechas(q, hoyIso(), sumarDias(hoyIso(), 120)).slice(0, 4)
-        caja.querySelector('[data-vista]').innerHTML = prox.length ? `Próximos pagos: <b>${prox.map((p) => `${fechaBonita(p)} (quincena ${quincenaDe(deIso(p)).q ? '16–fin' : '1–15'})`).join(' · ')}</b>` : ''
-      }
-      f.addEventListener('input', pintar)
-      f.addEventListener('change', pintar)
-      pintar()
       f.onsubmit = async (e) => {
         e.preventDefault()
-        const q = leer()
-        if (['catorcenal', 'semanal', 'unico', 'bimestral', 'trimestral', 'semestral', 'anual'].includes(q.frecuencia) && !q.ancla) return ctxAviso(caja, 'Pon la fecha')
+        const x = Object.fromEntries(new FormData(f))
+        const dia = Number(String(x.dia_texto || '').match(/\d+/)?.[0]) || null
         const fila = {
           ...(g ? { id: g.id } : {}),
-          concepto: q.x.concepto.trim(),
-          tipo: admin ? q.x.tipo : 'negocio',
-          categoria: q.x.categoria,
-          empresa: (q.x.tipo || 'negocio') === 'negocio' ? String(q.x.empresa || '').trim() : '',
-          monto: Number(q.x.monto) || 0,
-          moneda: q.x.moneda,
-          frecuencia: q.frecuencia,
-          dias: ['mensual', 'quincenal'].includes(q.frecuencia) ? q.dias : [],
-          ancla: q.ancla,
-          hasta: q.frecuencia === 'unico' ? null : q.fin,
-          notas: q.x.notas.trim(),
-          activo: g ? !!q.x.activo : true,
+          concepto: x.concepto.trim(),
+          quincena: x.quincena,
+          dia_texto: String(x.dia_texto || '').trim(),
+          monto: Number(x.monto) || 0,
+          moneda: x.moneda,
+          notas: x.notas.trim(),
+          automatico: !!x.automatico,
+          tipo: admin ? x.tipo : 'negocio',
+          categoria: x.categoria,
+          empresa: (x.tipo || 'negocio') === 'negocio' ? n.empresa || 'NXUS AI' : '',
+          frecuencia: x.quincena === 'ambas' ? 'quincenal' : 'mensual',
+          dias: dia ? [dia] : [],
+          activo: g ? !!x.activo : true,
         }
         if (await intenta(() => D.guardarGasto(fila), 'Guardado')) (cerrarModal(), mostrar())
       }
       $('#g-borrar', caja)?.addEventListener('click', async () => {
-        if (!confirm(`¿Borrar "${g.concepto}"? Si ya no lo pagas pero quieres guardar el historial, mejor quítale "Sigue activo".`)) return
+        if (!confirm(`¿Borrar "${g.concepto}"?`)) return
         if (await intenta(() => D.borrarGasto(g.id), 'Borrado')) (cerrarModal(), mostrar())
       })
     },
   )
 }
 
-/** Los saldos de hoy: todo lo de USA junto en dólares, todo lo de México junto en pesos. */
-function saldos({ D, h, $, abrirModal, cerrarModal, intenta, mostrar }, hoyS) {
+/** El tipo de cambio (solo para sumar pesos y dólares juntos): el de Félix si lo pone. */
+function cambioFelix({ D, h, $, abrirModal, cerrarModal, intenta, mostrar }, cambio, cfg) {
   abrirModal(
-    `<form id="f-saldos"><h2>Lo que tienes hoy</h2>
+    `<form id="f-felix"><h2>💱 Tipo de cambio</h2>
       <div class="campos">
-        <label>En dólares <small>suma todos tus bancos de USA</small><input name="usd" type="number" step="0.01" required value="${h(Math.round((hoyS?.USD ?? 0) * 100) / 100)}"></label>
-        <label>En pesos <small>suma todos tus bancos de México</small><input name="mxn" type="number" step="0.01" required value="${h(Math.round((hoyS?.MXN ?? 0) * 100) / 100)}"></label>
+        <label class="ancho">1 dólar = cuántos pesos <small>el de Félix; vacío = el del mercado${cambio?.tc ? ` (hoy ${cambio.tc.toFixed(2)})` : ''}</small><input name="tc" type="number" min="5" max="60" step="0.0001" value="${h(cfg?.tc_felix ?? '')}"></label>
       </div>
-      <p class="nota">Desde hoy HQ suma lo que entra y resta lo que sale. Actualízalo cuando quieras (una vez por quincena basta).</p>
+      <p class="nota">Solo se usa para mostrar "todo junto" cuando hay pesos y dólares en la misma tabla.</p>
       <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
-    (caja) => {
-      $('#f-saldos', caja).onsubmit = async (e) => {
-        e.preventDefault()
-        if (await intenta(() => D.guardarFinanzasConfig({ id: 1, saldo_usd: Number(e.target.usd.value) || 0, saldo_mxn: Number(e.target.mxn.value) || 0, saldo_fecha: new Date().toISOString() }), 'Saldos guardados')) (cerrarModal(), mostrar())
-      }
-    },
-  )
-}
-
-/** Envié con Félix: resta los dólares, suma los pesos y aprende el tipo de cambio real. */
-function envioFelix({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, M }) {
-  abrirModal(
-    `<form id="f-envio"><h2>Envié con Félix</h2>
-      <div class="campos">
-        <label>Mandé (dólares)<input name="dolares" type="number" min="0.01" step="0.01" required></label>
-        <label>Llegaron (pesos) <small>lo que dice Félix</small><input name="pesos" type="number" min="0.01" step="0.01" required></label>
-        <label>Fecha<input name="fecha" type="date" required value="${hoyIso()}" max="${hoyIso()}"></label>
-        <label class="ancho">Nota <small>opcional</small><input name="nota" maxlength="300"></label>
-      </div>
-      <p class="nota" data-tc>Con el cambio de Félix (${M.tc.toFixed(2)}).</p>
-      <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
-    (caja) => {
-      const f = $('#f-envio', caja)
-      let tocado = false
-      f.addEventListener('input', (e) => {
-        if (e.target === f.pesos) tocado = true
-        if (!tocado && Number(f.dolares.value)) f.pesos.value = (Math.round(Number(f.dolares.value) * M.tc * 100) / 100).toFixed(2)
-        const d = Number(f.dolares.value)
-        const p = Number(f.pesos.value)
-        caja.querySelector('[data-tc]').innerHTML = d && p ? `Tipo de cambio de este envío: <b>${(p / d).toFixed(4)}</b> pesos por dólar. Queda como el cambio de Félix en HQ.` : ''
-      })
-      f.onsubmit = async (e) => {
-        e.preventDefault()
-        const x = Object.fromEntries(new FormData(f))
-        const d = Number(x.dolares)
-        const p = Number(x.pesos)
-        const r = await intenta(() => D.guardarEnvio({ fecha: x.fecha, dolares: d, pesos: p, nota: x.nota.trim() }), 'Envío registrado')
-        if (!r) return
-        await intenta(() => D.guardarFinanzasConfig({ id: 1, tc_felix: Math.round((p / d) * 10000) / 10000, tc_felix_fecha: new Date().toISOString() }))
-        cerrarModal()
-        mostrar()
-      }
-    },
-  )
-}
-
-/** El tipo de cambio de Félix de hoy (el que sale en la app al mandar). */
-function cambioFelix({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, M }, cambio) {
-  abrirModal(
-    `<form id="f-felix"><h2>💱 Tipo de cambio de Félix</h2>
-      <div class="campos">
-        <label class="ancho">1 dólar = cuántos pesos <small>el que te sale hoy en la app de Félix</small><input name="tc" type="number" min="5" max="60" step="0.0001" required value="${h(M.felix ?? (cambio?.tc ? cambio.tc.toFixed(4) : M.tc))}"></label>
-      </div>
-      <p class="nota">Félix no publica su tipo de cambio para otras apps, así que lo pones tú (o se aprende solo cada vez que registras "Envié con Félix").${cambio?.tc ? ` Como referencia, el del mercado hoy es ${cambio.tc.toFixed(2)} (${h(cambio.fuente)}).` : ''}</p>
-      <div class="acciones"><button class="btn primario">Guardar</button>${M.felix ? '<button type="button" class="btn" id="tc-mercado">Usar el del mercado</button>' : ''}<button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
     (caja) => {
       $('#f-felix', caja).onsubmit = async (e) => {
         e.preventDefault()
-        if (await intenta(() => D.guardarFinanzasConfig({ id: 1, tc_felix: Number(e.target.tc.value), tc_felix_fecha: new Date().toISOString() }), 'Tipo de cambio guardado')) (cerrarModal(), mostrar())
+        const tc = Number(e.target.tc.value) || null
+        if (await intenta(() => D.guardarFinanzasConfig({ id: 1, tc_felix: tc, tc_felix_fecha: tc ? new Date().toISOString() : null }), 'Guardado')) (cerrarModal(), mostrar())
       }
-      $('#tc-mercado', caja)?.addEventListener('click', async () => {
-        if (await intenta(() => D.guardarFinanzasConfig({ id: 1, tc_felix: null, tc_felix_fecha: null, cambio_auto: true }), 'Usando el del mercado')) (cerrarModal(), mostrar())
-      })
     },
   )
 }
@@ -1077,30 +792,6 @@ function aportar({ D, h, $, abrirModal, cerrarModal, intenta, mostrar }, m, sign
         e.preventDefault()
         const x = Object.fromEntries(new FormData(e.target))
         if (await intenta(() => D.guardarAporte({ meta_id: m.id, monto: signo * Math.abs(Number(x.monto)), moneda: m.moneda || 'USD', fecha: x.fecha, nota: x.nota.trim() }), signo > 0 ? 'Apartado ✓' : 'Anotado')) (cerrarModal(), mostrar())
-      }
-    },
-  )
-}
-
-function ajustesFinanzas({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opciones }, cfg = {}, cambio) {
-  const c = cfg ?? {}
-  abrirModal(
-    `<form id="f-ajfin"><h2>Ajustes de finanzas</h2>
-      <div class="campos">
-        <label>Tipo de cambio de Félix <small>vacío = el del mercado${cambio ? ` (hoy ${cambio.tc.toFixed(2)})` : ''}</small><input name="tc_felix" type="number" min="5" max="60" step="0.0001" value="${h(c.tc_felix ?? '')}"></label>
-        <label>Ver los totales en<select name="moneda_base">${opciones(MONEDAS, c.moneda_base || 'USD')}</select></label>
-        <label>Quiero que me queden libres cada quincena <small>en la moneda de los totales</small><input name="meta_libre" type="number" min="0" step="1" value="${h(c.meta_libre ?? 5000)}"></label>
-        <label>Llevo las cuentas desde <small>lo de antes no cuenta</small><input name="desde" type="date" value="${h(String(c.desde || '').slice(0, 10))}" max="${hoyIso()}"></label>
-      </div>
-      <p class="nota">Tus saldos de hoy se ponen en Finanzas → Flujo de dinero.</p>
-      <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
-    (caja) => {
-      $('#f-ajfin', caja).onsubmit = async (e) => {
-        e.preventDefault()
-        const x = Object.fromEntries(new FormData(e.target))
-        const felix = Number(x.tc_felix) || null
-        const fila = { id: 1, moneda_base: x.moneda_base, meta_libre: Number(x.meta_libre) || 0, cambio_auto: true, ...(x.desde ? { desde: x.desde } : {}), tc_felix: felix, ...(felix !== (Number(c.tc_felix) || null) ? { tc_felix_fecha: felix ? new Date().toISOString() : null } : {}) }
-        if (await intenta(() => D.guardarFinanzasConfig(fila), 'Guardado')) (cerrarModal(), mostrar())
       }
     },
   )
