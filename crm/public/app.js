@@ -388,9 +388,66 @@ function pintar() {
           .join('')}
       </nav>
     </header>
+    ${cabezaMovil()}
     <main id="vista"></main>
-    ${esCliente() ? `<footer class="frase"><span>Frase del día</span><p>${fraseDelDia(datosFrase())}</p></footer>` : ''}`
+    ${esCliente() ? `<footer class="frase"><span>Frase del día</span><p>${fraseDelDia(datosFrase())}</p></footer>` : ''}
+    ${barraMovil()}`
   pintarVista()
+}
+
+// -- celular ------------------------------------------------------------------
+// En el celular el centro de trabajo se usa como app de iPhone: título grande
+// arriba, barra de pestañas abajo (al alcance del pulgar) y lo que se usa poco
+// en "Más". Lo de la computadora no cambia: estas piezas solo se ven en pantallas
+// angostas (estilo.css), y unas vistas se pintan distinto si esMovil().
+const MOVIL = '(max-width: 760px)'
+const esMovil = () => matchMedia(MOVIL).matches
+try {
+  matchMedia(MOVIL).addEventListener('change', () => S.yo && pintar())
+} catch {}
+const ICONO_MAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>'
+const tieneUltron = () => Boolean(D.ultron && (S.yo.ultron || esAdmin()))
+
+/** Las 3 secciones que van en la barra de abajo; las demás, en "Más". */
+function pestanasMovil() {
+  const v = vistasPermitidas()
+  return ['tareas', 'parrilla', 'leads', 'biblioteca', 'catalogos', 'web', 'fiesta', 'usuarios'].filter((x) => v.includes(x)).slice(0, 3)
+}
+
+function cabezaMovil() {
+  const titulo = S.vista === 'mas' ? 'Más' : S.vista === 'web' ? 'Website leads' : NOMBRES_VISTA[S.vista] || ''
+  const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })
+  return `<div class="m-cab">
+    <div class="m-fila"><span class="m-fecha">${S.vista === 'leads' ? 'Mi Semago · WhatsApp' : h(hoy)}</span><button class="m-av" data-vista="mas" aria-label="Más: tu cuenta">${h(primerNombre(S.yo.nombre).slice(0, 1).toUpperCase())}</button></div>
+    <h1 class="m-titulo">${titulo}</h1>
+    ${esCliente() && S.vista === 'tareas' ? `<p class="m-frase">${fraseDelDia(datosFrase())}</p>` : ''}
+  </div>`
+}
+
+function barraMovil() {
+  const tabs = pestanasMovil().map((v) => `<button class="m-tab ${S.vista === v ? 'on' : ''}" data-vista="${v}">${ICONOS[v]}<span>${v === 'web' ? 'Web' : NOMBRES_VISTA[v]}</span>${v === 'web' && webNuevos() ? `<i class="m-num">${webNuevos()}</i>` : ''}</button>`)
+  if (tieneUltron()) tabs.splice(Math.min(2, tabs.length), 0, '<button class="m-tab" data-accion="ultron-movil" aria-label="Ultron"><span class="m-orbe"></span><span>Ultron</span></button>')
+  const enMas = vistasPermitidas().filter((v) => !pestanasMovil().includes(v))
+  const avisoMas = enMas.includes('web') && webNuevos() ? `<i class="m-num">${webNuevos()}</i>` : ''
+  tabs.push(`<button class="m-tab ${S.vista === 'mas' ? 'on' : ''}" data-vista="mas">${ICONO_MAS}<span>Más</span>${avisoMas}</button>`)
+  return `<nav class="m-tabs" aria-label="Secciones">${tabs.join('')}</nav>`
+}
+
+/** "Más": lo que se usa poco, ordenado como Ajustes del iPhone. */
+function vistaMas() {
+  const enMas = vistasPermitidas().filter((v) => !pestanasMovil().includes(v))
+  const ICO = { biblioteca: ['📁', '#e8eefc'], catalogos: ['📘', '#fbf1e0'], web: ['🌐', '#e7f4ec'], fiesta: ['🎉', '#fbe9e1'], leads: ['📞', '#e8eefc'], parrilla: ['📅', '#efe9fb'], tareas: ['✅', '#e7f4ec'], usuarios: ['👥', '#efefec'], bitacora: ['📜', '#efefec'] }
+  const fila = (attrs, ico, fondo, texto, extra = '') => `<button class="m-fila-l" ${attrs}><span class="m-ic" style="background:${fondo}">${ico}</span><span class="m-txt">${texto}</span>${extra}<span class="m-flecha">›</span></button>`
+  return `
+    <div class="m-perfil"><span class="m-av grande">${h(primerNombre(S.yo.nombre).slice(0, 1).toUpperCase())}</span><div><b>${h(S.yo.nombre)}</b><span>${ROLES[S.yo.rol]} · Mi Semago · Abuelito</span></div></div>
+    ${enMas.length ? `<div class="m-grupo">${enMas.map((v) => fila(`data-vista="${v}"`, ICO[v]?.[0] ?? '•', ICO[v]?.[1] ?? '#efefec', v === 'web' ? 'Website leads' : NOMBRES_VISTA[v], v === 'web' && webNuevos() ? `<i class="m-num fijo">${webNuevos()}</i>` : '')).join('')}</div>` : ''}
+    <div class="m-grupo">
+      ${fila('data-accion="mi-clave"', '🔑', '#efefec', 'Cambiar contraseña')}
+      ${fila('data-accion="ver-fondo"', '🖼️', '#efefec', 'Ver el fondo')}
+      ${MUESTRA ? fila('data-accion="cambiar-muestra"', '👤', '#efefec', 'Cambiar de persona (muestra)') : ''}
+      <button class="m-fila-l" data-accion="salir"><span class="m-txt m-rojo">Cerrar sesión</span></button>
+    </div>
+    <p class="m-hecho">Hecho por NXUS AI</p>`
 }
 
 /** Los números del cliente para la frase del día (solo lo que él ya puede ver). */
@@ -424,6 +481,7 @@ function pintarVista() {
     leads: vistaLeads,
     usuarios: vistaUsuarios,
     bitacora: vistaBitacora,
+    mas: vistaMas,
   }[S.vista]
   el.innerHTML = v ? v() : ''
   if (S.vista === 'bitacora') cargarBitacora()
@@ -674,9 +732,10 @@ function vistaTareas() {
   const empresasTareas = misEmpresas('tareas')
   return `
     ${saludo(base)}
-    <div class="barra">
+    <div class="barra barra-tareas ${S.filtrosMovil ? 'filtros-abiertos' : ''}">
       ${esCliente() ? `<button class="btn principal" data-accion="nueva-tarea">+ Nueva tarea</button>` : `<button class="btn principal" data-accion="nueva-tarea">+ Registrar tarea de un cliente</button>`}
       <input class="crece" type="search" placeholder="Buscar tarea, producto, folio…" value="${h(S.busca)}" data-filtro="busca" aria-label="Buscar">
+      ${esEquipo() || empresasTareas.length > 1 ? `<button class="m-filtros ${S.filtrosMovil ? 'on' : ''}" data-accion="filtros-movil" aria-label="Filtros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>` : ''}
       ${esEquipo() ? `<select data-filtro="filtroCliente" aria-label="Cliente"><option value="">Todos los clientes</option>${S.clientes.map((c) => `<option value="${c.id}" ${S.filtroCliente === c.id ? 'selected' : ''}>${h(c.nombre)}</option>`).join('')}</select>` : ''}
       ${empresasTareas.length > 1 ? `<select data-filtro="filtroEmpresa" aria-label="Empresa"><option value="">Todas las empresas</option>${opcionesEmpresa(empresasTareas, S.filtroEmpresa)}</select>` : ''}
     </div>
@@ -689,9 +748,11 @@ function vistaTareas() {
         : ''
     }
     <p class="ayuda hoja-aviso">${titulo}</p>
+    ${!busca && hoja.toca ? `<span class="m-sec">${(hoja.toca === 'cliente') === esCliente() ? '👉 Te toca a ti' : esCliente() ? '⏳ Le toca al equipo' : '⏳ Le toca al cliente'}</span>` : ''}
     <div class="lista">
       ${lista.length ? lista.map(tarjetaTarea).join('') : `<div class="vacio-msg">${busca ? '<b>Nada por aquí 🔎</b>Prueba con otra palabra: el producto, la empresa o el número de folio.' : hoja.k === 'aprobadas' ? '<b>Mes tranquilo</b>No se aprobó nada en este mes.' : `<b>Nada en “${hoja.titulo}” 🎉</b>${hoja.toca && (hoja.toca === 'cliente') === esCliente() ? 'No tienes nada pendiente aquí.' : 'Aquí aparecen solas cuando les toque.'}`}</div>`}
-    </div>`
+    </div>
+    <button class="m-fab" data-accion="nueva-tarea" aria-label="${esCliente() ? 'Nueva tarea' : 'Registrar tarea de un cliente'}">+</button>`
 }
 
 const textoEstatus = (s) => (esCliente() ? ESTATUS_CLIENTE : ESTATUS)[s]
@@ -719,6 +780,12 @@ function saludo(base) {
   } catch {}
   return `
     <div class="hola"><div><h1>${hola}, <span class="grad">${h(primerNombre(S.yo.nombre))}</span></h1><p>${frase}</p></div></div>
+    ${(() => {
+      const mias = base.filter((t) => (hojaDe(t.estatus).toca === 'cliente') === esCliente() && hojaDe(t.estatus).toca).length
+      if (!mias) return ''
+      const que = esCliente() ? (mias === 1 ? 'tarea te toca revisar' : 'tareas te toca revisar') : mias === 1 ? 'tarea por trabajar' : 'tareas por trabajar'
+      return `<button class="m-toca" data-hoja="${esCliente() ? 'revisar' : base.some((t) => t.estatus === 'recibida') ? 'pedidas' : 'proceso'}"><i></i>${mias} ${que}</button>`
+    })()}
     <div class="resumen hojas" role="tablist" aria-label="Hojas de tareas">
       ${HOJAS.map((x) => {
         const n = x.k === 'aprobadas' ? aprobadasMes : base.filter((t) => x.estatus.includes(t.estatus)).length
@@ -752,6 +819,14 @@ function tocaChip(t) {
   return (toca === 'cliente') === esCliente() ? '<span class="chip te-toca">👉 Te toca</span>' : `<span class="chip le-toca">⏳ Le toca ${toca === 'cliente' ? 'al cliente' : 'al equipo'}</span>`
 }
 
+/** En el celular, el avance es un anillo (1/4 … 4/4) en lugar de las 4 bolitas. */
+function anilloMovil(t) {
+  const n = pasoDe(t.estatus) + 1
+  const color = { 1: '#64748b', 2: '#2563eb', 3: '#8b5cf6', 4: '#16a34a' }[n]
+  const largo = 2 * Math.PI * 17
+  return `<span class="m-anillo" aria-hidden="true"><svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="17" stroke="rgba(0,0,0,.1)" stroke-width="4" fill="none"/><circle cx="21" cy="21" r="17" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="${((largo * n) / 4).toFixed(1)} ${largo.toFixed(1)}"/></svg><span>${n}/4</span></span>`
+}
+
 function tarjetaTarea(t) {
   const e = empresa(t.empresa_id)
   const nCorr = t.correcciones.length
@@ -766,7 +841,8 @@ function tarjetaTarea(t) {
         ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
         ${(t.notas ?? []).length ? `<span class="chip nuevo">${t.notas.length} ${t.notas.length === 1 ? 'actualización' : 'actualizaciones'}</span>` : ''}
         ${esEquipo() ? `<span class="chip">${h(nombreCliente(t.cliente_id))}</span>` : ''}
-      </div></div>${avance(t.estatus)}</div>
+      </div></div>${avance(t.estatus)}${anilloMovil(t)}</div>
+      <div class="t-m">${h(e.nombre)}${t.urgente ? '<i></i><b>Urgente</b>' : ''}<i></i>${t.estatus === 'entregada' && t.entregada ? `Entregada ${fecha(t.entregada)}` : t.aprobada ? `Aprobada ${fecha(t.aprobada)}` : t.compromiso ? `Compromiso ${fecha(t.compromiso)}` : `Pedida ${fecha(t.pedida)}`}</div>
       <div class="tarjeta-meta">
         <span>Pedida ${fecha(t.pedida)}</span>
         ${t.compromiso && !t.entregada ? `<span>Compromiso ${fecha(t.compromiso)}</span>` : ''}
@@ -956,7 +1032,8 @@ function abrirTarea(id) {
           <div class="seccion aprobar-caja">
             <p>Si ya quedó como lo querías, apruébala. La tarea se cierra y queda guardada.</p>
             <button class="btn ok grande" data-accion="aprobar" data-ocupado="Aprobando…">✅ Aprobado</button>
-          </div>`
+          </div>
+          <div class="m-acciones"><button class="btn" data-accion="m-correccion">Pedir corrección</button><button class="btn principal" data-accion="aprobar" data-ocupado="Aprobando…">✓ Aprobar</button></div>`
         : ''
     }
     ${esCliente() && abierta && !entregado ? `<p class="ayuda" style="text-align:center">Cuando el equipo suba el trabajo, aquí podrás descargarlo, pedir correcciones o aprobarlo.</p>` : ''}
@@ -1605,7 +1682,60 @@ function tarjetaLead(l) {
   </button>`
 }
 
+// En el celular: una lista como la de Mensajes, agrupada por día, con 4 grupos arriba.
+const GRUPOS_LEAD = [
+  ['nuevos', 'Nuevos', ['nuevo']],
+  ['llamadas', 'Llamadas', ['programada', 'no_contesto', 'hablo']],
+  ['meet', 'Meet', ['meet']],
+  ['cerrados', 'Cerrados', ['cerrado', 'no_califica', 'no_llamar']],
+]
+const COLOR_INICIAL = ['#c2410c', '#2563eb', '#16a34a', '#a16207', '#7c3aed', '#db2777', '#0e7490']
+
+function vistaLeadsMovil() {
+  const q = sinAcentos(S.leadsBusca)
+  const base = S.leads.filter((l) => !q || sinAcentos(`${l.nombre} ${l.negocio} ${l.ciudad} ${l.telefono} ${l.correo}`).includes(q))
+  const enGrupo = (g) => base.filter((l) => GRUPOS_LEAD.find((x) => x[0] === g)[2].includes(l.etapa))
+  if (!S.leadsGrupo) S.leadsGrupo = GRUPOS_LEAD.find((g) => enGrupo(g[0]).length)?.[0] ?? 'nuevos'
+  const cuando = (l) => new Date(l.actualizado || l.creado || Date.now())
+  const lista = enGrupo(S.leadsGrupo).sort((a, b) => cuando(b) - cuando(a))
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const dia = (l) => {
+    const d = (hoy - new Date(cuando(l)).setHours(0, 0, 0, 0)) / 864e5
+    return d <= 0 ? 'Hoy' : d === 1 ? 'Ayer' : d < 7 ? 'Esta semana' : 'Antes'
+  }
+  const fila = (l) => {
+    const nombre = l.negocio || l.nombre || 'Sin nombre'
+    const ini = nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+    const color = COLOR_INICIAL[[...String(l.id)].reduce((n, c) => n + c.charCodeAt(0), 0) % COLOR_INICIAL.length]
+    const d = cuando(l)
+    const hora = dia(l) === 'Hoy' ? d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })
+    const chip =
+      l.llamada_estado === 'marcando' || l.llamada_estado === 'en_llamada'
+        ? '<span class="m-temp vivo">● En llamada</span>'
+        : l.etapa === 'meet' && l.meet_inicio
+          ? `<span class="m-temp meet">🎥 ${h(horaEn(l.meet_inicio))}</span>`
+          : l.calificacion
+            ? `<span class="m-temp cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>`
+            : `<span class="m-temp">${ETAPAS_LEAD[l.etapa]?.t ?? ''}</span>`
+    return `<button class="m-lead" data-lead="${l.id}"><span class="m-ini" style="background:${color}">${h(ini || '?')}</span><span class="m-lead-tx"><b>${h(nombre)}</b><span>${h([l.negocio ? l.nombre : '', l.ciudad].filter(Boolean).join(' · '))}</span></span><span class="m-lead-der"><small>${h(hora)}</small>${chip}</span></button>`
+  }
+  let grupos = ''
+  for (const g of ['Hoy', 'Ayer', 'Esta semana', 'Antes']) {
+    const de = lista.filter((l) => dia(l) === g)
+    if (de.length) grupos += `<span class="m-sec">${g}</span><div class="m-grupo">${de.map(fila).join('')}</div>`
+  }
+  const hoyEste = horaEn(new Date().toISOString(), ZONA_ESTE, true).split(',')[0]
+  const meetsHoy = S.leads.filter((l) => l.etapa === 'meet' && l.meet_inicio && horaEn(l.meet_inicio).split(',')[0] === hoyEste && new Date(l.meet_inicio) > Date.now() - 3600_000)
+  return `
+    ${meetsHoy.length ? `<div class="aviso-meet">${meetsHoy.map((l) => `<div>🎥 <b>Hoy ${h(horaEn(l.meet_inicio, ZONA_ESTE, false))}</b> · ${h(l.negocio || l.nombre)}</div><a class="btn principal chico" href="${h(l.meet_link)}" target="_blank" rel="noopener">Unirse</a>`).join('')}</div>` : ''}
+    <div class="barra"><input type="search" data-filtro="leadsBusca" value="${h(S.leadsBusca)}" placeholder="Buscar nombre, negocio, ciudad" aria-label="Buscar leads"></div>
+    <div class="m-seg" role="tablist">${GRUPOS_LEAD.map(([k, t]) => `<button class="${S.leadsGrupo === k ? 'on' : ''}" role="tab" data-leads-grupo="${k}"><small>${enGrupo(k).length}</small>${t}</button>`).join('')}</div>
+    ${S.leads.length ? grupos || `<div class="vacio-msg"><b>Nada aquí</b>Cuando haya leads en “${GRUPOS_LEAD.find((g) => g[0] === S.leadsGrupo)[1]}”, salen aquí.</div>` : '<div class="vacio-msg">Todavía no hay leads. Llegan solos de WhatsApp en cuanto alguien termina el chat de Mi Semago.</div>'}`
+}
+
 function vistaLeads() {
+  if (esMovil()) return vistaLeadsMovil()
   const q = sinAcentos(S.leadsBusca)
   const lista = S.leads.filter((l) => !q || sinAcentos(`${l.nombre} ${l.negocio} ${l.ciudad} ${l.telefono} ${l.correo}`).includes(q))
   const cuenta = (e) => S.leads.filter((l) => l.etapa === e).length
@@ -2159,7 +2289,8 @@ async function alClic(e) {
       const otra = S.vista !== d.vista
       S.vista = d.vista
       pintar()
-      if (otra) verFondo()
+      if (otra) scrollTo(0, 0)
+      if (otra && d.vista !== 'mas') verFondo()
       return
     }
     if (d.parrillaMes !== undefined) {
@@ -2213,6 +2344,11 @@ async function alClic(e) {
       cerrarVentana()
       avisar('Borrado')
       await recargar()
+      return
+    }
+    if (d.leadsGrupo) {
+      S.leadsGrupo = d.leadsGrupo
+      pintarVista()
       return
     }
     if (d.hoja) {
@@ -2403,6 +2539,22 @@ async function alClic(e) {
         avisar('Recibida: pasó a “En proceso”')
         await recargar()
         return
+      case 'ultron-movil':
+        document.querySelector('.orbe')?.click()
+        return
+      case 'ver-fondo':
+        verFondo(4000)
+        return
+      case 'filtros-movil':
+        S.filtrosMovil = !S.filtrosMovil
+        pintarVista()
+        return
+      case 'm-correccion': {
+        const caja = $('#caja-correccion')
+        caja?.querySelector('[data-accion="abrir-correccion"]')?.click()
+        caja?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
       case 'cerrar-pasos':
         try {
           localStorage.setItem('ct-pasos', 'no')
