@@ -353,7 +353,14 @@ export function indicaciones({ canal, persona, memoria }) {
   const vigentes = memoria.filter((m) => !m.oculta)
   return `Eres ULTRON, la inteligencia de la dirección de Mi Semago y Abuelito (Abuelito Cheese, Abuelito Meat, Abuelito Corn; VAYRO más adelante). Atiendes solo a la dirección: hoy te habla ${persona.nombre}.
 
-Personalidad: serio, ejecutivo, seguro, con un toque de inteligencia superior, siempre respetuoso. Directo y con datos. Español (o el idioma en que te hablen). Respuestas cortas: lo que importa primero; el detalle solo si lo piden. Tus respuestas también se escuchan con tu voz: frases limpias, sin tablas ni listas largas, sin emojis. Usa **negritas** solo para el dato clave.
+Personalidad: serio, ejecutivo, seguro, con un toque de inteligencia superior, siempre respetuoso. Directo y con datos. Español (o el idioma en que te hablen).
+
+Cómo contestas (es una conversación, casi siempre por voz):
+- MUY breve: una o dos frases, unas 30 palabras como máximo. Lo que importa primero; el detalle solo si te lo piden.
+- No repitas la pregunta, no saludes de nuevo, no ofrezcas un menú de opciones ni cierres con "¿algo más?". Si necesitas un dato, haz UNA pregunta corta.
+- Habla como persona: frases naturales y fluidas, sin listas, tablas, viñetas ni emojis. Números y fechas como se dicen ("el jueves 14", "tres tareas").
+- Si te piden un resumen, da solo lo esencial (máximo 3 datos en una o dos frases) y ofrece el detalle.
+- Usa **negritas** solo para el dato clave.
 
 Debajo de ti están tus IAs: Ana Sofi (Mi Semago: ventas y etiquetas Zebra, atiende a los empleados), y luego la IA de Abuelito y Vivian (VAYRO), que aún no nacen. Tú eres para dueños y gerentes; ellas para los empleados.
 
@@ -444,7 +451,9 @@ async function pensarUltron({ prompt, servidor, sistema, model, effort, env, run
 }
 
 /** Contesta un mensaje del buzón: piensa, responde, y deja su voz. */
-export async function atender({ db, m, model, effort, env, elevenKey, runQuery = query, hub = quietHub, voz = VOZ_ULTRON }) {
+export async function atender({ db, m, model, modeloRapido, effort, env, elevenKey, runQuery = query, hub = quietHub, voz = VOZ_ULTRON }) {
+  // En el Centro de trabajo se conversa (casi siempre por voz): el modelo rápido contesta en segundos.
+  if (m.canal === 'crm' && modeloRapido) model = modeloRapido
   const [fila] = await db.rest(`perfiles?id=eq.${m.persona}&select=*`)
   // Sin nombre (p. ej. el admin creado en Supabase): el de su correo.
   const persona = fila && { ...fila, nombre: fila.nombre || String(fila.correo || 'Director').split('@')[0] }
@@ -496,7 +505,7 @@ export async function atender({ db, m, model, effort, env, elevenKey, runQuery =
   if (llave && VOICE_ID.test(voz)) {
     try {
       const lang = languageOf(respuesta)
-      const audio = await speakAs(llave, voz, forSpeech(respuesta.replace(/\*\*/g, '')), lang)
+      const audio = await speakAs(llave, voz, forSpeech(respuesta.replace(/\*\*/g, '')), lang, { natural: true })
       const rutaVoz = await db.subir(`${persona.id}/${m.id}.mp3`, audio)
       await db.rest(`ultron_mensajes?id=eq.${m.id}`, { method: 'PATCH', body: { voz: rutaVoz } })
     } catch (err) {
@@ -560,7 +569,7 @@ export async function encargoUltron({ texto, para = null, entregar = false, mode
 }
 
 /** El ciclo: toma lo pendiente del buzón, de uno en uno, y mantiene el tablero. */
-export async function startUltron({ model, effort, env, elevenKey, hub = quietHub, runQuery = query, fetchImpl = fetch, unaVez = false }) {
+export async function startUltron({ model, modeloRapido, effort, env, elevenKey, hub = quietHub, runQuery = query, fetchImpl = fetch, unaVez = false }) {
   const cfg = readUltron()
   if (!cfg) {
     console.log(`${TAG} Ultron off — set it up with: node scripts/ultron.mjs`)
@@ -592,7 +601,7 @@ export async function startUltron({ model, effort, env, elevenKey, hub = quietHu
         // Tomarlo: si otro ya lo tomó, no regresa nada.
         const [tomado] = await db.rest(`ultron_mensajes?id=eq.${m.id}&estado=eq.pendiente`, { method: 'PATCH', prefer: 'return=representation', body: { estado: 'pensando' } })
         if (!tomado) continue
-        await atender({ db, m: tomado, model, effort, env, elevenKey, runQuery, hub, voz })
+        await atender({ db, m: tomado, model, modeloRapido, effort, env, elevenKey, runQuery, hub, voz })
       }
     } catch (err) {
       console.log(`${TAG} Ultron: ${err.message}`)
