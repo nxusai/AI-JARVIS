@@ -308,7 +308,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   } else if (DOOR.includes(cmd)) {
     process.exitCode = await door(cmd, process.argv.slice(3))
   } else {
-    console.log(' Uso: node scripts/cerebro.mjs armar | llave | conectar | estado | enviar | datos | espejo | registro | reiniciar | apagar | prender | borrar-llaves')
+    console.log(' Uso: node scripts/cerebro.mjs armar | llave | conectar | estado | enviar | datos | espejo | registro | reiniciar | apagar | prender | borrar-llaves | mudar-anasofi | regresar-anasofi | mudar-ultron | regresar-ultron | apagar-ultron | prender-ultron | mudar-ventas | regresar-ventas')
     process.exitCode = 1
   }
 }
