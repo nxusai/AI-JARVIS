@@ -302,6 +302,10 @@ export function crearSupabase({ url, anon }) {
       if (!res.ok || r.ok === false) throw new Error(r.error || 'No te pude oír')
       return r.texto ?? ''
     },
+    // Ultron en vivo: el permiso de un solo uso para hablar con su agente de ElevenLabs.
+    async ultronVivo() {
+      return funcion('ultron-vivo', {})
+    },
     async correoVarios(ids) {
       return funcion('correo', { archivos: ids })
     },

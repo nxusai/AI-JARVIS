@@ -22,10 +22,10 @@ let estado = null
 let sonando = null
 
 /** Pone (o quita) el orbe según quién entró. */
-export function montarUltron({ yo, preguntar, accion, avisar, consola, transcribir, muestra = false }) {
+export function montarUltron({ yo, preguntar, accion, avisar, consola, transcribir, vivo, herramientas, contexto, muestra = false }) {
   desmontarUltron()
   if (!yo) return
-  estado = { yo, preguntar, accion, avisar, consola, transcribir, muestra, mensajes: [], despierto: false, porVoz: false }
+  estado = { yo, preguntar, accion, avisar, consola, transcribir, vivo, herramientas, contexto, muestra, mensajes: [], despierto: false, porVoz: false, sinVivo: !vivo }
   const orbe = document.createElement('button')
   orbe.className = 'orbe'
   orbe.setAttribute('aria-label', 'Despertar a Ultron')
@@ -264,6 +264,7 @@ async function abrirEscucha() {
 function terminarLlamada() {
   const l = llamada
   llamada = null
+  if (l?.vivo) void cerrarVivo()
   l?.oido?.parar()
   try {
     sonando?.pause()
@@ -379,6 +380,23 @@ let nMsg = 0
 async function enviar(texto) {
   texto = String(texto || '').trim()
   if (!texto || estado.pensando) return
+  // Ultron en vivo (ElevenLabs): contesta al instante y no depende de la Mac.
+  if (!estado.sinVivo && !estado.porVoz) {
+    estado.mensajes.push({ id: ++nMsg, de: 'yo', texto })
+    repintarChats()
+    const ses = await sesionVivo(false)
+    if (ses) {
+      estado.pensando = true
+      repintarChats()
+      try {
+        ses.sendUserMessage(texto)
+      } catch {
+        estado.pensando = false
+      }
+      return
+    }
+    estado.mensajes.pop()
+  }
   estado.mensajes.push({ id: ++nMsg, de: 'yo', texto })
   estado.pensando = true
   document.querySelectorAll('.orbe-mini').forEach((o) => o.classList.add('piensa'))
@@ -410,6 +428,148 @@ async function enviar(texto) {
   }
 }
 
+// ---- Ultron en vivo: su agente de ElevenLabs (voz en tiempo real, como Ana Sofi) ----
+// La página le pide a Netlify un permiso de un solo uso (ultron-vivo) y habla directo
+// con ElevenLabs. Lo que Ultron consulta (tareas, archivos) lo resuelven las
+// "herramientas" de la página, con la sesión de quien habla. Si no está preparado,
+// queda el Ultron de antes (el que corre en la Mac).
+const SDK = 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.32.0/+esm'
+let sdk = null
+const cargarSdk = () => (sdk ||= import(/* @vite-ignore */ SDK).catch((err) => ((sdk = null), Promise.reject(err))))
+let vivo = null // { ses, voz, nivel }
+
+async function sesionVivo(voz) {
+  if (vivo && vivo.voz === voz) return vivo.ses
+  await cerrarVivo()
+  let cred
+  try {
+    ;[cred] = await Promise.all([estado.vivo(), cargarSdk()])
+  } catch (err) {
+    if (/no está preparado|falta|503/i.test(err.message || '')) estado.sinVivo = true
+    else estado.avisar(`Ultron en vivo no conectó (${err.message}). Uso el de siempre.`)
+    estado.sinVivo = true
+    return null
+  }
+  const { Conversation } = await cargarSdk()
+  const hora = new Date().getHours()
+  const nombre = estado.yo.nombre.split(' ')[0]
+  const saludo = voz ? `${hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'}, ${nombre}. ¿En qué te ayudo?` : ''
+  const historia = estado.mensajes.filter((m) => m.texto && !m.inicial).slice(-6).map((m) => `${m.de === 'yo' ? nombre : 'Ultron'}: ${m.texto}`).join('\n')
+  const base = {
+    clientTools: estado.herramientas || {},
+    dynamicVariables: { ...(estado.contexto?.() || {}), nombre, saludo },
+    overrides: voz ? {} : { conversation: { textOnly: true }, agent: { firstMessage: '' } },
+    onMessage: ({ source, message }) => {
+      if (!message) return
+      if (source === 'ai') {
+        estado.pensando = false
+        estado.mensajes.push({ id: ++nMsg, de: 'ultron', texto: message, vivo: true })
+      } else if (voz) estado.mensajes.push({ id: ++nMsg, de: 'yo', texto: message })
+      else return
+      repintarChats()
+      pintarLlamada()
+    },
+    onModeChange: ({ mode }) => pintarLlamada(mode === 'speaking' ? 'hablando' : 'escuchando'),
+    onDisconnect: () => {
+      if (vivo?.voz && llamada) terminarLlamada()
+      vivo = null
+      estado.pensando = false
+      repintarChats()
+    },
+    onError: (m) => estado.avisar(`Ultron: ${m}`),
+  }
+  let ses
+  try {
+    ses = await Conversation.startSession(
+      cred.conversationToken && voz ? { ...base, conversationToken: cred.conversationToken, connectionType: 'webrtc', textOnly: false } : { ...base, signedUrl: cred.signedUrl, connectionType: 'websocket', textOnly: !voz },
+    )
+  } catch (err) {
+    if (voz && cred.signedUrl) {
+      try {
+        ses = await Conversation.startSession({ ...base, signedUrl: cred.signedUrl, connectionType: 'websocket', textOnly: false })
+      } catch (err2) {
+        estado.avisar(`No pude conectar con Ultron: ${err2.message || err2}`)
+        return null
+      }
+    } else {
+      estado.avisar(`No pude conectar con Ultron: ${err.message || err}`)
+      return null
+    }
+  }
+  vivo = { ses, voz }
+  if (historia) {
+    try {
+      ses.sendContextualUpdate(`Lo que ya hablaron en este chat:\n${historia}`)
+    } catch {}
+  }
+  return ses
+}
+
+async function cerrarVivo() {
+  const v = vivo
+  vivo = null
+  clearInterval(v?.nivel)
+  try {
+    await v?.ses?.endSession()
+  } catch {}
+}
+
+async function llamadaVivo() {
+  const caja = cajaLlamada()
+  llamada = { fase: 'conectando', vivo: true, yoDije: '' }
+  pintarLlamada()
+  caja.querySelector('[data-u-silencio]').textContent = 'Silenciar mi micrófono'
+  const ses = await sesionVivo(true)
+  if (!ses) {
+    llamada = null
+    caja.remove()
+    return false
+  }
+  if (!llamada) {
+    await cerrarVivo()
+    return true
+  }
+  pintarLlamada('escuchando')
+  vivo.nivel = setInterval(() => {
+    let n = 0
+    try {
+      n = llamada?.fase === 'hablando' ? ses.getOutputVolume() : ses.getInputVolume()
+    } catch {}
+    document.querySelector('.u-llamada-orbe')?.style.setProperty('--nivel', Math.min(1, n * 2.2).toFixed(2))
+  }, 80)
+  return true
+}
+
+function cajaLlamada() {
+  document.querySelector('.u-llamada')?.remove()
+  const caja = document.createElement('div')
+  caja.className = 'u-llamada'
+  caja.innerHTML = `
+    <div class="u-llamada-orbe"><span></span></div>
+    <b data-u-fase></b>
+    <p data-u-dijo></p>
+    <div class="u-llamada-botones">
+      <button type="button" class="btn" data-u-silencio>Que se calle</button>
+      <button type="button" class="btn u-colgar" data-u-colgar>Terminar</button>
+    </div>`
+  document.querySelector('.ultron-panel')?.append(caja)
+  caja.querySelector('[data-u-colgar]').addEventListener('click', terminarLlamada)
+  caja.querySelector('[data-u-silencio]').addEventListener('click', (e) => {
+    if (llamada?.vivo && vivo?.ses) {
+      llamada.mudo = !llamada.mudo
+      try {
+        vivo.ses.setMicMuted(llamada.mudo)
+      } catch {}
+      e.currentTarget.textContent = llamada.mudo ? 'Activar mi micrófono' : 'Silenciar mi micrófono'
+      return
+    }
+    try {
+      sonando?.pause()
+    } catch {}
+  })
+  return caja
+}
+
 function despertar() {
   if (estado.despierto) return
   estado.despierto = true
@@ -418,7 +578,8 @@ function despertar() {
   estado.mensajes.push({
     id: ++nMsg,
     de: 'ultron',
-    texto: `${saludo}, ${estado.yo.nombre.split(' ')[0]}. Aquí me encargo del Centro de trabajo: te resumo, te busco archivos y te ayudo a pedir tareas. ¿Qué necesitas?`,
+    inicial: true,
+    texto: `${saludo}, ${estado.yo.nombre.split(' ')[0]}. Te ayudo con el Centro de trabajo: tareas, archivos y catálogos. Escríbeme o toca 📞 Hablar.`,
   })
 }
 
@@ -434,7 +595,7 @@ function abrirPanel() {
     <header class="u-cabeza">
       ${orbeChico('despierta')}
       <div><b>ULTRON</b><span>En línea · Centro de trabajo</span></div>
-      ${estado.transcribir ? '<button class="btn chico u-hablar" data-u-llamar title="Platica con Ultron por voz, manos libres">📞 Hablar</button>' : ''}
+      ${estado.transcribir || estado.vivo ? '<button class="btn chico u-hablar" data-u-llamar title="Platica con Ultron por voz, manos libres">📞 Hablar</button>' : ''}
       <button class="btn chico" data-u-consola title="Abre la consola de Ultron en otra pestaña">Consola ↗</button>
       <button class="cerrar" data-u-cerrar aria-label="Dormir a Ultron">×</button>
     </header>
@@ -443,12 +604,26 @@ function abrirPanel() {
   conectarChat(p)
   p.querySelector('[data-u-cerrar]').addEventListener('click', cerrarPanel)
   p.querySelector('[data-u-consola]').addEventListener('click', () => estado.consola?.())
-  p.querySelector('[data-u-llamar]')?.addEventListener('click', empezarLlamada)
-  setTimeout(() => p.querySelector('input')?.focus(), 350)
+  p.querySelector('[data-u-llamar]')?.addEventListener('click', hablar)
+  // Que todo esté listo antes de tocar "Hablar".
+  if (!estado.sinVivo) cargarSdk().catch(() => {})
+  if (!matchMedia('(max-width: 760px)').matches) setTimeout(() => p.querySelector('input')?.focus(), 350)
+}
+
+/** Un solo toque: en vivo si está preparado; si no, la llamada de antes. */
+async function hablar() {
+  if (llamada) return
+  if (!estado.sinVivo && (await llamadaVivo())) return
+  if (estado.transcribir) empezarLlamada()
 }
 
 function cerrarPanel() {
   terminarLlamada()
+  void cerrarVivo()
+  // Al volver a abrirlo, un chat nuevo.
+  estado.mensajes = []
+  estado.despierto = false
+  estado.pensando = false
   grabando?.parar()
   try {
     sonando?.pause()
