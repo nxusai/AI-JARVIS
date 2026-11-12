@@ -321,9 +321,14 @@ async function empezar() {
       vivo: D.ultronVivo ? () => D.ultronVivo() : null,
       herramientas: herramientasUltron(),
       contexto: () => ({
-        rol: ROLES[S.yo.rol],
+        rol: S.yo.dueno ? 'el creador del sistema' : ROLES[S.yo.rol],
         hoy: new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
         empresas: misEmpresas('tareas').map((e) => e.nombre).join(', ') || 'ninguna',
+        // Con su creador, Ultron habla de lo que sea; con los demás, del trabajo (con modales).
+        reglas_tema: S.yo.dueno
+          ? 'Él es tu creador: con él no hay límite de temas. Platica, opina, explica o ayuda con lo que te pida (negocios, ideas, dudas generales, lo que sea), como un asistente personal brillante y de confianza. Si es del Centro de trabajo, usa tus herramientas.'
+          : 'Tu trabajo es el Centro de trabajo: tareas, archivos de la Biblioteca, catálogos y mandar archivos al correo. Saludos y plática breve sí, con amabilidad. Si te piden algo ajeno al trabajo, contesta con simpatía en una frase que en eso no puedes ayudar y ofrece algo del Centro de trabajo, sin sonar cortante.',
+        resumen: resumenParaUltron(),
       }),
       avisar,
       muestra: MUESTRA,
@@ -709,6 +714,13 @@ function tareasFiltradas() {
   return l
 }
 
+/** Lo que Ultron ya sabe al conectarse (para contestar al instante, sin buscar). */
+function resumenParaUltron() {
+  const h = herramientasUltron()
+  const recientes = [...S.tareas].sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida)).slice(0, 8)
+  return `${h.resumen_centro()}\nLas más recientes (de la más nueva a la más vieja):\n${recientes.map((t) => `- tarea ${t.folio}: ${t.titulo} · ${empresa(t.empresa_id).nombre} · ${hojaDe(t.estatus).titulo} · pedida ${fecha(t.pedida)}`).join('\n') || '- ninguna'}`.slice(0, 2500)
+}
+
 // -- Ultron en vivo: lo que puede consultar (con lo que esta persona ya ve en su pantalla) --
 function herramientasUltron() {
   const hoyISO = () => new Date().toLocaleDateString('en-CA')
@@ -731,6 +743,11 @@ function herramientasUltron() {
         `Atrasadas: ${tarde.length}${tarde.length ? ` (${tarde.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`,
         `Urgentes abiertas: ${base.filter((t) => t.urgente && t.estatus !== 'aprobada').length}`,
       ].join('\n')
+    },
+    ultimas_tareas: ({ cantidad = 3 } = {}) => {
+      const n = Math.max(1, Math.min(6, Number(cantidad) || 3))
+      const l = [...S.tareas].sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida)).slice(0, n)
+      return l.length ? l.map((t) => `${linea(t)} · pedida ${fecha(t.pedida)}`).join('\n') : 'Todavía no hay tareas.'
     },
     buscar_tareas: ({ texto = '', hoja = '' } = {}) => {
       let l = S.tareas
