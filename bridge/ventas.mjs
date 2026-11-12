@@ -4,6 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'n
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { z } from 'zod'
+import { salesMoved } from './cerebros.mjs'
 import { hub } from './console.mjs'
 import { resolveWhen } from './phone.mjs'
 import { runJob } from './routines.mjs'
@@ -826,6 +827,8 @@ const routine = (nombre, prompt, aviso) => runJob(nombre, 'mi-semago', prompt, q
  * so two copies of NEX never phone the same lead twice.
  */
 export function startSales({ elevenKey, zone }) {
+  // The line calls from the client's brain now: NEX keeps only the owner's own calls.
+  if (salesMoved()) return startOwnerCalls()
   const missing = salesMissing()
   if (missing.length === 4) return // never set up: nothing to say
   if (missing.length) {
@@ -1086,6 +1089,68 @@ async function handleOutcome({ cfg, key, lead, s, outcome, zone, now }) {
   s.stage = 'cerrado'
   await writeLead(cfg, lead, { Estado: label }, {})
   tell(`📞 Llamada de Ana Sofi con ${who} (Mi Semago): ${label}${details ? ` · ${details}` : ''}.${outcome.notas ? `\n${outcome.notas.slice(0, 600)}` : ''}`)
+}
+
+// ── when the line calls from the client's brain ──────────────────────────
+
+const NEW_MEETINGS_FILE = join(DIR, 'ventas-meets-avisados.json')
+
+/**
+ * The brain books the video calls now (docs/cerebro-cliente.md, step 6). NEX
+ * still owns the owner's phone: every minute it reads the work center and
+ * phones him about a meeting just booked, in the morning of a day with one,
+ * and an hour before each.
+ */
+function startOwnerCalls() {
+  const cfg = readSalesConfig()
+  if (!fromCentro(cfg) || salesMissing(cfg).some((m) => /Centro/.test(m))) {
+    console.log('[jarvis] ventas: the line calls from the client\'s brain, but NEX cannot read the Centro de trabajo (node scripts/ana-sofi.mjs)')
+    return
+  }
+  // The meetings already there when this starts were heard about before.
+  let first = true
+  const tick = async () => {
+    try {
+      const leads = await readLeads(readSalesConfig())
+      leadCache = leads
+      const now = Date.now()
+      if (first) {
+        const seen = readJson(NEW_MEETINGS_FILE, {})
+        for (const l of leads) if (l.etapa === 'meet' && l.meetInicio) seen[`${l.id}@${l.meetInicio}`] ??= now
+        writeJson(NEW_MEETINGS_FILE, seen)
+        first = false
+      }
+      morningCall(now)
+      meetingReminders(leads, now)
+      newMeetingCalls(leads, now)
+    } catch (err) {
+      console.log(`[jarvis] ventas (tus llamadas): ${err?.message ?? err}`)
+    }
+  }
+  setInterval(tick, TICK_CENTRO_MS).unref?.()
+  setTimeout(tick, 15_000).unref?.()
+  console.log("[jarvis] ventas Mi Semago: Ana Sofi calls from the client's brain; NEX keeps the owner's calls")
+}
+
+/** The owner hears of each meeting the brain books, by phone, once. */
+export function newMeetingCalls(leads, now = Date.now()) {
+  const seen = readJson(NEW_MEETINGS_FILE, {})
+  for (const l of leads) {
+    if (l.etapa !== 'meet' || !l.meetInicio || l.meetInicio < now) continue
+    const id = `${l.id}@${l.meetInicio}`
+    if (seen[id]) continue
+    seen[id] = now
+    writeJson(NEW_MEETINGS_FILE, seen) // noted first, so a crash never phones twice
+    const job =
+      JOB_HEADER +
+      'Ana Sofi just booked a video call with a Mi Semago lead (from the client\'s brain; the invitation already went out). Phone the owner now with call_me (no time, so it rings now): the owner wants every new meeting by phone.\n\n' +
+      `<lead>\n${leadData(l)}\nmeeting: ${when(l.meetInicio, OWNER_ZONE_MEETINGS)} (Eastern)\nprices discussed and call notes: ${l.notas || '-'}\n</lead>\n\n` +
+      'The message, in Spanish, spoken: "Boss, Ana Sofi te agendó un meeting el … a las …" with the day and time, the company, who they are, the pounds, the cheeses, the prices discussed and anything from the call they should know.\n\n' +
+      'Report: one line.'
+    runJob('Ana Sofi · meeting nuevo', 'mi-semago', job, undefined, { silent: true })
+  }
+  for (const [k, t] of Object.entries(seen)) if (now - t > 30 * 24 * 60 * 60_000) delete seen[k]
+  writeJson(NEW_MEETINGS_FILE, seen)
 }
 
 // ── an hour before each meeting ──────────────────────────────────────────

@@ -393,6 +393,54 @@ y reinicia NEX: Ultron vuelve a contestar desde tu Mac. Ana Sofi sigue en el cer
 
 ---
 
+## Fase 9 — Mudanza de la línea de ventas de Ana Sofi (25 min)
+
+Después de esto Ana Sofi llama a los leads del Centro de trabajo **desde el Mac mini** y agenda los Meet sola. NEX ya no llama a los leads: solo te llama **a ti** (la llamada de la mañana, una hora antes de cada meeting y cuando hay uno nuevo).
+
+Hazla en un rato sin leads nuevos (por ejemplo en la noche).
+
+1. **El calendario de ventas (una vez, en tu Mac, con tu cuenta de NXUS):**
+   1. Abre https://script.google.com con la cuenta donde caen tus meetings → **New project**. Ponle de nombre "Calendario de ventas".
+   2. Borra lo que trae y pega todo el archivo `bridge/cerebro/calendario-google.gs`.
+   3. A la izquierda, en **Services**, da clic en **+** → **Google Calendar API** → **Add**.
+   4. Arriba escoge la función **preparar** → **Run** → acepta los permisos. Abajo, en **Execution log**, copia la **clave** que sale.
+   5. **Deploy** → **New deployment** → engrane → **Web app** → Execute as: **Me** · Who has access: **Anyone** → **Deploy**. Copia la **Web app URL** (termina en `/exec`).
+   Ese programa solo puede ver si una hora está ocupada y crear citas "Mi Semago · …"; no lee ni cambia tus otras citas.
+2. **En el Mac mini** (como Soporte NXUS):
+   ```
+   sudo node "/Library/Application Support/Cerebro/programa/llaves.mjs"
+   ```
+   Enter en todo, menos en "Dirección del calendario de ventas" (pegas la URL) y "Clave del calendario de ventas" (pegas la clave). Si el Centro de trabajo no está conectado todavía, ponlo también (Fase 8, paso 1).
+3. **Revisa que la llave de ElevenLabs del cerebro pueda llamar:** en https://elevenlabs.io → **Developers** → **API Keys**, la llave "Cerebro Mi Semago" debe tener permiso de **Agents / Conversational AI** (escritura). Es la misma cuenta donde vive Ana Sofi.
+4. **Apaga NEX** en tu Mac (Ctrl + C en su Terminal). Es para que no llamen los dos.
+5. **En tu Mac:**
+   ```
+   cd ~/Desktop/nexy && node scripts/cerebro.mjs mudar-ventas
+   ```
+   Debe decir "✅ La línea de ventas de Ana Sofi ya llama desde el cerebro".
+6. **Prende NEX** (`npm start`). En los logs debe salir "Ana Sofi calls from the client's brain; NEX keeps the owner's calls".
+7. **Prueba:** desde otro celular con número de EE. UU., escribe al WhatsApp de Mi Semago, pide precios y da permiso de llamada. Ana Sofi debe llamar en menos de un minuto. Elige un horario de videollamada y da un correo tuyo de prueba: debe llegarte la invitación y NEX debe llamarte para avisarte.
+8. **En tu Mac:** `node scripts/cerebro.mjs estado` debe decir "ventas: prendida".
+
+**Si algo sale mal:**
+```
+cd ~/Desktop/nexy && node scripts/cerebro.mjs regresar-ventas
+```
+y reinicia NEX: la línea vuelve a llamar desde tu Mac.
+
+---
+
+## El interruptor general: Ultron
+
+Ultron manda sobre las IA del cliente. Desde tu Mac, cuando quieras:
+
+- **Apagar todo** (Ultron, Ana Sofi, la línea de ventas): `node scripts/cerebro.mjs apagar-ultron`.
+- **Prender todo otra vez:** `node scripts/cerebro.mjs prender-ultron`.
+
+Si Ultron falla solo (un error, no tú), **las demás siguen trabajando**: el cerebro lo vuelve a arrancar en unos minutos y te avisa por Telegram.
+
+---
+
 ## Al terminar
 
 - En el Mac mini, como Soporte NXUS:

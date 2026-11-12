@@ -5,6 +5,7 @@ import { readAnaSofi, writeAnaSofi } from '../nucleo/anasofi.mjs'
 import { DATA } from '../nucleo/lugar.mjs'
 import { api } from '../nucleo/telegram.mjs'
 import { DRIVE_KEY, DRIVE_URL, driveWorks } from './drive.mjs'
+import { calendarioFunciona } from '../nucleo/ventas.mjs'
 
 /**
  * The brain's keys screen. The owner runs it on the client's Mac mini, as
@@ -159,6 +160,7 @@ if (cmd === 'estado') {
   console.log(` Bot de Ana Sofi:      ${bot ? `✅ @${bot.bot ?? '?'}` : '❌ falta'}`)
   console.log(` Dueño (Telegram):     ${config.dueno ? '✅ puesto' : '❌ falta'}`)
   console.log(` Drive (etiquetas):    ${keys.drive_url && keys.drive_clave ? '✅ conectado' : '❌ falta'}`)
+  console.log(` Calendario de ventas: ${keys.calendario_url && keys.calendario_clave ? '✅ conectado' : '❌ falta'}`)
   const u = readJson(ULTRON_FILE)
   console.log(` Ultron (Centro):      ${u.url && u.servicio ? `✅ conectado${u.prendido ? ', contesta desde aquí' : ', en espera de la mudanza'}` : '❌ falta'}`)
   process.exit(0)
@@ -203,6 +205,16 @@ if (centroUrl || ultron.url) {
   centroKey = await ask('Llave de servicio del Centro de trabajo (Supabase → Settings → API keys → secret)', { has: Boolean(ultron.servicio) && !centroUrl, shape: SUPABASE_KEY, check: (k) => centroWorks(url, k) })
 }
 if (centroUrl || centroKey) writePrivate(ULTRON_FILE, { ...ultron, ...(centroUrl ? { url: centroUrl } : {}), ...(centroKey ? { servicio: centroKey } : {}) })
+
+// The sales calendar's script (calendario-google.gs), for the video calls Ana Sofi books (Enter = después).
+const calUrl = await ask('Dirección del calendario de ventas (la de la aplicación web, termina en /exec)', { has: Boolean(keys.calendario_url), shape: DRIVE_URL, optional: true })
+let calKey = null
+if (calUrl || keys.calendario_url) {
+  const url = calUrl ?? keys.calendario_url
+  calKey = await ask('Clave del calendario de ventas (la que dio preparar)', { has: Boolean(keys.calendario_clave) && !calUrl, shape: DRIVE_KEY, check: (k) => calendarioFunciona(url, k) })
+}
+if (calUrl && calKey) keys.calendario_url = calUrl
+if (calKey) keys.calendario_clave = calKey
 
 writePrivate(KEYS_FILE, { ...keys, ...(claude ? { claude } : {}), ...(eleven ? { elevenlabs: eleven } : {}), ...(driveUrl && driveKey ? { drive_url: driveUrl } : {}), ...(driveKey ? { drive_clave: driveKey } : {}) })
 // The group and voices may already be there, sent before the bot (datos): kept.
