@@ -336,6 +336,11 @@ begin
   if new.estatus = 'aprobada' and old.estatus <> 'aprobada' then
     raise exception 'Solo el cliente aprueba';
   end if;
+  -- Si el equipo la marca "Entregada" a mano (sin subir el PDF con el botón), la
+  -- fecha de entrega se pone sola: así el cliente la puede aprobar o corregir.
+  if new.estatus = 'entregada' and new.entregada is null then
+    new.entregada := now();
+  end if;
   new.actualizada := now();
   return new;
 end $$;
@@ -392,18 +397,18 @@ drop trigger if exists crm_despues_correccion on public.correcciones;
 create trigger crm_despues_correccion after insert on public.correcciones
   for each row execute function public.despues_correccion();
 
--- El botón "Aprobado": solo el cliente dueño de la tarea, y solo si ya hay
--- algo entregado.
+-- El botón "Aprobado": el cliente dueño de la tarea (o el admin, que ve todo y
+-- puede aprobar por él), y solo si ya hay algo entregado.
 create or replace function public.aprobar(p_tarea uuid) returns void
 language plpgsql security definer set search_path = public as $$
 declare t tareas;
 begin
   select * into t from tareas where id = p_tarea for update;
-  if not found or t.cliente_id <> auth.uid() or yo_rol() <> 'cliente' then
-    raise exception 'Solo quien pidió la tarea la puede aprobar';
+  if not found or not ((t.cliente_id = auth.uid() and yo_rol() = 'cliente') or yo_rol() = 'admin') then
+    raise exception 'Solo quien pidió la tarea (o el administrador) la puede aprobar';
   end if;
   if t.estatus = 'aprobada' then return; end if;
-  if t.entregada is null then
+  if t.entregada is null and t.estatus <> 'entregada' then
     raise exception 'Todavía no hay nada entregado para aprobar';
   end if;
   perform set_config('crm.sistema', '1', true);
@@ -702,10 +707,10 @@ create policy correcciones_ver on public.correcciones for select to authenticate
 drop policy if exists correcciones_pedir on public.correcciones;
 create policy correcciones_pedir on public.correcciones for insert to authenticated
   with check (
-    yo_rol() = 'cliente'
+    yo_rol() in ('cliente', 'admin')
     and exists (
       select 1 from tareas t
-      where t.id = tarea_id and t.cliente_id = auth.uid() and t.entregada is not null and t.estatus <> 'aprobada'
+      where t.id = tarea_id and (t.cliente_id = auth.uid() or yo_rol() = 'admin') and (t.entregada is not null or t.estatus = 'entregada') and t.estatus <> 'aprobada'
     )
   );
 drop policy if exists correcciones_equipo on public.correcciones;
@@ -1412,3 +1417,12 @@ alter table public.leads drop constraint if exists leads_origen_check;
 alter table public.leads add constraint leads_origen_check check (origen in ('manychat', 'sheet', 'manual', 'web'));
 alter table public.website_leads add column if not exists lead_id uuid references public.leads (id) on delete set null;
 notify pgrst, 'reload schema';
+
+-- Tareas que el equipo marcó "Entregada" a mano antes del arreglo (sin fecha de
+-- entrega): se les pone la fecha para que el cliente las pueda aprobar.
+do $$
+begin
+  perform set_config('crm.sistema', '1', true);
+  update public.tareas set entregada = coalesce(actualizada, now()) where estatus = 'entregada' and entregada is null;
+  perform set_config('crm.sistema', '', true);
+end $$;

@@ -955,7 +955,8 @@ function cuerpoTareaMovil(t, x) {
         ? `<div class="m-grupo">
             <button class="m-fila-l" data-bajar="${ult.id}"><span class="m-ic" style="background:#efefec">⬇️</span><span class="m-txt">Descargar PDF</span><span class="m-flecha">›</span></button>
             <button class="m-fila-l" data-ver="${ult.id}"><span class="m-ic" style="background:#efefec">👁️</span><span class="m-txt">Verlo aquí</span><span class="m-flecha">›</span></button>
-            <button class="m-fila-l" data-correo="${ult.id}"><span class="m-ic" style="background:#efefec">✉️</span><span class="m-txt">Mandar a mi correo</span><span class="m-flecha">›</span></button>
+            <button class="m-fila-l" data-correo="${ult.id}"><span class="m-ic" style="background:#efefec">✉️</span><span class="m-txt">${x.todasEntregas.length > 1 ? 'Mandar el último a mi correo' : 'Mandar a mi correo'}</span><span class="m-flecha">›</span></button>
+            ${x.todasEntregas.length > 1 ? `<button class="m-fila-l" data-correo-todos="${x.todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…"><span class="m-ic" style="background:#e8eefc">📦</span><span class="m-txt">Mandar los ${x.todasEntregas.length} juntos a mi correo</span><span class="m-flecha">›</span></button>` : ''}
           </div>`
         : ''
     }
@@ -979,8 +980,15 @@ function abrirTarea(id) {
   const entregas = t.archivos.filter((a) => a.tipo === 'entrega' && !a.correccion_id)
   const correcciones = [...t.correcciones].sort((a, b) => a.n - b.n)
   const abierta = t.estatus !== 'aprobada'
-  const entregado = Boolean(t.entregada)
+  // "Entregada" también cuando el equipo la marcó a mano sin subir el PDF con el botón.
+  const entregado = Boolean(t.entregada) || t.estatus === 'entregada'
+  // Revisar (aprobar o pedir corrección): el cliente de la tarea, y el admin, que ve todo y puede hacerlo por él.
+  const revisa = abierta && entregado && ((esCliente() && mia) || esAdmin())
+  const porQuien = esAdmin() && !mia ? primerNombre(nombreCliente(t.cliente_id)) : ''
   const ultimo = [...t.archivos.filter((a) => a.tipo === 'entrega')].sort((a, b) => aFecha(b.subido) - aFecha(a.subido))[0]
+  // Todos los archivos que entregó el equipo (el final y los de cada corrección), para mandarlos juntos.
+  const todasEntregas = t.archivos.filter((a) => a.tipo === 'entrega').sort((a, b) => aFecha(a.subido) - aFecha(b.subido))
+  const juntos = todasEntregas.length > 1 ? `<div class="mandar-todos"><span>📦 Hay <b>${todasEntregas.length} archivos</b> entregados. Mándalos <b>todos juntos</b> en un solo correo, o <b>uno por uno</b> con el ✉️ de cada archivo.</span><button class="btn principal" data-correo-todos="${todasEntregas.map((a) => a.id).join(',')}" data-ocupado="Mandando…">✉️ Mandar todos a mi correo</button></div>` : ''
 
   const pedidoHTML = `
       <div class="texto-cliente">${h(t.descripcion || t.titulo)}</div>
@@ -1007,6 +1015,7 @@ function abrirTarea(id) {
           : ''
       }`
   const equipoHTML = `
+      ${juntos}
       ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
       ${
         esEquipo() && abierta
@@ -1042,7 +1051,7 @@ function abrirTarea(id) {
 `
   const finalHTML = `
     ${
-      esCliente() && mia && abierta && entregado
+      revisa
         ? `<div class="seccion" id="caja-correccion">
             <h3>¿Algo no te gustó?</h3>
             <button class="btn" data-accion="abrir-correccion">+ Agregar corrección</button>
@@ -1063,7 +1072,7 @@ function abrirTarea(id) {
     ${t.estatus === 'aprobada' ? `<div class="seccion aprobada-caja">✅ Aprobada el ${fecha(t.aprobada, true)}. Tarea concluida.${ultimo && esEquipo() ? `<div style="margin-top:10px"><button class="btn chico" data-a-biblioteca="${ultimo.id}">📚 Guardar el PDF final en la Biblioteca</button></div>` : ''}</div>` : ''}
   `
   const cuerpo = esMovil()
-    ? cuerpoTareaMovil(t, { pedidoHTML, notasHTML, equipoHTML, correccionesHTML, finalHTML, notas, correcciones, entregas, ultimo, quien })
+    ? cuerpoTareaMovil(t, { pedidoHTML, notasHTML, equipoHTML, correccionesHTML, finalHTML, notas, correcciones, entregas, ultimo, quien, todasEntregas })
     : `
     <div class="chips" style="margin:0 0 12px">
       <span class="chip emp" style="--color-emp:${color(t.empresa_id)}">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}</span>
@@ -1071,6 +1080,7 @@ function abrirTarea(id) {
       ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
       ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
     </div>
+    ${revisa ? `<div class="revisar-ya"><div>${porQuien ? `<b>👉 Le toca a ${h(porQuien)} revisarla.</b> Como administrador, tú también puedes aprobarla o pedir corrección.` : '<b>👉 Te toca revisarla.</b> Si ya quedó, apruébala y se va a “Aprobadas”.'}</div><div class="revisar-botones"><button class="btn" data-accion="m-correccion">Pedir corrección</button><button class="btn ok" data-accion="aprobar" data-ocupado="Aprobando…">✅ Aprobar</button></div></div>` : ''}
     <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
     <div class="fechas" style="margin-bottom:12px">
       <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
@@ -2420,6 +2430,14 @@ async function alClic(e) {
     if (d.tarea) return abrirTarea(d.tarea)
     if (d.ver) return verArchivo(d.ver, false)
     if (d.bajar) return verArchivo(d.bajar, true)
+    if (d.correoTodos) {
+      const ids = d.correoTodos.split(',').filter(Boolean)
+      await ocupado(b, async () => {
+        const r = await D.correoVarios(ids)
+        avisar(r.aviso || `Te mandé los ${ids.length} archivos juntos a ${r.para}. Revisa tu correo en un minuto.`)
+      })
+      return
+    }
     if (d.correo) {
       const a = todosLosArchivos().find((x) => x.id === d.correo)
       await ocupado(b, async () => {
