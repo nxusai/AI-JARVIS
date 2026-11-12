@@ -98,11 +98,27 @@ Cómo trabajas:
 - Nunca borras, apruebas ni cambias nada; eso se hace en la pantalla.
 - Empresas de {{nombre}}: {{empresas}}.`
 
+// Voz para conversar: hombre, español latino, de calidad profesional, de las más
+// usadas en el año (las que la gente sí escoge para agentes), y nada de voces
+// "de personaje" (profunda, misteriosa, susurro, vieja, rasposa, dramática…).
+const RARA = /deep|mysterious|whisper|old|raspy|gravel|dramatic|narrat|story|audiobook|meditat|asmr|villain|epic|trailer|horror|radio|announcer|sleep|elderly|grandpa|child|teen/i
 async function voces(key) {
-  const r = await api(key, '/shared-voices?page_size=30&language=es&gender=male&sort=trending')
-  const lista = (r.voices ?? []).filter((v) => /conversational|narrative|social|advertisement|characters|informative/i.test(v.use_case || 'conversational'))
-  const pref = (v) => (/(mexic|latin|neutral|colombian)/i.test(`${v.accent} ${v.descriptive} ${v.name}`) ? 0 : 1)
-  return lista.sort((a, b) => pref(a) - pref(b)).slice(0, 8)
+  const vistas = new Map()
+  for (const q of [
+    'language=es&gender=male&category=professional&use_cases=conversational&sort=usage_character_count_1y',
+    'language=es&gender=male&use_cases=conversational&sort=usage_character_count_1y',
+    'language=es&gender=male&category=professional&sort=usage_character_count_1y',
+  ]) {
+    try {
+      const r = await api(key, `/shared-voices?page_size=50&${q}`)
+      for (const v of r.voices ?? []) if (!vistas.has(v.voice_id)) vistas.set(v.voice_id, v)
+    } catch {}
+    if (vistas.size >= 30) break
+  }
+  const latina = (v) => /(latin|mexic|neutral|colomb|venez|peru|argent|chile)/i.test(`${v.accent} ${v.locale} ${v.descriptive} ${v.description} ${v.name}`)
+  const lista = [...vistas.values()].filter((v) => !RARA.test(`${v.descriptive} ${v.name} ${v.description} ${v.use_case}`))
+  const puntos = (v) => (latina(v) ? 2 : 0) + (v.category === 'professional' ? 1 : 0) + (/conversational/i.test(v.use_case) ? 1 : 0)
+  return lista.sort((a, b) => puntos(b) - puntos(a) || (b.usage_character_count_1y ?? 0) - (a.usage_character_count_1y ?? 0)).slice(0, 8)
 }
 
 async function agregarVoz(key, v) {
@@ -125,7 +141,8 @@ function config(voiceId) {
         dynamic_variables: { dynamic_variable_placeholders: { nombre: 'Director', rol: 'dirección', hoy: 'hoy', empresas: 'Mi Semago, Abuelito', saludo: 'Hola, ¿qué necesitas del Centro de trabajo?' } },
         prompt: { prompt: PROMPT, llm: 'gemini-2.5-flash', temperature: 0.4, max_tokens: 180, tools: HERRAMIENTAS },
       },
-      tts: { model_id: 'eleven_flash_v2_5', voice_id: voiceId, stability: 0.4, similarity_boost: 0.8, speed: 1.05, optimize_streaming_latency: 3 },
+      // Turbo v2.5: la de mejor sonido entre las que hablan en tiempo real en español.
+      tts: { model_id: 'eleven_turbo_v2_5', voice_id: voiceId, stability: 0.5, similarity_boost: 0.75, speed: 1.0, optimize_streaming_latency: 2 },
       turn: { turn_timeout: 7, turn_eagerness: 'normal' },
       vad: { background_voice_detection: true },
       conversation: { max_duration_seconds: 900 },
@@ -175,14 +192,15 @@ try {
     const voiceId = v ? await agregarVoz(key, v) : arg
     if (!voiceId) throw new Error('Dime el número de la lista (node scripts/ultron-voz.mjs voces) o un voice_id')
     await guardarAgente(key, voiceId)
+    guardar({ escogidaPorTi: true })
     say(`\n✅ Ultron ya tiene la voz ${v ? v.name : voiceId}. Pruébalo en el Centro de trabajo (📞 Hablar).\n`)
   } else {
-    let voiceId = leer().voiceId
+    let voiceId = leer().escogidaPorTi ? leer().voiceId : null
     if (!voiceId) {
       try {
         const [v] = await voces(key)
         voiceId = v ? await agregarVoz(key, v) : VOZ_ANTERIOR
-        if (v) say(`Voz: ${v.name} (${v.accent || 'español'}). Para cambiarla: node scripts/ultron-voz.mjs voces`)
+        if (v) say(`Voz: ${v.name} (${[v.accent, v.descriptive].filter(Boolean).join(', ') || 'español'}). Óyela: ${v.preview_url || '-'}\nPara ver otras: node scripts/ultron-voz.mjs voces`)
       } catch (err) {
         say(`(No pude buscar voces nuevas: ${err.message}. Uso la de antes.)`)
         voiceId = VOZ_ANTERIOR
