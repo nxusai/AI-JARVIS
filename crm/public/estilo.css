@@ -815,3 +815,54 @@ h3.sub { font-size: 14px; margin: 16px 0 6px; }
 .wl-pie { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; border-top: 1px dashed var(--linea-2); padding-top: 10px; }
 .wl-notas { margin: 0; flex: 1 1 260px; white-space: pre-wrap; }
 @media (max-width: 760px) { .wl-cuentas { grid-template-columns: repeat(3, minmax(0, 1fr)); } .wl-cuentas .fiesta-cuenta.total { grid-column: auto; } }
+
+/* ===========================================================================
+   Penthouse: el Abuelito en su penthouse de Nueva York de fondo (4K), y todo
+   el centro de trabajo como vidrio claro encima. Las letras van oscuras sobre
+   vidrio blanco esmerilado para que se lean igual que antes; los colores de
+   cada empresa y de cada estado se quedan. Va al final para ganarle a todo.
+   =========================================================================== */
+:root {
+  --vidrio: rgba(255, 255, 255, .56);
+  --panel: rgba(255, 255, 255, .62);
+  --panel-2: rgba(255, 255, 255, .42);
+  --linea: rgba(255, 255, 255, .62);
+  --linea-2: rgba(255, 255, 255, .85);
+  --esmerilado: blur(30px) saturate(165%);
+  --sombra: 0 12px 36px rgba(20, 16, 40, .18), inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+body { background: #3a3346; }
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: #3a3346 url("fondo-abuelito.jpg") center 58% / cover no-repeat;
+}
+@media (max-aspect-ratio: 4/5) { body::after { background-image: url("fondo-abuelito-movil.jpg"); background-position: center 60%; } }
+
+/* Lo que va directo sobre la foto (saludo, ayudas) se lee sobre un vidrio ligero que cubre la hoja. */
+#app > main {
+  max-width: 1200px; margin: 14px auto 18px; width: calc(100% - 24px);
+  background: rgba(255, 255, 255, .32); border: 1px solid rgba(255, 255, 255, .5); border-radius: 30px;
+  backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 24px 70px rgba(20, 16, 40, .22), inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+.cabeza { background: rgba(255, 255, 255, .6); }
+.tarjeta, .dato, .carpeta, .cat, .vacio-msg, .pasos, .arbol, .tabla, .dia { background: var(--vidrio); }
+.tarjeta:hover, .dato:hover, .carpeta:hover { background: rgba(255, 255, 255, .72); }
+.seccion, .material-uno, .fecha-caja { background: rgba(255, 255, 255, .5); }
+.ventana { background: rgba(255, 255, 255, .78); }
+.frase { background: rgba(255, 255, 255, .7); }
+.entrada-caja { background: rgba(255, 255, 255, .6); }
+.ayuda, .hoja-aviso { color: #3f3a36; }
+@media (max-width: 760px) { #app > main { width: calc(100% - 16px); margin: 10px auto 12px; border-radius: 24px; } }
+
+/* Al cambiar de sección todo se desvanece 2 segundos para que se luzca el fondo (un clic lo regresa antes). */
+#app, #avisos, .orbe { transition: opacity .55s ease, filter .55s ease; }
+body.ver-fondo #app, body.ver-fondo .orbe { opacity: 0; filter: blur(6px); pointer-events: none; }
+body.ver-fondo { cursor: zoom-out; }
+@media (prefers-reduced-motion: reduce) { #app, #avisos, .orbe { transition: none; } }
+
+/* Si el navegador no sabe esmerilar, que se lea igual. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --vidrio: rgba(255, 255, 255, .88); }
+  #app > main { background: rgba(255, 255, 255, .55); }
+}

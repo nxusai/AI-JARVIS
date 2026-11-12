@@ -284,6 +284,25 @@ const marcaEntrada = () => `
   <div class="entrada-marca">${logo()}<b>MI SEMAGO · ABUELITO</b><span>Centro de trabajo</span></div>`
 const firma = () => `<div class="firma">${logo()}<span>Hecho por NXUS AI</span></div>`
 
+/** Todo se desvanece 2 segundos para que se luzca el fondo; un clic lo regresa antes. */
+let tiempoFondo
+function verFondo(ms = 2000) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  clearTimeout(tiempoFondo)
+  document.body.classList.add('ver-fondo')
+  const volver = () => {
+    clearTimeout(tiempoFondo)
+    document.body.classList.remove('ver-fondo')
+    removeEventListener('pointerdown', volver, true)
+    removeEventListener('keydown', volver, true)
+  }
+  setTimeout(() => {
+    addEventListener('pointerdown', volver, true)
+    addEventListener('keydown', volver, true)
+  }, 50)
+  tiempoFondo = setTimeout(volver, ms)
+}
+
 async function empezar() {
   S.hoja = null
   $('#app').innerHTML = '<div class="cargando">Cargando…</div>'
@@ -2137,8 +2156,10 @@ async function alClic(e) {
       return
     }
     if (d.vista) {
+      const otra = S.vista !== d.vista
       S.vista = d.vista
       pintar()
+      if (otra) verFondo()
       return
     }
     if (d.parrillaMes !== undefined) {
