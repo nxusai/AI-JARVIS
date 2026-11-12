@@ -402,7 +402,10 @@ export function motor(datos, { calcularPago }, cambio = null) {
 
 // ----------------------------------------------------------- la vista
 // Como el Notion de Eduardo: cada mes, dos tablas ("del 1 al 14" y "del 15 al 31") con sus gastos,
-// lo que hay que tener, las entradas que registró y lo que sobra. HQ no adivina nada.
+// lo que hay que tener, las entradas (solas, de cómo paga cada cliente) y lo que sobra. Más los
+// movimientos de cada corte: mandar a México lo de "Tarjeta de México" (el último día del mes) y pasar
+// lo de los "Automatizado" a la cuenta donde están domiciliados (antes de cada mitad). Si los hace a
+// tiempo, verde; si se le pasa la fecha, rojo.
 
 /** En qué mitad del mes va un gasto: la que él eligió; si no, por su día. */
 export function mitadDe(g) {
@@ -411,6 +414,15 @@ export function mitadDe(g) {
   const d = Number((g.dias ?? [])[0] || String(g.dia_texto || '').match(/\d+/)?.[0] || (g.ancla ? deIso(g.ancla).getDate() : 1))
   return d >= 15 ? 'segunda' : 'primera'
 }
+/** Cómo se paga un gasto: Tarjeta de México, automático (otra cuenta de USA) o manual. */
+export function pagoDe(g) {
+  if (g.pago) return g.pago
+  if (/tarjeta\s+(de\s+)?m[eé]xico/i.test(g.notas || '')) return 'mexico'
+  if (g.automatico || /automatizad/i.test(g.notas || '')) return 'automatica'
+  return 'manual'
+}
+const PAGO = { mexico: '🇲🇽 Tarjeta de México', automatica: '⟳ Automático (cuenta USA)', manual: '✋ Pago manual' }
+const PAGO_CORTO = { mexico: '🇲🇽 México', automatica: '⟳ Automático', manual: '✋ Manual' }
 const MITAD = { 1: { clave: 'primera', titulo: 'Dinero a tener para gastos del 1 al 14', corto: '1–14' }, 2: { clave: 'segunda', titulo: 'Dinero a tener para gastos del 15 al 31', corto: '15–31' } }
 const ESTADOS = { debe: 'Se debe', pagado: 'Pagado', cancelado: 'Cancelada' }
 
@@ -418,27 +430,29 @@ export async function vistaFinanzas(v, ctx) {
   const { D, h, $, $$, titulo, dinero, intenta, mostrar, puede, esAdmin } = ctx
   titulo('Finanzas')
   const admin = esAdmin()
-  const TABS = { gastos: 'Gastos del mes', entradas: 'Entradas', ...(admin ? { metas: 'Ahorro para metas' } : {}) }
+  const TABS = { gastos: 'Gastos del mes', entradas: 'Entradas' }
   let tab = sessionStorage.getItem('hq-fin2')
   if (!TABS[tab]) tab = 'gastos'
   const salto = Number(sessionStorage.getItem('hq-fin-mes') || 0)
-  const hoy = new Date()
-  const ref = new Date(hoy.getFullYear(), hoy.getMonth() + salto, 1)
+  const hoyD = new Date()
+  const ref = new Date(hoyD.getFullYear(), hoyD.getMonth() + salto, 1)
   const Y = ref.getFullYear()
   const Mo = ref.getMonth()
+  const hoy = hoyIso()
   const mesTxt = (() => {
     const t = ref.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
     return t.charAt(0).toUpperCase() + t.slice(1)
   })()
   const vacio = () => Promise.resolve([])
-  const [clientes, cobros, pagosPros, gastos, estados, aportes, metas, config, cambio] = await Promise.all([
+  const [clientes, din, cobros, omitidos, pagosPros, gastos, estados, movs, config, cambio] = await Promise.all([
     D.clientes(),
+    D.dinero().catch(() => []),
     D.cobros().catch(() => []),
+    D.cobrosOmitidos().catch(() => []),
     D.pagosProspectos().catch(() => []),
     D.gastos().catch(() => []),
     D.gastosEstado ? D.gastosEstado().catch(() => []) : vacio(),
-    admin ? D.aportes().catch(() => []) : vacio(),
-    admin ? D.metas().catch(() => []) : vacio(),
+    admin && D.movimientos ? D.movimientos().catch(() => []) : vacio(),
     D.finanzasConfig().catch(() => null),
     cambioDelDia(),
   ])
@@ -456,42 +470,123 @@ export async function vistaFinanzas(v, ctx) {
   }
   const juntoUSD = (o) => o.USD + o.MXN / tc
   const tieneDos = (o) => Math.round(o.USD * 100) && Math.round(o.MXN * 100)
-
-  // Entradas de cada mitad del mes (solo lo que se registró).
   const rango = (n) => ({ desde: iso(new Date(Y, Mo, n === 1 ? 1 : 15)), hasta: iso(n === 1 ? new Date(Y, Mo, 15) : new Date(Y, Mo + 1, 1)) })
-  const entradasDe = (n) => {
-    const r = rango(n)
-    return [
-      ...cobros.filter((x) => x.fecha >= r.desde && x.fecha < r.hasta).map((x) => ({ ...x, es: 'cobro', de: x.cliente_id ? clientes.find((c) => c.id === x.cliente_id)?.nombre || 'Cliente' : x.concepto || 'Otra entrada' })),
-      ...pagosPros.filter((g) => { const f = iso(new Date(g.fecha)); return f >= r.desde && f < r.hasta }).map((g) => ({ id: g.id, fecha: iso(new Date(g.fecha)), monto: g.monto, moneda: g.moneda, es: 'stripe', de: `${g.concepto || 'Consultoría'} · Stripe` })),
-    ].sort((a, b) => a.fecha.localeCompare(b.fecha))
-  }
   const claveMes = (n) => `${Y}-${String(Mo + 1).padStart(2, '0')}-${n}`
+  const mesClave = `${Y}-${String(Mo + 1).padStart(2, '0')}`
   const estadoDe = (g, n) => estados.find((e) => e.gasto_id === g.id && e.mes === claveMes(n))?.estado ?? (g.activo === false ? 'cancelado' : g.automatico ? 'pagado' : 'debe')
+
+  // ---- Entradas: solas, de cómo paga cada cliente (más las que registre a mano).
+  const inicioCuentas = (() => {
+    const d = config?.desde ? deIso(String(config.desde).slice(0, 10)) : new Date()
+    return iso(new Date(d.getFullYear(), d.getMonth(), 1))
+  })()
+  const M = motor({ clientes, dinero: din, cobros, omitidos, pagosPros: [], gastos: [], aportes: [], metas: [], nomina: [], jornadas: [], ajustes: [], comisiones: [], config: { ...(config ?? {}), desde: inicioCuentas } }, ctx, cambio)
+  function entradasDe(n) {
+    const r = rango(n)
+    const prog = M.cobrosProgramados(r.desde, r.hasta)
+    const usados = new Set(prog.filter((p) => p.cobro).map((p) => p.cobro.id))
+    const deClientes = prog.map((p) => ({
+      clave: `${p.cliente.id}|${p.fecha}`,
+      fecha: p.fecha,
+      de: p.cliente.nombre,
+      monto: p.cobro ? Number(p.cobro.monto) : p.monto,
+      moneda: p.cobro ? p.cobro.moneda : p.moneda,
+      // cobrado = lo registró; omitido = "no llegó"; vencido = ya pasó su día (se da por llegado); pendiente = por llegar
+      // cobrado = confirmó que llegó; omitido = "no llegó"; su día ya llegó y no ha confirmado = payday; si no, por llegar
+      estado: p.estado === 'cobrado' ? 'llego' : p.estado === 'omitido' ? 'no' : p.fecha <= hoy ? 'payday' : 'por-llegar',
+      cobro: p.cobro,
+      plan: p,
+    }))
+    const extras = [
+      // Los cobros de un payday (para_fecha) cuentan en la mitad de ese payday, aunque hayan llegado después.
+      ...cobros.filter((x) => !x.para_fecha && x.fecha >= r.desde && x.fecha < r.hasta && !usados.has(x.id)).map((x) => ({ clave: x.id, fecha: x.fecha, de: x.cliente_id ? clientes.find((c) => c.id === x.cliente_id)?.nombre || 'Cliente' : x.concepto || 'Otra entrada', monto: Number(x.monto), moneda: x.moneda, estado: 'extra', cobro: x })),
+      ...pagosPros.filter((g) => { const f = iso(new Date(g.fecha)); return f >= r.desde && f < r.hasta }).map((g) => ({ clave: g.id, fecha: iso(new Date(g.fecha)), de: `${g.concepto || 'Consultoría'} · Stripe`, monto: Number(g.monto), moneda: g.moneda, estado: 'stripe' })),
+    ]
+    return [...deClientes, ...extras].sort((a, b) => a.fecha.localeCompare(b.fecha))
+  }
+  const cuentan = (xs) => xs.filter((x) => x.estado !== 'no')
+
+  // ---- Gastos
+  const deTipo = (tipo, n) => gastos.filter((g) => (!tipo || (g.tipo || 'negocio') === tipo) && [MITAD[n].clave, 'ambas'].includes(mitadDe(g)))
+  const vivosDe = (tipo, n) => deTipo(tipo, n).filter((g) => estadoDe(g, n) !== 'cancelado')
+  const aTenerDe = (tipo, n) => sum(vivosDe(tipo, n))
+
+  // ---- Movimientos de cada corte (solo Eduardo: mezcla lo de NXUS y lo personal)
+  const ultimoDelAnterior = iso(new Date(Y, Mo, 0))
+  const MOVS = [
+    { tipo: 'mexico-1', corte: 1, titulo: 'Mandar a México (Félix)', que: 'Lo de "Tarjeta de México" del 1 al 14', vence: ultimoDelAnterior, items: () => vivosDe(null, 1).filter((g) => pagoDe(g) === 'mexico') },
+    { tipo: 'auto-1', corte: 1, titulo: 'Pasar a la cuenta de los automáticos', que: 'Los "Automatizado" del 1 al 14', vence: ultimoDelAnterior, items: () => vivosDe(null, 1).filter((g) => pagoDe(g) === 'automatica') },
+    { tipo: 'mexico-2', corte: 2, titulo: 'Mandar a México (Félix)', que: 'Lo de "Tarjeta de México" del 15 al 31', vence: iso(new Date(Y, Mo, 14)), items: () => vivosDe(null, 2).filter((g) => pagoDe(g) === 'mexico') },
+    { tipo: 'auto-2', corte: 2, titulo: 'Pasar a la cuenta de los automáticos', que: 'Los "Automatizado" del 15 al 31', vence: iso(new Date(Y, Mo, 14)), items: () => vivosDe(null, 2).filter((g) => pagoDe(g) === 'automatica') },
+  ]
+  const desdeCuentas = config?.desde ? String(config.desde).slice(0, 10) : hoy
+  const estadoMov = (m) => {
+    const hecho = movs.find((x) => x.mes === mesClave && x.tipo === m.tipo)
+    if (hecho) return { k: 'hecho', hecho }
+    if (m.vence < desdeCuentas) return { k: 'previo' }
+    if (hoy > m.vence) return { k: 'tarde' }
+    return { k: 'pendiente' }
+  }
 
   const cambioTxt = `💱 1 USD = ${tc.toFixed(2)} MXN${Number(config?.tc_felix) ? ' · Félix' : ' · mercado'}`
   const pestanas = `<div class="acciones fin-tabs"><div class="segmento">${Object.entries(TABS).map(([k, t]) => `<button data-ft="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div><button class="cambio-chip" id="fin-felix" title="Solo para sumar pesos y dólares juntos">${cambioTxt}</button></div>`
   const navMes = `<div class="acciones mes-nav"><div class="segmento"><button data-mes="-1" aria-label="Mes anterior">←</button><button class="on">${h(mesTxt)}</button><button data-mes="1" aria-label="Mes siguiente">→</button></div>${salto ? '<button class="btn chico" data-mes="0">Este mes</button>' : ''}</div>`
+  const ESTADO_ENT = { llego: '✓ Llegó', payday: '💰 Payday · ¿llegó?', 'por-llegar': 'Por llegar', no: 'No llegó', extra: '✓ Registrada', stripe: '✓ Stripe' }
+  // Paydays sin confirmar (de los últimos 75 días, cualquier mes): arriba de Finanzas para confirmar con un toque.
+  const paydays = M.cobrosProgramados(sumarDias(hoy, -75), sumarDias(hoy, 1)).filter((p) => p.estado !== 'cobrado' && p.estado !== 'omitido' && p.fecha <= hoy)
+  const avisoPayday = paydays.length
+    ? `<div class="tarjeta payday"><h3>💰 ${paydays.some((p) => p.fecha === hoy) ? 'Hoy es payday' : 'Payday sin confirmar'}</h3><ul class="movs">${paydays
+        .map((p) => `<li><div><b>${h(p.cliente.nombre)}</b><small>${p.fecha === hoy ? 'hoy' : fechaBonita(p.fecha)} · ${dinero(p.monto, p.moneda)}</small></div><div class="mov-der">${editar ? `<button class="btn chico primario" data-llego="${p.cliente.id}|${p.fecha}">✓ Llegó</button><button class="btn chico" data-ajustar="${p.cliente.id}|${p.fecha}">Llegó otro monto</button><button class="btn chico" data-nollego="${p.cliente.id}|${p.fecha}">No llegó</button>` : '<span class="chip">sin confirmar</span>'}</div></li>`)
+        .join('')}</ul><p class="nota">Si todavía no te llega (cheque o transferencia tardada), déjalo así: aquí sigue hasta que lo confirmes.</p></div>`
+    : ''
+
+  // ------------------------------------------------- Cortes (semáforo y movimientos)
+  function cortes() {
+    if (!admin) return ''
+    const corte = (n) => {
+      const ms = MOVS.filter((m) => m.corte === n)
+      const ent = cuentan(entradasDe(n))
+      const entradas = sum(ent)
+      const aTener = aTenerDe(null, n)
+      const sobran = { USD: entradas.USD - aTener.USD, MXN: entradas.MXN - aTener.MXN }
+      const ests = ms.map((m) => ({ m, e: estadoMov(m), total: sum(m.items()) }))
+      const tarde = ests.some((x) => x.e.k === 'tarde' && juntoUSD(x.total) > 0)
+      const pend = ests.some((x) => x.e.k === 'pendiente' && juntoUSD(x.total) > 0)
+      const color = tarde || juntoUSD(sobran) < 0 ? 'rojo' : pend ? 'amarillo' : 'verde'
+      const frase = tarde ? 'Se pasó la fecha de un movimiento' : juntoUSD(sobran) < 0 ? 'No alcanzan las entradas para los gastos' : pend ? 'Vas bien: faltan movimientos (todavía a tiempo)' : 'Todo en orden'
+      return `<div class="corte-t c-${color}">
+        <div class="fila"><b><span class="luz-chica"></span>Corte del ${MITAD[n].corto}</b><small>${frase}</small></div>
+        <ul class="movs">${ests
+          .map(({ m, e, total }) => {
+            const n2 = m.items().length
+            return `<li class="${e.k}"><div><b>${m.titulo}</b><small>${m.que} · ${n2} gasto${n2 === 1 ? '' : 's'}</small></div><div class="mov-der"><b>${verMon(total)}</b>${
+              e.k === 'hecho'
+                ? `<span class="chip verde-chip">✓ Hecho ${fechaBonita(iso(new Date(e.hecho.hecho_en)))}</span>${e.hecho.pesos ? `<small>llegaron ${dinero(e.hecho.pesos, 'MXN')}</small>` : ''}<button class="enlace" data-deshacer="${m.tipo}">deshacer</button>`
+                : `<span class="chip ${e.k === 'tarde' ? 'rojo-chip' : ''}">${e.k === 'tarde' ? `Atrasado · era el ${fechaBonita(m.vence)}` : e.k === 'previo' ? `Era el ${fechaBonita(m.vence)} (antes de usar HQ)` : `Antes del ${fechaBonita(m.vence)}`}</span><button class="btn chico primario" data-hacer="${m.tipo}">Ya lo hice</button>`
+            }</div></li>`
+          })
+          .join('')}</ul>
+        <div class="corte-num"><span>Entradas <b>${verMon(entradas)}</b></span><span>A tener (NXUS + personal) <b>${verMon(aTener)}</b></span><span class="${juntoUSD(sobran) < 0 ? 'rojo' : 'verde'}">Sobran <b>${verMon(sobran)}</b></span></div>
+      </div>`
+    }
+    return `<div class="tarjeta cortes"><h3>Cortes de ${h(mesTxt.toLowerCase())} <small>tus movimientos de dinero</small></h3><div class="dos">${corte(1)}${corte(2)}</div>
+      <p class="nota">Cada corte: mandar a México lo de "Tarjeta de México" y pasar lo de los "Automatizado" a su cuenta (el del 1 al 14 antes del día 1; el del 15 al 31 antes del 15). Toca <b>"Ya lo hice"</b> cuando lo hagas. A tiempo = verde; si se pasa la fecha y no lo has hecho = rojo. Lo de pago manual (deudas, renta, tarjetas) lo pagas tú directo y no entra aquí.</p></div>`
+  }
 
   // ------------------------------------------------- Gastos del mes (como Notion)
-  // NXUS (negocio) y Personal van separados; lo personal solo lo ve Eduardo.
   const cual = admin && sessionStorage.getItem('hq-fin-tipo') === 'personal' ? 'personal' : 'negocio'
-  const deTipo = (tipo, n) => gastos.filter((g) => (g.tipo || 'negocio') === tipo && [MITAD[n].clave, 'ambas'].includes(mitadDe(g)))
-  const aTenerDe = (tipo, n) => sum(deTipo(tipo, n).filter((g) => estadoDe(g, n) !== 'cancelado'))
   function vistaGastos() {
     const tabla = (n) => {
       const M2 = MITAD[n]
       const lista = deTipo(cual, n).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || String(a.concepto).localeCompare(String(b.concepto)))
       const vivos = lista.filter((g) => estadoDe(g, n) !== 'cancelado')
       const aTener = sum(vivos)
-      const ent = entradasDe(n)
-      const entradas = sum(ent)
-      // En Personal, lo que entra es lo que te sobró de NXUS en esa mitad del mes.
+      const entradas = sum(cuentan(entradasDe(n)))
       const nx = aTenerDe('negocio', n)
       const income = cual === 'personal' ? { USD: entradas.USD - nx.USD, MXN: entradas.MXN - nx.MXN } : entradas
       const sobran = { USD: income.USD - aTener.USD, MXN: income.MXN - aTener.MXN }
       const pagados = vivos.filter((g) => estadoDe(g, n) === 'pagado').length
-      const enCurso = new Date() >= deIso(rango(n).desde) && new Date() < deIso(rango(n).hasta)
+      const enCurso = hoy >= rango(n).desde && hoy < rango(n).hasta
       return `<div class="tarjeta notion-t">
         <div class="fila"><h3><span class="punto-n ${enCurso ? 'vivo' : ''}"></span>${M2.titulo} <small class="tipo-n ${cual}">${cual === 'personal' ? 'Personal' : 'NXUS'}</small></h3>${editar ? `<button class="btn chico" data-nuevo="${M2.clave}">+ Gasto</button>` : ''}</div>
         <div class="resumen-n">
@@ -500,67 +595,62 @@ export async function vistaFinanzas(v, ctx) {
           <div class="${juntoUSD(sobran) < 0 ? 'neg' : 'pos'}"><span>Sobran</span><b>${verMon(sobran)}</b>${tieneDos(sobran) ? `<small>todo junto ≈ ${juntoUSD(sobran) < 0 ? '−' : ''}${dinero(Math.abs(juntoUSD(sobran)), 'USD')}</small>` : ''}</div>
           <div><span>Pagados</span><b>${pagados}/${vivos.length}</b></div>
         </div>
-        <div class="tabla-scroll"><table class="tabla tabla-n"><tr><th>Gasto</th><th>Día</th><th class="num">Monto</th><th>Estado</th><th>Notas</th><th></th></tr>
+        <div class="tabla-scroll"><table class="tabla tabla-n"><tr><th>Gasto</th><th>Día</th><th class="num">Monto</th><th>Estado</th><th>Se paga con</th><th>Notas</th><th></th></tr>
           ${
             lista
               .map((g) => {
                 const e = estadoDe(g, n)
-                return `<tr class="${e === 'cancelado' ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b></td><td>${h(g.dia_texto || (g.dias ?? []).join(', ') || '—')}</td><td class="num">${dinero(g.monto, g.moneda)}</td><td>${editar ? `<button class="estado-n ${e}" data-estado="${g.id}|${n}" title="Toca para cambiar">${ESTADOS[e]}</button>` : `<span class="estado-n ${e}">${ESTADOS[e]}</span>`}</td><td class="nota-asis">${h(g.notas || '')}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="enlace" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
+                return `<tr class="${e === 'cancelado' ? 'apagado' : ''}"><td><b>${h(g.concepto)}</b></td><td>${h(g.dia_texto || (g.dias ?? []).join(', ') || '—')}</td><td class="num">${dinero(g.monto, g.moneda)}</td><td>${editar ? `<button class="estado-n ${e}" data-estado="${g.id}|${n}" title="Toca para cambiar">${ESTADOS[e]}</button>` : `<span class="estado-n ${e}">${ESTADOS[e]}</span>`}</td><td><span class="pago-n ${pagoDe(g)}">${PAGO_CORTO[pagoDe(g)]}</span></td><td class="nota-asis">${h(g.notas || '')}</td><td>${editar && (admin || g.tipo === 'negocio') ? `<button class="enlace" data-gasto="${g.id}">Editar</button>` : ''}</td></tr>`
               })
-              .join('') || '<tr><td colspan="6" class="vacio">Sin gastos en esta mitad.</td></tr>'
+              .join('') || '<tr><td colspan="7" class="vacio">Sin gastos en esta mitad.</td></tr>'
           }
-          <tr class="suma-n"><td>Suma</td><td></td><td class="num">${verMon(aTener)}</td><td colspan="3"></td></tr>
+          <tr class="suma-n"><td>Suma</td><td></td><td class="num">${verMon(aTener)}</td><td colspan="4"></td></tr>
         </table></div>
-        ${ent.length ? `<details class="ent-n"><summary>Entradas de ${M2.corto} (${ent.length})</summary><ul class="lista">${ent.map((x) => `<li><span>${fechaBonita(x.fecha)} · ${h(x.de)}</span><b>${dinero(x.monto, x.moneda)}</b></li>`).join('')}</ul></details>` : `<p class="nota">Sin entradas registradas del ${M2.corto}. ${editar ? 'Regístralas en <a href="#" data-ir-tab="entradas">Entradas</a>.' : ''}</p>`}
       </div>`
     }
     const selector = admin ? `<div class="segmento tipo-sel">${[['negocio', 'NXUS'], ['personal', 'Personal']].map(([k, t]) => `<button data-tipo="${k}" class="${cual === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''
-    return `<div class="acciones">${selector}</div>${navMes}${tabla(1)}${tabla(2)}<p class="nota">${cual === 'personal' ? 'Personal: solo tú lo ves. "Te sobra de NXUS" = entradas − gastos de NXUS de esa mitad; "Sobran" = eso − tus gastos personales. ' : ''}Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. Los gastos se repiten cada mes: edítalos cuando cambien. "A tener" es la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
+    return `${navMes}${cortes()}<div class="acciones">${selector}</div>${tabla(1)}${tabla(2)}<p class="nota">${cual === 'personal' ? 'Personal: solo tú lo ves. "Te sobra de NXUS" = entradas − gastos de NXUS de esa mitad; "Sobran" = eso − tus gastos personales. ' : ''}Toca el estado para cambiarlo (Se debe → Pagado → Cancelada); se guarda por mes. "A tener" = la suma de los gastos (sin los cancelados); "Sobran" = entradas − a tener.</p>`
   }
 
-  // ------------------------------------------------- Entradas
+  // ------------------------------------------------- Entradas (solas, de cómo paga cada cliente)
   function vistaEntradas() {
-    const e1 = entradasDe(1)
-    const e2 = entradasDe(2)
-    const todas = [...e1, ...e2]
-    const total = sum(todas)
-    const lista = (xs) =>
-      xs.length
-        ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Fecha</th><th>De</th><th class="num">Monto</th><th>Método</th><th></th></tr>${xs.map((x) => `<tr><td>${fechaBonita(x.fecha)}</td><td>${h(x.de)}${x.nota ? `<small> · ${h(x.nota)}</small>` : ''}</td><td class="num"><b>${dinero(x.monto, x.moneda)}</b></td><td>${h(x.metodo || (x.es === 'stripe' ? 'Stripe' : ''))}</td><td>${x.es === 'cobro' && editar ? `<button class="enlace" data-borrar-cobro="${x.id}">quitar</button>` : ''}</td></tr>`).join('')}</table></div>`
-        : '<p class="vacio">Sin entradas.</p>'
+    const lista = (n) => {
+      const xs = entradasDe(n)
+      const tot = sum(cuentan(xs))
+      return `<div class="tarjeta"><div class="fila"><h3>Del ${MITAD[n].corto}</h3><b class="dos-mon">${verMon(tot)}</b></div>${
+        xs.length
+          ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Día</th><th>De</th><th class="num">Monto</th><th>Estado</th><th></th></tr>${xs
+              .map(
+                (x) => `<tr class="${x.estado === 'no' ? 'apagado' : ''}"><td>${fechaBonita(x.fecha)}</td><td>${h(x.de)}</td><td class="num"><b>${dinero(x.monto, x.moneda)}</b></td><td><span class="ent-est ${x.estado}">${ESTADO_ENT[x.estado]}</span></td><td>${
+                  !editar
+                    ? ''
+                    : x.estado === 'no'
+                      ? `<button class="enlace" data-silego="${x.clave}">sí llegó</button>`
+                      : x.plan
+                        ? x.estado === 'llego'
+                          ? `<button class="enlace" data-borrar-cobro="${x.cobro.id}">deshacer</button>`
+                          : `${x.estado === 'payday' ? `<button class="btn chico primario" data-llego="${x.clave}">✓ Llegó</button> ` : ''}<button class="enlace" data-ajustar="${x.clave}">otro monto</button> · <button class="enlace" data-nollego="${x.clave}">no llegó</button>`
+                        : x.estado === 'extra'
+                          ? `<button class="enlace" data-borrar-cobro="${x.cobro.id}">quitar</button>`
+                          : ''
+                }</td></tr>`,
+              )
+              .join('')}</table></div>`
+          : '<p class="vacio">Sin entradas.</p>'
+      }</div>`
+    }
+    const sinPlan = clientes.filter((c) => c.estado === 'activo' && !M.planes.some((p) => p.c.id === c.id && p.monto))
     return `${navMes}
-      <div class="kpis"><div class="kpi"><span>Entradas de ${h(mesTxt.toLowerCase())}</span><b class="dos-mon">${verMon(total)}</b>${tieneDos(total) ? `<small>todo junto ≈ ${dinero(juntoUSD(total), 'USD')}</small>` : ''}</div>
-        <div class="kpi"><span>Del 1 al 14</span><b class="dos-mon">${verMon(sum(e1))}</b></div><div class="kpi"><span>Del 15 al 31</span><b class="dos-mon">${verMon(sum(e2))}</b></div></div>
-      ${editar ? '<div class="acciones"><button class="btn primario" id="fin-cobro">+ Registrar entrada</button></div>' : ''}
-      <div class="tarjeta"><h3>Del 1 al 14</h3>${lista(e1)}</div>
-      <div class="tarjeta"><h3>Del 15 al 31</h3>${lista(e2)}</div>`
+      <p class="nota">Salen solas de <b>cómo te paga cada cliente</b> (Clientes → el cliente → "Cómo paga"). Antes de su día dicen "Por llegar"; en su día es <b>payday</b> y te pregunta si llegó. Tú confirmas: ✓ Llegó, otro monto o No llegó.</p>
+      ${editar ? '<div class="acciones"><button class="btn" id="fin-cobro">+ Otra entrada (que no es de un cliente fijo)</button></div>' : ''}
+      ${lista(1)}${lista(2)}
+      ${sinPlan.length ? `<div class="tarjeta"><h3>Clientes activos sin "cómo paga"</h3><p class="nota">Sus entradas no salen solas hasta que les pongas cómo pagan:</p><ul class="lista">${sinPlan.map((c) => `<li><a href="#cliente/${c.id}">${h(c.nombre)}</a>${editar ? `<button class="btn chico" data-plan="${c.id}">Cómo paga</button>` : ''}</li>`).join('')}</ul></div>` : ''}`
   }
 
-  // ------------------------------------------------- Ahorro para metas (solo admin)
-  function vistaMetas() {
-    const M = motor({ clientes: [], dinero: [], cobros: [], omitidos: [], pagosPros: [], gastos: [], aportes, metas, nomina: [], jornadas: [], ajustes: [], comisiones: [], config }, ctx, cambio)
-    const ms = M.metasDinero()
-    const sinPrecio = metas.filter((m) => !(Number(m.monto_objetivo) > 0) && m.estado !== 'lograda')
-    const tarjeta = (x) => `<div class="tarjeta meta-dinero">
-        <div class="fila"><div><b>${h(x.mt.titulo)}</b>${x.mt.porque ? `<small>${h(x.mt.porque)}</small>` : ''}</div><span class="pct">${x.pct > 0 && x.pct < 1 ? '<1' : Math.floor(x.pct)}%</span></div>
-        <div class="barra grande"><i style="width:${x.pct}%"></i></div>
-        <div class="desglose"><span>Apartado <b>${dinero(x.ahorrado, x.mt.moneda)}</b></span><span>Meta <b>${dinero(x.objetivo, x.mt.moneda)}</b></span><span>Falta <b>${dinero(x.falta, x.mt.moneda)}</b></span></div>
-        <p class="nota">${x.planMes ? `Apartas ${dinero(x.mt.aporte_monto, x.mt.moneda)} ${FREC_AHORRO[x.mt.aporte_frecuencia].toLowerCase()} (≈ ${dinero(x.planMes, x.mt.moneda)} al mes)${x.llega ? ` → llegas en <b>${x.meses >= 24 ? `${Math.round(x.meses / 12)} años` : `${x.meses} meses`}</b>` : ''}.` : 'Sin plan fijo: pon cuánto y cada cuándo vas a apartar para saber cuándo llegas.'}${x.necesita ? ` Para llegar el ${fechaBonita(x.mt.fecha_limite)} necesitas <b>${dinero(x.necesita, x.mt.moneda)} al mes</b>.` : ''}</p>
-        <div class="acciones"><button class="btn chico primario" data-aportar="${x.mt.id}">+ Aparté dinero</button><button class="btn chico" data-sacar="${x.mt.id}">Saqué</button><button class="btn chico" data-plan-meta="${x.mt.id}">Precio y plan</button></div>
-        ${x.aps.length ? `<details><summary>Historial (${x.aps.length})</summary><ul class="lista">${x.aps.map((a) => `<li><b class="${a.monto < 0 ? 'rojo' : ''}">${a.monto < 0 ? '−' : '+'}${dinero(Math.abs(a.monto), a.moneda)}</b><small>${fechaBonita(a.fecha)}${a.nota ? ` · ${h(a.nota)}` : ''}</small> <button class="enlace" data-borrar-aporte="${a.id}">quitar</button></li>`).join('')}</ul></details>` : ''}
-      </div>`
-    return `
-      <div class="acciones"><button class="btn primario" id="fin-meta-nueva">+ Meta con precio</button></div>
-      <div class="rejilla-metas">${ms.map(tarjeta).join('') || '<div class="tarjeta"><p class="vacio">Ponle precio a una meta (ej. "Casa multifamiliar para rentar · $800,000") y registra lo que vas apartando.</p></div>'}</div>
-      ${sinPrecio.length ? `<div class="tarjeta"><h3>Metas sin precio</h3><ul class="lista">${sinPrecio.map((m) => `<li><b>${h(m.titulo)}</b> <button class="btn chico" data-plan-meta="${m.id}">Ponerle precio</button></li>`).join('')}</ul></div>` : ''}
-      <p class="nota">El dinero lo apartas tú; aquí llevas la cuenta.</p>`
-  }
-
-  const cuerpo = { gastos: vistaGastos, entradas: vistaEntradas, metas: vistaMetas }[tab]
-  v.innerHTML = pestanas + cuerpo() + `<p class="nota">${admin ? 'Solo tú ves los gastos personales y el ahorro para tus metas.' : 'Ves lo del negocio; lo personal no aparece aquí.'}</p>`
+  const cuerpo = { gastos: vistaGastos, entradas: vistaEntradas }[tab]
+  v.innerHTML = pestanas + avisoPayday + cuerpo() + `<p class="nota">${admin ? 'Solo tú ves los gastos personales y los cortes.' : 'Ves lo del negocio; lo personal no aparece aquí.'}</p>`
   $$('[data-ft]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin2', b.dataset.ft), mostrar())))
   $$('[data-mes]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-mes', b.dataset.mes === '0' ? '0' : String(salto + Number(b.dataset.mes))), mostrar())))
-  $$('[data-ir-tab]', v).forEach((a) => (a.onclick = (e) => (e.preventDefault(), sessionStorage.setItem('hq-fin2', a.dataset.irTab), mostrar())))
   $('#fin-felix', v)?.addEventListener('click', () => (editar ? cambioFelix(c2, cambio, config) : null))
   $$('[data-tipo]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-fin-tipo', b.dataset.tipo), mostrar())))
   $$('[data-nuevo]', v).forEach((b) => (b.onclick = () => editarGasto(c2, null, b.dataset.nuevo, cual)))
@@ -574,12 +664,118 @@ export async function vistaFinanzas(v, ctx) {
         if (await intenta(() => D.marcarGasto(gid, claveMes(n), sig))) mostrar()
       }),
   )
+  $$('[data-hacer]', v).forEach(
+    (b) =>
+      (b.onclick = () => {
+        const m = MOVS.find((x) => x.tipo === b.dataset.hacer)
+        yaLoHice(c2, { mes: mesClave, tipo: m.tipo, titulo: m.titulo, total: sum(m.items()), mexico: m.tipo.startsWith('mexico') })
+      }),
+  )
+  $$('[data-deshacer]', v).forEach((b) => (b.onclick = async () => confirm('¿Marcarlo como no hecho?') && (await intenta(() => D.borrarMovimiento(mesClave, b.dataset.deshacer), 'Listo')) && mostrar()))
+  const buscar = (clave) => {
+    const x = [...entradasDe(1), ...entradasDe(2)].find((y) => y.clave === clave)
+    if (x) return x
+    const p = paydays.find((y) => `${y.cliente.id}|${y.fecha}` === clave)
+    return p && { clave, fecha: p.fecha, monto: p.monto, moneda: p.moneda, plan: p, estado: 'payday' }
+  }
+  $$('[data-nollego]', v).forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const [cid, f] = b.dataset.nollego.split('|')
+        const x = buscar(b.dataset.nollego)
+        if (x?.cobro && x.estado === 'llego') await intenta(() => D.borrarCobro(x.cobro.id))
+        if (await intenta(() => D.omitirCobro({ cliente_id: cid, fecha: f, motivo: 'No llegó' }), 'Marcada: no llegó')) mostrar()
+      }),
+  )
+  $$('[data-llego]', v).forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const [cid, f] = b.dataset.llego.split('|')
+        const p = M.planes.find((x) => x.c.id === cid)
+        if (!p) return
+        b.disabled = true
+        if (await intenta(() => D.guardarCobro({ cliente_id: cid, concepto: '', monto: p.monto, moneda: p.moneda, fecha: hoy < f ? f : hoy, para_fecha: f, metodo: '', nota: '' }), `✓ Llegó: ${p.c.nombre}`)) mostrar()
+        else b.disabled = false
+      }),
+  )
+  $$('[data-silego]', v).forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const [cid, f] = b.dataset.silego.split('|')
+        if (await intenta(() => D.quitarOmitido(cid, f), 'Listo')) mostrar()
+      }),
+  )
+  $$('[data-ajustar]', v).forEach(
+    (b) =>
+      (b.onclick = () => {
+        const x = buscar(b.dataset.ajustar)
+        registrarCobro(c2, { clientes, cliente_id: x.plan.cliente.id, para_fecha: x.fecha, monto: x.monto, moneda: x.moneda })
+      }),
+  )
+  $$('[data-plan]', v).forEach((b) => (b.onclick = () => editarPlanCliente(c2, clientes.find((c) => c.id === b.dataset.plan), din.find((x) => x.cliente_id === b.dataset.plan))))
   $('#fin-cobro', v)?.addEventListener('click', () => registrarCobro(c2, { clientes }))
-  $$('[data-borrar-cobro]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar esta entrada?') && (await intenta(() => D.borrarCobro(b.dataset.borrarCobro), 'Quitada')) && mostrar()))
-  $('#fin-meta-nueva', v)?.addEventListener('click', () => planMeta(c2, null))
-  $$('[data-plan-meta]', v).forEach((b) => (b.onclick = () => planMeta(c2, metas.find((m) => m.id === b.dataset.planMeta))))
-  $$('[data-aportar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.aportar), 1)))
-  $$('[data-sacar]', v).forEach((b) => (b.onclick = () => aportar(c2, metas.find((m) => m.id === b.dataset.sacar), -1)))
+  $$('[data-borrar-cobro]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar?') && (await intenta(() => D.borrarCobro(b.dataset.borrarCobro), 'Quitada')) && mostrar()))
+}
+
+/** Los paydays sin confirmar (para el aviso de Inicio). */
+export async function paydaysPendientes(D, ctx) {
+  const [clientes, din, cobros, omitidos, config] = await Promise.all([D.clientes(), D.dinero().catch(() => []), D.cobros().catch(() => []), D.cobrosOmitidos().catch(() => []), D.finanzasConfig().catch(() => null)])
+  const d = config?.desde ? deIso(String(config.desde).slice(0, 10)) : new Date()
+  const M = motor({ clientes, dinero: din, cobros, omitidos, pagosPros: [], gastos: [], aportes: [], metas: [], nomina: [], jornadas: [], ajustes: [], comisiones: [], config: { ...(config ?? {}), desde: iso(new Date(d.getFullYear(), d.getMonth(), 1)) } }, ctx, null)
+  const hoy = hoyIso()
+  return M.cobrosProgramados(sumarDias(hoy, -75), sumarDias(hoy, 1)).filter((p) => p.estado !== 'cobrado' && p.estado !== 'omitido' && p.fecha <= hoy)
+}
+
+/** "Ya lo hice": el movimiento del corte. Para México se puede poner lo que llegó en pesos (cambio real de Félix). */
+function yaLoHice({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, dinero, tc }, { mes, tipo, titulo, total, mexico }) {
+  const sugerido = Math.round((total.USD + total.MXN / tc) * 100) / 100
+  abrirModal(
+    `<form id="f-mov"><h2>✓ ${h(titulo)}</h2>
+      <div class="campos">
+        <label>Cuánto mandaste (dólares)<input name="monto" type="number" min="0" step="0.01" required value="${sugerido}"></label>
+        ${mexico ? '<label>Llegaron (pesos) <small>opcional, lo que dice Félix</small><input name="pesos" type="number" min="0" step="0.01"></label>' : ''}
+        <label class="ancho">Nota <small>opcional</small><input name="nota" maxlength="300"></label>
+      </div>
+      <p class="nota">Lo que tocaba: ${dinero(total.USD, 'USD')}${Math.round(total.MXN) ? ` + ${dinero(total.MXN, 'MXN')}` : ''}.</p>
+      <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
+    (caja) => {
+      $('#f-mov', caja).onsubmit = async (e) => {
+        e.preventDefault()
+        const x = Object.fromEntries(new FormData(e.target))
+        const pesos = Number(x.pesos) || null
+        if (!(await intenta(() => D.marcarMovimiento({ mes, tipo, monto: Number(x.monto) || 0, moneda: 'USD', pesos, nota: x.nota.trim(), hecho_en: new Date().toISOString() }), 'Hecho ✓'))) return
+        if (pesos && Number(x.monto)) await intenta(() => D.guardarFinanzasConfig({ id: 1, tc_felix: Math.round((pesos / Number(x.monto)) * 10000) / 10000, tc_felix_fecha: new Date().toISOString() }))
+        cerrarModal()
+        mostrar()
+      }
+    },
+  )
+}
+
+/** El ahorro para las metas con precio (vive en Metas y hábitos). Solo Eduardo. */
+export async function vistaAhorro(v, ctx, encabezado = '') {
+  const { D, h, $, $$, dinero, intenta, mostrar } = ctx
+  const [aportes, metas, config, cambio] = await Promise.all([D.aportes().catch(() => []), D.metas().catch(() => []), D.finanzasConfig().catch(() => null), cambioDelDia()])
+  const M = motor({ clientes: [], dinero: [], cobros: [], omitidos: [], pagosPros: [], gastos: [], aportes, metas, nomina: [], jornadas: [], ajustes: [], comisiones: [], config }, ctx, cambio)
+  const ms = M.metasDinero()
+  const sinPrecio = metas.filter((m) => !(Number(m.monto_objetivo) > 0) && m.estado !== 'lograda')
+  const tarjeta = (x) => `<div class="tarjeta meta-dinero">
+      <div class="fila"><div><b>${h(x.mt.titulo)}</b>${x.mt.porque ? `<small>${h(x.mt.porque)}</small>` : ''}</div><span class="pct">${x.pct > 0 && x.pct < 1 ? '<1' : Math.floor(x.pct)}%</span></div>
+      <div class="barra grande"><i style="width:${x.pct}%"></i></div>
+      <div class="desglose"><span>Apartado <b>${dinero(x.ahorrado, x.mt.moneda)}</b></span><span>Meta <b>${dinero(x.objetivo, x.mt.moneda)}</b></span><span>Falta <b>${dinero(x.falta, x.mt.moneda)}</b></span></div>
+      <p class="nota">${x.planMes ? `Apartas ${dinero(x.mt.aporte_monto, x.mt.moneda)} ${FREC_AHORRO[x.mt.aporte_frecuencia].toLowerCase()} (≈ ${dinero(x.planMes, x.mt.moneda)} al mes)${x.llega ? ` → llegas en <b>${x.meses >= 24 ? `${Math.round(x.meses / 12)} años` : `${x.meses} meses`}</b>` : ''}.` : 'Sin plan fijo: pon cuánto y cada cuándo vas a apartar para saber cuándo llegas.'}${x.necesita ? ` Para llegar el ${fechaBonita(x.mt.fecha_limite)} necesitas <b>${dinero(x.necesita, x.mt.moneda)} al mes</b>.` : ''}</p>
+      <div class="acciones"><button class="btn chico primario" data-aportar="${x.mt.id}">+ Aparté dinero</button><button class="btn chico" data-sacar="${x.mt.id}">Saqué</button><button class="btn chico" data-plan-meta="${x.mt.id}">Precio y plan</button></div>
+      ${x.aps.length ? `<details><summary>Historial (${x.aps.length})</summary><ul class="lista">${x.aps.map((a) => `<li><b class="${a.monto < 0 ? 'rojo' : ''}">${a.monto < 0 ? '−' : '+'}${dinero(Math.abs(a.monto), a.moneda)}</b><small>${fechaBonita(a.fecha)}${a.nota ? ` · ${h(a.nota)}` : ''}</small> <button class="enlace" data-borrar-aporte="${a.id}">quitar</button></li>`).join('')}</ul></details>` : ''}
+    </div>`
+  v.innerHTML = `${encabezado}
+    <div class="acciones"><button class="btn primario" id="fin-meta-nueva">+ Meta con precio</button></div>
+    <div class="rejilla-metas">${ms.map(tarjeta).join('') || '<div class="tarjeta"><p class="vacio">Ponle precio a una meta (ej. "Casa multifamiliar para rentar · $800,000") y registra lo que vas apartando.</p></div>'}</div>
+    ${sinPrecio.length ? `<div class="tarjeta"><h3>Metas sin precio</h3><ul class="lista">${sinPrecio.map((m) => `<li><b>${h(m.titulo)}</b> <button class="btn chico" data-plan-meta="${m.id}">Ponerle precio</button></li>`).join('')}</ul></div>` : ''}
+    <p class="nota">El dinero lo apartas tú; aquí llevas la cuenta.</p>`
+  $('#fin-meta-nueva', v)?.addEventListener('click', () => planMeta(ctx, null))
+  $$('[data-plan-meta]', v).forEach((b) => (b.onclick = () => planMeta(ctx, metas.find((m) => m.id === b.dataset.planMeta))))
+  $$('[data-aportar]', v).forEach((b) => (b.onclick = () => aportar(ctx, metas.find((m) => m.id === b.dataset.aportar), 1)))
+  $$('[data-sacar]', v).forEach((b) => (b.onclick = () => aportar(ctx, metas.find((m) => m.id === b.dataset.sacar), -1)))
   $$('[data-borrar-aporte]', v).forEach((b) => (b.onclick = async () => confirm('¿Quitar este movimiento?') && (await intenta(() => D.borrarAporte(b.dataset.borrarAporte), 'Quitado')) && mostrar()))
 }
 
@@ -687,6 +883,7 @@ function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opcio
         <label>Día <small>como lo escribes: "5", "29 - 2"</small><input name="dia_texto" maxlength="30" value="${h(n.dia_texto || (n.dias ?? []).join(', ') || '')}"></label>
         <label>Monto<input name="monto" type="number" min="0" step="0.01" required value="${h(n.monto ?? '')}"></label>
         <label>Moneda<select name="moneda">${opciones(MONEDAS, n.moneda || 'USD')}</select></label>
+        <label class="ancho">Se paga con<select name="pago">${opciones(PAGO, pagoDe(n))}</select></label>
         <label class="ancho">Notas <small>ej. Tarjeta México, Automatizado, Destinar a una deuda</small><input name="notas" maxlength="1000" value="${h(n.notas || '')}"></label>
         <label class="check ancho"><input type="checkbox" name="automatico" ${n.automatico ? 'checked' : ''}> Automatizado (se cobra solo: sale como "Pagado" cada mes)</label>
         ${admin ? `<label>Es de<select name="tipo">${opciones({ negocio: 'NXUS (negocio)', personal: 'Personal (solo tú lo ves)' }, n.tipo || 'negocio')}</select></label>` : ''}
@@ -709,6 +906,7 @@ function editarGasto({ D, h, $, abrirModal, cerrarModal, intenta, mostrar, opcio
           moneda: x.moneda,
           notas: x.notas.trim(),
           automatico: !!x.automatico,
+          pago: x.pago,
           tipo: admin ? x.tipo : 'negocio',
           categoria: x.categoria,
           empresa: (x.tipo || 'negocio') === 'negocio' ? n.empresa || 'NXUS AI' : '',

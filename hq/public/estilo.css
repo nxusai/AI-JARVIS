@@ -949,3 +949,39 @@ span.estado-n { cursor: default; display: inline-block; }
 .tipo-n.negocio { color: #9cc2ff; border-color: rgba(156,194,255,.5); }
 .tipo-n.personal { color: #f0b6d6; border-color: rgba(240,182,214,.5); }
 .tipo-sel button { min-width: 120px; font-size: 15px; }
+
+/* Cortes: movimientos de cada mitad del mes */
+.cortes .dos { gap: 14px; }
+.corte-t { border-radius: 16px; padding: 14px; background: rgba(0,0,0,.3); border: .8px solid rgba(255,255,255,.18); display: grid; gap: 10px; }
+.corte-t.c-verde { border-color: rgba(126,226,168,.6); }
+.corte-t.c-amarillo { border-color: rgba(245,196,81,.6); }
+.corte-t.c-rojo { border-color: rgba(255,120,110,.7); }
+.corte-t > .fila b { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.corte-t > .fila small { color: rgba(255,255,255,.82); }
+.luz-chica { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.corte-t.c-verde .luz-chica { background: #3ddc84; box-shadow: 0 0 10px #3ddc84; }
+.corte-t.c-amarillo .luz-chica { background: #f5c451; box-shadow: 0 0 10px #f5c451; }
+.corte-t.c-rojo .luz-chica { background: #ff6b6b; box-shadow: 0 0 10px #ff6b6b; }
+.movs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.movs li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: .8px solid rgba(255,255,255,.1); }
+.movs li > div:first-child { display: grid; gap: 2px; }
+.movs li small { color: rgba(255,255,255,.75); font-size: 12px; }
+.movs li.tarde { border-color: rgba(255,120,110,.6); }
+.movs li.hecho { border-color: rgba(126,226,168,.45); }
+.mov-der { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.corte-num { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.corte-num b { display: inline-flex; gap: 4px; }
+.pago-n { font-size: 12px; font-weight: 650; white-space: nowrap; }
+.pago-n.mexico { color: #ffd59e; }
+.pago-n.automatica { color: #9cc2ff; }
+.pago-n.manual { color: rgba(255,255,255,.75); }
+.ent-est { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: .8px solid rgba(255,255,255,.22); white-space: nowrap; }
+.ent-est.llego, .ent-est.llego-auto, .ent-est.extra, .ent-est.stripe { color: #7ee2a8; border-color: rgba(126,226,168,.5); }
+.ent-est.por-llegar { color: #f5c451; border-color: rgba(245,196,81,.5); }
+.ent-est.no { color: rgba(255,255,255,.6); }
+
+.tarjeta.payday { border-color: rgba(126,226,168,.6); background: linear-gradient(135deg, rgba(126,226,168,.12), rgba(0,0,0,.2)); }
+.tarjeta.payday h3 { color: #b9f5cf; }
+.ent-est.payday { color: #b9f5cf; border-color: rgba(126,226,168,.7); background: rgba(126,226,168,.12); }
+.movs li.previo { opacity: .75; }
+.payday-link { display: block; color: inherit; } .payday-link p { margin: 6px 0; } .payday-link small { color: #b9f5cf; }

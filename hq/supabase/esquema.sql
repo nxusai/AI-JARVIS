@@ -1742,3 +1742,36 @@ from (values
   ('PSE&G', 'servicios', 0.00, 'segunda', '25', false, 'Pago manual · cancelada', false, 120)
 ) v(concepto, categoria, monto, quincena, dia, auto, notas, activo, orden)
 where not exists (select 1 from public.gastos g where g.quincena is not null and g.tipo = 'personal');
+
+-- Cómo se paga cada gasto y los movimientos de cada corte (12 nov 2026).
+--   mexico      = "Tarjeta de México": todo eso se manda junto a México el último día del mes (para el mes que sigue).
+--   automatica  = "Automatizado": se pasa a la otra cuenta de USA donde están domiciliados, antes de cada mitad del mes.
+--   manual      = lo paga él directo (pago manual, deudas, directo a la tarjeta).
+alter table public.gastos add column if not exists pago text check (pago is null or pago in ('mexico', 'automatica', 'manual'));
+update public.gastos set pago = case
+    when notas ~* 'tarjeta\s+(de\s+)?m[eé]xico' then 'mexico'
+    when automatico or notas ~* 'automatizad' then 'automatica'
+    else 'manual' end
+  where pago is null;
+-- Los movimientos de cada corte: "ya mandé a México", "ya pasé lo de los automáticos". Solo Eduardo.
+--   mes = '2026-12' · tipo: 'mexico' (se hace el último día del mes anterior), 'auto-1' (antes del día 1), 'auto-2' (antes del 15)
+create table if not exists public.movimientos (
+  mes text not null check (mes ~ '^\d{4}-\d{2}$'),
+  tipo text not null check (tipo in ('mexico', 'auto-1', 'auto-2')),
+  monto numeric(14, 2) not null default 0,
+  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  pesos numeric(14, 2), -- lo que llegó a México (para el tipo de cambio de Félix)
+  hecho_en timestamptz not null default now(),
+  nota text not null default '' check (char_length(nota) <= 300),
+  primary key (mes, tipo)
+);
+alter table public.movimientos enable row level security;
+drop policy if exists solo_admin on public.movimientos;
+create policy solo_admin on public.movimientos for all to authenticated using (es_admin()) with check (es_admin());
+drop trigger if exists hq_bitacora on public.movimientos;
+-- "No llegó" se puede deshacer (quien edita finanzas).
+drop policy if exists permiso_borrar on public.cobros_omitidos;
+create policy permiso_borrar on public.cobros_omitidos for delete to authenticated using (puede('finanzas_editar'));
+-- México también va por quincena (12 nov 2026): 'mexico-1' (lo de 1 al 14) y 'mexico-2' (lo del 15 al 31).
+alter table public.movimientos drop constraint if exists movimientos_tipo_check;
+alter table public.movimientos add constraint movimientos_tipo_check check (tipo in ('mexico', 'mexico-1', 'mexico-2', 'auto-1', 'auto-2'));

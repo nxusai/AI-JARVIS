@@ -7,7 +7,7 @@
 
 import { fraseDelDia, saludo } from './frases.js'
 import { vistaAnuncios } from './anuncios.js'
-import { vistaFinanzas, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
+import { vistaFinanzas, vistaAhorro, paydaysPendientes, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
 import { editarPermisos, matrizPermisos, alternar, plantillaDe, estadoAcceso, NOMBRE as NOMBRE_PERMISO, CORTO as CORTO_PERMISO } from './permisos.js'
 
 const $ = (s, el = document) => el.querySelector(s)
@@ -451,10 +451,17 @@ export function iniciar(D, { muestra = false } = {}) {
     }
     if (!yo.nombre.trim())
       html = `<div class="tarjeta"><p>Tu perfil no tiene nombre todavía, por eso el saludo no te llama por tu nombre. ${esAdmin() ? `Ponlo en <a href="#personas">Usuarios</a> → <b>Editar</b> en tu renglón.` : 'Pídele a Eduardo que lo agregue.'}</p></div>` + html
+    // 💰 Payday: los cobros de clientes que tocaban y falta confirmar si llegaron.
+    if (puede('finanzas_editar')) {
+      const pd = await paydaysPendientes(D, ctxFinanzas()).catch(() => [])
+      if (pd.length)
+        html = `<a class="tarjeta payday payday-link" href="#finanzas" data-ir-entradas><h3>💰 ${pd.some((p) => p.fecha === hoyISO()) ? 'Hoy es payday' : 'Payday sin confirmar'}</h3><p>${pd.map((p) => `<b>${h(p.cliente.nombre)}</b> ${dinero(p.monto, p.moneda)}`).join(' · ')}</p><small>Toca para confirmar si ya llegó →</small></a>` + html
+    }
     if (vePros()) html += (await resumenLeads()) + (await resumenProspectos())
     html += `<div class="tarjeta"><h3>Mis pendientes</h3>${mias.length ? `<ul class="lista tareas">${mias.map(tarjetaTarea).join('')}</ul>` : '<p class="vacio">No tienes pendientes.</p>'}</div>`
     v.innerHTML = html
     $('#i-reloj', v)?.addEventListener('click', () => (abierta ? marcarSalida() : marcarEntrada()))
+    $('[data-ir-entradas]', v)?.addEventListener('click', () => sessionStorage.setItem('hq-fin-mes', '0'))
   }
 
   // ----------------------------------------------------------- clientes
@@ -2290,8 +2297,15 @@ export function iniciar(D, { muestra = false } = {}) {
 
   async function vistaMetas(v) {
     titulo('Metas y hábitos')
+    const segMetas = (t) => `<p class="eyebrow">Tu año · ${new Date().getFullYear()}</p>
+      <div class="acciones"><div class="segmento">${[['metas', 'Metas'], ['habitos', 'Hábitos'], ['ahorro', 'Ahorro para metas']].map(([k, x]) => `<button data-mt="${k}" class="${t === k ? 'on' : ''}">${x}</button>`).join('')}</div></div>`
+    if (sessionStorage.getItem('hq-metas') === 'ahorro') {
+      await vistaAhorro(v, ctxFinanzas(), segMetas('ahorro'))
+      $$('[data-mt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-metas', b.dataset.mt), mostrar())))
+      return
+    }
     const [metas, lista, habitos, dias, aportes] = await Promise.all([D.metas(), D.pendientes(), D.habitos(), D.habitosDias(diaLocal(-60)), D.aportes ? D.aportes().catch(() => []) : []])
-    // Metas con precio: el avance es lo apartado (Finanzas → Ahorro para metas).
+    // Metas con precio: el avance es lo apartado (pestaña Ahorro para metas).
     const apartado = (m) => aportes.filter((a) => a.meta_id === m.id).reduce((t, a) => t + Number(a.monto), 0)
     const tab = sessionStorage.getItem('hq-metas') === 'habitos' ? 'habitos' : 'metas'
     const hoy = diaLocal()
@@ -2314,8 +2328,7 @@ export function iniciar(D, { muestra = false } = {}) {
       </div>`
     }
     v.innerHTML = `
-      <p class="eyebrow">Tu año · ${new Date().getFullYear()}</p>
-      <div class="acciones"><div class="segmento"><button data-mt="metas" class="${tab === 'metas' ? 'on' : ''}">Metas</button><button data-mt="habitos" class="${tab === 'habitos' ? 'on' : ''}">Hábitos</button></div></div>
+      ${segMetas(tab)}
       ${cuerpo}`
     $$('[data-mt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-metas', b.dataset.mt), mostrar())))
     $$('[data-nueva]', v).forEach((b) => (b.onclick = () => editarMeta({ area: b.dataset.nueva })))
@@ -2356,7 +2369,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <label class="ancho">Avance <small>si no tiene pendientes ligados ni precio</small><input name="progreso" type="range" min="0" max="100" step="5" value="${Number(m.progreso) || 0}"></label>
           <label>¿Cuesta dinero? <small>precio de la meta · opcional</small><input name="monto_objetivo" type="number" min="0" step="0.01" value="${h(Number(m.monto_objetivo) || '')}" placeholder="800000"></label>
           <label>Moneda<select name="moneda"><option value="USD" ${m.moneda !== 'MXN' ? 'selected' : ''}>Dólares (USD)</option><option value="MXN" ${m.moneda === 'MXN' ? 'selected' : ''}>Pesos (MXN)</option></select></label>
-          <p class="nota ancho">Con precio, el avance es lo que vas apartando: registra cada ahorro y tu plan en <a href="#finanzas" data-ir-ahorro>Finanzas → Ahorro para metas</a>.</p>
+          <p class="nota ancho">Con precio, el avance es lo que vas apartando: registra cada ahorro y tu plan en la pestaña <a href="#metas" data-ir-ahorro>Ahorro para metas</a>.</p>
         </div>
         <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button>${nueva ? '' : '<button type="button" class="btn peligro" id="mt-borrar">Borrar</button>'}</div></form>`,
       (caja) => {
@@ -2369,7 +2382,7 @@ export function iniciar(D, { muestra = false } = {}) {
             mostrar()
           }
         }
-        $('[data-ir-ahorro]', caja)?.addEventListener('click', () => (sessionStorage.setItem('hq-fin', 'metas'), cerrarModal()))
+        $('[data-ir-ahorro]', caja)?.addEventListener('click', (e) => (e.preventDefault(), sessionStorage.setItem('hq-metas', 'ahorro'), cerrarModal(), mostrar()))
         $('#mt-borrar', caja)?.addEventListener('click', async () => {
           if (confirm(`¿Borrar la meta "${m.titulo}"?`) && (await intenta(() => D.borrarMeta(m.id), 'Borrada')) !== undefined) {
             cerrarModal()

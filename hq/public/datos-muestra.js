@@ -67,6 +67,7 @@ const db = {
   traspasos: [],
   envios: [],
   gastos_estado: [],
+  movimientos: [],
 }
 
 const cliente = (c, dinero) => {
@@ -651,6 +652,23 @@ export function crearMuestra() {
     async borrarTraspaso(tid) {
       if (!admin()) nunca()
       db.traspasos = db.traspasos.filter((x) => x.id !== tid)
+      return true
+    },
+    movimientos: () => espera(admin() ? db.movimientos : []),
+    async marcarMovimiento(m) {
+      if (!admin()) nunca()
+      db.movimientos = db.movimientos.filter((x) => !(x.mes === m.mes && x.tipo === m.tipo))
+      db.movimientos.push(m)
+      return copia(m)
+    },
+    async borrarMovimiento(mes, tipo) {
+      if (!admin()) nunca()
+      db.movimientos = db.movimientos.filter((x) => !(x.mes === mes && x.tipo === tipo))
+      return true
+    },
+    async quitarOmitido(cliente_id, fecha) {
+      if (!tiene('finanzas_editar')) nunca()
+      db.cobros_omitidos = db.cobros_omitidos.filter((x) => !(x.cliente_id === cliente_id && x.fecha === fecha))
       return true
     },
     gastosEstado: () => espera(db.gastos_estado.filter((e) => { const g = db.gastos.find((x) => x.id === e.gasto_id); return g && (admin() || (g.tipo === 'negocio' && tiene('finanzas_ver'))) })),

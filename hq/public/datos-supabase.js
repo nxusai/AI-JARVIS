@@ -242,6 +242,16 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    movimientos: async () => ok(await tabla('movimientos').select('*')),
+    marcarMovimiento: async (m) => ok(await tabla('movimientos').upsert(m, { onConflict: 'mes,tipo' }).select().single()),
+    async borrarMovimiento(mes, tipo) {
+      ok(await tabla('movimientos').delete().eq('mes', mes).eq('tipo', tipo))
+      return true
+    },
+    async quitarOmitido(cliente_id, fecha) {
+      ok(await tabla('cobros_omitidos').delete().eq('cliente_id', cliente_id).eq('fecha', fecha))
+      return true
+    },
     gastosEstado: async () => ok(await tabla('gastos_estado').select('*')),
     marcarGasto: async (gasto_id, mes, estado) => ok(await tabla('gastos_estado').upsert({ gasto_id, mes, estado, actualizado: new Date().toISOString() }, { onConflict: 'gasto_id,mes' }).select().single()),
     envios: async () => ok(await tabla('envios').select('*').order('fecha', { ascending: false }).limit(500)),
