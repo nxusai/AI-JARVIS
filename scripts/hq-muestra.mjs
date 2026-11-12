@@ -14,8 +14,8 @@ const artefacto = args.includes('--artefacto')
 const salida = args.find((a) => !a.startsWith('--')) || 'hq-muestra.html'
 const js = await build({ entryPoints: [join(pub, 'muestra-entrada.js')], bundle: true, format: 'esm', write: false, minify: true, target: 'es2022' })
 // La foto de Nueva York va dentro del archivo (sin internet).
-const img = (f) => `data:image/jpeg;base64,${readFileSync(join(pub, f)).toString('base64')}`
-const css = readFileSync(join(pub, 'estilo.css'), 'utf8').replace("url('/fondo.jpg')", () => `url('${img('fondo.jpg')}')`).replace("url('/fondo-movil.jpg')", () => `url('${img('fondo-movil.jpg')}')`)
+const img = (f) => `data:image/webp;base64,${readFileSync(join(pub, f)).toString('base64')}`
+const css = readFileSync(join(pub, 'estilo.css'), 'utf8').replaceAll("url('/fondo.webp')", () => `url('${img('fondo.webp')}')`).replaceAll("url('/fondo-movil.webp')", () => `url('${img('fondo-movil.webp')}')`)
 const html = readFileSync(join(pub, 'index.html'), 'utf8')
   .replace('<link rel="stylesheet" href="/estilo.css">', () => `<style>${css}</style>`)
   .replace('<script type="module" src="/inicio.js"></script>', () => `<script type="module">${js.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')}</script>`)

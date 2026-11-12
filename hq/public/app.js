@@ -353,7 +353,7 @@ export function iniciar(D, { muestra = false } = {}) {
     // Si sigues en la misma pantalla (guardar, aprobar, borrar), no se borra: se cambia cuando llega lo nuevo.
     const misma = vista.dataset.ruta === location.hash && vista.children.length
     vista.dataset.ruta = location.hash
-    // El momento Nueva York: al cambiar de sección todo se va 2 segundos y se ve la ciudad (mientras, carga lo nuevo).
+    // El momento Nueva York: al cambiar de sección todo se va 1 segundo y se ve la ciudad (mientras, carga lo nuevo).
     const ny = !misma ? momentoNY() : null
     if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
     else vista.classList.add('actualizando')
@@ -375,9 +375,9 @@ export function iniciar(D, { muestra = false } = {}) {
   }
   const titulo = (t) => ($('#titulo').textContent = t)
 
-  /** Todo se desvanece y queda Nueva York 2 segundos; fin() espera lo que falte y regresa la pantalla. */
+  /** Todo se desvanece y queda Nueva York 1 segundo; fin() espera lo que falte y regresa la pantalla. */
   let turnoNY = 0
-  function momentoNY(ms = 2000) {
+  function momentoNY(ms = 1000) {
     const mio = ++turnoNY
     const desde = Date.now()
     document.body.classList.add('vista-ny')
