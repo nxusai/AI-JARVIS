@@ -1121,3 +1121,26 @@ body.ver-fondo { cursor: zoom-out; }
   .ultron-panel .cerrar { width: 36px; height: 36px; border-radius: 50%; }
   .u-escribir { padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px) * 0); }
 }
+
+/* Ultron: llamada manos libres (como en la consola) */
+.u-hablar { background: #1a1714 !important; color: #fff !important; border-color: #1a1714 !important; }
+.u-llamada { position: absolute; left: 0; right: 0; bottom: 0; top: 66px; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 24px 22px 28px; text-align: center; background: linear-gradient(180deg, rgba(255, 250, 244, .9), rgba(240, 236, 255, .92));
+  backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); animation: m-abre .25s ease both; }
+.u-llamada-orbe { --nivel: 0; width: 150px; height: 150px; border-radius: 50%; position: relative; margin-bottom: 8px;
+  background: radial-gradient(circle at 35% 30%, #c9f7ff, #1f74ff 45%, #6a1cff 80%);
+  box-shadow: 0 0 calc(30px + var(--nivel) * 60px) rgba(80, 120, 255, .55), inset 0 4px 14px rgba(255, 255, 255, .6);
+  transform: scale(calc(1 + var(--nivel) * .12)); transition: transform .08s, box-shadow .08s; }
+.u-llamada-orbe span { position: absolute; inset: -14px; border-radius: 50%; border: 2px solid rgba(80, 120, 255, .35); }
+.u-llamada[data-fase="hablando"] .u-llamada-orbe { animation: u-habla 1.1s ease-in-out infinite; }
+.u-llamada[data-fase="pensando"] .u-llamada-orbe span, .u-llamada[data-fase="entendiendo"] .u-llamada-orbe span,
+.u-llamada[data-fase="conectando"] .u-llamada-orbe span { border-top-color: #1f74ff; animation: u-gira 1s linear infinite; }
+.u-llamada[data-fase="oyendo"] .u-llamada-orbe span { border-color: rgba(220, 38, 38, .55); }
+@keyframes u-habla { 50% { transform: scale(1.08); box-shadow: 0 0 70px rgba(120, 90, 255, .7), inset 0 4px 14px rgba(255, 255, 255, .6); } }
+@keyframes u-gira { to { transform: rotate(360deg); } }
+.u-llamada b { font: 700 22px var(--display); color: #1a1714; }
+.u-llamada p { margin: 0; max-width: 34ch; min-height: 3em; font-size: 15px; line-height: 1.45; color: #3d3731; }
+.u-llamada-botones { display: flex; gap: 10px; margin-top: 10px; }
+.u-llamada-botones .btn { height: 48px; padding: 0 20px; border-radius: 999px; font-weight: 700; }
+.u-colgar { background: #dc2626 !important; color: #fff !important; border-color: #dc2626 !important; }
+@media (prefers-reduced-motion: reduce) { .u-llamada-orbe, .u-llamada-orbe span { animation: none !important; } }

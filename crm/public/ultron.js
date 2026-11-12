@@ -11,6 +11,8 @@
 // regresa. En la muestra contesta datos-muestra.js; en el sistema real, el
 // Ultron que corre en el cerebro (vía el buzón en Supabase).
 
+import { abrirOido } from './ultron/voz.js'
+
 const h = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
@@ -99,12 +101,148 @@ function conectarChat(raiz) {
   })
 }
 
+// Un solo reproductor para su voz: el iPhone solo deja sonar audio que la persona
+// "desbloqueó" con un toque, así que se reusa el mismo (desbloqueado al prender la llamada).
+let reproductor = null
 function tocar(url) {
   try {
     sonando?.pause()
   } catch {}
-  sonando = new Audio(url)
-  sonando.play().catch(() => estado.avisar('Tu navegador no dejó reproducir el audio.'))
+  sonando = reproductor || new Audio()
+  sonando.onplaying = () => {
+    llamada?.oido?.guardia(true)
+    pintarLlamada('hablando')
+  }
+  sonando.onended = sonando.onpause = () => {
+    llamada?.oido?.guardia(false)
+    if (llamada && llamada.fase === 'hablando') pintarLlamada('escuchando')
+  }
+  sonando.src = url
+  sonando.play().catch(() => {
+    pintarLlamada('escuchando')
+    estado.avisar('Tu navegador no dejó reproducir el audio.')
+  })
+}
+
+// ---- Llamada con Ultron: manos libres, como en la consola ----
+// Hablas, se transcribe solo, Ultron contesta con su voz y vuelve a escucharte.
+// Si le hablas mientras habla, se calla y te escucha. "Terminar" cuelga.
+let llamada = null
+const sinSignos = (t) =>
+  String(t || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9ñ ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+const ALTO = /^(?:ultr[oó]n[,\s]*)?(?:para|párale|alto|silencio|cállate|callate|basta|espera|stop)[.!]*$/i
+const FASES = { conectando: 'Conectando…', escuchando: 'Te escucho', oyendo: 'Te escucho…', entendiendo: 'Entendiendo…', pensando: 'Pensando…', hablando: 'Hablando' }
+
+function pintarLlamada(fase) {
+  if (!llamada) return
+  if (fase) llamada.fase = fase
+  const caja = document.querySelector('.u-llamada')
+  if (!caja) return
+  caja.dataset.fase = llamada.fase
+  caja.querySelector('[data-u-fase]').textContent = FASES[llamada.fase] || ''
+  const ultimo = [...estado.mensajes].reverse().find((m) => m.de === 'ultron')
+  caja.querySelector('[data-u-dijo]').textContent = llamada.fase === 'pensando' || llamada.fase === 'entendiendo' ? llamada.yoDije || '' : ultimo?.texto?.replace(/\*\*/g, '').slice(0, 280) || ''
+}
+
+async function empezarLlamada() {
+  if (llamada) return
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return estado.avisar('Este navegador no puede hablar con Ultron. Escríbele.')
+  // Desbloquea el sonido con este mismo toque (si no, el iPhone no lo deja hablar).
+  reproductor = reproductor || new Audio()
+  try {
+    reproductor.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+    await reproductor.play()
+  } catch {}
+  grabando?.parar()
+  const panel = document.querySelector('.ultron-panel')
+  const caja = document.createElement('div')
+  caja.className = 'u-llamada'
+  caja.innerHTML = `
+    <div class="u-llamada-orbe"><span></span></div>
+    <b data-u-fase></b>
+    <p data-u-dijo></p>
+    <div class="u-llamada-botones">
+      <button type="button" class="btn" data-u-silencio>Que se calle</button>
+      <button type="button" class="btn u-colgar" data-u-colgar>Terminar</button>
+    </div>`
+  panel?.append(caja)
+  caja.querySelector('[data-u-colgar]').addEventListener('click', terminarLlamada)
+  caja.querySelector('[data-u-silencio]').addEventListener('click', () => {
+    try {
+      sonando?.pause()
+    } catch {}
+  })
+  llamada = { fase: 'conectando', oido: null, yoDije: '' }
+  pintarLlamada()
+  const oido = await abrirOido({
+    empieza() {
+      // Le hablaste mientras hablaba: se calla y te escucha.
+      if (sonando && !sonando.paused) {
+        try {
+          sonando.pause()
+        } catch {}
+      }
+      pintarLlamada('oyendo')
+    },
+    nivel(v) {
+      document.querySelector('.u-llamada-orbe')?.style.setProperty('--nivel', v.toFixed(2))
+    },
+    async termina(blob, ms) {
+      if (!llamada) return
+      if (ms < 350) return pintarLlamada('escuchando')
+      pintarLlamada('entendiendo')
+      let dicho = ''
+      try {
+        dicho = (await estado.transcribir(blob)).trim()
+      } catch (err) {
+        pintarLlamada('escuchando')
+        return estado.avisar(err.message || 'No te pude oír')
+      }
+      if (!llamada) return
+      if (!dicho) return pintarLlamada('escuchando')
+      // Su propia voz que se coló por la bocina.
+      const ultimo = [...estado.mensajes].reverse().find((m) => m.de === 'ultron')
+      if (dicho.length > 8 && sinSignos(ultimo?.texto).includes(sinSignos(dicho))) return pintarLlamada('escuchando')
+      if (ALTO.test(dicho)) {
+        try {
+          sonando?.pause()
+        } catch {}
+        return pintarLlamada('escuchando')
+      }
+      llamada.yoDije = dicho
+      pintarLlamada('pensando')
+      estado.porVoz = true
+      await enviar(dicho)
+      if (llamada && (!sonando || sonando.paused)) pintarLlamada('escuchando')
+    },
+    error(msg) {
+      estado.avisar(`${msg} Puedes escribirle.`)
+      terminarLlamada()
+    },
+  })
+  if (!llamada) return oido.parar()
+  llamada.oido = oido
+  if (!oido.vivo()) return terminarLlamada()
+  try {
+    await oido.despertar?.()
+  } catch {}
+  pintarLlamada('escuchando')
+}
+
+function terminarLlamada() {
+  const l = llamada
+  llamada = null
+  l?.oido?.parar()
+  try {
+    sonando?.pause()
+  } catch {}
+  document.querySelector('.u-llamada')?.remove()
 }
 
 // Hablarle a Ultron: toca el micrófono, habla, y vuelve a tocarlo (o calla 2 segundos).
@@ -256,6 +394,7 @@ function abrirPanel() {
     <header class="u-cabeza">
       ${orbeChico('despierta')}
       <div><b>ULTRON</b><span>En línea · Centro de trabajo</span></div>
+      ${estado.transcribir ? '<button class="btn chico u-hablar" data-u-llamar title="Platica con Ultron por voz, manos libres">📞 Hablar</button>' : ''}
       <button class="btn chico" data-u-consola title="Abre la consola de Ultron en otra pestaña">Consola ↗</button>
       <button class="cerrar" data-u-cerrar aria-label="Dormir a Ultron">×</button>
     </header>
@@ -264,10 +403,12 @@ function abrirPanel() {
   conectarChat(p)
   p.querySelector('[data-u-cerrar]').addEventListener('click', cerrarPanel)
   p.querySelector('[data-u-consola]').addEventListener('click', () => estado.consola?.())
+  p.querySelector('[data-u-llamar]')?.addEventListener('click', empezarLlamada)
   setTimeout(() => p.querySelector('input')?.focus(), 350)
 }
 
 function cerrarPanel() {
+  terminarLlamada()
   grabando?.parar()
   try {
     sonando?.pause()
