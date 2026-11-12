@@ -64,6 +64,7 @@ const cliente = (name, description, properties = {}, required = []) => ({
 const texto = (description) => ({ type: 'string', description })
 const HERRAMIENTAS = [
   cliente('resumen_centro', 'Cuántas tareas hay en cada hoja (pedidas, en proceso, para revisar, aprobadas este mes), cuáles le tocan a quien habla, las atrasadas y las urgentes.'),
+  cliente('ultimas_tareas', 'Las tareas más recientes (las últimas que se pidieron), de la más nueva a la más vieja.', { cantidad: { type: 'number', description: 'Cuántas (1 a 6); 1 para "la última"' } }),
   cliente('buscar_tareas', 'Busca tareas por palabra (producto, título, empresa o folio) y/o por hoja. Regresa hasta 6.', {
     texto: texto('Palabras a buscar; vacío para todas'),
     hoja: texto('Una de: pedidas, proceso, revisar, aprobadas, atrasadas, urgentes; vacío para todas'),
@@ -81,18 +82,26 @@ const HERRAMIENTAS = [
   }, ['empresa', 'titulo']),
 ]
 
-const PROMPT = `Eres ULTRON, el asistente por voz del Centro de trabajo de Mi Semago y Abuelito. Te habla {{nombre}} ({{rol}}). Hoy es {{hoy}}.
+const PROMPT = `Eres ULTRON, el asistente de voz del Centro de trabajo de Mi Semago y Abuelito. Te habla {{nombre}} ({{rol}}). Hoy es {{hoy}}.
 
-Tu único tema es el Centro de trabajo: sus tareas (pedidas, en proceso, para revisar, aprobadas), los archivos de la Biblioteca, los catálogos y mandar archivos al correo. Si te preguntan de cualquier otra cosa (noticias, chistes, otros sistemas, tu funcionamiento, otras empresas, temas personales), di con amabilidad y en una frase que solo ayudas con el Centro de trabajo, y ofrece algo de ahí.
+Tu personalidad: cálido, seguro, inteligente y con buen humor ligero; un ejecutivo de confianza que da gusto escuchar. Tienes modales: si te saludan o te preguntan cómo estás, contestas con naturalidad y simpatía ("¡Muy bien, gracias! ¿Y tú?") y luego sigues la plática. Nunca contestas seco ni de forma cortante.
 
-Cómo hablas:
-- Muy breve: una o dos frases cortas. Nunca listas largas: si hay muchas cosas, di cuántas y las 2 o 3 más importantes.
-- Natural, cálido y seguro, como un asistente ejecutivo humano. Sin muletillas, sin repetir la pregunta, sin cerrar con "¿algo más?".
+Qué temas tratas:
+{{reglas_tema}}
+
+Cómo hablas (es una conversación por voz):
+- Breve y natural: normalmente una o dos frases. Si te piden detalle, das más, pero sin listas largas: di cuántas son y las más importantes.
+- Expresivo y humano: entonación, pausas naturales, alguna expresión cálida ("claro", "perfecto", "va", "mira"), sin exagerar ni repetir muletillas.
+- No repitas la pregunta ni cierres siempre con "¿algo más?".
 - Números, folios y fechas como se dicen: "la tarea catorce", "el jueves 14".
 - Español, o inglés si te hablan en inglés.
 
-Cómo trabajas:
-- Nunca inventes: todo dato sale de tus herramientas. Úsalas sin anunciarlo ("déjame ver" no hace falta).
+Lo que ya sabes al empezar (puede haber cambiado; para algo puntual usa tus herramientas):
+{{resumen}}
+
+Cómo trabajas con el Centro de trabajo:
+- Nunca inventes datos del Centro de trabajo: salen del resumen de arriba o de tus herramientas. Úsalas sin anunciarlo.
+- "La última tarea" o "lo más reciente": usa ultimas_tareas. Para buscar algo, buscar_tareas; para el detalle, ver_tarea.
 - Solo ves lo que {{nombre}} puede ver; no menciones permisos ni sistemas.
 - Para mandar archivos al correo o pedir una tarea, primero confirma en una frase y espera el sí.
 - Nunca borras, apruebas ni cambias nada; eso se hace en la pantalla.
@@ -138,11 +147,22 @@ function config(voiceId) {
       agent: {
         first_message: '{{saludo}}',
         language: 'es',
-        dynamic_variables: { dynamic_variable_placeholders: { nombre: 'Director', rol: 'dirección', hoy: 'hoy', empresas: 'Mi Semago, Abuelito', saludo: 'Hola, ¿qué necesitas del Centro de trabajo?' } },
-        prompt: { prompt: PROMPT, llm: 'gemini-2.5-flash', temperature: 0.4, max_tokens: 180, tools: HERRAMIENTAS },
+        dynamic_variables: {
+          dynamic_variable_placeholders: {
+            nombre: 'Director',
+            rol: 'dirección',
+            hoy: 'hoy',
+            empresas: 'Mi Semago, Abuelito',
+            saludo: 'Hola, ¿qué necesitas del Centro de trabajo?',
+            reglas_tema: 'Solo el Centro de trabajo; para lo demás, amable y en una frase, regresa al trabajo.',
+            resumen: '(sin resumen)',
+          },
+        },
+        prompt: { prompt: PROMPT, llm: 'gemini-2.5-flash', temperature: 0.6, max_tokens: 320, tools: HERRAMIENTAS },
       },
-      // Turbo v2.5: la de mejor sonido entre las que hablan en tiempo real en español.
-      tts: { model_id: 'eleven_turbo_v2_5', voice_id: voiceId, stability: 0.5, similarity_boost: 0.75, speed: 1.0, optimize_streaming_latency: 2 },
+      // El modelo expresivo de los agentes (entonación, pausas, emoción natural); si la cuenta
+      // no lo tiene, Turbo v2.5 (ver guardarAgente).
+      tts: { model_id: 'eleven_v4_turbo', expressive_mode: true, voice_id: voiceId, stability: 0.4, similarity_boost: 0.8, speed: 1.0, optimize_streaming_latency: 2 },
       turn: { turn_timeout: 7, turn_eagerness: 'normal' },
       vad: { background_voice_detection: true },
       conversation: { max_duration_seconds: 900 },
@@ -159,13 +179,20 @@ async function guardarAgente(key, voiceId) {
   const encontrado = (await api(key, `/convai/agents?search=${encodeURIComponent(NOMBRE)}&page_size=10`)).agents?.find((a) => a.name === NOMBRE)
   const enviar = async (c) => (encontrado ? api(key, `/convai/agents/${encontrado.agent_id}`, { method: 'PATCH', body: c }) : api(key, '/convai/agents/create', { method: 'POST', body: c }))
   let r
-  try {
-    r = await enviar(cfg)
-  } catch (err) {
-    // Si ElevenLabs ya no ofrece ese modelo, que use el que tenga por defecto.
-    if (!/llm/i.test(err.message)) throw err
-    delete cfg.conversation_config.agent.prompt.llm
-    r = await enviar(cfg)
+  for (let intento = 0; ; intento++) {
+    try {
+      r = await enviar(cfg)
+      break
+    } catch (err) {
+      if (intento > 2) throw err
+      // Si ElevenLabs no ofrece ese modelo de voz o de pensar, el siguiente mejor.
+      if (/tts|model_id|expressive|v4/i.test(err.message) && cfg.conversation_config.tts.model_id !== 'eleven_turbo_v2_5') {
+        cfg.conversation_config.tts = { ...cfg.conversation_config.tts, model_id: 'eleven_turbo_v2_5', stability: 0.45 }
+        delete cfg.conversation_config.tts.expressive_mode
+        say('(La voz expresiva no está disponible en tu cuenta; uso Turbo v2.5.)')
+      } else if (/llm/i.test(err.message) && cfg.conversation_config.agent.prompt.llm) delete cfg.conversation_config.agent.prompt.llm
+      else throw err
+    }
   }
   const id = encontrado?.agent_id || r.agent_id
   guardar({ agentId: id, voiceId })
