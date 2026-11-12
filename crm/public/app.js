@@ -286,7 +286,7 @@ const firma = () => `<div class="firma">${logo()}<span>Hecho por NXUS AI</span><
 
 /** Todo se desvanece 2 segundos para que se luzca el fondo; un clic lo regresa antes. */
 let tiempoFondo
-function verFondo(ms = 2000) {
+function verFondo(ms = 780) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
   clearTimeout(tiempoFondo)
   document.body.classList.add('ver-fondo')
@@ -418,7 +418,7 @@ function cabezaMovil() {
   const titulo = S.vista === 'mas' ? 'Más' : S.vista === 'web' ? 'Website leads' : NOMBRES_VISTA[S.vista] || ''
   const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })
   return `<div class="m-cab">
-    <div class="m-fila"><span class="m-fecha">${S.vista === 'leads' ? 'Mi Semago · WhatsApp' : h(hoy)}</span><button class="m-av" data-vista="mas" aria-label="Más: tu cuenta">${h(primerNombre(S.yo.nombre).slice(0, 1).toUpperCase())}</button></div>
+    <div class="m-fila"><button class="m-menu" data-accion="menu-movil" aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><span class="m-fecha">${S.vista === 'leads' ? 'Mi Semago · WhatsApp' : h(hoy)}</span></div>
     <h1 class="m-titulo">${titulo}</h1>
     ${esCliente() && S.vista === 'tareas' ? `<p class="m-frase">${fraseDelDia(datosFrase())}</p>` : ''}
   </div>`
@@ -429,7 +429,7 @@ function barraMovil() {
   if (tieneUltron()) tabs.splice(Math.min(2, tabs.length), 0, '<button class="m-tab" data-accion="ultron-movil" aria-label="Ultron"><span class="m-orbe"></span><span>Ultron</span></button>')
   const enMas = vistasPermitidas().filter((v) => !pestanasMovil().includes(v))
   const avisoMas = enMas.includes('web') && webNuevos() ? `<i class="m-num">${webNuevos()}</i>` : ''
-  tabs.push(`<button class="m-tab ${S.vista === 'mas' ? 'on' : ''}" data-vista="mas">${ICONO_MAS}<span>Más</span>${avisoMas}</button>`)
+  tabs.push(`<button class="m-tab" data-accion="menu-movil">${ICONO_MAS}<span>Más</span>${avisoMas}</button>`)
   return `<nav class="m-tabs" aria-label="Secciones">${tabs.join('')}</nav>`
 }
 
@@ -448,6 +448,11 @@ function vistaMas() {
       <button class="m-fila-l" data-accion="salir"><span class="m-txt m-rojo">Cerrar sesión</span></button>
     </div>
     <p class="m-hecho">Hecho por NXUS AI</p>`
+}
+
+/** El menú (las tres líneas o "Más") sube como hoja; se cierra con la ✕, tocando afuera o eligiendo algo. */
+function abrirMenuMovil() {
+  abrirVentana('Menú', vistaMas())
 }
 
 /** Los números del cliente para la frase del día (solo lo que él ya puede ver). */
@@ -2334,11 +2339,12 @@ async function alClic(e) {
       return
     }
     if (d.vista) {
+      if (!$('#modal').hidden) cerrarVentana()
       const otra = S.vista !== d.vista
       S.vista = d.vista
       pintar()
       if (otra) scrollTo(0, 0)
-      if (otra && d.vista !== 'mas') verFondo()
+      if (otra) verFondo()
       return
     }
     if (d.parrillaMes !== undefined) {
@@ -2587,11 +2593,15 @@ async function alClic(e) {
         avisar('Recibida: pasó a “En proceso”')
         await recargar()
         return
+      case 'menu-movil':
+        abrirMenuMovil()
+        return
       case 'ultron-movil':
         document.querySelector('.orbe')?.click()
         return
       case 'ver-fondo':
-        verFondo(4000)
+        if (!$('#modal').hidden) cerrarVentana()
+        verFondo(2500)
         return
       case 'filtros-movil':
         S.filtrosMovil = !S.filtrosMovil
