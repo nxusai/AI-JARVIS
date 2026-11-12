@@ -454,7 +454,7 @@ async function sesionVivo(voz) {
   const saludo = voz ? `${hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'}${primerNombreU() ? `, ${primerNombreU()}` : ''}. ¿En qué te ayudo?` : ''
   const historia = estado.mensajes.filter((m) => m.texto && !m.inicial).slice(-6).map((m) => `${m.de === 'yo' ? nombre : 'Ultron'}: ${m.texto}`).join('\n')
   const base = {
-    clientTools: estado.herramientas || {},
+    clientTools: Object.fromEntries(Object.entries(estado.herramientas || {}).filter(([k]) => !k.startsWith('__'))),
     dynamicVariables: { ...(estado.contexto?.() || {}), nombre, saludo },
     overrides: voz ? {} : { conversation: { textOnly: true }, agent: { firstMessage: '' } },
     onMessage: ({ source, message }) => {

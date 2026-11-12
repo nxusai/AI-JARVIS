@@ -221,6 +221,43 @@ async function cargarTodo() {
   S.web = D.webLeads && veoLeads() ? await D.webLeads().catch(() => null) : []
   S.leads = D.leads && veoLeads() ? await D.leads() : []
   if (esAdmin()) S.usuarios = await D.usuarios()
+  S.personas = (D.gente ? await D.gente().catch(() => null) : null) ?? [...(S.usuarios ?? []), ...S.clientes.map((c) => ({ ...c, rol: 'cliente' })), S.yo]
+}
+
+// -- quién es quién (para la página y para Ultron) ----------------------------
+const PAPEL = { cliente: 'cliente', equipo: 'equipo', admin: 'administrador' }
+const personaDe = (id) => (S.personas ?? []).find((p) => p.id === id) ?? (id === S.yo?.id ? S.yo : null)
+/** "Senen (cliente)", "Diseñador 1 (equipo)"; "tú" si es quien mira. */
+function quienEs(id, { tu = true } = {}) {
+  if (!id) return ''
+  if (tu && id === S.yo?.id) return 'tú'
+  const p = personaDe(id)
+  if (!p) return 'alguien del equipo'
+  return `${String(p.nombre || '').trim() || 'Sin nombre'} (${p.creador || p.dueno ? 'creador del sistema' : PAPEL[p.rol] ?? p.rol})`
+}
+/** Quién pidió, registró, tomó y entregó una tarea. */
+function historiaTarea(t) {
+  const entregas = (t.archivos ?? []).filter((a) => a.tipo === 'entrega').sort((a, b) => aFecha(a.subido) - aFecha(b.subido))
+  const entrego = [...new Set(entregas.map((a) => a.subido_por).filter(Boolean))]
+  return {
+    pidio: t.cliente_id,
+    registro: t.creada_por && t.creada_por !== t.cliente_id ? t.creada_por : null,
+    tomo: t.tomada_por || null,
+    tomada: t.tomada || null,
+    entrego,
+    ultimaEntrega: entregas[entregas.length - 1] ?? null,
+  }
+}
+function lineaQuien(t, opciones) {
+  const x = historiaTarea(t)
+  return [
+    `La pidió ${quienEs(x.pidio, opciones)}${x.registro ? `, la registró ${quienEs(x.registro, opciones)}` : ''}`,
+    x.tomo ? `la tomó ${quienEs(x.tomo, opciones)}` : t.estatus === 'recibida' ? 'nadie la ha tomado todavía' : '',
+    x.entrego.length ? `la entregó ${x.entrego.map((id) => quienEs(id, opciones)).join(' y ')}` : '',
+    t.estatus === 'aprobada' ? `aprobada el ${fecha(t.aprobada)}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 async function recargar() {
@@ -717,18 +754,57 @@ function tareasFiltradas() {
 /** Lo que Ultron ya sabe al conectarse (para contestar al instante, sin buscar). */
 function resumenParaUltron() {
   const h = herramientasUltron()
-  const recientes = [...S.tareas].sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida)).slice(0, 8)
-  return `${h.resumen_centro()}\nLas más recientes (de la más nueva a la más vieja):\n${recientes.map((t) => `- tarea ${t.folio}: ${t.titulo} · ${empresa(t.empresa_id).nombre} · ${hojaDe(t.estatus).titulo} · pedida ${fecha(t.pedida)}`).join('\n') || '- ninguna'}`.slice(0, 2500)
+  const PAPEL_LARGO = {
+    cliente: 'cliente (de Mi Semago/Abuelito): pide las tareas, las revisa y las aprueba',
+    equipo: 'equipo de NXUS: recibe las tareas, las hace y entrega los archivos',
+    admin: 'administrador de NXUS',
+  }
+  const personas = (S.personas ?? [])
+    .filter((p) => p.activo !== false)
+    .slice(0, 20)
+    .map((p) => `- ${p.nombre || 'Sin nombre'}: ${p.creador || p.dueno ? 'administrador y creador del sistema (NXUS)' : PAPEL_LARGO[p.rol] ?? p.rol}${p.id === S.yo.id ? ' ← es quien te habla' : ''}`)
+  const recientes = [...S.tareas].sort((a, b) => aFecha(b.pedida) - aFecha(a.pedida)).slice(0, 6)
+  return [
+    'PERSONAS:',
+    ...(personas.length ? personas : ['- (sin datos)']),
+    '',
+    'NÚMEROS:',
+    h.resumen_centro(),
+    '',
+    'TAREAS MÁS RECIENTES (de la más nueva a la más vieja):',
+    ...(recientes.length ? recientes.map((t) => `- ${h.__linea(t)} · pedida ${fecha(t.pedida)}`) : ['- ninguna']),
+  ]
+    .join('\n')
+    .slice(0, 3800)
 }
 
 // -- Ultron en vivo: lo que puede consultar (con lo que esta persona ya ve en su pantalla) --
 function herramientasUltron() {
   const hoyISO = () => new Date().toLocaleDateString('en-CA')
   const atrasada = (t) => t.compromiso && t.compromiso < hoyISO() && !['entregada', 'aprobada'].includes(t.estatus)
+  // Cada tarea en una línea clara: qué es, en qué paso va, a quién le toca y quién hizo qué.
+  const ESTADO_LARGO = {
+    recibida: 'Pedida: el cliente la pidió y nadie del equipo la ha tomado',
+    'en-proceso': 'En proceso: el equipo la está haciendo',
+    'en-correccion': 'En proceso: el equipo está haciendo una corrección que pidió el cliente',
+    entregada: 'Para revisar: el equipo ya la entregó; el cliente tiene que aprobarla o pedir corrección',
+    aprobada: 'Aprobada: terminada',
+  }
+  const quien = (id) => quienEs(id, { tu: false })
   const linea = (t) =>
-    `tarea ${t.folio}: ${t.titulo} · ${empresa(t.empresa_id).nombre} · ${hojaDe(t.estatus).titulo}${t.urgente ? ' · urgente' : ''}${t.compromiso && t.estatus !== 'aprobada' ? ` · compromiso ${t.compromiso}` : ''}${esEquipo() ? ` · de ${nombreCliente(t.cliente_id)}` : ''}`
+    [
+      `Tarea ${t.folio} «${t.titulo}»`,
+      `empresa ${empresa(t.empresa_id).nombre}`,
+      `estado: ${ESTADO_LARGO[t.estatus] ?? t.estatus}`,
+      lineaQuien(t, { tu: false }),
+      t.urgente ? 'URGENTE' : '',
+      t.compromiso && t.estatus !== 'aprobada' ? `compromiso ${t.compromiso}${atrasada(t) ? ' (atrasada)' : ''}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ')
   const archivoLinea = (a) => `id ${a.id}: ${a.nombre}${a.empresa_id ? ` (${empresa(a.empresa_id).nombre})` : ''}`
   return {
+    __linea: linea,
     resumen_centro: () => {
       const base = S.tareas
       const cuenta = HOJAS.map((x) => {
@@ -739,7 +815,12 @@ function herramientasUltron() {
       const tarde = base.filter(atrasada)
       return [
         cuenta.join(', ') + (cuenta.length ? ' (aprobadas: este mes)' : ''),
-        `Le tocan a ${primerNombre(S.yo.nombre)}: ${mias.length}${mias.length ? ` (${mias.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`,
+        ...(esAdmin()
+          ? ['equipo', 'cliente'].map((quien) => {
+              const l = base.filter((t) => hojaDe(t.estatus).toca === quien)
+              return `Le tocan ${quien === 'equipo' ? 'al equipo (tomarlas o terminarlas)' : 'a los clientes (revisar y aprobar)'}: ${l.length}${l.length ? ` (${l.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`
+            })
+          : [`Le tocan a ${primerNombre(S.yo.nombre) || 'quien te habla'}: ${mias.length}${mias.length ? ` (${mias.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`]),
         `Atrasadas: ${tarde.length}${tarde.length ? ` (${tarde.slice(0, 3).map((t) => `${t.folio} ${t.titulo}`).join('; ')})` : ''}`,
         `Urgentes abiertas: ${base.filter((t) => t.urgente && t.estatus !== 'aprobada').length}`,
       ].join('\n')
@@ -765,11 +846,12 @@ function herramientasUltron() {
       const archivos = t.archivos ?? []
       return [
         linea(t),
-        `Pedido: ${(t.descripcion || t.titulo).slice(0, 400)}`,
-        `Pedida ${fecha(t.pedida)}${t.entregada ? `, entregada ${fecha(t.entregada)}` : ''}${t.aprobada ? `, aprobada ${fecha(t.aprobada)}` : ''}`,
+        `Lo que pidió: ${(t.descripcion || t.titulo).slice(0, 400)}`,
         `A quién le toca: ${hojaDe(t.estatus).toca === 'cliente' ? 'al cliente (revisar y aprobar)' : hojaDe(t.estatus).toca ? 'al equipo' : 'a nadie, ya está aprobada'}`,
-        `Correcciones: ${t.correcciones.length}${t.correcciones.length ? ` (la última: ${t.correcciones[t.correcciones.length - 1].instrucciones.slice(0, 160)})` : ''}`,
-        `Archivos (${archivos.length}): ${archivos.slice(0, 8).map(archivoLinea).join('; ') || 'ninguno'}`,
+        `Historia: pedida ${fecha(t.pedida)} por ${quien(t.cliente_id)}${historiaTarea(t).registro ? ` (la registró ${quien(historiaTarea(t).registro)})` : ''}${t.tomada ? `; la tomó ${quien(t.tomada_por)} el ${fecha(t.tomada)}` : ''}${archivos.filter((a) => a.tipo === 'entrega').map((a) => `; entregó ${quien(a.subido_por)} «${a.nombre}» el ${fecha(a.subido)}`).join('')}${t.aprobada ? `; aprobada el ${fecha(t.aprobada)}` : ''}`,
+        `Correcciones: ${t.correcciones.length}${t.correcciones.map((c) => `\n  - corrección ${c.n} (pedida por ${quien(c.pedida_por)} el ${fecha(c.pedida)}; ${c.estatus === 'entregada' ? 'ya entregada' : c.estatus === 'en-proceso' ? 'el equipo la está haciendo' : 'pendiente'}): ${c.instrucciones.slice(0, 160)}`).join('')}`,
+        `Actualizaciones: ${(t.notas ?? []).length}${(t.notas ?? []).slice(-2).map((n) => `\n  - de ${quien(n.autor)} el ${fecha(n.creada)}: ${String(n.texto || '').slice(0, 160)}`).join('')}`,
+        `Archivos (${archivos.length}): ${archivos.slice(0, 8).map((a) => `${archivoLinea(a)} [${a.tipo === 'entrega' ? `entrega de ${quien(a.subido_por)}` : 'referencia'}]`).join('; ') || 'ninguno'}`,
       ].join('\n')
     },
     buscar_archivos: ({ texto = '' } = {}) => {
@@ -1053,6 +1135,7 @@ function cuerpoTareaMovil(t, x) {
       <span class="m-folio">${h(e.grupo ? `${e.grupo} · ` : '')}${h(e.nombre)}${esEquipo() ? ` · ${h(primerNombre(nombreCliente(t.cliente_id)))}` : ''}</span>
       <div class="chips">${mio ? `<span class="chip te-toca">👉 Te toca ${esCliente() ? 'revisar' : 'a ti'}</span>` : toca ? `<span class="chip le-toca">⏳ Le toca ${toca === 'cliente' ? 'al cliente' : 'al equipo'}</span>` : ''}${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}<span class="chip est-${t.estatus}">${textoEstatus(t.estatus)}</span></div>
     </div>
+    <p class="quien-tarea">👤 ${h(lineaQuien(t))}</p>
     <div class="m-paso"><div class="m-paso-r"><b>Paso ${paso} de 4 · ${AVANCE[paso - 1]}</b><span>${cuando}</span></div><div class="m-prog"><i style="width:${paso * 25}%"></i></div></div>
     ${esEquipo() && t.estatus === 'recibida' ? `<div class="recibir"><b>👉 Tarea nueva sin recibir.</b> Al recibirla pasa a “En proceso” y el cliente ve que ya la están trabajando.<button class="btn principal" data-accion="recibir-tarea" data-ocupado="Recibiendo…">📥 Recibir y empezar</button></div>` : ''}
     <div class="m-grupo m-grupo-det">
@@ -1193,6 +1276,7 @@ function abrirTarea(id) {
     </div>
     ${revisa ? `<div class="revisar-ya"><div>${porQuien ? `<b>👉 Le toca a ${h(porQuien)} revisarla.</b> Como administrador, tú también puedes aprobarla o pedir corrección.` : '<b>👉 Te toca revisarla.</b> Si ya quedó, apruébala y se va a “Aprobadas”.'}</div><div class="revisar-botones"><button class="btn" data-accion="m-correccion">Pedir corrección</button><button class="btn ok" data-accion="aprobar" data-ocupado="Aprobando…">✅ Aprobar</button></div></div>` : ''}
     ${juntos}
+    <p class="quien-tarea">👤 ${h(lineaQuien(t))}</p>
     <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
     <div class="fechas" style="margin-bottom:12px">
       <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>
@@ -2899,6 +2983,8 @@ function arrastrar() {
 export async function iniciar(datos, { muestra = false } = {}) {
   D = datos
   MUESTRA = muestra
+  // En la muestra, para revisar lo que lee Ultron: window.__ultron()
+  if (MUESTRA) window.__ultron = () => resumenParaUltron()
   document.addEventListener('click', alClic)
   document.addEventListener('change', alCambiar)
   document.addEventListener('input', (e) => {
