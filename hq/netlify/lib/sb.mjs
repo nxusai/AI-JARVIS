@@ -44,6 +44,8 @@ export async function quien(req) {
     if (!user?.id) return null
     const [perfil] = await sb(`/rest/v1/perfiles?id=eq.${user.id}&select=*`, { token })
     if (!perfil?.activo) return null
+    // Acceso temporal vencido (el admin nunca vence).
+    if (perfil.rol !== 'admin' && perfil.acceso_hasta && new Date(perfil.acceso_hasta) <= new Date()) return null
     return { token, perfil }
   } catch {
     return null

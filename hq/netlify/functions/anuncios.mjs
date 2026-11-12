@@ -58,13 +58,17 @@ export default async (req) => {
       graph(`${act}/insights?level=campaign&date_preset=last_30d&time_increment=1&fields=campaign_name,spend,actions,impressions&filtering=${FILTRO}&limit=500`),
       graph(`${act}/ads?fields=name,effective_status,created_time,updated_time,campaign{name}&filtering=${FILTRO_ADS}&limit=200`),
     ])
+    // Lo gastado en anuncios es dinero: solo el admin o con el permiso "anuncios_gasto".
+    const verGasto = yo.perfil.rol === 'admin' || (yo.perfil.permisos ?? []).includes('anuncios_gasto')
+    const sinDinero = (x) => (verGasto ? x : { ...x, gasto: 0, cpm: 0 })
     return json({
       ok: true,
       conectado: true,
+      sinGasto: !verGasto,
       moneda: cuenta.currency || 'USD',
-      total: (total.data || []).map(fila),
-      semana: (semana.data || []).map(fila),
-      dias: (dias.data || []).map(fila),
+      total: (total.data || []).map(fila).map(sinDinero),
+      semana: (semana.data || []).map(fila).map(sinDinero),
+      dias: (dias.data || []).map(fila).map(sinDinero),
       estados: (ads.data || []).map((a) => ({ anuncio: a.name, campana: a.campaign?.name || '', estado: a.effective_status, creado: a.created_time, actualizado: a.updated_time })),
       al: new Date().toISOString(),
     })

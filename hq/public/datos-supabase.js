@@ -223,7 +223,31 @@ export function crearSupabase({ url, anon }) {
       return true
     },
 
-    bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(200)),
+    bitacora: async () => ok(await tabla('bitacora').select('*').order('cuando', { ascending: false }).limit(500)),
+
+    // Finanzas (quién ve y cambia qué lo cuida la base de datos con los permisos).
+    cobros: async () => ok(await tabla('cobros').select('*').order('fecha', { ascending: false }).limit(5000)),
+    guardarCobro: (c) => guardar('cobros', c),
+    async borrarCobro(id) {
+      ok(await tabla('cobros').delete().eq('id', id))
+      return true
+    },
+    cobrosOmitidos: async () => ok(await tabla('cobros_omitidos').select('*')),
+    omitirCobro: async (o) => ok(await tabla('cobros_omitidos').upsert(o, { onConflict: 'cliente_id,fecha' }).select().single()),
+    gastos: async () => ok(await tabla('gastos').select('*').order('concepto')),
+    guardarGasto: (g) => guardar('gastos', g),
+    async borrarGasto(id) {
+      ok(await tabla('gastos').delete().eq('id', id))
+      return true
+    },
+    finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
+    guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    aportes: async () => ok(await tabla('metas_aportes').select('*').order('fecha', { ascending: false })),
+    guardarAporte: (a) => guardar('metas_aportes', a),
+    async borrarAporte(id) {
+      ok(await tabla('metas_aportes').delete().eq('id', id))
+      return true
+    },
 
     ordenar: async (texto) => (await funcion('ordenar', { texto })).ficha,
   }

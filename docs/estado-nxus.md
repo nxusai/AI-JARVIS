@@ -21,8 +21,11 @@
 
 ## Lo que ya existe
 - **NXUS HQ** (`hq/`, guía `docs/guia-hq.md`): https://nxus-hq.netlify.app (app.nxusai.org todavía sin conectar). Supabase `zntjhkauoiodmmpxfucw`.
-  - Clientes, Prospectos (tablero por etapas, ficha, notas, siguiente paso, convertir en cliente, link por vendedor `?de=codigo` con comisión automática), Tareas, Equipo, Mi reloj, Nómina, Dinero, Personas (permisos de prospectos por persona), Bitácora.
+  - Clientes, Prospectos (tablero por etapas, ficha, notas, siguiente paso, convertir en cliente, link por vendedor `?de=codigo` con comisión automática), Tareas, Equipo, Mi reloj, Nómina, Finanzas, Personas (permisos por persona), Bitácora.
   - Diseño de cristal en colores NXUS, saludo diario y frase del día (dueño vs. equipo, `hq/public/frases.js`).
+  - **Finanzas** (12 nov 2026, `hq/public/finanzas.js`; reemplaza "Dinero"): cómo paga cada cliente (mensual, quincenal, cada dos semanas con una fecha de referencia, semanal, bimestral… o sin fecha fija), cobros recibidos y "¿ya te pagaron?", gastos con sus días (negocio o personal), nómina restada sola, semáforo verde/amarillo/rojo, gráfica de 12 meses, flujo día por día con saldo del banco y ahorro para metas con precio (aportes, plan, cuándo llega). Cuenta desde `finanzas_config.desde`.
+  - **Permisos** (`hq/public/permisos.js`): 15 permisos + los de prospectos, plantillas (Contador, Ventas, Socio…), acceso con fecha de vencimiento, matriz, "quitar todo". La base de datos los hace cumplir con `puede()`. Lo personal (pendientes, metas, hábitos, gastos personales, ahorro) nunca se comparte. La bitácora guarda antes → después.
+  - **Asistencia** en Nómina (historial, filtros, correcciones, Excel) y fotos del equipo desde Equipo (📷, solo el admin).
   - Falta: poner su nombre en Personas → Editar (su perfil no tiene nombre).
 - **Portal de prospectos** (`portal/`, guía `docs/guia-portal.md`): https://nxus-portal.netlify.app. Catálogo, diagnóstico, consultoría o propuesta, datos, aviso de privacidad, permiso de novedades. Manda cada prospecto a HQ (`HQ_URL` = https://nxus-hq.netlify.app, `PORTAL_CLAVE` en los dos proyectos). Probado y funcionando.
   - Falta: razón social y domicilio en `portal/public/privacidad.html`; agenda de Google; bot de Telegram "NXUS Portal"; dominio empezar.nxusai.org. Stripe después.

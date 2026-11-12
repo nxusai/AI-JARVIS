@@ -70,7 +70,10 @@ export default async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'POST' }, 405)
   const yo = await quien(req)
   if (!yo) return json({ ok: false, error: 'Tu sesión se cerró. Vuelve a entrar.' }, 401)
-  if (yo.perfil.rol !== 'admin') return json({ ok: false, error: 'Solo el administrador' }, 403)
+  // Dar de alta y reenviar acceso: el admin, o a quien él le dio "personas_gestionar" (nunca a otro admin;
+  // los permisos solo los cambia el admin, eso lo cuida la base de datos).
+  const esAdmin = yo.perfil.rol === 'admin'
+  if (!esAdmin && !(yo.perfil.permisos ?? []).includes('personas_gestionar')) return json({ ok: false, error: 'Solo el administrador' }, 403)
   if (!process.env.SUPABASE_SERVICE_KEY) return json({ ok: false, error: 'Falta SUPABASE_SERVICE_KEY en Netlify' }, 503)
   const d = await req.json().catch(() => ({}))
 
@@ -109,6 +112,10 @@ export default async (req) => {
       const clave = String(d.clave ?? '')
       if (!clave) return json({ ok: false, error: 'Falta la contraseña' }, 400)
       if (d.id === yo.perfil.id) return json({ ok: false, error: 'Tu propia contraseña cámbiala en "Mi cuenta"' }, 400)
+      if (!esAdmin) {
+        const [obj] = await sb(`/rest/v1/perfiles?id=eq.${d.id}&select=rol`, { servicio: true })
+        if (!obj || obj.rol === 'admin') return json({ ok: false, error: 'Solo el administrador' }, 403)
+      }
       await sb(`/auth/v1/admin/users/${d.id}`, { servicio: true, method: 'PUT', body: { password: envolver(clave) } }).catch((err) => {
         throw claro(err)
       })
@@ -118,6 +125,7 @@ export default async (req) => {
       return json({ ok: true, usuario: p?.usuario || p?.correo, ...correoR })
     }
     if (d.accion === 'probar') {
+      if (!esAdmin) return json({ ok: false, error: 'Solo el administrador' }, 403)
       // 🔧 Probar correo: qué clave y qué agenda usa HQ AHORA (sin revelar la clave) y un correo de prueba al admin.
       const k = env('AGENDA_CLAVE')
       const id = /\/s\/([^/]+)\/exec/.exec(env('AGENDA_URL'))?.[1] ?? ''

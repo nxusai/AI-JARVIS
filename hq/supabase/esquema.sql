@@ -1220,3 +1220,340 @@ begin
     execute format('create policy solo_admin on public.%I for all to authenticated using (es_admin()) with check (es_admin())', t);
   end loop;
 end $$;
+
+-- ===========================================================================
+-- Permisos, Finanzas y ahorro para metas (12 de noviembre de 2026)
+-- ===========================================================================
+-- Permisos: Eduardo (admin) decide, persona por persona, qué puede ver y hacer.
+-- Cada permiso es una palabra en perfiles.permisos; la base de datos los hace
+-- cumplir (no solo la pantalla). Lo personal de Eduardo (pendientes, metas,
+-- hábitos, gastos personales y el ahorro para sus metas) NUNCA se comparte.
+--   clientes_editar · clientes_borrar · clientes_dinero
+--   tareas_todas · tareas_borrar
+--   asistencia_ver · asistencia_corregir
+--   nomina_ver · nomina_editar
+--   finanzas_ver · finanzas_editar
+--   anuncios_gasto · documentos_ver · bitacora_ver · personas_gestionar
+alter table public.perfiles add column if not exists permisos text[] not null default '{}';
+alter table public.perfiles add column if not exists acceso_hasta timestamptz; -- acceso temporal (ej. el contador en temporada de impuestos)
+alter table public.perfiles add column if not exists plantilla text not null default '';
+
+-- Con acceso vencido, la persona deja de existir para HQ (como si estuviera apagada).
+create or replace function public.yo_rol() returns text
+language sql stable security definer set search_path = public as $$
+  select rol from perfiles where id = auth.uid() and activo and (rol = 'admin' or acceso_hasta is null or acceso_hasta > now())
+$$;
+
+create or replace function public.puede(que text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select es_admin() or (es_alguien() and exists (select 1 from perfiles p where p.id = auth.uid() and que = any (p.permisos)))
+$$;
+revoke all on function public.puede(text) from public, anon;
+grant execute on function public.puede(text) to authenticated;
+
+create or replace function public.pros_puede(que text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select es_admin() or (es_alguien() and exists (
+    select 1 from perfiles p where p.id = auth.uid() and case que
+      when 'trabajar' then p.pros_trabajar
+      when 'etapas' then p.pros_etapas
+      when 'convertir' then p.pros_convertir
+      when 'pagos' then p.pros_pagos
+      else false end))
+$$;
+create or replace function public.pros_ve(asignado uuid, traido uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select es_admin() or (es_alguien() and exists (
+    select 1 from perfiles p where p.id = auth.uid()
+      and (p.pros_ver = 'todos' or (p.pros_ver = 'suyos' and auth.uid() in (asignado, traido)))))
+$$;
+
+-- Nadie se da permisos a sí mismo: los permisos, el rol y el acceso solo los cambia el admin.
+create or replace function public.cuidar_perfil() returns trigger
+language plpgsql as $$
+begin
+  if es_sistema() then return new; end if;
+  if new.id <> old.id then raise exception 'No se puede cambiar el id'; end if;
+  if old.id = auth.uid() and (new.rol <> old.rol or not new.activo or new.acceso_hasta is not null) then
+    raise exception 'No te puedes quitar tu propio acceso de admin';
+  end if;
+  if new.rol = 'admin' then new.permisos := '{}'; new.acceso_hasta := null; end if;
+  return new;
+end $$;
+
+-- La bitácora ahora guarda QUÉ cambió (antes y después), para que un contador o auditor lo revise.
+alter table public.bitacora add column if not exists antes jsonb;
+alter table public.bitacora add column if not exists despues jsonb;
+create or replace function public.anotar_cambio() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare a jsonb; d jsonb; k text;
+begin
+  if tg_op <> 'INSERT' then a := to_jsonb(old); end if;
+  if tg_op <> 'DELETE' then d := to_jsonb(new); end if;
+  if tg_op = 'UPDATE' then
+    for k in select jsonb_object_keys(d) loop
+      if a -> k = d -> k then a := a - k; d := d - k; end if;
+    end loop;
+    a := a - 'actualizado' - 'actualizada'; d := d - 'actualizado' - 'actualizada';
+    if d = '{}'::jsonb then return null; end if;
+  end if;
+  -- En gastos siempre va si es del negocio o personal (lo personal solo lo ve el admin).
+  if tg_table_name = 'gastos' then
+    d := coalesce(d, '{}'::jsonb) || jsonb_build_object('tipo', (case when tg_op = 'DELETE' then old else new end).tipo);
+  end if;
+  insert into bitacora (quien, accion, tabla, fila, antes, despues)
+  values (
+    auth.uid(), lower(tg_op), tg_table_name,
+    coalesce(to_jsonb(case when tg_op = 'DELETE' then old else new end) ->> 'id',
+             to_jsonb(case when tg_op = 'DELETE' then old else new end) ->> 'persona',
+             to_jsonb(case when tg_op = 'DELETE' then old else new end) ->> 'cliente_id'),
+    a, d);
+  return null;
+end $$;
+
+-- Clientes
+drop policy if exists clientes_crear on public.clientes;
+drop policy if exists clientes_cambiar on public.clientes;
+drop policy if exists clientes_borrar on public.clientes;
+create policy clientes_crear on public.clientes for insert to authenticated with check (puede('clientes_editar'));
+create policy clientes_cambiar on public.clientes for update to authenticated using (puede('clientes_editar')) with check (puede('clientes_editar'));
+create policy clientes_borrar on public.clientes for delete to authenticated using (puede('clientes_borrar'));
+
+-- Lo que paga cada cliente: el admin y a quien le dé permiso.
+-- Cómo cobra: mensual (día fijo), quincenal (dos días del mes), catorcenal (cada dos semanas, ej. "cada dos viernes"),
+-- semanal, bimestral, trimestral, semestral, anual, pago único o "sin fecha fija" (se registra cada cobro al llegar).
+alter table public.clientes_dinero add column if not exists frecuencia text not null default 'mensual';
+alter table public.clientes_dinero add column if not exists monto_cobro numeric(12, 2) not null default 0; -- lo de CADA cobro
+alter table public.clientes_dinero add column if not exists cobro_ancla date; -- un día en que sí pagó o pagará (para "cada dos viernes")
+alter table public.clientes_dinero add column if not exists cobro_dias int[] not null default '{}'; -- días del mes (mensual / quincenal)
+alter table public.clientes_dinero drop constraint if exists clientes_dinero_frecuencia_check;
+alter table public.clientes_dinero add constraint clientes_dinero_frecuencia_check
+  check (frecuencia in ('mensual', 'quincenal', 'catorcenal', 'semanal', 'bimestral', 'trimestral', 'semestral', 'anual', 'unico', 'irregular'));
+update public.clientes_dinero set monto_cobro = mensualidad where monto_cobro = 0 and mensualidad > 0 and frecuencia = 'mensual';
+drop policy if exists dinero_admin on public.clientes_dinero;
+drop policy if exists dinero_ver on public.clientes_dinero;
+drop policy if exists dinero_escribir on public.clientes_dinero;
+drop policy if exists dinero_cambiar on public.clientes_dinero;
+drop policy if exists dinero_borrar on public.clientes_dinero;
+create policy dinero_ver on public.clientes_dinero for select to authenticated using (puede('clientes_dinero') or puede('finanzas_ver'));
+create policy dinero_escribir on public.clientes_dinero for insert to authenticated with check (puede('finanzas_editar'));
+create policy dinero_cambiar on public.clientes_dinero for update to authenticated using (puede('finanzas_editar')) with check (puede('finanzas_editar'));
+create policy dinero_borrar on public.clientes_dinero for delete to authenticated using (puede('finanzas_editar'));
+
+-- Consultorías cobradas (Stripe): verlas con permiso de finanzas.
+drop policy if exists pros_pagos_admin on public.prospectos_pagos;
+drop policy if exists pros_pagos_ver on public.prospectos_pagos;
+drop policy if exists pros_pagos_escribir on public.prospectos_pagos;
+create policy pros_pagos_ver on public.prospectos_pagos for select to authenticated using (puede('finanzas_ver'));
+create policy pros_pagos_escribir on public.prospectos_pagos for all to authenticated using (es_admin()) with check (es_admin());
+
+-- Tareas
+drop policy if exists tareas_ver on public.tareas;
+drop policy if exists tareas_cambiar on public.tareas;
+drop policy if exists tareas_borrar on public.tareas;
+create policy tareas_ver on public.tareas for select to authenticated
+  using (puede('tareas_todas') or asignado = auth.uid() or creada_por = auth.uid());
+create policy tareas_cambiar on public.tareas for update to authenticated
+  using (puede('tareas_todas') or asignado = auth.uid() or creada_por = auth.uid())
+  with check (puede('tareas_todas') or asignado = auth.uid() or creada_por = auth.uid());
+create policy tareas_borrar on public.tareas for delete to authenticated using (puede('tareas_borrar'));
+create or replace function public.antes_tarea() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.creada := now();
+    if not es_sistema() then new.creada_por := auth.uid(); end if;
+  else
+    new.creada := old.creada;
+    new.creada_por := old.creada_por;
+    if not es_sistema() and not puede('tareas_todas') and old.creada_por is distinct from auth.uid() then
+      if new.titulo <> old.titulo or new.detalle <> old.detalle or new.asignado is distinct from old.asignado
+         or new.cliente_id is distinct from old.cliente_id or new.vence is distinct from old.vence then
+        raise exception 'Solo quien creó la tarea (o el admin) cambia eso; tú mueves su estado';
+      end if;
+    end if;
+  end if;
+  new.actualizada := now();
+  return new;
+end $$;
+
+-- Asistencia (entradas y salidas)
+drop policy if exists jornadas_ver on public.jornadas;
+drop policy if exists jornadas_entrar on public.jornadas;
+drop policy if exists jornadas_salir on public.jornadas;
+create policy jornadas_ver on public.jornadas for select to authenticated using (puede('asistencia_ver') or persona = auth.uid());
+create policy jornadas_entrar on public.jornadas for insert to authenticated with check (es_alguien());
+create policy jornadas_salir on public.jornadas for update to authenticated
+  using (puede('asistencia_corregir') or (persona = auth.uid() and salida is null))
+  with check (puede('asistencia_corregir') or persona = auth.uid());
+create or replace function public.antes_jornada() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' and new.persona is null then new.persona := auth.uid(); end if;
+  if es_sistema() or puede('asistencia_corregir') then return new; end if;
+  if tg_op = 'INSERT' then
+    new.persona := auth.uid();
+    new.entrada := now();
+    new.salida := null;
+    new.dia_completo := false;
+  else
+    if old.salida is not null then raise exception 'Esa jornada ya está cerrada'; end if;
+    new.persona := old.persona;
+    new.entrada := old.entrada;
+    new.dia_completo := old.dia_completo;
+    new.nota := old.nota;
+    new.salida := case when new.salida is null then null else now() end;
+  end if;
+  return new;
+end $$;
+
+-- Nómina, ajustes y comisiones: ver y cambiar, por separado.
+do $$
+declare t text;
+begin
+  foreach t in array array['nomina', 'nomina_ajustes', 'comisiones'] loop
+    execute format('drop policy if exists nomina_admin on public.%I', t);
+    execute format('drop policy if exists ajustes_admin on public.%I', t);
+    execute format('drop policy if exists comisiones_admin on public.%I', t);
+    execute format('drop policy if exists permiso_ver on public.%I', t);
+    execute format('drop policy if exists permiso_crear on public.%I', t);
+    execute format('drop policy if exists permiso_cambiar on public.%I', t);
+    execute format('drop policy if exists permiso_borrar on public.%I', t);
+    execute format('create policy permiso_ver on public.%I for select to authenticated using (puede(''nomina_ver''))', t);
+    execute format('create policy permiso_crear on public.%I for insert to authenticated with check (puede(''nomina_editar''))', t);
+    execute format('create policy permiso_cambiar on public.%I for update to authenticated using (puede(''nomina_editar'')) with check (puede(''nomina_editar''))', t);
+    execute format('create policy permiso_borrar on public.%I for delete to authenticated using (puede(''nomina_editar''))', t);
+  end loop;
+end $$;
+
+-- Bitácora y documentos (propuestas y contratos)
+-- La bitácora guarda montos (antes → después): quien la ve, solo ve lo que ya podría ver.
+drop policy if exists bitacora_ver on public.bitacora;
+create policy bitacora_ver on public.bitacora for select to authenticated using (
+  es_admin() or (
+    puede('bitacora_ver')
+    and tabla not in ('metas_aportes', 'metas', 'pendientes', 'habitos', 'habitos_dias')
+    and (tabla not in ('clientes_dinero', 'cobros', 'cobros_omitidos', 'finanzas_config', 'prospectos_pagos', 'gastos') or puede('finanzas_ver') or (tabla = 'clientes_dinero' and puede('clientes_dinero')))
+    and (tabla <> 'gastos' or coalesce(despues ->> 'tipo', antes ->> 'tipo') = 'negocio')
+    and (tabla not in ('nomina', 'nomina_ajustes', 'comisiones') or puede('nomina_ver'))
+  ));
+drop policy if exists documentos_ver on public.documentos;
+create policy documentos_ver on public.documentos for select to authenticated using (puede('documentos_ver'));
+drop policy if exists hq_documentos_ver on storage.objects;
+create policy hq_documentos_ver on storage.objects for select to authenticated
+  using (bucket_id = 'documentos' and puede('documentos_ver'));
+
+-- Cobros: cada pago que de verdad llegó (de un cliente o cualquier otro ingreso).
+create table if not exists public.cobros (
+  id uuid primary key default gen_random_uuid(),
+  cliente_id uuid references public.clientes (id) on delete set null,
+  concepto text not null default '' check (char_length(concepto) <= 200),
+  monto numeric(12, 2) not null check (monto > 0),
+  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  fecha date not null default current_date,
+  para_fecha date, -- el cobro programado que cubre (para saber quién ya pagó)
+  metodo text not null default '' check (char_length(metodo) <= 60),
+  nota text not null default '' check (char_length(nota) <= 500),
+  creado_por uuid default auth.uid() references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now()
+);
+create index if not exists cobros_fecha on public.cobros (fecha desc);
+-- "Este no pagó" (o "se recorrió"): se marca para que no salga como pendiente.
+create table if not exists public.cobros_omitidos (
+  cliente_id uuid not null references public.clientes (id) on delete cascade,
+  fecha date not null,
+  motivo text not null default '' check (char_length(motivo) <= 200),
+  primary key (cliente_id, fecha)
+);
+
+-- Gastos: lo que sale, con cada cuándo y en qué días.
+create table if not exists public.gastos (
+  id uuid primary key default gen_random_uuid(),
+  concepto text not null check (char_length(concepto) between 1 and 200),
+  categoria text not null default 'otros',
+  tipo text not null default 'negocio' check (tipo in ('negocio', 'personal')),
+  empresa text not null default 'NXUS AI' check (char_length(empresa) <= 60),
+  monto numeric(12, 2) not null check (monto >= 0),
+  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  frecuencia text not null default 'mensual'
+    check (frecuencia in ('mensual', 'quincenal', 'catorcenal', 'semanal', 'bimestral', 'trimestral', 'semestral', 'anual', 'unico')),
+  ancla date, -- desde cuándo (o la fecha del pago único / de un pago de "cada dos semanas")
+  dias int[] not null default '{}', -- días del mes en que se paga (mensual / quincenal)
+  hasta date, -- se termina (ej. un préstamo)
+  activo boolean not null default true,
+  notas text not null default '' check (char_length(notas) <= 1000),
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+
+-- Ajustes de finanzas: tipo de cambio, saldo en el banco y la meta de lo que quiere que le sobre.
+create table if not exists public.finanzas_config (
+  id int primary key default 1 check (id = 1),
+  tipo_cambio numeric(10, 4) not null default 18.5 check (tipo_cambio > 0), -- pesos por dólar
+  moneda_base text not null default 'USD' check (moneda_base in ('USD', 'MXN')),
+  saldo numeric(14, 2) not null default 0,
+  saldo_moneda text not null default 'USD' check (saldo_moneda in ('USD', 'MXN')),
+  saldo_fecha timestamptz,
+  meta_libre numeric(12, 2) not null default 10000, -- lo que quiere que le quede libre al mes (en la moneda base)
+  actualizado timestamptz not null default now()
+);
+-- Desde cuándo HQ lleva las cuentas: lo de antes no sale como "cobro sin confirmar" ni como gasto.
+alter table public.finanzas_config add column if not exists desde date not null default current_date;
+insert into public.finanzas_config (id) values (1) on conflict (id) do nothing;
+
+-- Metas con dinero: cuánto cuesta, cuánto lleva apartado y cuánto piensa apartar.
+alter table public.metas add column if not exists monto_objetivo numeric(14, 2) not null default 0;
+alter table public.metas add column if not exists moneda text not null default 'USD';
+alter table public.metas add column if not exists aporte_monto numeric(12, 2) not null default 0;
+alter table public.metas add column if not exists aporte_frecuencia text not null default '';
+alter table public.metas drop constraint if exists metas_aporte_frecuencia_check;
+alter table public.metas add constraint metas_aporte_frecuencia_check check (aporte_frecuencia in ('', 'semanal', 'catorcenal', 'quincenal', 'mensual'));
+create table if not exists public.metas_aportes (
+  id uuid primary key default gen_random_uuid(),
+  meta_id uuid not null references public.metas (id) on delete cascade,
+  monto numeric(12, 2) not null check (monto <> 0), -- negativo = lo saqué
+  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  fecha date not null default current_date,
+  nota text not null default '' check (char_length(nota) <= 300),
+  creado timestamptz not null default now()
+);
+
+drop trigger if exists hq_actualizado on public.gastos;
+create trigger hq_actualizado before update on public.gastos for each row execute function public.al_cambiar_fila();
+drop trigger if exists hq_actualizado on public.finanzas_config;
+create trigger hq_actualizado before update on public.finanzas_config for each row execute function public.al_cambiar_fila();
+do $$
+declare t text;
+begin
+  foreach t in array array['cobros', 'cobros_omitidos', 'gastos', 'finanzas_config', 'metas_aportes', 'clientes_dinero', 'perfiles'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+  end loop;
+  foreach t in array array['cobros', 'cobros_omitidos', 'gastos', 'finanzas_config', 'metas_aportes'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists solo_admin on public.%I', t);
+    execute format('drop policy if exists permiso_ver on public.%I', t);
+    execute format('drop policy if exists permiso_crear on public.%I', t);
+    execute format('drop policy if exists permiso_cambiar on public.%I', t);
+    execute format('drop policy if exists permiso_borrar on public.%I', t);
+  end loop;
+end $$;
+-- Cobros: ver con finanzas_ver; registrar y corregir con finanzas_editar.
+create policy permiso_ver on public.cobros for select to authenticated using (puede('finanzas_ver'));
+create policy permiso_crear on public.cobros for insert to authenticated with check (puede('finanzas_editar'));
+create policy permiso_cambiar on public.cobros for update to authenticated using (puede('finanzas_editar')) with check (puede('finanzas_editar'));
+create policy permiso_borrar on public.cobros for delete to authenticated using (puede('finanzas_editar'));
+create policy permiso_ver on public.cobros_omitidos for select to authenticated using (puede('finanzas_ver'));
+create policy permiso_crear on public.cobros_omitidos for insert to authenticated with check (puede('finanzas_editar'));
+create policy permiso_borrar on public.cobros_omitidos for delete to authenticated using (puede('finanzas_editar'));
+-- Gastos: los del negocio con permiso; los personales SOLO el admin.
+create policy permiso_ver on public.gastos for select to authenticated using (es_admin() or (tipo = 'negocio' and puede('finanzas_ver')));
+create policy permiso_crear on public.gastos for insert to authenticated with check (es_admin() or (tipo = 'negocio' and puede('finanzas_editar')));
+create policy permiso_cambiar on public.gastos for update to authenticated
+  using (es_admin() or (tipo = 'negocio' and puede('finanzas_editar'))) with check (es_admin() or (tipo = 'negocio' and puede('finanzas_editar')));
+create policy permiso_borrar on public.gastos for delete to authenticated using (es_admin() or (tipo = 'negocio' and puede('finanzas_editar')));
+-- Ajustes: los ve quien ve finanzas; solo el admin los cambia.
+create policy permiso_ver on public.finanzas_config for select to authenticated using (puede('finanzas_ver'));
+create policy permiso_cambiar on public.finanzas_config for update to authenticated using (es_admin()) with check (es_admin());
+-- El ahorro para sus metas: SOLO el admin.
+create policy solo_admin on public.metas_aportes for all to authenticated using (es_admin()) with check (es_admin());

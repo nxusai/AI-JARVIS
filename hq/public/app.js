@@ -7,6 +7,8 @@
 
 import { fraseDelDia, saludo } from './frases.js'
 import { vistaAnuncios } from './anuncios.js'
+import { vistaFinanzas, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
+import { editarPermisos, matrizPermisos, alternar, plantillaDe, estadoAcceso, NOMBRE as NOMBRE_PERMISO, CORTO as CORTO_PERMISO } from './permisos.js'
 
 const $ = (s, el = document) => el.querySelector(s)
 const $$ = (s, el = document) => [...el.querySelectorAll(s)]
@@ -167,6 +169,8 @@ export function iniciar(D, { muestra = false } = {}) {
     }
   }
   const esAdmin = () => yo?.rol === 'admin'
+  /** Lo que Eduardo le dio en Personas → Permisos (el admin puede todo). La base de datos lo hace cumplir. */
+  const puede = (k) => esAdmin() || (yo?.permisos ?? []).includes(k)
   // Prospectos: lo que Eduardo le dio a cada quien en Personas (la base de datos lo hace cumplir).
   const vePros = () => esAdmin() || (yo?.pros_ver ?? 'nada') !== 'nada'
   const puedePros = (que) => esAdmin() || !!yo?.[`pros_${que}`]
@@ -265,14 +269,19 @@ export function iniciar(D, { muestra = false } = {}) {
     ['reloj', 'Mi reloj', '◷'],
   ]
   const misSecciones = () => SECCIONES.filter(([id]) => !['prospectos', 'leads', 'anuncios', 'cartera'].includes(id) || vePros())
+  // Lo personal de Eduardo: nunca se comparte, con ningún permiso.
   const SECCIONES_ADMIN = [
     ['pendientes', 'Mis pendientes', '✓'],
     ['metas', 'Metas y hábitos', '◎'],
-    ['nomina', 'Nómina', '⧉'],
-    ['dinero', 'Dinero', '$'],
-    ['personas', 'Personas', '⚙'],
-    ['bitacora', 'Bitácora', '≡'],
   ]
+  // Administración: Eduardo siempre; los demás solo con el permiso.
+  const SECCIONES_PERMISO = [
+    ['finanzas', 'Finanzas', '$', () => puede('finanzas_ver')],
+    ['nomina', 'Nómina', '⧉', () => puede('nomina_ver') || puede('asistencia_ver')],
+    ['personas', 'Personas', '⚙', () => puede('personas_gestionar')],
+    ['bitacora', 'Bitácora', '≡', () => puede('bitacora_ver')],
+  ]
+  const conPermiso = () => SECCIONES_PERMISO.filter((x) => x[3]())
 
   async function arrancar(perfil) {
     yo = perfil
@@ -286,6 +295,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <nav>
             ${misSecciones().map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}
             ${esAdmin() ? `<div class="sep">Solo tú</div>${SECCIONES_ADMIN.map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}` : ''}
+            ${conPermiso().length ? `<div class="sep">${esAdmin() ? 'Administración' : 'Con permiso'}</div>${conPermiso().map(([id, t, i]) => `<a href="#${id}" data-ir="${id}"><i>${i}</i>${t}</a>`).join('')}` : ''}
           </nav>
           <div class="yo" id="yo"></div>
         </aside>
@@ -345,8 +355,9 @@ export function iniciar(D, { muestra = false } = {}) {
   async function mostrar() {
     if (!yo || !$('#vista')) return
     $('.nav')?.classList.remove('abierta')
-    const [ruta, arg] = (location.hash.slice(1) || 'inicio').split('/')
-    const todas = [...misSecciones(), ...(esAdmin() ? SECCIONES_ADMIN : [])]
+    let [ruta, arg] = (location.hash.slice(1) || 'inicio').split('/')
+    if (ruta === 'dinero') ruta = 'finanzas' // la sección Dinero ahora es Finanzas
+    const todas = [...misSecciones(), ...(esAdmin() ? SECCIONES_ADMIN : []), ...conPermiso()]
     const sec = todas.find(([id]) => id === ruta) ? ruta : ruta === 'cliente' ? 'clientes' : ruta === 'prospecto' && vePros() ? 'prospectos' : ruta === 'lead' && vePros() ? 'leads' : 'inicio'
     $$('[data-ir]').forEach((a) => a.classList.toggle('activa', a.dataset.ir === sec))
     const vista = $('#vista')
@@ -357,7 +368,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const ny = !misma ? momentoNY() : null
     if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
     else vista.classList.add('actualizando')
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, anuncios: (v) => vistaAnuncios(v, { D, h, titulo, dinero }), cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, pendientes: vistaPendientes, metas: vistaMetas, nomina: vistaNomina, dinero: vistaDinero, personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, anuncios: (v) => vistaAnuncios(v, { D, h, titulo, dinero: puede('anuncios_gasto') ? dinero : () => '—' }), cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, pendientes: vistaPendientes, metas: vistaMetas, nomina: vistaNomina, finanzas: (v) => vistaFinanzas(v, ctxFinanzas()), personas: vistaPersonas, bitacora: vistaBitacora }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)
@@ -374,6 +385,7 @@ export function iniciar(D, { muestra = false } = {}) {
     }
   }
   const titulo = (t) => ($('#titulo').textContent = t)
+  const ctxFinanzas = () => ({ D, h, $, $$, titulo, dinero, abrirModal, cerrarModal, intenta, aviso, mostrar, opciones, puede, esAdmin, calcularPago, quincena })
 
   /** Todo se desvanece y queda Nueva York 1 segundo; fin() espera lo que falte y regresa la pantalla. */
   let turnoNY = 0
@@ -418,7 +430,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <div class="kpi"><span>Nómina de esta quincena</span><b>${pago.MXN ? dinero(pago.MXN, 'MXN') : dinero(pago.USD)}</b><small>${pago.MXN && pago.USD ? `+ ${dinero(pago.USD)}` : q.nombre}</small></div>
           <div class="kpi"><span>Tareas abiertas</span><b>${abiertasHoy.length}</b><small class="${atrasadas.length ? 'rojo' : ''}">${atrasadas.length} atrasadas</small></div>
         </div>
-        <div class="tarjeta meta"><div class="fila"><b>Meta: ${dinero(META_USD)} al mes</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div><small>Ingreso del mes en dólares: clientes activos más consultorías cobradas. Pon lo que paga cada cliente en <a href="#dinero">Dinero</a>.</small></div>
+        <div class="tarjeta meta"><div class="fila"><b>Meta: ${dinero(META_USD)} al mes</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div><small>Ingreso del mes en dólares: clientes activos más consultorías cobradas. Cómo paga cada cliente, gastos y ganancias: <a href="#finanzas">Finanzas</a>.</small></div>
         <div class="dos">
           <div class="tarjeta"><h3>Trabajando ahora</h3>${
             abiertas.length
@@ -445,10 +457,11 @@ export function iniciar(D, { muestra = false } = {}) {
   async function vistaClientes(v) {
     titulo('Clientes')
     clientes = await D.clientes()
-    const din = esAdmin() ? await D.dinero() : []
+    const verDinero = puede('clientes_dinero') || puede('finanzas_ver')
+    const din = verDinero ? await D.dinero().catch(() => []) : []
     const grupos = ['activo', 'prospecto', 'pausado', 'terminado']
     v.innerHTML = `
-      ${esAdmin() ? `<div class="acciones"><button class="btn primario" id="c-ia">✦ Nuevo cliente con IA</button><button class="btn" id="c-mano">Nuevo a mano</button></div>` : ''}
+      ${puede('clientes_editar') ? `<div class="acciones"><button class="btn primario" id="c-ia">✦ Nuevo cliente con IA</button><button class="btn" id="c-mano">Nuevo a mano</button></div>` : ''}
       ${grupos
         .map((g) => {
           const lista = clientes.filter((c) => c.estado === g)
@@ -460,7 +473,7 @@ export function iniciar(D, { muestra = false } = {}) {
                 <div class="fila"><b>${h(c.nombre)}</b><span class="chip ${c.equipo}">${SEDE[c.equipo]}</span></div>
                 ${c.grupo && c.grupo !== c.nombre ? `<small>${h(c.grupo)}</small>` : ''}
                 <ul class="servicios">${c.servicios.slice(0, 4).map((s) => `<li>${h(s)}</li>`).join('')}</ul>
-                <div class="fila pie">${c.sistema_url ? '<span class="chip sistema">Con sistema</span>' : '<span></span>'}${esAdmin() ? `<b class="monto">${d?.mensualidad ? `${dinero(d.mensualidad, d.moneda)}/mes` : 'sin monto'}</b>` : ''}</div>
+                <div class="fila pie">${c.sistema_url ? '<span class="chip sistema">Con sistema</span>' : '<span></span>'}${verDinero ? `<b class="monto">${d?.mensualidad ? `${dinero(d.mensualidad, d.moneda)}/mes` : 'sin monto'}</b>` : ''}</div>
               </a>`
             })
             .join('')}</div>`
@@ -479,15 +492,16 @@ export function iniciar(D, { muestra = false } = {}) {
       return
     }
     titulo(c.nombre)
-    const [din, pros] = await Promise.all([esAdmin() ? D.dinero() : [], vePros() ? D.prospectos() : []])
+    const verDinero = puede('clientes_dinero') || puede('finanzas_ver')
+    const [din, pros] = await Promise.all([verDinero ? D.dinero().catch(() => []) : [], vePros() ? D.prospectos() : []])
     const d = din.find((x) => x.cliente_id === c.id)
     const vino = pros.find((x) => x.cliente_id === c.id)
     const sinDocs = { html: '', conectar() {} }
     const [contrato, propuestas] = await Promise.all([
-      esAdmin()
-        ? seccionDocumentos({ tipo: 'contrato', cliente_id: c.id, titulo: 'Contrato <small>PDF · solo tú lo ves</small>', puedeSubir: true }).catch(() => sinDocs)
+      puede('documentos_ver')
+        ? seccionDocumentos({ tipo: 'contrato', cliente_id: c.id, titulo: `Contrato <small>PDF · ${esAdmin() ? 'solo tú lo ves' : 'con permiso'}</small>`, puedeSubir: esAdmin() }).catch(() => sinDocs)
         : sinDocs,
-      vino && esAdmin() ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: vino.id, titulo: 'Propuestas que se le presentaron <small>PDF · solo tú las ves</small>', puedeSubir: false }).catch(() => sinDocs) : sinDocs,
+      vino && puede('documentos_ver') ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: vino.id, titulo: `Propuestas que se le presentaron <small>PDF · ${esAdmin() ? 'solo tú las ves' : 'con permiso'}</small>`, puedeSubir: false }).catch(() => sinDocs) : sinDocs,
     ])
     v.innerHTML = `
       <a class="enlace" href="#clientes">← Clientes</a>
@@ -502,14 +516,17 @@ export function iniciar(D, { muestra = false } = {}) {
           ${vino ? `<p><a href="#prospecto/${vino.id}">✦ Llegó como prospecto: ver cómo llegó y sus notas →</a></p>` : ''}
           <div class="acciones">
             ${c.sistema_url ? `<a class="btn primario" href="${h(c.sistema_url)}" target="_blank" rel="noopener">Entrar a su sistema · ${h(c.sistema_nombre || 'Abrir')} ↗</a>` : c.sistema_nombre ? `<span class="chip">${h(c.sistema_nombre)}: falta la dirección</span>` : ''}
-            ${esAdmin() ? '<button class="btn" id="cl-editar">Editar</button>' : ''}
+            ${puede('clientes_editar') ? '<button class="btn" id="cl-editar">Editar</button>' : ''}
           </div>
         </div>
         ${
-          esAdmin()
-            ? `<div class="tarjeta solo-tu"><h3>Lo que paga <small>solo tú lo ves</small></h3>
-                <div class="kpis chicos"><div class="kpi"><span>Mensualidad</span><b>${dinero(d?.mensualidad, d?.moneda)}</b></div><div class="kpi"><span>Pago único</span><b>${dinero(d?.pago_unico, d?.moneda)}</b></div><div class="kpi"><span>Cobro</span><b>${d?.dia_cobro ? `día ${d.dia_cobro}` : '—'}</b></div></div>
-                ${d?.notas ? `<p>${h(d.notas)}</p>` : ''}<button class="btn" id="cl-dinero">Cambiar</button></div>`
+          verDinero
+            ? (() => {
+                const pl = planCliente(d)
+                return `<div class="tarjeta solo-tu"><h3>Lo que paga <small>${esAdmin() ? 'solo tú lo ves' : 'con permiso'}</small></h3>
+                <div class="kpis chicos"><div class="kpi"><span>Cada cobro</span><b>${dinero(pl.monto, pl.moneda)}</b></div><div class="kpi"><span>Al mes</span><b>${dinero(d?.mensualidad, d?.moneda)}</b></div><div class="kpi"><span>Cuándo</span><b class="chico-b">${d ? describirPlan(pl) : '—'}</b></div></div>
+                ${d?.notas ? `<p>${h(d.notas)}</p>` : ''}${puede('finanzas_editar') ? '<button class="btn" id="cl-dinero">Cómo paga</button>' : ''}</div>`
+              })()
             : ''
         }
         ${contrato.html}
@@ -576,7 +593,7 @@ export function iniciar(D, { muestra = false } = {}) {
           e.preventDefault()
           const guardado = await intenta(() => D.guardarCliente({ ...(c ? { id: c.id } : {}), ...leerCliente(e.target) }), 'Cliente guardado')
           if (!guardado) return
-          if (!c) await intenta(() => D.guardarDinero({ cliente_id: guardado.id }))
+          if (!c && puede('finanzas_editar')) await intenta(() => D.guardarDinero({ cliente_id: guardado.id }))
           cerrarModal()
           location.hash = `#cliente/${guardado.id}`
           mostrar()
@@ -593,33 +610,8 @@ export function iniciar(D, { muestra = false } = {}) {
   }
 
   function editarDinero(c, d = {}) {
-    abrirModal(
-      `<form id="f-dinero"><h2>Lo que paga ${h(c.nombre)}</h2>
-        <div class="campos">
-          <label>Mensualidad<input name="mensualidad" type="number" min="0" step="0.01" value="${h(d.mensualidad ?? 0)}"></label>
-          <label>Pago único<input name="pago_unico" type="number" min="0" step="0.01" value="${h(d.pago_unico ?? 0)}"></label>
-          <label>Moneda<select name="moneda">${opciones({ USD: 'Dólares (USD)', MXN: 'Pesos (MXN)' }, d.moneda || 'USD')}</select></label>
-          <label>Día de cobro<input name="dia_cobro" type="number" min="1" max="31" value="${h(d.dia_cobro ?? '')}"></label>
-          <label class="ancho">Notas<textarea name="notas" rows="2">${h(d.notas)}</textarea></label>
-        </div>
-        <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
-      (caja) => {
-        $('#f-dinero', caja).onsubmit = async (e) => {
-          e.preventDefault()
-          const x = Object.fromEntries(new FormData(e.target))
-          const ok = await intenta(
-            () => D.guardarDinero({ cliente_id: c.id, mensualidad: Number(x.mensualidad) || 0, pago_unico: Number(x.pago_unico) || 0, moneda: x.moneda, dia_cobro: Number(x.dia_cobro) || null, notas: x.notas.trim() }),
-            'Guardado',
-          )
-          if (ok) {
-            cerrarModal()
-            mostrar()
-          }
-        }
-      },
-    )
+    return editarPlanCliente(ctxFinanzas(), c, d)
   }
-
   /** Eduardo escribe el cliente con sus palabras; la IA arma la ficha, el dinero y las primeras tareas. */
   function clienteConIA() {
     abrirModal(
@@ -648,13 +640,13 @@ export function iniciar(D, { muestra = false } = {}) {
       `<form id="f-ficha"><h2>Revisa y guarda</h2>
         ${f.dudas?.length ? `<div class="dudas"><b>Falta saber:</b><ul>${f.dudas.map((d) => `<li>${h(d)}</li>`).join('')}</ul></div>` : ''}
         ${formCliente(c)}
-        <h3>Lo que paga <small>solo tú lo ves</small></h3>
+        ${puede('finanzas_editar') ? `<h3>Lo que paga <small>${esAdmin() ? 'solo tú lo ves' : 'con permiso'} · después puedes poner "cada dos semanas" y más en Finanzas</small></h3>
         <div class="campos">
           <label>Mensualidad<input name="mensualidad" type="number" min="0" step="0.01" value="${h(f.mensualidad || 0)}"></label>
           <label>Pago único<input name="pago_unico" type="number" min="0" step="0.01" value="${h(f.pago_unico || 0)}"></label>
           <label>Moneda<select name="moneda">${opciones({ USD: 'Dólares (USD)', MXN: 'Pesos (MXN)' }, f.moneda || 'USD')}</select></label>
           <label>Día de cobro<input name="dia_cobro" type="number" min="1" max="31" value="${h(f.dia_cobro || '')}"></label>
-        </div>
+        </div>` : ''}
         <div class="acciones"><button class="btn primario">Guardar cliente</button><button type="button" class="btn" data-cerrar>Cancelar</button></div></form>`,
       (caja) => {
         $('#f-ficha', caja).onsubmit = async (e) => {
@@ -663,7 +655,8 @@ export function iniciar(D, { muestra = false } = {}) {
           const x = Object.fromEntries(new FormData(form))
           const nuevo = await intenta(() => D.guardarCliente(leerCliente(form)))
           if (!nuevo) return
-          await intenta(() => D.guardarDinero({ cliente_id: nuevo.id, mensualidad: Number(x.mensualidad) || 0, pago_unico: Number(x.pago_unico) || 0, moneda: x.moneda, dia_cobro: Number(x.dia_cobro) || null, notas: '' }))
+          if (puede('finanzas_editar'))
+            await intenta(() => D.guardarDinero({ cliente_id: nuevo.id, mensualidad: Number(x.mensualidad) || 0, monto_cobro: Number(x.mensualidad) || 0, frecuencia: 'mensual', cobro_dias: Number(x.dia_cobro) ? [Number(x.dia_cobro)] : [], pago_unico: Number(x.pago_unico) || 0, moneda: x.moneda, dia_cobro: Number(x.dia_cobro) || null, notas: '' }))
           aviso(`${nuevo.nombre} quedó dado de alta`)
           cerrarModal()
           location.hash = `#cliente/${nuevo.id}`
@@ -759,7 +752,7 @@ export function iniciar(D, { muestra = false } = {}) {
 
   async function vistaProspectos(v) {
     titulo('Prospectos')
-    const [pros, pagos] = await Promise.all([D.prospectos(), esAdmin() ? D.pagosProspectos() : []])
+    const [pros, pagos] = await Promise.all([D.prospectos(), puede('finanzas_ver') ? D.pagosProspectos().catch(() => []) : []])
     const pagado = new Set(pagos.map((g) => g.prospecto_id))
     const verMios = !esAdmin() && yo.pros_ver === 'suyos'
     const filtro = verMios ? 'mios' : sessionStorage.getItem('hq-pros') || 'todos'
@@ -814,9 +807,9 @@ export function iniciar(D, { muestra = false } = {}) {
     const [pros, notas, pagos, leads, propuestas] = await Promise.all([
       D.prospectos(),
       D.notasProspecto(pid),
-      esAdmin() ? D.pagosProspectos() : [],
+      puede('finanzas_ver') ? D.pagosProspectos().catch(() => []) : [],
       D.leads().catch(() => []),
-      esAdmin() ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: pid, titulo: 'Propuestas <small>PDF · solo tú las ves</small>', puedeSubir: true, nota: 'Las propuestas que se le presentan en el meeting.' }).catch(() => ({ html: '', conectar() {} })) : { html: '', conectar() {} },
+      puede('documentos_ver') ? seccionDocumentos({ tipo: 'propuesta', prospecto_id: pid, titulo: 'Propuestas <small>PDF</small>', puedeSubir: esAdmin(), nota: 'Las propuestas que se le presentan en el meeting.' }).catch(() => ({ html: '', conectar() {} })) : { html: '', conectar() {} },
     ])
     const x = pros.find((p) => p.id === pid)
     if (!x) {
@@ -875,7 +868,7 @@ export function iniciar(D, { muestra = false } = {}) {
               ? `<p>${[d.giro, d.tamano && `${d.tamano} personas`, d.ciudad, d.pais, d.idioma && `habla ${d.idioma.toLowerCase()}`, d.urgencia].filter(Boolean).map(h).join(' · ')}</p>${d.quiere ? `<blockquote>${h(d.quiere)}</blockquote>` : ''}`
               : '<p class="vacio">Todavía no contesta el diagnóstico.</p>'
           }
-          ${esAdmin() ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
+          ${puede('finanzas_ver') ? `<h3>Pagos</h3>${suyos.length ? `<ul class="lista">${suyos.map((g) => `<li><b>${dinero(g.monto, g.moneda)}</b><small>${h(g.concepto)} · ${fechaCorta(g.fecha)} · Stripe</small></li>`).join('')}</ul>` : '<p class="vacio">No ha pagado.</p>'}` : ''}
         </div>
         ${propuestas.html}
         <div class="tarjeta ancho-total">
@@ -1313,7 +1306,7 @@ export function iniciar(D, { muestra = false } = {}) {
     titulo('Tareas de NXUS')
     // Solo las tareas de NXUS: cada cliente lleva las suyas en su propio panel.
     const tareas = (await D.tareas()).filter((t) => !t.cliente_id)
-    const filtro = sessionStorage.getItem('hq-tareas') || (esAdmin() ? 'todas' : 'mias')
+    const filtro = sessionStorage.getItem('hq-tareas') || (puede('tareas_todas') ? 'todas' : 'mias')
     const lista = filtro === 'mias' ? tareas.filter((t) => t.asignado === yo.id) : tareas
     v.innerHTML = `
       <div class="acciones"><button class="btn primario" id="t-nueva">+ Nueva tarea</button>
@@ -1339,7 +1332,7 @@ export function iniciar(D, { muestra = false } = {}) {
       el.onclick = (e) => {
         const m = e.target.closest('[data-mover]')
         if (m) return intenta(() => D.guardarTarea({ id: t.id, estado: m.dataset.mover })).then((r) => r && mostrar())
-        if (esAdmin() || t.creada_por === yo.id) editarTarea(t)
+        if (puede('tareas_todas') || t.creada_por === yo.id) editarTarea(t)
       }
     })
   }
@@ -1355,7 +1348,7 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Estado<select name="estado">${opciones(TAREA, t.estado || 'pendiente')}</select></label>
         </div>
         <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button>
-        ${t.id && esAdmin() ? '<button type="button" class="btn peligro" id="t-borrar">Borrar</button>' : ''}</div></form>`,
+        ${t.id && puede('tareas_borrar') ? '<button type="button" class="btn peligro" id="t-borrar">Borrar</button>' : ''}</div></form>`,
       (caja) => {
         $('#f-tarea', caja).onsubmit = async (e) => {
           e.preventDefault()
@@ -1386,9 +1379,10 @@ export function iniciar(D, { muestra = false } = {}) {
     titulo('Equipo')
     personas = await D.personas()
     const activos = personas.filter((p) => p.activo)
-    // Asistencia (solo el admin): quién marcó entrada hoy, a qué hora y si ya salió.
+    // Asistencia (el admin o con permiso): quién marcó entrada hoy, a qué hora y si ya salió.
     let hoyJ = []
-    if (esAdmin()) {
+    const verAsis = puede('asistencia_ver')
+    if (verAsis) {
       const ini = new Date()
       ini.setHours(0, 0, 0, 0)
       const fin = new Date(ini.getTime() + 864e5)
@@ -1396,7 +1390,7 @@ export function iniciar(D, { muestra = false } = {}) {
       hoyJ = [...deHoy, ...abiertasYa.filter((a) => !deHoy.some((j) => j.id === a.id))]
     }
     const estadoHoy = (p) => {
-      if (!esAdmin()) return ''
+      if (!verAsis) return ''
       const suyas = hoyJ.filter((j) => j.persona === p.id).sort((a, b) => String(a.entrada).localeCompare(String(b.entrada)))
       if (!suyas.length) return '<span class="asis fuera">No ha marcado entrada hoy</span>'
       const ab = suyas.find((j) => !j.salida)
@@ -1409,12 +1403,26 @@ export function iniciar(D, { muestra = false } = {}) {
       const ps = activos.filter((p) => p.sede === sede)
       if (!ps.length) return ''
       const cards = await Promise.all(
-        ps.map(async (p) => `<div class="persona">${await avatar(p, 'grande')}<b>${h(p.nombre)}</b><span>${h(p.cargo || '—')}</span><span class="chip ${p.sede}">${SEDE[p.sede]}</span>${estadoHoy(p)}</div>`),
+        ps.map(async (p) => `<div class="persona">${esAdmin() ? `<button class="foto-btn" data-foto="${p.id}" title="Poner o cambiar su foto">📷</button>` : ''}${await avatar(p, 'grande')}<b>${h(p.nombre)}</b><span>${h(p.cargo || '—')}</span><span class="chip ${p.sede}">${SEDE[p.sede]}</span>${estadoHoy(p)}</div>`),
       )
       return `<h2 class="grupo">${SEDE[sede]} <small>${ps.length}</small></h2><div class="rejilla personas">${cards.join('')}</div>`
     }
-    const nota = esAdmin() ? '<p class="nota">Asistencia de hoy en cada tarjeta. Las horas de toda la quincena y cada entrada/salida: <a href="#nomina">Nómina</a> → “Ver días”. Quién está trabajando ahora también sale en <a href="#inicio">Inicio</a>.</p>' : ''
-    v.innerHTML = nota + (await bloque('usa')) + (await bloque('mexico'))
+    const nota = verAsis ? `<p class="nota">Asistencia de hoy en cada tarjeta. Todo el historial de entradas y salidas: <a href="#nomina">Nómina → Asistencia</a>.${esAdmin() ? ' Toca 📷 en una tarjeta para ponerle su foto (solo tú puedes).' : ''}</p>` : ''
+    v.innerHTML = nota + (await bloque('usa')) + (await bloque('mexico')) + (esAdmin() ? '<input type="file" id="foto-in" accept="image/jpeg,image/png,image/webp" hidden>' : '')
+    // Fotos del equipo: solo el admin las pone o cambia (la base de datos no deja a nadie más subir ni borrar).
+    const entrada = $('#foto-in', v)
+    let paraQuien = null
+    $$('[data-foto]', v).forEach((b) => (b.onclick = () => ((paraQuien = b.dataset.foto), entrada.click())))
+    entrada?.addEventListener('change', async () => {
+      const f = entrada.files?.[0]
+      entrada.value = ''
+      if (!f || !paraQuien) return
+      if (f.size > 5 * 1024 * 1024) return aviso('La foto pesa más de 5 MB', 'mal')
+      if (await intenta(() => D.subirFoto(paraQuien, f), 'Foto actualizada')) {
+        personas = await D.personas()
+        mostrar()
+      }
+    })
   }
 
   // --------------------------------------------------------------- reloj
@@ -1441,12 +1449,12 @@ export function iniciar(D, { muestra = false } = {}) {
   let saltoNomina = 0
   // Pestañas de Nómina: Pagos (quincena) y Asistencia (el registro de entradas y salidas, con todo el historial).
   const pestanasNomina = (tab) =>
-    `<div class="acciones"><div class="segmento">${[['pagos', 'Pagos'], ['asistencia', 'Asistencia']].map(([k, t]) => `<button data-nt="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>`
+    `<div class="acciones"><div class="segmento">${[['pagos', 'Pagos'], ['asistencia', 'Asistencia']].filter(([k]) => (k === 'pagos' ? puede('nomina_ver') : puede('asistencia_ver'))).map(([k, t]) => `<button data-nt="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>`
   const conectarPestanasNomina = (v) => $$('[data-nt]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-nomina', b.dataset.nt), mostrar())))
 
   async function vistaNomina(v) {
     titulo('Nómina')
-    if (sessionStorage.getItem('hq-nomina') === 'asistencia') return vistaAsistencia(v)
+    if (!puede('nomina_ver') || (sessionStorage.getItem('hq-nomina') === 'asistencia' && puede('asistencia_ver'))) return vistaAsistencia(v)
     const q = quincena(new Date(), saltoNomina)
     const [nom, jor, aju, com, din] = await Promise.all([D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.dinero()])
     ;[personas, clientes] = await Promise.all([D.personas(), D.clientes()])
@@ -1467,7 +1475,7 @@ export function iniciar(D, { muestra = false } = {}) {
       ${filas
         .map(({ p, n, r }) =>
           !n
-            ? `<div class="tarjeta"><div class="fila"><b>${h(p.nombre)}</b><button class="btn chico" data-esq="${p.id}">Poner su pago</button></div><p class="vacio">Sin esquema de pago todavía.</p></div>`
+            ? `<div class="tarjeta"><div class="fila"><b>${h(p.nombre)}</b>${puede('nomina_editar') ? `<button class="btn chico" data-esq="${p.id}">Poner su pago</button>` : ''}</div><p class="vacio">Sin esquema de pago todavía.</p></div>`
             : `<div class="tarjeta pago">
                 <div class="fila"><div><b>${h(p.nombre)}</b> <span class="chip">${ESQUEMA[n.esquema]}</span> <span class="chip ${p.sede}">${SEDE[p.sede]}</span></div><b class="total">${dinero(r.total, n.moneda)}</b></div>
                 <div class="desglose">
@@ -1477,16 +1485,16 @@ export function iniciar(D, { muestra = false } = {}) {
                   ${r.ajuste ? `<span>Ajustes <b>${dinero(r.ajuste, n.moneda)}</b></span>` : ''}
                   <span>Horas registradas <b>${horas(r.trabajado)}</b></span>
                 </div>
-                <div class="acciones"><button class="btn chico" data-esq="${p.id}">Su pago</button><button class="btn chico" data-aj="${p.id}">+ Ajuste</button>${n.esquema === 'comision' ? `<button class="btn chico" data-com="${p.id}">+ Comisión</button>` : ''}<button class="btn chico" data-dias="${p.id}">Ver días</button></div>
-                ${r.misAjustes.length ? `<ul class="lista">${r.misAjustes.map((a) => `<li><small>${fechaCorta(a.fecha)}</small> ${h(a.concepto)} <b>${dinero(a.monto, n.moneda)}</b> <button class="enlace" data-borrar-aj="${a.id}">quitar</button></li>`).join('')}</ul>` : ''}
+                <div class="acciones">${puede('nomina_editar') ? `<button class="btn chico" data-esq="${p.id}">Su pago</button><button class="btn chico" data-aj="${p.id}">+ Ajuste</button>${n.esquema === 'comision' ? `<button class="btn chico" data-com="${p.id}">+ Comisión</button>` : ''}` : ''}<button class="btn chico" data-dias="${p.id}">Ver días</button></div>
+                ${r.misAjustes.length ? `<ul class="lista">${r.misAjustes.map((a) => `<li><small>${fechaCorta(a.fecha)}</small> ${h(a.concepto)} <b>${dinero(a.monto, n.moneda)}</b> ${puede('nomina_editar') ? `<button class="enlace" data-borrar-aj="${a.id}">quitar</button>` : ''}</li>`).join('')}</ul>` : ''}
                 ${
                   n.esquema === 'comision' && trajo(p.id).length
                     ? `<div class="sugeridas"><small>Clientes que trajo (activos):</small><ul class="lista">${trajo(p.id)
-                        .map(({ c, d }) => `<li>${h(c.nombre)} <small>${d.mensualidad ? `${dinero(d.mensualidad, d.moneda)}/mes` : 'sin monto'}</small> <button class="btn chico" data-cobro="${p.id}" data-cli="${c.id}">Registrar cobro</button></li>`)
+                        .map(({ c, d }) => `<li>${h(c.nombre)} <small>${d.mensualidad ? `${dinero(d.mensualidad, d.moneda)}/mes` : 'sin monto'}</small> ${puede('nomina_editar') ? `<button class="btn chico" data-cobro="${p.id}" data-cli="${c.id}">Registrar cobro</button>` : ''}</li>`)
                         .join('')}</ul></div>`
                     : ''
                 }
-                ${r.mias.length ? `<ul class="lista">${r.mias.map((c) => `<li><small>${fechaCorta(c.fecha)}</small> ${h(clienteDe(c.cliente_id)?.nombre ?? c.concepto)} · cobrado ${dinero(c.monto_cobrado, c.moneda)} → <b>${dinero((c.monto_cobrado * c.porcentaje) / 100, c.moneda)}</b> <button class="enlace" data-borrar-com="${c.id}">quitar</button></li>`).join('')}</ul>` : ''}
+                ${r.mias.length ? `<ul class="lista">${r.mias.map((c) => `<li><small>${fechaCorta(c.fecha)}</small> ${h(clienteDe(c.cliente_id)?.nombre ?? c.concepto)} · cobrado ${dinero(c.monto_cobrado, c.moneda)} → <b>${dinero((c.monto_cobrado * c.porcentaje) / 100, c.moneda)}</b> ${puede('nomina_editar') ? `<button class="enlace" data-borrar-com="${c.id}">quitar</button>` : ''}</li>`).join('')}</ul>` : ''}
               </div>`,
         )
         .join('')}
@@ -1560,6 +1568,7 @@ export function iniciar(D, { muestra = false } = {}) {
       rango = { desde: d, hasta: new Date(a.getFullYear(), a.getMonth(), a.getDate() + 1) }
     }
     const quien = filtro.quien || ''
+    const corrige = puede('asistencia_corregir')
     const [jor, todas] = await Promise.all([D.jornadas(rango.desde, rango.hasta), D.personas()])
     personas = todas
     const lista = jor.filter((j) => !quien || j.persona === quien).sort((a, b) => String(b.entrada).localeCompare(String(a.entrada)))
@@ -1607,9 +1616,9 @@ export function iniciar(D, { muestra = false } = {}) {
               <td>${hora(j.entrada)}</td>
               <td>${j.salida ? `${hora(j.salida)}${diaJor(j.salida) !== dia ? ` <small>(${fechaCorta(j.salida)})</small>` : ''}` : diaJor(j.entrada) < aFecha(new Date()) ? '<span class="chip rojo-chip">sin salida</span>' : '<span class="chip en-curso">trabajando</span>'}</td>
               <td><b>${horas(duracion(j))}</b></td>
-              <td><input type="checkbox" data-dc="${j.id}" ${j.dia_completo ? 'checked' : ''} title="Le pediste quedarse el día completo"></td>
+              <td><input type="checkbox" data-dc="${j.id}" ${j.dia_completo ? 'checked' : ''} ${corrige ? '' : 'disabled'} title="Le pediste quedarse el día completo"></td>
               <td class="nota-asis">${h(j.nota || '')}</td>
-              <td><button class="enlace" data-corr="${j.id}">Corregir</button></td>
+              <td>${corrige ? `<button class="enlace" data-corr="${j.id}">Corregir</button>` : ''}</td>
             </tr>`,
           )
           .join('')}`,
@@ -1621,7 +1630,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <label>Periodo<select id="as-per">${Object.entries(PERIODOS).map(([k, t]) => `<option value="${k}" ${k === per ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         ${per === 'rango' ? `<label>Desde<input type="date" id="as-desde" value="${aFecha(rango.desde)}"></label><label>Hasta<input type="date" id="as-hasta" value="${aFecha(ultimoDia)}" max="${aFecha(new Date())}"></label>` : ''}
         <label>Persona<select id="as-quien">${opcPersonas}</select></label>
-        <div class="acciones-asis"><button class="btn" id="as-csv">⬇ Descargar Excel</button><button class="btn" id="as-mano">+ Registrar a mano</button></div>
+        <div class="acciones-asis"><button class="btn" id="as-csv">⬇ Descargar Excel</button>${corrige ? '<button class="btn" id="as-mano">+ Registrar a mano</button>' : ''}</div>
       </div>
       <p class="nota">${etiqueta}${quien ? ` · ${h(nombreDe(quien))}` : ''}</p>
       <div class="kpis">
@@ -1657,7 +1666,7 @@ export function iniciar(D, { muestra = false } = {}) {
     $('#as-hasta', v)?.addEventListener('change', fechas)
     $$('[data-dc]', v).forEach((c) => (c.onchange = () => intenta(() => D.diaCompleto(c.dataset.dc, c.checked), 'Guardado')))
     $$('[data-corr]', v).forEach((b) => (b.onclick = () => corregirJornada(lista.find((j) => j.id === b.dataset.corr))))
-    $('#as-mano', v).onclick = () => corregirJornada(null, quien)
+    $('#as-mano', v)?.addEventListener('click', () => corregirJornada(null, quien))
     $('#as-csv', v).onclick = () => {
       const c = (x) => `"${String(x ?? '').replace(/"/g, '""')}"`
       const filas = [
@@ -1809,64 +1818,54 @@ export function iniciar(D, { muestra = false } = {}) {
     )
   }
 
-  // -------------------------------------------------------------- dinero
-
-  async function vistaDinero(v) {
-    titulo('Dinero')
-    const q = quincena()
-    const [din, nom, jor, aju, com, pagos, pros] = await Promise.all([D.dinero(), D.nomina(), D.jornadas(q.desde, q.hasta), D.ajustes(), D.comisiones(), D.pagosProspectos(), D.prospectos()])
-    clientes = await D.clientes()
-    const consultas = cobradoMes(pagos)
-    const ingreso = { ...consultas }
-    const filas = clientes.map((c) => ({ c, d: din.find((x) => x.cliente_id === c.id) ?? {} }))
-    for (const { c, d } of filas) if (c.estado === 'activo') ingreso[d.moneda || 'USD'] += Number(d.mensualidad || 0)
-    const nominaMes = { USD: 0, MXN: 0 }
-    for (const n of nom) nominaMes[n.moneda] += calcularPago(n, { jornadas: jor, ajustes: aju, comisiones: com, desde: q.desde, hasta: q.hasta }).total * 2
-    const margen = (m) => ingreso[m] - nominaMes[m]
-    const avance = Math.min(100, Math.round((Math.max(0, margen('USD')) / META_USD) * 100))
-    v.innerHTML = `
-      <div class="kpis">
-        <div class="kpi"><span>Ingreso del mes</span><b>${dinero(ingreso.USD)}</b><small>${dinero(ingreso.MXN, 'MXN')}</small></div>
-        <div class="kpi"><span>Consultorías cobradas (mes)</span><b>${dinero(consultas.MXN, 'MXN')}</b><small>${consultas.USD ? `+ ${dinero(consultas.USD)}` : 'por el portal'}</small></div>
-        <div class="kpi"><span>Nómina al mes (aprox.)</span><b>${dinero(nominaMes.USD)}</b><small>${dinero(nominaMes.MXN, 'MXN')}</small></div>
-        <div class="kpi"><span>Queda (antes de gastos)</span><b class="${margen('USD') < 0 ? 'rojo' : ''}">${dinero(margen('USD'))}</b><small class="${margen('MXN') < 0 ? 'rojo' : ''}">${dinero(margen('MXN'), 'MXN')}</small></div>
-      </div>
-      <div class="tarjeta meta"><div class="fila"><b>Meta: ${dinero(META_USD)} libres al mes</b><span>${avance}%</span></div><div class="barra"><i style="width:${avance}%"></i></div><small>En dólares, ingreso menos nómina. Gastos e impuestos se agregan después.</small></div>
-      <div class="tarjeta"><h3>Lo que paga cada cliente</h3>
-        <table class="tabla"><tr><th>Cliente</th><th>Estado</th><th>Mensualidad</th><th>Pago único</th><th>Cobro</th><th></th></tr>
-        ${filas.map(({ c, d }) => `<tr><td><a href="#cliente/${c.id}">${h(c.nombre)}</a></td><td><span class="chip ${c.estado}">${ESTADOS[c.estado]}</span></td><td>${dinero(d.mensualidad, d.moneda)}</td><td>${dinero(d.pago_unico, d.moneda)}</td><td>${d.dia_cobro ? `día ${d.dia_cobro}` : '—'}</td><td><button class="btn chico" data-din="${c.id}">Cambiar</button></td></tr>`).join('')}
-        </table></div>
-      <div class="tarjeta"><h3>Consultorías cobradas por el portal</h3>${
-        pagos.length
-          ? `<table class="tabla"><tr><th>Fecha</th><th>Prospecto</th><th>Monto</th></tr>${pagos
-              .map((g) => {
-                const x = pros.find((y) => y.id === g.prospecto_id)
-                return `<tr><td>${fechaCorta(g.fecha)}</td><td>${x ? `<a href="#prospecto/${x.id}">${h(x.empresa || x.nombre || x.link)}</a>` : '—'}</td><td>${dinero(g.monto, g.moneda)}</td></tr>`
-              })
-              .join('')}</table>`
-          : '<p class="vacio">Todavía no hay consultorías cobradas.</p>'
-      }</div>
-      <p class="nota">Ingreso del mes = mensualidades de clientes activos + consultorías cobradas este mes. Facturas: Zoho Invoice se conecta en la siguiente fase, solo para ti.</p>`
-    $$('[data-din]', v).forEach((b) => (b.onclick = () => editarDinero(clienteDe(b.dataset.din), din.find((x) => x.cliente_id === b.dataset.din))))
-  }
-
   // ------------------------------------------------------------ personas
 
   async function vistaPersonas(v) {
     titulo('Personas')
     personas = await D.personas()
+    const admin = esAdmin()
+    const modo = admin && sessionStorage.getItem('hq-per') === 'matriz' ? 'matriz' : 'lista'
     const filas = await Promise.all(
-      personas.map(
-        async (p) =>
-          `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${p.usuario ? `usuario: ${h(p.usuario)}` : 'entra con su correo'}${p.correo ? ` · ${h(p.correo)}` : ''}</small></div></td><td>${h(p.cargo)}</td><td><span class="chip ${p.sede}">${SEDE[p.sede]}</span></td><td>${p.rol === 'admin' ? 'Admin' : 'Equipo'}</td><td>${p.rol === 'admin' ? 'Todo' : resumenPermisos(p)}</td><td>${p.activo ? 'Activo' : 'Apagado'}</td><td><div class="acciones"><button class="btn chico" data-per="${p.id}">Editar</button>${p.rol !== 'admin' && p.id !== yo.id ? `<button class="btn chico" data-reenviar="${p.id}" title="Le pone una contraseña y se la manda a su correo">📧 Reenviar acceso</button>` : ''}</div></td></tr>`,
-      ),
+      personas.map(async (p) => {
+        const ac = estadoAcceso(p)
+        const n = (p.permisos ?? []).length
+        const dineroP = (p.permisos ?? []).some((k) => ['clientes_dinero', 'nomina_ver', 'nomina_editar', 'finanzas_ver', 'finanzas_editar', 'anuncios_gasto'].includes(k))
+        return `<tr class="${p.activo ? '' : 'apagado'}"><td class="con-avatar">${await avatar(p)}<div><b>${h(p.nombre)}</b><small>${p.usuario ? `usuario: ${h(p.usuario)}` : 'entra con su correo'}${p.correo ? ` · ${h(p.correo)}` : ''}</small></div></td><td>${h(p.cargo)}<small class="bloque"><span class="chip ${p.sede}">${SEDE[p.sede]}</span></small></td><td>${p.rol === 'admin' ? '<b>Todo</b>' : `<b>${h(plantillaDe(p))}</b><small class="bloque">${n ? `${n} permiso${n > 1 ? 's' : ''}` : 'lo básico'}${dineroP ? ' · 💰 ve dinero' : ''}${p.pros_ver && p.pros_ver !== 'nada' ? ` · prospectos: ${p.pros_ver}` : ''}</small>`}</td><td><span class="acceso ${ac.cls}">${ac.t}</span></td><td><div class="acciones">${admin ? `<button class="btn chico" data-per="${p.id}">Editar</button>` : ''}${admin && p.rol !== 'admin' ? `<button class="btn chico primario" data-permisos="${p.id}">🔑 Permisos</button>` : ''}${p.rol !== 'admin' && p.id !== yo.id ? `<button class="btn chico" data-reenviar="${p.id}" title="Le pone una contraseña y se la manda a su correo">📧 Reenviar acceso</button>` : ''}</div></td></tr>`
+      }),
     )
+    const equipo = personas.filter((p) => p.rol !== 'admin')
     v.innerHTML = `
-      <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button><button class="btn" id="p-probar">🔧 Probar correo</button></div>
-      <div class="tarjeta"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Dónde</th><th>Rol</th><th>Prospectos</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div>
-      <p class="nota">Cada persona entra con su <b>usuario</b> y la contraseña que tú le pones; al entrar puede cambiarla (y después en "⚙ Mi cuenta"). Solo tú ves dinero, montos, propuestas, contratos, Nómina y Personas, y solo tú das de alta y borras. Lo que cada quien puede hacer con los prospectos lo decides en <b>Editar</b>.</p>`
+      <div class="acciones"><button class="btn primario" id="p-nueva">+ Dar de alta</button>${admin ? '<button class="btn" id="p-probar">🔧 Probar correo</button>' : ''}
+        ${admin ? `<div class="segmento"><button data-pm="lista" class="${modo === 'lista' ? 'on' : ''}">Lista</button><button data-pm="matriz" class="${modo === 'matriz' ? 'on' : ''}">Matriz de permisos</button></div>` : ''}</div>
+      ${
+        modo === 'matriz'
+          ? `<div class="tarjeta"><h3>Quién puede qué <small>toca una casilla para prender o apagar · se guarda al instante</small></h3>${matrizPermisos({ h }, equipo)}</div>`
+          : `<div class="tarjeta"><div class="tabla-scroll"><table class="tabla"><tr><th>Persona</th><th>Cargo</th><th>Permisos</th><th>Acceso</th><th></th></tr>${filas.join('')}</table></div></div>`
+      }
+      <p class="nota">${admin ? 'Cada persona entra con su <b>usuario</b> y la contraseña que tú le pones (al entrar la cambia). En <b>🔑 Permisos</b> decides qué ve y qué puede hacer: hay plantillas (Contador, Ventas, Socio…), acceso con fecha de vencimiento y un botón para quitar todo de golpe. La base de datos los hace cumplir y cada cambio queda en la Bitácora. Tus pendientes, metas, gastos personales y ahorro nunca se comparten.' : 'Puedes dar de alta personas y reenviar accesos. Los permisos solo los da Eduardo.'}</p>`
+    $$('[data-pm]', v).forEach((b) => (b.onclick = () => (sessionStorage.setItem('hq-per', b.dataset.pm), mostrar())))
+    $$('[data-permisos]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const p = persona(b.dataset.permisos)
+          editarPermisos({ D, h, $, $$, abrirModal, cerrarModal, intenta, mostrar, avatarHtml: await avatar(p, 'grande') }, p, async () => (personas = await D.personas()))
+        }),
+    )
+    $$('[data-mx]', v).forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const [pid, k] = b.dataset.mx.split('|')
+          const p = persona(pid)
+          const permisos = alternar(p, k)
+          const prende = permisos.includes(k)
+          if (await intenta(() => D.guardarPersona({ id: pid, permisos, plantilla: plantillaDe({ ...p, permisos }) }), `${prende ? 'Prendido' : 'Apagado'}: ${CORTO_PERMISO[k]} · ${p.nombre}`)) {
+            personas = await D.personas()
+            mostrar()
+          }
+        }),
+    )
     $('#p-nueva', v).onclick = () => editarPersona(null)
-    $('#p-probar', v).onclick = async () => {
+    if ($('#p-probar', v)) $('#p-probar', v).onclick = async () => {
       const b = $('#p-probar', v)
       b.disabled = true
       b.textContent = 'Probando…'
@@ -1944,15 +1943,11 @@ export function iniciar(D, { muestra = false } = {}) {
         </div>
         ${
           !nueva && p.rol !== 'admin'
-            ? `<fieldset class="permisos"><legend>Prospectos</legend>
+            ? `<fieldset class="permisos"><legend>Su link de prospectos</legend>
                 <div class="campos">
-                  <label class="ancho">Qué prospectos ve<select name="pros_ver">${opciones(VER_PROS, p.pros_ver || 'nada')}</select></label>
-                  <label class="check ancho"><input type="checkbox" name="pros_trabajar" ${p.pros_trabajar ? 'checked' : ''}> Trabajarlos: notas, siguiente paso, datos de contacto y apuntar prospectos nuevos</label>
-                  <label class="check ancho"><input type="checkbox" name="pros_etapas" ${p.pros_etapas ? 'checked' : ''}> Mover etapas (reunión hecha, propuesta enviada, perdido…)</label>
-                  <label class="check ancho"><input type="checkbox" name="pros_convertir" ${p.pros_convertir ? 'checked' : ''}> Convertirlos en clientes</label>
                   <label class="ancho">Código de su link <small>empezar.nxusai.org/nombre-del-prospecto?de=<b>código</b></small><input name="codigo" maxlength="30" pattern="[a-z0-9-]{2,30}" value="${h(p.codigo || '')}" placeholder="${h(slug(p.nombre.split(' ')[0]))}"></label>
                 </div>
-                <p class="nota">Asignar y borrar prospectos es solo tuyo. Los prospectos que lleguen por su link quedan a su nombre (y su comisión, si cobra comisión).</p>
+                <p class="nota">Qué ve y qué puede hacer (prospectos, clientes, finanzas, nómina…): botón <b>🔑 Permisos</b> en Personas.</p>
               </fieldset>`
             : ''
         }
@@ -1977,7 +1972,7 @@ export function iniciar(D, { muestra = false } = {}) {
           } else {
             const pros =
               p.rol !== 'admin'
-                ? { pros_ver: d.pros_ver, pros_trabajar: !!d.pros_trabajar, pros_etapas: !!d.pros_etapas, pros_convertir: !!d.pros_convertir, codigo: slug(d.codigo).slice(0, 30) || null }
+                ? { codigo: slug(d.codigo || '').slice(0, 30) || null }
                 : {}
             ok = await intenta(() => D.guardarPersona({ id: p.id, nombre: d.nombre.trim(), cargo: d.cargo.trim(), sede: d.sede, reporta_a: d.reporta_a || null, ...(p.id !== yo.id ? { activo: !!d.activo } : {}), ...pros }), 'Guardado')
             const foto = e.target.foto?.files?.[0]
@@ -2219,7 +2214,9 @@ export function iniciar(D, { muestra = false } = {}) {
 
   async function vistaMetas(v) {
     titulo('Metas y hábitos')
-    const [metas, lista, habitos, dias] = await Promise.all([D.metas(), D.pendientes(), D.habitos(), D.habitosDias(diaLocal(-60))])
+    const [metas, lista, habitos, dias, aportes] = await Promise.all([D.metas(), D.pendientes(), D.habitos(), D.habitosDias(diaLocal(-60)), D.aportes ? D.aportes().catch(() => []) : []])
+    // Metas con precio: el avance es lo apartado (Finanzas → Ahorro para metas).
+    const apartado = (m) => aportes.filter((a) => a.meta_id === m.id).reduce((t, a) => t + Number(a.monto), 0)
     const tab = sessionStorage.getItem('hq-metas') === 'habitos' ? 'habitos' : 'metas'
     const hoy = diaLocal()
     let cuerpo
@@ -2228,7 +2225,7 @@ export function iniciar(D, { muestra = false } = {}) {
         .map(([k, [t, c]], i) => {
           const suyas = metas.filter((m) => m.area === k && m.estado !== 'pausada')
           return `<div class="tarjeta meta-area" style="--c:${c}"><div class="fila"><span class="romano-chico">${['I', 'II', 'III', 'IV', 'V', 'VI'][i]}</span><span class="punto-area"></span></div><h2>${t}</h2>
-            ${suyas.map((m) => { const pct = avanceMeta(m, lista); return `<button class="meta-item ${m.estado}" data-meta="${m.id}"><span>${h(m.titulo)}${m.estado === 'lograda' ? ' ✓' : ''}</span><small>${m.periodo === 'mes' ? 'Este mes' : 'Este año'} · ${pct}%</small><div class="b"><i style="width:${pct}%"></i></div></button>` }).join('')}
+            ${suyas.map((m) => { const conPrecio = Number(m.monto_objetivo) > 0; const pct = conPrecio ? Math.min(100, Math.floor((apartado(m) / Number(m.monto_objetivo)) * 100)) : avanceMeta(m, lista); return `<button class="meta-item ${m.estado}" data-meta="${m.id}"><span>${h(m.titulo)}${m.estado === 'lograda' ? ' ✓' : ''}</span><small>${conPrecio ? `💰 ${dinero(apartado(m), m.moneda)} de ${dinero(m.monto_objetivo, m.moneda)}` : m.periodo === 'mes' ? 'Este mes' : 'Este año'} · ${pct}%</small><div class="b"><i style="width:${pct}%"></i></div></button>` }).join('')}
             <button class="enlace definir" data-nueva="${k}">+ Definir meta</button></div>`
         })
         .join('')}</div>
@@ -2280,19 +2277,23 @@ export function iniciar(D, { muestra = false } = {}) {
           <label>Plazo<select name="periodo"><option value="año" ${m.periodo === 'año' ? 'selected' : ''}>Este año</option><option value="mes" ${m.periodo === 'mes' ? 'selected' : ''}>Este mes</option></select></label>
           <label>Fecha límite<input name="fecha_limite" type="date" value="${h(m.fecha_limite ?? '')}"></label>
           <label>Estado<select name="estado"><option value="activa" ${m.estado === 'activa' ? 'selected' : ''}>Activa</option><option value="lograda" ${m.estado === 'lograda' ? 'selected' : ''}>¡Lograda!</option><option value="pausada" ${m.estado === 'pausada' ? 'selected' : ''}>En pausa</option></select></label>
-          <label class="ancho">Avance <small>si no tiene pendientes ligados</small><input name="progreso" type="range" min="0" max="100" step="5" value="${Number(m.progreso) || 0}"></label>
+          <label class="ancho">Avance <small>si no tiene pendientes ligados ni precio</small><input name="progreso" type="range" min="0" max="100" step="5" value="${Number(m.progreso) || 0}"></label>
+          <label>¿Cuesta dinero? <small>precio de la meta · opcional</small><input name="monto_objetivo" type="number" min="0" step="0.01" value="${h(Number(m.monto_objetivo) || '')}" placeholder="800000"></label>
+          <label>Moneda<select name="moneda"><option value="USD" ${m.moneda !== 'MXN' ? 'selected' : ''}>Dólares (USD)</option><option value="MXN" ${m.moneda === 'MXN' ? 'selected' : ''}>Pesos (MXN)</option></select></label>
+          <p class="nota ancho">Con precio, el avance es lo que vas apartando: registra cada ahorro y tu plan en <a href="#finanzas" data-ir-ahorro>Finanzas → Ahorro para metas</a>.</p>
         </div>
         <div class="acciones"><button class="btn primario">Guardar</button><button type="button" class="btn" data-cerrar>Cancelar</button>${nueva ? '' : '<button type="button" class="btn peligro" id="mt-borrar">Borrar</button>'}</div></form>`,
       (caja) => {
         $('#f-meta', caja).onsubmit = async (e) => {
           e.preventDefault()
           const d = Object.fromEntries(new FormData(e.target))
-          const fila = { ...(nueva ? {} : { id: m.id }), titulo: d.titulo.trim(), porque: d.porque.trim(), area: d.area, periodo: d.periodo, fecha_limite: d.fecha_limite || null, estado: d.estado, progreso: Number(d.progreso) || 0 }
+          const fila = { ...(nueva ? {} : { id: m.id }), titulo: d.titulo.trim(), porque: d.porque.trim(), area: d.area, periodo: d.periodo, fecha_limite: d.fecha_limite || null, estado: d.estado, progreso: Number(d.progreso) || 0, monto_objetivo: Number(d.monto_objetivo) || 0, moneda: d.moneda || 'USD' }
           if (await intenta(() => D.guardarMeta(fila), 'Meta guardada')) {
             cerrarModal()
             mostrar()
           }
         }
+        $('[data-ir-ahorro]', caja)?.addEventListener('click', () => (sessionStorage.setItem('hq-fin', 'metas'), cerrarModal()))
         $('#mt-borrar', caja)?.addEventListener('click', async () => {
           if (confirm(`¿Borrar la meta "${m.titulo}"?`) && (await intenta(() => D.borrarMeta(m.id), 'Borrada')) !== undefined) {
             cerrarModal()
@@ -2333,14 +2334,42 @@ export function iniciar(D, { muestra = false } = {}) {
 
   async function vistaBitacora(v) {
     titulo('Bitácora')
-    const b = await D.bitacora()
+    const [b, gente] = await Promise.all([D.bitacora(), D.personas()])
+    personas = gente
     const QUE = { insert: 'creó', update: 'cambió', delete: 'borró' }
-    const TABLA = { perfiles: 'una persona', clientes: 'un cliente', clientes_dinero: 'lo que paga un cliente', tareas: 'una tarea', jornadas: 'una entrada/salida', nomina: 'una nómina', nomina_ajustes: 'un ajuste', comisiones: 'una comisión', prospectos: 'un prospecto', prospectos_notas: 'una nota de prospecto', prospectos_pagos: 'un pago de consultoría' }
-    v.innerHTML = `<div class="tarjeta">${
-      b.length
-        ? `<table class="tabla"><tr><th>Cuándo</th><th>Quién</th><th>Qué</th></tr>${b.map((x) => `<tr><td>${fechaCorta(x.cuando)} ${hora(x.cuando)}</td><td>${h(x.quien ? nombreDe(x.quien) : 'Sistema / portal / NEX')}</td><td>${QUE[x.accion] ?? x.accion} ${TABLA[x.tabla] ?? x.tabla}</td></tr>`).join('')}</table>`
-        : '<p class="vacio">Todavía no hay movimientos.</p>'
-    }</div>`
+    const TABLA = { perfiles: 'una persona', clientes: 'un cliente', clientes_dinero: 'lo que paga un cliente', tareas: 'una tarea', jornadas: 'una entrada/salida', nomina: 'una nómina', nomina_ajustes: 'un ajuste', comisiones: 'una comisión', prospectos: 'un prospecto', prospectos_notas: 'una nota de prospecto', prospectos_pagos: 'un pago de consultoría', cobros: 'un cobro', cobros_omitidos: 'un cobro omitido', gastos: 'un gasto', finanzas_config: 'los ajustes de finanzas', metas_aportes: 'un ahorro para meta', leads: 'un lead', anuncios: 'un anuncio' }
+    const f = (() => { try { return JSON.parse(sessionStorage.getItem('hq-bit') || '{}') } catch { return {} } })()
+    const lista = b.filter((x) => (!f.quien || x.quien === f.quien) && (!f.tabla || x.tabla === f.tabla))
+    const OCULTAR = new Set(['id', 'creado', 'actualizado', 'actualizada', 'creada', 'creado_por', 'foto'])
+    const valor = (k, x) => {
+      if (x == null || x === '') return '—'
+      if (k === 'permisos' && Array.isArray(x)) return x.length ? x.map((p) => CORTO_PERMISO[p] || p).join(', ') : 'ninguno'
+      if (Array.isArray(x)) return x.join(', ') || '—'
+      if (typeof x === 'boolean') return x ? 'sí' : 'no'
+      if (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(x)) return `${fechaCorta(x)} ${hora(x)}`
+      if (typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x)) return nombreDe(x) !== '—' ? nombreDe(x) : '…'
+      return String(x).slice(0, 80)
+    }
+    const cambios = (x) => {
+      if (x.accion !== 'update' || !x.despues) return ''
+      const ks = Object.keys(x.despues).filter((k) => !OCULTAR.has(k)).slice(0, 6)
+      return ks.length ? `<ul class="cambios">${ks.map((k) => `<li><b>${h(k.replace(/_/g, ' '))}</b>: ${h(valor(k, x.antes?.[k]))} → ${h(valor(k, x.despues[k]))}</li>`).join('')}</ul>` : ''
+    }
+    const tablas = [...new Set(b.map((x) => x.tabla))]
+    v.innerHTML = `
+      <div class="acciones filtros-bit">
+        <select id="bt-quien"><option value="">Todas las personas</option>${gente.map((p) => `<option value="${p.id}" ${f.quien === p.id ? 'selected' : ''}>${h(p.nombre)}</option>`).join('')}</select>
+        <select id="bt-tabla"><option value="">Todo</option>${tablas.map((t) => `<option value="${t}" ${f.tabla === t ? 'selected' : ''}>${h((TABLA[t] ?? t).replace(/^(un|una|los|lo) /, ''))}</option>`).join('')}</select>
+      </div>
+      <div class="tarjeta">${
+        lista.length
+          ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Cuándo</th><th>Quién</th><th>Qué</th></tr>${lista.map((x) => `<tr><td>${fechaCorta(x.cuando)} ${hora(x.cuando)}</td><td>${h(x.quien ? nombreDe(x.quien) : 'Sistema / portal / NEX')}</td><td>${QUE[x.accion] ?? x.accion} ${TABLA[x.tabla] ?? x.tabla}${x.tabla === 'perfiles' && x.fila ? ` <small>(${h(nombreDe(x.fila))})</small>` : ''}${cambios(x)}</td></tr>`).join('')}</table></div>`
+          : '<p class="vacio">Todavía no hay movimientos.</p>'
+      }</div>
+      <p class="nota">Cada cambio queda guardado con quién lo hizo, cuándo y qué cambió (antes → después). Nadie puede borrar la bitácora.</p>`
+    const guardarF = (c) => (sessionStorage.setItem('hq-bit', JSON.stringify({ ...f, ...c })), mostrar())
+    $('#bt-quien', v).onchange = (e) => guardarF({ quien: e.target.value })
+    $('#bt-tabla', v).onchange = (e) => guardarF({ tabla: e.target.value })
   }
 
   // ------------------------------------------------------------- arranque

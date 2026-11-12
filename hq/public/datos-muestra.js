@@ -54,6 +54,11 @@ const db = {
   habitos: [],
   habitos_dias: [],
   documentos: [],
+  cobros: [],
+  cobros_omitidos: [],
+  gastos: [],
+  finanzas_config: [{ id: 1, tipo_cambio: 18.5, moneda_base: 'USD', saldo: 6200, saldo_moneda: 'USD', saldo_fecha: dia(-1), meta_libre: 10000, desde: fecha(-20) }],
+  metas_aportes: [],
 }
 
 const cliente = (c, dinero) => {
@@ -66,15 +71,38 @@ const aurelius = cliente(
   { nombre: 'Aurelius', grupo: 'Ramos & Co.', equipo: 'mexico', propio: true, responsable: S1, servicios: ['Marketing y redes', 'Sitio web', 'Sistema de entrada y salida'], descripcion: 'El restaurante de Eduardo. El equipo NXUS México lleva su marketing. Tiene su sistema de entrada y salida del personal.', sistema_nombre: 'Entrada y salida' },
   {},
 )
+// Un viernes en que Abuelito sí pagó (paga cada dos viernes).
+const viernesPagado = (() => {
+  const d = new Date(hoy)
+  d.setDate(d.getDate() - ((d.getDay() + 2) % 7) - 7)
+  return d.toLocaleDateString('en-CA')
+})()
 const abuelito = cliente(
   { nombre: 'Abuelito INC', grupo: 'Abuelito INC', servicios: ['Centro de trabajo (CRM) con Ultron', 'Anuncios en Meta', 'Contenido'], descripcion: 'Holding de Abuelito Cheese, Abuelito Meat y Abuelito Corn. Usa el Centro de trabajo con Ultron para su dirección.', sistema_nombre: 'Centro de trabajo', sistema_url: 'https://centro-misemago-abuelito.netlify.app' },
-  {},
+  { frecuencia: 'catorcenal', monto_cobro: 1500, mensualidad: 3250, moneda: 'USD', cobro_ancla: viernesPagado, cobro_dias: [] },
 )
 const semago = cliente(
   { nombre: 'Mi Semago', servicios: ['Centro de trabajo (CRM) con Ultron', 'Ana Sofi: ventas por teléfono', 'Etiquetas de trazabilidad', 'Anuncios en Meta'], descripcion: 'Comparte el Centro de trabajo con Abuelito INC. Ana Sofi llama a sus prospectos e imprime sus etiquetas.', sistema_nombre: 'Centro de trabajo', sistema_url: 'https://centro-misemago-abuelito.netlify.app' },
-  {},
+  { frecuencia: 'mensual', monto_cobro: 1200, mensualidad: 1200, moneda: 'USD', dia_cobro: 1, cobro_dias: [1] },
 )
 cliente({ nombre: 'VAYRO', grupo: 'Keko Foods', estado: 'prospecto', servicios: ['Administración por Ramos & Co.', 'IA Vivian (en preparación)'], descripcion: 'De los mismos dueños de Abuelito, empresa independiente. Primero la administra Ramos & Co.' }, {})
+
+// Finanzas de muestra: cobros que llegaron, gastos con sus días y una meta con precio.
+{
+  const mesHoy = (d) => new Date(hoy.getFullYear(), hoy.getMonth(), d).toLocaleDateString('en-CA')
+  db.cobros.push({ id: id(), cliente_id: abuelito.id, concepto: '', monto: 1500, moneda: 'USD', fecha: viernesPagado, para_fecha: viernesPagado, metodo: 'Zelle', nota: '', creado: dia(-7) })
+  if (hoy.getDate() > 1) db.cobros.push({ id: id(), cliente_id: semago.id, concepto: '', monto: 1200, moneda: 'USD', fecha: mesHoy(1), para_fecha: mesHoy(1), metodo: 'Transferencia', nota: '', creado: dia(-3) })
+  const g = (x) => db.gastos.push({ id: id(), categoria: 'otros', tipo: 'negocio', empresa: 'NXUS AI', moneda: 'USD', frecuencia: 'mensual', ancla: null, dias: [], hasta: null, activo: true, notas: '', creado: dia(-30), ...x })
+  g({ concepto: 'Oficina', categoria: 'renta', monto: 1800, dias: [1] })
+  g({ concepto: 'Software (Claude, Netlify, Supabase…)', categoria: 'software', monto: 260, dias: [15] })
+  g({ concepto: 'Anuncios en Meta', categoria: 'publicidad', monto: 1200, dias: [20] })
+  g({ concepto: 'Contador', categoria: 'profesionales', monto: 3500, moneda: 'MXN', dias: [28] })
+  g({ concepto: 'Hipoteca', categoria: 'casa', tipo: 'personal', empresa: '', monto: 2400, dias: [5] })
+  g({ concepto: 'Colegiatura', categoria: 'familia', tipo: 'personal', empresa: '', monto: 7000, moneda: 'MXN', frecuencia: 'quincenal', dias: [15, 31] })
+  const casa = { id: id(), area: 'patrimonio', titulo: 'Casa multifamiliar para rentar', porque: 'Que la renta pague la casa y me deje ingreso', periodo: 'año', fecha_limite: null, progreso: 0, estado: 'activa', monto_objetivo: 800000, moneda: 'USD', aporte_monto: 500, aporte_frecuencia: 'quincenal', creado: dia(-20), actualizado: dia(-1) }
+  db.metas.push(casa)
+  db.metas_aportes.push({ id: id(), meta_id: casa.id, monto: 30, moneda: 'USD', fecha: fecha(-6), nota: 'Primer apartado', creado: dia(-6) })
+}
 
 const tarea = (t) => db.tareas.push({ id: id(), cliente_id: null, detalle: '', estado: 'pendiente', vence: null, creada_por: ED, creada: dia(-3), actualizada: dia(-1), ...t })
 tarea({ titulo: 'Parrilla de contenido de noviembre', cliente_id: aurelius.id, asignado: AN, vence: fecha(4), estado: 'en-curso' })
@@ -195,6 +223,8 @@ const nunca = () => {
 }
 const anotar = (accion, tabla, fila) => db.bitacora.unshift({ id: db.bitacora.length + 1, quien: yo?.id ?? null, accion, tabla, fila: String(fila ?? ''), cuando: new Date().toISOString() })
 const yoPerfil = () => db.perfiles.find((p) => p.id === yo?.id)
+/** Los permisos que Eduardo le dio (el admin todo). */
+const tiene = (k) => admin() || (yoPerfil()?.permisos ?? []).includes(k)
 const puede = (que) => admin() || !!yoPerfil()?.[`pros_${que}`]
 const veLead = (l) => !!l && (admin() || yoPerfil()?.pros_ver === 'todos' || (yoPerfil()?.pros_ver === 'suyos' && l.asignado === yo?.id))
 const veProspecto = (p) => !!p && (admin() || yoPerfil()?.pros_ver === 'todos' || (yoPerfil()?.pros_ver === 'suyos' && [p.asignado, p.traido_por].includes(yo?.id)))
@@ -244,19 +274,19 @@ export function crearMuestra() {
       return copia(upsert(db.perfiles, p))
     },
     async crearPersona(p) {
-      if (!admin()) nunca()
+      if (!tiene('personas_gestionar')) nunca()
       const usuario = String(p.usuario || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '')
       if (usuario.length < 2) throw new Error('Falta el usuario')
       if (!p.clave) throw new Error('Falta la contraseña')
       if (db.perfiles.some((x) => x.usuario === usuario)) throw new Error(`Ya hay alguien con el usuario "${usuario}"`)
-      const nueva = { id: id(), usuario, cambiar_clave: true, nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString(), ...permisos(null) }
+      const nueva = { id: id(), permisos: [], acceso_hasta: null, usuario, cambiar_clave: true, nombre: p.nombre, correo: p.correo, rol: 'equipo', activo: true, cargo: p.cargo || '', sede: p.sede === 'mexico' ? 'mexico' : 'usa', foto: null, reporta_a: p.reporta_a || null, creado: new Date().toISOString(), ...permisos(null) }
       db.perfiles.push(nueva)
       anotar('insert', 'perfiles', nueva.id)
       return { ok: true, id: nueva.id, usuario, enviado: !!(p.enviar && p.correo) }
     },
     probarCorreo: async () => ({ ok: true, enviado: true, para: 'eduardo@nxusai.org', clave: 'ab12…yz89 (64 caracteres)', agenda: '…muestra1' }),
     async claveDe(pid, clave, enviar) {
-      if (!admin()) nunca()
+      if (!tiene('personas_gestionar') || db.perfiles.find((q) => q.id === pid)?.rol === 'admin') nunca()
       const x = db.perfiles.find((q) => q.id === pid)
       if (x) x.cambiar_clave = true
       return { ok: true, usuario: x?.usuario, enviado: !!(enviar && x?.correo) }
@@ -274,26 +304,26 @@ export function crearMuestra() {
 
     clientes: () => espera(db.clientes),
     async guardarCliente(c) {
-      if (!admin()) nunca()
+      if (!tiene('clientes_editar')) nunca()
       anotar(c.id ? 'update' : 'insert', 'clientes', c.id)
       return copia(upsert(db.clientes, { ...c, actualizado: new Date().toISOString(), ...(c.id ? {} : { creado: new Date().toISOString() }) }))
     },
     async borrarCliente(cid) {
-      if (!admin()) nunca()
+      if (!tiene('clientes_borrar')) nunca()
       db.clientes = db.clientes.filter((c) => c.id !== cid)
       db.clientes_dinero = db.clientes_dinero.filter((d) => d.cliente_id !== cid)
     },
-    dinero: () => espera(admin() ? db.clientes_dinero : []),
+    dinero: () => espera(tiene('clientes_dinero') || tiene('finanzas_ver') ? db.clientes_dinero : []),
     async guardarDinero(d) {
-      if (!admin()) nunca()
+      if (!tiene('finanzas_editar')) nunca()
       return copia(upsert(db.clientes_dinero, d, 'cliente_id'))
     },
 
-    tareas: () => espera(db.tareas.filter((t) => admin() || t.asignado === yo?.id || t.creada_por === yo?.id)),
+    tareas: () => espera(db.tareas.filter((t) => tiene('tareas_todas') || t.asignado === yo?.id || t.creada_por === yo?.id)),
     async guardarTarea(t) {
       const vieja = t.id && db.tareas.find((x) => x.id === t.id)
-      if (vieja && !admin() && vieja.asignado !== yo.id && vieja.creada_por !== yo.id) nunca()
-      if (vieja && !admin() && vieja.creada_por !== yo.id) {
+      if (vieja && !tiene('tareas_todas') && vieja.asignado !== yo.id && vieja.creada_por !== yo.id) nunca()
+      if (vieja && !tiene('tareas_todas') && vieja.creada_por !== yo.id) {
         const soloEstado = Object.keys(t).every((k) => k === 'id' || k === 'estado' || t[k] === vieja[k])
         if (!soloEstado) throw new Error('Solo quien creó la tarea (o el admin) cambia eso; tú mueves su estado')
       }
@@ -306,8 +336,8 @@ export function crearMuestra() {
     },
 
     jornadas: (desde, hasta) =>
-      espera(db.jornadas.filter((j) => (admin() || j.persona === yo?.id) && new Date(j.entrada) >= desde && new Date(j.entrada) < hasta).sort((a, b) => b.entrada.localeCompare(a.entrada))),
-    abiertas: () => espera(db.jornadas.filter((j) => !j.salida && (admin() || j.persona === yo?.id))),
+      espera(db.jornadas.filter((j) => (tiene('asistencia_ver') || j.persona === yo?.id) && new Date(j.entrada) >= desde && new Date(j.entrada) < hasta).sort((a, b) => b.entrada.localeCompare(a.entrada))),
+    abiertas: () => espera(db.jornadas.filter((j) => !j.salida && (tiene('asistencia_ver') || j.persona === yo?.id))),
     async marcarEntrada() {
       if (db.jornadas.some((j) => j.persona === yo.id && !j.salida)) throw new Error('Ya tienes una entrada abierta')
       const j = { id: id(), persona: yo.id, entrada: new Date().toISOString(), salida: null, dia_completo: false, nota: '' }
@@ -323,14 +353,14 @@ export function crearMuestra() {
       return copia(j)
     },
     async corregirJornada(jid, c) {
-      if (!admin()) nunca()
+      if (!tiene('asistencia_corregir')) nunca()
       const j = db.jornadas.find((x) => x.id === jid)
       Object.assign(j, { entrada: c.entrada, salida: c.salida, nota: c.nota })
       anotar('update', 'jornadas', j.id)
       return copia(j)
     },
     async registrarJornada(c) {
-      if (!admin()) nunca()
+      if (!tiene('asistencia_corregir')) nunca()
       if (!c.salida && db.jornadas.some((j) => j.persona === c.persona && !j.salida)) throw new Error('Esa persona ya tiene una entrada abierta')
       const j = { id: id(), persona: c.persona, entrada: c.entrada, salida: c.salida, dia_completo: false, nota: c.nota }
       db.jornadas.push(j)
@@ -338,31 +368,31 @@ export function crearMuestra() {
       return copia(j)
     },
     async diaCompleto(jid, si) {
-      if (!admin()) nunca()
+      if (!tiene('asistencia_corregir')) nunca()
       return copia(upsert(db.jornadas, { id: jid, dia_completo: si }))
     },
 
-    nomina: () => espera(admin() ? db.nomina : []),
+    nomina: () => espera(tiene('nomina_ver') ? db.nomina : []),
     async guardarNomina(n) {
-      if (!admin()) nunca()
+      if (!tiene('nomina_editar')) nunca()
       return copia(upsert(db.nomina, n, 'persona'))
     },
-    ajustes: () => espera(admin() ? db.nomina_ajustes : []),
+    ajustes: () => espera(tiene('nomina_ver') ? db.nomina_ajustes : []),
     async guardarAjuste(a) {
-      if (!admin()) nunca()
+      if (!tiene('nomina_editar')) nunca()
       return copia(upsert(db.nomina_ajustes, a))
     },
     async borrarAjuste(aid) {
-      if (!admin()) nunca()
+      if (!tiene('nomina_editar')) nunca()
       db.nomina_ajustes = db.nomina_ajustes.filter((a) => a.id !== aid)
     },
-    comisiones: () => espera(admin() ? db.comisiones : []),
+    comisiones: () => espera(tiene('nomina_ver') ? db.comisiones : []),
     async guardarComision(c) {
-      if (!admin()) nunca()
+      if (!tiene('nomina_editar')) nunca()
       return copia(upsert(db.comisiones, c))
     },
     async borrarComision(cid) {
-      if (!admin()) nunca()
+      if (!tiene('nomina_editar')) nunca()
       db.comisiones = db.comisiones.filter((c) => c.id !== cid)
     },
 
@@ -526,7 +556,55 @@ export function crearMuestra() {
       return true
     },
 
-    bitacora: () => espera(admin() ? db.bitacora : []),
+    bitacora: () => espera(tiene('bitacora_ver') ? db.bitacora : []),
+
+    // Finanzas: las mismas reglas que la base de datos (lo personal, solo el admin).
+    cobros: () => espera(tiene('finanzas_ver') ? db.cobros : []),
+    async guardarCobro(c) {
+      if (!tiene('finanzas_editar')) nunca()
+      anotar(c.id ? 'update' : 'insert', 'cobros', c.id)
+      return copia(upsert(db.cobros, c.id ? c : { creado: new Date().toISOString(), creado_por: yo.id, ...c }))
+    },
+    async borrarCobro(cid) {
+      if (!tiene('finanzas_editar')) nunca()
+      db.cobros = db.cobros.filter((x) => x.id !== cid)
+      return true
+    },
+    cobrosOmitidos: () => espera(tiene('finanzas_ver') ? db.cobros_omitidos : []),
+    async omitirCobro(o) {
+      if (!tiene('finanzas_editar')) nunca()
+      db.cobros_omitidos = db.cobros_omitidos.filter((x) => !(x.cliente_id === o.cliente_id && x.fecha === o.fecha))
+      db.cobros_omitidos.push(o)
+      return copia(o)
+    },
+    gastos: () => espera(db.gastos.filter((g) => admin() || (g.tipo === 'negocio' && tiene('finanzas_ver')))),
+    async guardarGasto(g) {
+      if (!(admin() || (g.tipo === 'negocio' && tiene('finanzas_editar')))) nunca()
+      anotar(g.id ? 'update' : 'insert', 'gastos', g.id)
+      return copia(upsert(db.gastos, g.id ? g : { creado: new Date().toISOString(), ...g }))
+    },
+    async borrarGasto(gid) {
+      const g = db.gastos.find((x) => x.id === gid)
+      if (!g || !(admin() || (g.tipo === 'negocio' && tiene('finanzas_editar')))) nunca()
+      db.gastos = db.gastos.filter((x) => x.id !== gid)
+      return true
+    },
+    finanzasConfig: () => espera(tiene('finanzas_ver') ? db.finanzas_config[0] : null),
+    async guardarFinanzasConfig(c) {
+      if (!admin()) nunca()
+      Object.assign(db.finanzas_config[0], c)
+      return copia(db.finanzas_config[0])
+    },
+    aportes: () => espera(admin() ? db.metas_aportes : nunca()),
+    async guardarAporte(a) {
+      if (!admin()) nunca()
+      return copia(upsert(db.metas_aportes, a.id ? a : { creado: new Date().toISOString(), ...a }))
+    },
+    async borrarAporte(aid) {
+      if (!admin()) nunca()
+      db.metas_aportes = db.metas_aportes.filter((x) => x.id !== aid)
+      return true
+    },
 
     // Prospectos: las mismas reglas que la base de datos (supabase/esquema.sql).
     prospectos: () => espera(db.prospectos.filter(veProspecto).sort((a, b) => b.actualizado.localeCompare(a.actualizado))),
@@ -572,7 +650,7 @@ export function crearMuestra() {
       anotar('insert', 'prospectos_notas', n.id)
       return copia(n)
     },
-    pagosProspectos: () => espera(db.prospectos_pagos.filter((g) => admin() || (puede('pagos') && veProspecto(db.prospectos.find((p) => p.id === g.prospecto_id))))),
+    pagosProspectos: () => espera(db.prospectos_pagos.filter(() => tiene('finanzas_ver'))),
     async convertirProspecto(pid) {
       const p = db.prospectos.find((x) => x.id === pid)
       if (!p || !veProspecto(p)) throw new Error('Ese prospecto no existe')
