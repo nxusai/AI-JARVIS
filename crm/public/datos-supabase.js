@@ -295,6 +295,13 @@ export function crearSupabase({ url, anon }) {
     async correo(a) {
       return funcion('correo', { archivo: a.id })
     },
+    // Una frase de voz → texto (ElevenLabs Scribe, en la función "oido" de Netlify).
+    async transcribir(blob) {
+      const res = await fetch('/.netlify/functions/oido', { method: 'POST', headers: { 'content-type': blob.type || 'audio/webm', authorization: `Bearer ${await token()}` }, body: blob })
+      const r = await res.json().catch(() => ({}))
+      if (!res.ok || r.ok === false) throw new Error(r.error || 'No te pude oír')
+      return r.texto ?? ''
+    },
     async correoVarios(ids) {
       return funcion('correo', { archivos: ids })
     },
