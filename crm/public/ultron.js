@@ -393,9 +393,8 @@ async function enviar(texto) {
       } catch {
         estado.pensando = false
       }
-      return
     }
-    estado.mensajes.pop()
+    return
   }
   estado.mensajes.push({ id: ++nMsg, de: 'yo', texto })
   estado.pensando = true
@@ -445,9 +444,8 @@ async function sesionVivo(voz) {
   try {
     ;[cred] = await Promise.all([estado.vivo(), cargarSdk()])
   } catch (err) {
-    if (/no está preparado|falta|503/i.test(err.message || '')) estado.sinVivo = true
-    else estado.avisar(`Ultron en vivo no conectó (${err.message}). Uso el de siempre.`)
-    estado.sinVivo = true
+    // Nada de regresar en silencio al Ultron viejo: se dice qué pasó.
+    fallaVivo(err.message || String(err))
     return null
   }
   const { Conversation } = await cargarSdk()
@@ -488,11 +486,11 @@ async function sesionVivo(voz) {
       try {
         ses = await Conversation.startSession({ ...base, signedUrl: cred.signedUrl, connectionType: 'websocket', textOnly: false })
       } catch (err2) {
-        estado.avisar(`No pude conectar con Ultron: ${err2.message || err2}`)
+        fallaVivo(err2.message || String(err2))
         return null
       }
     } else {
-      estado.avisar(`No pude conectar con Ultron: ${err.message || err}`)
+      fallaVivo(err.message || String(err))
       return null
     }
   }
@@ -503,6 +501,12 @@ async function sesionVivo(voz) {
     } catch {}
   }
   return ses
+}
+
+function fallaVivo(motivo) {
+  estado.pensando = false
+  estado.mensajes.push({ id: ++nMsg, de: 'ultron', inicial: true, texto: `No pude conectarme en vivo: ${motivo}` })
+  repintarChats()
 }
 
 async function cerrarVivo() {
@@ -613,7 +617,8 @@ function abrirPanel() {
 /** Un solo toque: en vivo si está preparado; si no, la llamada de antes. */
 async function hablar() {
   if (llamada) return
-  if (!estado.sinVivo && (await llamadaVivo())) return
+  // Con Ultron en vivo disponible, solo él (sin regresar al de la Mac).
+  if (!estado.sinVivo) return void llamadaVivo()
   if (estado.transcribir) empezarLlamada()
 }
 
