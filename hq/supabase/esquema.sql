@@ -1557,3 +1557,77 @@ create policy permiso_ver on public.finanzas_config for select to authenticated 
 create policy permiso_cambiar on public.finanzas_config for update to authenticated using (es_admin()) with check (es_admin());
 -- El ahorro para sus metas: SOLO el admin.
 create policy solo_admin on public.metas_aportes for all to authenticated using (es_admin()) with check (es_admin());
+
+-- ===========================================================================
+-- Cuentas, dos monedas y traspasos (12 de noviembre de 2026)
+-- ===========================================================================
+-- Eduardo cobra en dólares y en pesos, y paga en las dos (la nómina en pesos). El dinero cae
+-- a una cuenta americana principal y de ahí reparte a la cuenta de México y a otra americana;
+-- un contrato de México le paga directo a la cuenta de México. Cada cobro y cada gasto sabe
+-- de qué cuenta entra o sale; los traspasos (con cambio de moneda) mueven entre cuentas.
+create table if not exists public.cuentas (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null check (char_length(nombre) between 1 and 80),
+  banco text not null default '' check (char_length(banco) <= 80),
+  moneda text not null default 'USD' check (moneda in ('USD', 'MXN')),
+  saldo numeric(14, 2) not null default 0,
+  saldo_fecha timestamptz,
+  principal boolean not null default false, -- donde cae el dinero (de aquí se reparte)
+  activa boolean not null default true,
+  orden int not null default 0,
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create table if not exists public.traspasos (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null default current_date, -- en el futuro = programado
+  de_cuenta uuid not null references public.cuentas (id) on delete cascade,
+  a_cuenta uuid not null references public.cuentas (id) on delete cascade,
+  sale numeric(14, 2) not null check (sale > 0), -- en la moneda de la cuenta de origen
+  entra numeric(14, 2) not null check (entra > 0), -- en la moneda de la cuenta destino (con el cambio)
+  nota text not null default '' check (char_length(nota) <= 300),
+  creado timestamptz not null default now(),
+  check (de_cuenta <> a_cuenta)
+);
+alter table public.cobros add column if not exists cuenta_id uuid references public.cuentas (id) on delete set null;
+alter table public.gastos add column if not exists cuenta_id uuid references public.cuentas (id) on delete set null;
+alter table public.clientes_dinero add column if not exists cuenta_id uuid references public.cuentas (id) on delete set null;
+alter table public.finanzas_config add column if not exists nomina_cuenta uuid references public.cuentas (id) on delete set null;
+alter table public.finanzas_config add column if not exists cambio_auto boolean not null default true; -- tipo de cambio del día, solo
+alter table public.metas add column if not exists cuenta_id uuid references public.cuentas (id) on delete set null; -- de dónde sale lo que aparta
+
+-- Las cuentas de arranque (se pueden renombrar, poner banco y saldo en Finanzas → Cuentas).
+insert into public.cuentas (nombre, moneda, principal, orden)
+select * from (values ('Cuenta USA principal', 'USD', true, 1), ('Cuenta USA 2', 'USD', false, 2), ('Cuenta México', 'MXN', false, 3)) v(nombre, moneda, principal, orden)
+where not exists (select 1 from public.cuentas);
+update public.finanzas_config set nomina_cuenta = (select id from public.cuentas where moneda = 'MXN' order by orden limit 1) where nomina_cuenta is null;
+
+drop trigger if exists hq_actualizado on public.cuentas;
+create trigger hq_actualizado before update on public.cuentas for each row execute function public.al_cambiar_fila();
+do $$
+declare t text;
+begin
+  foreach t in array array['cuentas', 'traspasos'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists permiso_ver on public.%I', t);
+    execute format('drop policy if exists permiso_crear on public.%I', t);
+    execute format('drop policy if exists permiso_cambiar on public.%I', t);
+    execute format('drop policy if exists permiso_borrar on public.%I', t);
+    execute format('create policy permiso_ver on public.%I for select to authenticated using (puede(''finanzas_ver''))', t);
+    execute format('create policy permiso_crear on public.%I for insert to authenticated with check (puede(''finanzas_editar''))', t);
+    execute format('create policy permiso_cambiar on public.%I for update to authenticated using (puede(''finanzas_editar'')) with check (puede(''finanzas_editar''))', t);
+    execute format('create policy permiso_borrar on public.%I for delete to authenticated using (es_admin())', t);
+  end loop;
+end $$;
+-- La bitácora de cuentas y traspasos: con permiso de finanzas.
+drop policy if exists bitacora_ver on public.bitacora;
+create policy bitacora_ver on public.bitacora for select to authenticated using (
+  es_admin() or (
+    puede('bitacora_ver')
+    and tabla not in ('metas_aportes', 'metas', 'pendientes', 'habitos', 'habitos_dias')
+    and (tabla not in ('clientes_dinero', 'cobros', 'cobros_omitidos', 'finanzas_config', 'prospectos_pagos', 'gastos', 'cuentas', 'traspasos') or puede('finanzas_ver') or (tabla = 'clientes_dinero' and puede('clientes_dinero')))
+    and (tabla <> 'gastos' or coalesce(despues ->> 'tipo', antes ->> 'tipo') = 'negocio')
+    and (tabla not in ('nomina', 'nomina_ajustes', 'comisiones') or puede('nomina_ver'))
+  ));

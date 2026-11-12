@@ -57,8 +57,14 @@ const db = {
   cobros: [],
   cobros_omitidos: [],
   gastos: [],
-  finanzas_config: [{ id: 1, tipo_cambio: 18.5, moneda_base: 'USD', saldo: 6200, saldo_moneda: 'USD', saldo_fecha: dia(-1), meta_libre: 10000, desde: fecha(-20) }],
+  finanzas_config: [{ id: 1, tipo_cambio: 18.5, moneda_base: 'USD', saldo: 6200, saldo_moneda: 'USD', saldo_fecha: dia(-1), meta_libre: 5000, desde: fecha(-20), nomina_cuenta: 'c-mx', cambio_auto: true }],
   metas_aportes: [],
+  cuentas: [
+    { id: 'c-usa', nombre: 'Chase principal', banco: 'Chase', moneda: 'USD', saldo: 6200, saldo_fecha: dia(-2), principal: true, activa: true, orden: 1 },
+    { id: 'c-usa2', nombre: 'Bank of America', banco: 'BofA', moneda: 'USD', saldo: 1500, saldo_fecha: dia(-2), principal: false, activa: true, orden: 2 },
+    { id: 'c-mx', nombre: 'BBVA México', banco: 'BBVA', moneda: 'MXN', saldo: 9000, saldo_fecha: dia(-2), principal: false, activa: true, orden: 3 },
+  ],
+  traspasos: [],
 }
 
 const cliente = (c, dinero) => {
@@ -88,6 +94,7 @@ const semago = cliente(
 cliente({ nombre: 'VAYRO', grupo: 'Keko Foods', estado: 'prospecto', servicios: ['Administración por Ramos & Co.', 'IA Vivian (en preparación)'], descripcion: 'De los mismos dueños de Abuelito, empresa independiente. Primero la administra Ramos & Co.' }, {})
 
 // Finanzas de muestra: cobros que llegaron, gastos con sus días y una meta con precio.
+cliente({ nombre: 'Grupo Norte (contrato MX)', equipo: 'mexico', servicios: ['Centro de trabajo'], descripcion: 'Contrato en México: paga en pesos, directo a la cuenta de México.' }, { frecuencia: 'mensual', monto_cobro: 45000, mensualidad: 45000, moneda: 'MXN', dia_cobro: 5, cobro_dias: [5], cuenta_id: 'c-mx' })
 {
   const mesHoy = (d) => new Date(hoy.getFullYear(), hoy.getMonth(), d).toLocaleDateString('en-CA')
   db.cobros.push({ id: id(), cliente_id: abuelito.id, concepto: '', monto: 1500, moneda: 'USD', fecha: viernesPagado, para_fecha: viernesPagado, metodo: 'Zelle', nota: '', creado: dia(-7) })
@@ -96,9 +103,9 @@ cliente({ nombre: 'VAYRO', grupo: 'Keko Foods', estado: 'prospecto', servicios: 
   g({ concepto: 'Oficina', categoria: 'renta', monto: 1800, dias: [1] })
   g({ concepto: 'Software (Claude, Netlify, Supabase…)', categoria: 'software', monto: 260, dias: [15] })
   g({ concepto: 'Anuncios en Meta', categoria: 'publicidad', monto: 1200, dias: [20] })
-  g({ concepto: 'Contador', categoria: 'profesionales', monto: 3500, moneda: 'MXN', dias: [28] })
+  g({ concepto: 'Contador', categoria: 'profesionales', monto: 3500, moneda: 'MXN', dias: [28], cuenta_id: 'c-mx' })
   g({ concepto: 'Hipoteca', categoria: 'casa', tipo: 'personal', empresa: '', monto: 2400, dias: [5] })
-  g({ concepto: 'Colegiatura', categoria: 'familia', tipo: 'personal', empresa: '', monto: 7000, moneda: 'MXN', frecuencia: 'quincenal', dias: [15, 31] })
+  g({ concepto: 'Colegiatura', categoria: 'familia', tipo: 'personal', empresa: '', monto: 7000, moneda: 'MXN', frecuencia: 'quincenal', dias: [15, 31], cuenta_id: 'c-mx' })
   const casa = { id: id(), area: 'patrimonio', titulo: 'Casa multifamiliar para rentar', porque: 'Que la renta pague la casa y me deje ingreso', periodo: 'año', fecha_limite: null, progreso: 0, estado: 'activa', monto_objetivo: 800000, moneda: 'USD', aporte_monto: 500, aporte_frecuencia: 'quincenal', creado: dia(-20), actualizado: dia(-1) }
   db.metas.push(casa)
   db.metas_aportes.push({ id: id(), meta_id: casa.id, monto: 30, moneda: 'USD', fecha: fecha(-6), nota: 'Primer apartado', creado: dia(-6) })
@@ -594,6 +601,28 @@ export function crearMuestra() {
       if (!admin()) nunca()
       Object.assign(db.finanzas_config[0], c)
       return copia(db.finanzas_config[0])
+    },
+    cuentas: () => espera(tiene('finanzas_ver') ? db.cuentas : []),
+    async guardarCuenta(c) {
+      if (!tiene('finanzas_editar')) nunca()
+      if (c.principal) db.cuentas.forEach((x) => (x.principal = x.id === c.id))
+      return copia(upsert(db.cuentas, c.id ? c : { activa: true, creado: new Date().toISOString(), ...c }))
+    },
+    async borrarCuenta(cid) {
+      if (!admin()) nunca()
+      db.cuentas = db.cuentas.filter((x) => x.id !== cid)
+      db.traspasos = db.traspasos.filter((t) => t.de_cuenta !== cid && t.a_cuenta !== cid)
+      return true
+    },
+    traspasos: () => espera(tiene('finanzas_ver') ? db.traspasos : []),
+    async guardarTraspaso(t) {
+      if (!tiene('finanzas_editar')) nunca()
+      return copia(upsert(db.traspasos, t.id ? t : { creado: new Date().toISOString(), nota: '', ...t }))
+    },
+    async borrarTraspaso(tid) {
+      if (!admin()) nunca()
+      db.traspasos = db.traspasos.filter((x) => x.id !== tid)
+      return true
     },
     aportes: () => espera(admin() ? db.metas_aportes : nunca()),
     async guardarAporte(a) {

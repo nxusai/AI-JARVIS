@@ -609,8 +609,9 @@ export function iniciar(D, { muestra = false } = {}) {
     )
   }
 
-  function editarDinero(c, d = {}) {
-    return editarPlanCliente(ctxFinanzas(), c, d)
+  async function editarDinero(c, d = {}) {
+    const cuentas = D.cuentas ? await D.cuentas().catch(() => []) : []
+    return editarPlanCliente({ ...ctxFinanzas(), cuentas: cuentas.filter((x) => x.activa !== false) }, c, d)
   }
   /** Eduardo escribe el cliente con sus palabras; la IA arma la ficha, el dinero y las primeras tareas. */
   function clienteConIA() {
