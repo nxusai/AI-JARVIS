@@ -14,7 +14,7 @@ import { DATA } from '../nucleo/lugar.mjs'
  * Keys never travel this way: those are typed on the brain (llaves.mjs).
  *
  *   { tipo: 'datos', fecha, etiquetas?: { <id>: set }, anasofi?: { grupo, voz, voz_es, voz_en },
- *     cerebro?: { dueno }, canal? }
+ *     cerebro?: { dueno }, canal?, ultron?: { prendido?, apagado?, voz? }, ventas?: { prendido, agentId, phoneId, avisos } }
  */
 
 const LAST_FILE = join(DATA, 'ultimos-datos.json')
@@ -83,6 +83,34 @@ export function applyData(file, publicPem) {
   if (typeof data.canal === 'string' && /^et-[0-9a-f]{32}$/.test(data.canal)) {
     writeLabelConfig({ ...readLabelConfig(), canal: data.canal })
     done.push('la línea directa de la impresora')
+  }
+  if (data.ultron && typeof data.ultron === 'object' && (typeof data.ultron.prendido === 'boolean' || typeof data.ultron.apagado === 'boolean')) {
+    // His address and key are typed on the brain (llaves.mjs); this says whether he answers from here,
+    // and the owner's master switch (apagado: no AI of this brain starts).
+    const file = join(DATA, 'ultron.json')
+    const now = readJson(file, {})
+    const next = { ...now }
+    if (typeof data.ultron.prendido === 'boolean') {
+      next.prendido = data.ultron.prendido
+      done.push(data.ultron.prendido ? 'Ultron contesta desde aquí' : 'Ultron ya no contesta desde aquí')
+    }
+    if (typeof data.ultron.apagado === 'boolean') {
+      next.apagado = data.ultron.apagado
+      done.push(data.ultron.apagado ? 'Ultron apagado: ninguna IA arranca' : 'Ultron prendido otra vez')
+    }
+    if (typeof data.ultron.voz === 'string' && VOICE.test(data.ultron.voz)) next.voz = data.ultron.voz
+    writePrivate(file, next)
+  }
+  if (data.ventas && typeof data.ventas === 'object' && typeof data.ventas.prendido === 'boolean') {
+    // Ana Sofi's sales line: whether it runs here, her agent and her number (not secrets).
+    const file = join(DATA, 'ventas.json')
+    const v = data.ventas
+    const next = { ...readJson(file, {}), prendido: v.prendido }
+    if (/^agent_\w+$/.test(v.agentId ?? '')) next.agentId = v.agentId
+    if (/^phnum_\w+$/.test(v.phoneId ?? '')) next.phoneId = v.phoneId
+    if (v.avisos === 'todo' || v.avisos === 'meetings') next.avisos = v.avisos
+    writePrivate(file, next)
+    done.push(v.prendido ? 'la línea de ventas trabaja desde aquí' : 'la línea de ventas ya no trabaja desde aquí')
   }
   writePrivate(LAST_FILE, { fecha: data.fecha, aplicado: new Date().toISOString(), que: done })
   return done

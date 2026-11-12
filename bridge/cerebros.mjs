@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import { readAnaSofi } from './anasofi.mjs'
 import { listClients, readLabelConfig, saveClient } from './etiquetas.mjs'
 import { readTelegram } from './telegram-config.mjs'
+import { readUltron } from './nucleo/ultron.mjs'
 
 /**
  * NEX's side of the clients' brains (docs/cerebro-cliente.md): which brains
@@ -14,7 +15,7 @@ import { readTelegram } from './telegram-config.mjs'
  * (bridge/cerebro/canal.sh) — read its state, take a copy of its labels,
  * install a signed package, apply signed data, restart, stop, or wipe its keys.
  *
- *   ~/.nexy/cerebros.json               { <nombre>: { host, usuario, anasofi?: 'cerebro' } }
+ *   ~/.nexy/cerebros.json               { <nombre>: { host, usuario, anasofi?: 'cerebro', ultron?: 'cerebro', ventas?: 'cerebro', apagado?: true } }
  *   ~/.nexy/cerebro/canal_ed25519       the door's key (this Mac's user only); .pub goes in every package
  *   ~/.nexy/cerebro/known_hosts         the brains' own SSH identities, learned the first time
  *   ~/.nexy/cerebros/<nombre>/espejo/   the last copy taken of a brain
@@ -52,6 +53,10 @@ export function saveBrain(name, value) {
 
 /** Whether Ana Sofi answers from a brain now (then NEX's own copy of her stays off). */
 export const anaSofiMoved = () => Object.values(readBrains()).some((b) => b.anasofi === 'cerebro')
+/** Ultron answers from a brain: NEX no longer starts her own (she keeps her tools over him). */
+export const ultronMoved = () => Object.values(readBrains()).some((b) => b.ultron === 'cerebro')
+/** Ana Sofi's sales line calls from a brain: NEX only keeps the owner's calls (the morning one, an hour before, a new meeting). */
+export const salesMoved = () => Object.values(readBrains()).some((b) => b.ventas === 'cerebro')
 
 /** The door's key: made the first time with ssh-keygen. Resolves its public line. */
 export function doorKey() {
@@ -152,7 +157,11 @@ export async function mirror(name) {
 }
 
 /** What NEX sends a brain as data: signed with the same key as the packages. */
-export function buildData({ labels = false } = {}) {
+export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
+  let sales = {}
+  try {
+    sales = JSON.parse(readFileSync(join(homedir(), '.nexy', 'ventas.json'), 'utf8')) ?? {}
+  } catch {}
   const ana = readAnaSofi() ?? {}
   const data = {
     tipo: 'datos',
@@ -161,6 +170,12 @@ export function buildData({ labels = false } = {}) {
     ...(readTelegram()?.owner?.id ? { cerebro: { dueno: readTelegram().owner.id } } : {}),
     ...(readLabelConfig().canal ? { canal: readLabelConfig().canal } : {}),
     ...(labels ? { etiquetas: Object.fromEntries(listClients().map((c) => [c.id, c])) } : {}),
+    // Whether Ultron answers from the brain (moving day or calling it off), with his voice.
+    ...(typeof ultron === 'boolean' || typeof apagado === 'boolean'
+      ? { ultron: { ...(typeof ultron === 'boolean' ? { prendido: ultron } : {}), ...(typeof apagado === 'boolean' ? { apagado } : {}), ...(readUltron()?.voz ? { voz: readUltron().voz } : {}) } }
+      : {}),
+    // Ana Sofi's sales line: whether it calls from the brain, with her agent and number (no keys).
+    ...(typeof ventas === 'boolean' ? { ventas: { prendido: ventas, agentId: sales.agentId, phoneId: sales.phoneId, avisos: sales.avisos === 'todo' ? 'todo' : 'meetings' } } : {}),
   }
   const body = JSON.stringify(data)
   const key = createPrivateKey(readFileSync(SIGNING_KEY, 'utf8'))

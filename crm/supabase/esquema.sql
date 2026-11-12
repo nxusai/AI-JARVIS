@@ -298,6 +298,8 @@ begin
     new.creada_por := auth.uid();
     new.entregada := null;
     new.aprobada := null;
+    new.tomada_por := null;
+    new.tomada := null;
     new.actualizada := now();
     if not es_equipo() then
       -- El cliente pide; lo demás lo pone el equipo.
@@ -335,6 +337,14 @@ begin
   end if;
   if new.estatus = 'aprobada' and old.estatus <> 'aprobada' then
     raise exception 'Solo el cliente aprueba';
+  end if;
+  -- Quién la tomó (el que la pasó de "Pedida" a trabajarla) y cuándo: se pone solo.
+  if new.tomada_por is distinct from old.tomada_por or new.tomada is distinct from old.tomada then
+    raise exception 'Esa fecha se pone sola';
+  end if;
+  if old.estatus = 'recibida' and new.estatus <> 'recibida' and old.tomada_por is null then
+    new.tomada_por := auth.uid();
+    new.tomada := now();
   end if;
   -- Si el equipo la marca "Entregada" a mano (sin subir el PDF con el botón), la
   -- fecha de entrega se pone sola: así el cliente la puede aprobar o corregir.
@@ -1426,3 +1436,19 @@ begin
   update public.tareas set entregada = coalesce(actualizada, now()) where estatus = 'entregada' and entregada is null;
   perform set_config('crm.sistema', '', true);
 end $$;
+
+-- Quién tomó cada tarea (el que la recibió para trabajarla). Se pone solo.
+alter table public.tareas add column if not exists tomada_por uuid references public.perfiles (id);
+alter table public.tareas add column if not exists tomada timestamptz;
+
+-- Los nombres y el papel de cada persona del Centro de trabajo (solo eso, nada
+-- más de su perfil), para que la página y Ultron digan "la pidió Senen (cliente)"
+-- o "la entregó Diseñador 1 (equipo)". Cualquiera con sesión los puede leer.
+create or replace function public.personas() returns table (id uuid, nombre text, rol text, activo boolean, creador boolean)
+language sql stable security definer set search_path = public as $$
+  select p.id, coalesce(nullif(p.nombre, ''), split_part(coalesce(p.correo, ''), '@', 1), 'Sin nombre'), p.rol, p.activo, coalesce(p.dueno, false)
+  from perfiles p
+  where auth.uid() is not null and not coalesce(p.eliminado, false)
+$$;
+revoke all on function public.personas() from public, anon;
+grant execute on function public.personas() to authenticated;

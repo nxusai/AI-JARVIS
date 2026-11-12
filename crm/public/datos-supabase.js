@@ -109,6 +109,12 @@ export function crearSupabase({ url, anon }) {
     async empresas() {
       return ok(await sb.from('empresas').select('*').order('orden'))
     },
+    // Nombre y papel de cada persona (función personas() del esquema). Sin el esquema nuevo, lo que se pueda.
+    async gente() {
+      const r = await sb.rpc('personas')
+      if (r.error) return null
+      return r.data ?? []
+    },
     async clientes() {
       return ok(await sb.from('perfiles').select('id, nombre, activo').eq('rol', 'cliente').order('nombre'))
     },
@@ -301,6 +307,10 @@ export function crearSupabase({ url, anon }) {
       const r = await res.json().catch(() => ({}))
       if (!res.ok || r.ok === false) throw new Error(r.error || 'No te pude oír')
       return r.texto ?? ''
+    },
+    // Ultron en vivo: el permiso de un solo uso para hablar con su agente de ElevenLabs.
+    async ultronVivo() {
+      return funcion('ultron-vivo', {})
     },
     async correoVarios(ids) {
       return funcion('correo', { archivos: ids })

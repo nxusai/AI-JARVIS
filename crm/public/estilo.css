@@ -1144,3 +1144,6 @@ body.ver-fondo { cursor: zoom-out; }
 .u-llamada-botones .btn { height: 48px; padding: 0 20px; border-radius: 999px; font-weight: 700; }
 .u-colgar { background: #dc2626 !important; color: #fff !important; border-color: #dc2626 !important; }
 @media (prefers-reduced-motion: reduce) { .u-llamada-orbe, .u-llamada-orbe span { animation: none !important; } }
+
+/* Quién pidió, tomó y entregó la tarea */
+.quien-tarea { margin: 0 0 12px; padding: 9px 13px; border-radius: 14px; font-size: 13.5px; color: #3d3731; background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .8); }

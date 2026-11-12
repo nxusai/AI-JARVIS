@@ -17,6 +17,12 @@
  *   node scripts/cerebro.mjs borrar-llaves [nombre]                    emergency: wipe its keys and stop it
  *   node scripts/cerebro.mjs mudar-anasofi [nombre]                    moving day: the labels and her group go to the brain, and NEX stops answering with her bot
  *   node scripts/cerebro.mjs regresar-anasofi [nombre]                 calls the move off: the brain stops, and she answers from NEX again
+ *   node scripts/cerebro.mjs mudar-ultron [nombre]                     Ultron answers the direction from the brain, and NEX stops running him
+ *   node scripts/cerebro.mjs regresar-ultron [nombre]                  he answers from NEX again (the brain's Ana Sofi keeps going)
+ *   node scripts/cerebro.mjs apagar-ultron [nombre]                    the master switch: Ultron off, and with him every AI of that brain
+ *   node scripts/cerebro.mjs prender-ultron [nombre]                   switch them all on again
+ *   node scripts/cerebro.mjs mudar-ventas [nombre]                     Ana Sofi's sales line calls from the brain (NEX must be stopped first)
+ *   node scripts/cerebro.mjs regresar-ventas [nombre]                  it calls from NEX again
  * With one brain, the name can be left out.
  *
  * Every package is signed with the owner's key, ~/.nexy/cerebro/firma-privada.pem,
@@ -110,7 +116,7 @@ export async function buildPackage({ out = OUT, version = versionNow() } = {}) {
   return { dir, version, files: Object.keys(files).length }
 }
 
-const DOOR = ['estado', 'enviar', 'datos', 'espejo', 'registro', 'reiniciar', 'apagar', 'prender', 'borrar-llaves', 'mudar-anasofi', 'regresar-anasofi']
+const DOOR = ['estado', 'enviar', 'datos', 'espejo', 'registro', 'reiniciar', 'apagar', 'prender', 'borrar-llaves', 'mudar-anasofi', 'regresar-anasofi', 'mudar-ultron', 'regresar-ultron', 'apagar-ultron', 'prender-ultron', 'mudar-ventas', 'regresar-ventas']
 
 /** Which brain: the one named, or the only one there is. */
 function pick(args) {
@@ -191,6 +197,72 @@ async function door(what, args) {
       console.log(' ✅ Ana Sofi vuelve a NEX: reinicia NEX (Ctrl + C y npm start).')
       return 0
     }
+    if (what === 'mudar-ultron') {
+      const st = await brainState(name)
+      if (st.estado?.sello && st.estado.sello !== 'bien') return console.log(` ❌ El sello del cerebro no cuadra (${st.estado.sello}). Reinstálalo antes de mudarlo.`), 1
+      signingKey()
+      const r = await order(name, 'datos', buildData({ ultron: true }))
+      console.log(answer(r))
+      if (r.code !== 0) return 1
+      await order(name, 'reiniciar').catch(() => null)
+      saveBrain(name, { ...readBrains()[name], ultron: 'cerebro' })
+      console.log(` ✅ Ultron contesta desde el cerebro ${name}.`)
+      console.log(' Ahora reinicia NEX (Ctrl + C y npm start): ya no lo correrá aquí. Sigues viendo sus conversaciones y dándole órdenes desde NEX.')
+      console.log(' Revisa: node scripts/cerebro.mjs estado (debe decir ultron: prendida). Si algo sale mal: node scripts/cerebro.mjs regresar-ultron')
+      return 0
+    }
+    if (what === 'regresar-ultron') {
+      signingKey()
+      const r = await order(name, 'datos', buildData({ ultron: false })).catch((err) => ({ code: 1, out: Buffer.from(''), err: err.message }))
+      if (r.code === 0) await order(name, 'reiniciar').catch(() => null)
+      console.log(r.code === 0 ? ` El cerebro ${name} ya no corre a Ultron.` : ` ⚠️ No pude avisarle al cerebro (${answer(r)}). Apágalo desde el Mac mini antes de seguir, o contestarán los dos.`)
+      saveBrain(name, { ...readBrains()[name], ultron: undefined })
+      console.log(' ✅ Ultron vuelve a NEX: reinicia NEX (Ctrl + C y npm start).')
+      return 0
+    }
+    if (what === 'apagar-ultron' || what === 'prender-ultron') {
+      const off = what === 'apagar-ultron'
+      signingKey()
+      const r = await order(name, 'datos', buildData({ apagado: off }))
+      console.log(answer(r))
+      if (r.code !== 0) return 1
+      await order(name, 'reiniciar').catch(() => null)
+      saveBrain(name, { ...readBrains()[name], apagado: off || undefined })
+      console.log(off ? ` ✅ Ultron apagado: ninguna IA del cerebro ${name} contesta ni llama. Para prenderlas: node scripts/cerebro.mjs prender-ultron` : ` ✅ Ultron y las IA del cerebro ${name} prendidas otra vez.`)
+      return 0
+    }
+    if (what === 'mudar-ventas') {
+      // Two lines calling the same leads would phone them twice: NEX's must be stopped first.
+      const busy = (() => {
+        try {
+          return execFileSync('lsof', ['-ti', 'tcp:8787'], { encoding: 'utf8' }).trim()
+        } catch {
+          return ''
+        }
+      })()
+      if (busy) return console.log(' ✋ NEX está prendida. Apágala primero (Ctrl + C en su Terminal) y vuelve a correr esto.'), 1
+      const st = await brainState(name)
+      if (st.estado?.sello && st.estado.sello !== 'bien') return console.log(` ❌ El sello del cerebro no cuadra (${st.estado.sello}). Reinstálalo antes de mudarla.`), 1
+      signingKey()
+      const r = await order(name, 'datos', buildData({ ventas: true }))
+      console.log(answer(r))
+      if (r.code !== 0) return 1
+      saveBrain(name, { ...readBrains()[name], ventas: 'cerebro' })
+      await order(name, 'reiniciar').catch(() => null)
+      console.log(` ✅ La línea de ventas de Ana Sofi ya llama desde el cerebro ${name}.`)
+      console.log(' Ahora prende NEX (npm start): solo te llamará a ti (la de la mañana, una hora antes de cada meeting y cuando haya uno nuevo).')
+      console.log(' Revisa: node scripts/cerebro.mjs estado (debe decir ventas: prendida). Si algo sale mal: node scripts/cerebro.mjs regresar-ventas')
+      return 0
+    }
+    if (what === 'regresar-ventas') {
+      signingKey()
+      const r = await order(name, 'datos', buildData({ ventas: false })).catch((err) => ({ code: 1, out: Buffer.from(''), err: err.message }))
+      if (r.code === 0) await order(name, 'reiniciar').catch(() => null)
+      console.log(r.code === 0 ? ` El cerebro ${name} ya no llama a los leads.` : ` ⚠️ No pude avisarle al cerebro (${answer(r)}). Apágalo desde el Mac mini antes de seguir, o llamarán los dos.`)
+      saveBrain(name, { ...readBrains()[name], ventas: undefined })
+      console.log(' ✅ La línea de ventas vuelve a NEX: reinicia NEX (Ctrl + C y npm start).')
+      return 0
+    }
     if (what === 'borrar-llaves') {
       const rl = (await import('node:readline')).createInterface({ input: process.stdin, output: process.stdout })
       const sure = await new Promise((r) => rl.question(` Esto borra las llaves del cerebro ${name} y lo apaga. Escribe borrar para seguir: `, r))
@@ -236,7 +308,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   } else if (DOOR.includes(cmd)) {
     process.exitCode = await door(cmd, process.argv.slice(3))
   } else {
-    console.log(' Uso: node scripts/cerebro.mjs armar | llave | conectar | estado | enviar | datos | espejo | registro | reiniciar | apagar | prender | borrar-llaves')
+    console.log(' Uso: node scripts/cerebro.mjs armar | llave | conectar | estado | enviar | datos | espejo | registro | reiniciar | apagar | prender | borrar-llaves | mudar-anasofi | regresar-anasofi | mudar-ultron | regresar-ultron | apagar-ultron | prender-ultron | mudar-ventas | regresar-ventas')
     process.exitCode = 1
   }
 }

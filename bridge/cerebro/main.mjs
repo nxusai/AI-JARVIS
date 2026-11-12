@@ -1,6 +1,9 @@
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
+import { readUltron, startUltron } from '../nucleo/ultron.mjs'
+import { api } from '../nucleo/telegram.mjs'
+import { iniciarVentas, leerVentas } from '../nucleo/ventas.mjs'
 import { setRemoteFolder } from '../nucleo/etiquetas.mjs'
 import { ASSETS, DATA, SEAL_KEY, TAG } from '../nucleo/lugar.mjs'
 import { transcribe } from '../nucleo/voz.mjs'
@@ -25,18 +28,27 @@ import { checkSeal } from './firma.mjs'
  *   <data>/cerebro.json   { dueno: Telegram id of the owner, modelo?, esfuerzo? }
  *   <data>/llaves.json    { claude, elevenlabs, drive_url?, drive_clave? }  (set with llaves.mjs; the service user only)
  *   <data>/anasofi.json   Ana Sofi's bot, group and voices
+ *   <data>/ultron.json    Ultron: the work center's address and service key (llaves.mjs), his voice and
+ *                         whether he answers from here (prendido, sent by the owner on moving day)
+ *   <data>/ventas.json    Ana Sofi's sales line: agent, number and whether it runs here (sent by the owner)
  *   <data>/estado.json    how the brain is, every minute
+ *
+ * Ultron is the master switch: when the owner turns him off (apagado in
+ * ultron.json, sent signed), no AI of this brain starts. If Ultron himself
+ * fails, the others keep working and he is started again after a pause.
  */
 
 export const CONFIG_FILE = join(DATA, 'cerebro.json')
 export const KEYS_FILE = join(DATA, 'llaves.json')
 export const STATE_FILE = join(DATA, 'estado.json')
 const MODEL = 'claude-haiku-5-5'
+// Ultron talks with the direction: the stronger model, with the quick one for small turns.
+const ULTRON_MODEL = 'claude-sonnet-5-5'
 const EFFORT = 'low'
 // Written into the package by scripts/cerebro.mjs.
 const VERSION = typeof __CEREBRO_VERSION__ === 'string' ? __CEREBRO_VERSION__ : 'desarrollo'
 
-const readJson = (f) => {
+export const readJson = (f) => {
   try {
     return JSON.parse(readFileSync(f, 'utf8')) ?? {}
   } catch {
@@ -93,6 +105,11 @@ export async function main() {
 
   const cfg = readConfig()
   const keys = readKeys()
+  // The owner's master switch: Ultron off, every AI off.
+  if (readJson(join(DATA, 'ultron.json')).apagado === true) {
+    state.ias = { todas: 'apagadas por el dueño' }
+    return warn('Ultron está apagado por el dueño: ninguna IA arranca hasta que lo prenda.')
+  }
   if (!keys.claude) warn('Falta la llave de Claude: corre llaves.mjs. Ninguna IA arranca sin ella.')
   if (!/^\d{4,15}$/.test(String(cfg.dueno ?? ''))) warn('Falta el dueño (id de Telegram) en cerebro.json.')
   if (!keys.claude) return
@@ -121,6 +138,54 @@ export async function main() {
   } else {
     state.ias.anasofi = 'sin bot'
     warn('Ana Sofi no tiene bot todavía: corre llaves.mjs.')
+  }
+
+  // Ultron answers the direction from the work center, once the owner moved him here.
+  // If he fails, he alone stops: the others keep working, and he starts again after a pause.
+  const ultron = readUltron()
+  if (ultron && ultron.prendido === true) {
+    const arrancar = (vez = 1) => {
+      state.ias.ultron = 'prendida'
+      beat()
+      startUltron({
+        model: cfg.modelo_ultron || ULTRON_MODEL,
+        modeloRapido: cfg.modelo || MODEL,
+        effort: cfg.esfuerzo || EFFORT,
+        env: claudeEnv,
+        elevenKey: readKeys().elevenlabs ?? null,
+      }).catch((err) => {
+        state.ias.ultron = 'reiniciando'
+        warn(`Ultron se detuvo (${err?.message ?? err}); lo vuelvo a arrancar en ${Math.min(10, vez)} min. Ana Sofi sigue trabajando.`)
+        setTimeout(() => arrancar(vez + 1), Math.min(10, vez) * 60_000).unref?.()
+      })
+    }
+    arrancar()
+  } else if (ultron) {
+    state.ias.ultron = 'en espera'
+  }
+
+  // Ana Sofi's sales line (leads of the work center), once the owner moved it here.
+  if (leerVentas().prendido) {
+    const u = () => readJson(join(DATA, 'ultron.json'))
+    try {
+      iniciarVentas({
+        centro: () => (u().url && u().servicio ? { url: u().url, key: u().servicio } : null),
+        eleven: () => readKeys().elevenlabs ?? null,
+        calendario: () => ({ url: readKeys().calendario_url, clave: readKeys().calendario_clave }),
+        claude: () => readKeys().claude ?? null,
+        avisar: (texto) => {
+          const token = readAnaSofi()?.token
+          const dueno = Number(readConfig().dueno)
+          if (token && dueno) api(token, 'sendMessage', { chat_id: dueno, text: texto }).catch(() => {})
+        },
+      })
+      state.ias.ventas = 'prendida'
+      if (!readKeys().calendario_url) warn('Falta la conexión con el calendario de ventas (llaves.mjs): las videollamadas se anotan para agendarlas a mano.')
+    } catch (err) {
+      state.ias.ventas = 'detenida'
+      warn(`La línea de ventas no arrancó: ${err.message}.`)
+    }
+    beat()
   }
 }
 
