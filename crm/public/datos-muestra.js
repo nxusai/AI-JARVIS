@@ -657,6 +657,10 @@ export function crearMuestra() {
       anota('envió por correo', 'archivos', a.id)
       return { para: `${perfil().correo} (en la muestra no sale correo de verdad)` }
     },
+    async transcribir() {
+      await espera(500)
+      return 'Resumen de hoy'
+    },
     async correoVarios(ids) {
       await espera(800)
       for (const id of ids) {

@@ -1103,3 +1103,21 @@ body.ver-fondo { cursor: zoom-out; }
   body.con-letrero .ultron-panel { bottom: calc(env(safe-area-inset-bottom, 0px) + 154px) !important; }
   body.con-letrero #app > main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 190px); }
 }
+
+/* Ultron: el micrófono para hablarle */
+.u-mic { --nivel: 0; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--linea-2); background: rgba(255, 255, 255, .7);
+  display: grid; place-items: center; cursor: pointer; color: #1a1714; position: relative; -webkit-tap-highlight-color: transparent; }
+.u-mic svg { width: 21px; height: 21px; }
+.u-mic.grabando { background: #dc2626; color: #fff; border-color: #dc2626; box-shadow: 0 0 0 calc(4px + var(--nivel) * 10px) rgba(220, 38, 38, .25); transition: box-shadow .08s; }
+.u-mic.oyendo { opacity: .55; pointer-events: none; animation: latido 1s ease-in-out infinite; }
+
+/* Ultron en el celular: hoja completa con su cabeza a la vista (no se corta arriba) */
+@media (max-width: 760px) {
+  .ultron-panel { left: 8px !important; right: 8px !important; width: auto !important; height: auto !important; transform-origin: bottom center;
+    top: calc(env(safe-area-inset-top, 0px) + 8px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; z-index: 70; }
+  body.con-letrero .ultron-panel { bottom: calc(env(safe-area-inset-bottom, 0px) + 74px) !important; }
+  .u-cabeza { padding: 12px 12px 12px 14px; }
+  .u-cabeza .btn[data-u-consola] { display: none; }
+  .ultron-panel .cerrar { width: 36px; height: 36px; border-radius: 50%; }
+  .u-escribir { padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px) * 0); }
+}

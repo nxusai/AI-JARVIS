@@ -316,6 +316,7 @@ async function empezar() {
     montarUltron({
       yo: S.yo,
       preguntar: (t) => D.ultron(t, 'crm'),
+      transcribir: D.transcribir ? (b) => D.transcribir(b) : null,
       avisar,
       muestra: MUESTRA,
       consola: () => (MUESTRA ? avisar('En el sistema real, la consola de Ultron se abre en otra pestaña.') : window.open('/ultron', '_blank')),
