@@ -336,6 +336,11 @@ begin
   if new.estatus = 'aprobada' and old.estatus <> 'aprobada' then
     raise exception 'Solo el cliente aprueba';
   end if;
+  -- Si el equipo la marca "Entregada" a mano (sin subir el PDF con el botón), la
+  -- fecha de entrega se pone sola: así el cliente la puede aprobar o corregir.
+  if new.estatus = 'entregada' and new.entregada is null then
+    new.entregada := now();
+  end if;
   new.actualizada := now();
   return new;
 end $$;
@@ -403,7 +408,7 @@ begin
     raise exception 'Solo quien pidió la tarea la puede aprobar';
   end if;
   if t.estatus = 'aprobada' then return; end if;
-  if t.entregada is null then
+  if t.entregada is null and t.estatus <> 'entregada' then
     raise exception 'Todavía no hay nada entregado para aprobar';
   end if;
   perform set_config('crm.sistema', '1', true);
@@ -705,7 +710,7 @@ create policy correcciones_pedir on public.correcciones for insert to authentica
     yo_rol() = 'cliente'
     and exists (
       select 1 from tareas t
-      where t.id = tarea_id and t.cliente_id = auth.uid() and t.entregada is not null and t.estatus <> 'aprobada'
+      where t.id = tarea_id and t.cliente_id = auth.uid() and (t.entregada is not null or t.estatus = 'entregada') and t.estatus <> 'aprobada'
     )
   );
 drop policy if exists correcciones_equipo on public.correcciones;
@@ -1412,3 +1417,12 @@ alter table public.leads drop constraint if exists leads_origen_check;
 alter table public.leads add constraint leads_origen_check check (origen in ('manychat', 'sheet', 'manual', 'web'));
 alter table public.website_leads add column if not exists lead_id uuid references public.leads (id) on delete set null;
 notify pgrst, 'reload schema';
+
+-- Tareas que el equipo marcó "Entregada" a mano antes del arreglo (sin fecha de
+-- entrega): se les pone la fecha para que el cliente las pueda aprobar.
+do $$
+begin
+  perform set_config('crm.sistema', '1', true);
+  update public.tareas set entregada = coalesce(actualizada, now()) where estatus = 'entregada' and entregada is null;
+  perform set_config('crm.sistema', '', true);
+end $$;

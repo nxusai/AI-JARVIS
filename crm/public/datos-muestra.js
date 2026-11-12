@@ -408,6 +408,7 @@ export function crearMuestra() {
       if (cambios.estatus === 'aprobada') no('Solo el cliente aprueba')
       const antes = {}
       for (const k of ['estatus', 'compromiso']) if (k in cambios) { antes[k] = [t[k], cambios[k]]; t[k] = cambios[k] }
+      if (t.estatus === 'entregada' && !t.entregada) t.entregada = ahora()
       anota('cambió', 'tareas', id, antes)
     },
     async subirEntrega(tarea, correccion_id, file) {
@@ -437,7 +438,7 @@ export function crearMuestra() {
       await espera(300)
       const t = db.tareas.find((x) => x.id === tarea_id)
       if (rol() !== 'cliente' || t.cliente_id !== yo) no('Solo quien pidió la tarea la puede aprobar')
-      if (!t.entregada) no('Todavía no hay nada entregado para aprobar')
+      if (!t.entregada && t.estatus !== 'entregada') no('Todavía no hay nada entregado para aprobar')
       t.estatus = 'aprobada'
       t.aprobada = ahora()
       anota('cambió', 'tareas', t.id, { estatus: ['', 'aprobada'] })
