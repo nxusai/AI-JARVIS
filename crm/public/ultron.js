@@ -112,35 +112,58 @@ async function desbloquearAudio() {
     await reproductor.play()
   } catch {}
 }
+/**
+ * En el iPhone, mientras el micrófono está abierto, el sonido sale por la bocina
+ * del oído (como en una llamada) y el micrófono oye la voz de Ultron. Por eso es
+ * por turnos, como un radio: mientras Ultron habla, el micrófono se cierra (su voz
+ * sale por la bocina grande y no se interrumpe sola) y al terminar se vuelve a abrir.
+ */
+function modoAudio(tipo) {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = tipo
+  } catch {}
+}
+
 function tocar(url) {
   try {
     sonando?.pause()
   } catch {}
-  sonando = reproductor || new Audio()
-  sonando.onplaying = () => {
-    llamada?.oido?.guardia(true)
-    pintarLlamada('hablando')
+  // Cierra el oído de la llamada antes de hablar (bocina grande, sin oírse a sí mismo).
+  if (llamada?.oido) {
+    llamada.oido.parar()
+    llamada.oido = null
   }
-  sonando.onended = sonando.onpause = () => {
-    llamada?.oido?.guardia(false)
-    if (llamada && llamada.fase === 'hablando') pintarLlamada('escuchando')
+  modoAudio('playback')
+  sonando = reproductor || new Audio()
+  let termino = false
+  const alTerminar = () => {
+    if (termino) return
+    termino = true
+    modoAudio('auto')
+    if (llamada) abrirEscucha()
+  }
+  sonando.onplaying = () => pintarLlamada('hablando')
+  sonando.onended = alTerminar
+  sonando.onpause = () => {
+    // Pausa de verdad (no el cambio de audio): "Que se calle".
+    if (sonando && !sonando.ended && sonando.currentTime > 0) alTerminar()
   }
   sonando.src = url
   sonando.play().catch(() => {
-    pintarLlamada('escuchando')
-    estado.avisar('Tu navegador no dejó reproducir el audio.')
+    estado.avisar('Tu iPhone no dejó reproducir el audio. Revisa que no esté en silencio.')
+    alTerminar()
   })
 }
 
 // ---- Llamada con Ultron: manos libres, como en la consola ----
 // Hablas, se transcribe solo, Ultron contesta con su voz y vuelve a escucharte.
-// Si le hablas mientras habla, se calla y te escucha. "Terminar" cuelga.
+// "Que se calle" lo detiene; "Terminar" cuelga.
 let llamada = null
 const sinSignos = (t) =>
   String(t || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9ñ ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -183,14 +206,16 @@ async function empezarLlamada() {
   })
   llamada = { fase: 'conectando', oido: null, yoDije: '' }
   pintarLlamada()
+  await abrirEscucha()
+}
+
+/** Abre el micrófono para el siguiente turno de la persona. */
+async function abrirEscucha() {
+  if (!llamada || llamada.oido || llamada.abriendo) return
+  llamada.abriendo = true
+  modoAudio('play-and-record')
   const oido = await abrirOido({
     empieza() {
-      // Le hablaste mientras hablaba: se calla y te escucha.
-      if (sonando && !sonando.paused) {
-        try {
-          sonando.pause()
-        } catch {}
-      }
       pintarLlamada('oyendo')
     },
     nivel(v) {
@@ -208,22 +233,16 @@ async function empezarLlamada() {
         return estado.avisar(err.message || 'No te pude oír')
       }
       if (!llamada) return
-      if (!dicho) return pintarLlamada('escuchando')
-      // Su propia voz que se coló por la bocina.
+      if (!dicho || ALTO.test(dicho)) return pintarLlamada('escuchando')
       const ultimo = [...estado.mensajes].reverse().find((m) => m.de === 'ultron')
       if (dicho.length > 8 && sinSignos(ultimo?.texto).includes(sinSignos(dicho))) return pintarLlamada('escuchando')
-      if (ALTO.test(dicho)) {
-        try {
-          sonando?.pause()
-        } catch {}
-        return pintarLlamada('escuchando')
-      }
       llamada.yoDije = dicho
       pintarLlamada('pensando')
       estado.porVoz = true
       await enviar(dicho)
       const ult = estado.mensajes[estado.mensajes.length - 1]
-      if (llamada && !ult?.esperandoVoz && (!sonando || sonando.paused)) pintarLlamada('escuchando')
+      // Sin voz (o no llegó): de vuelta a escuchar.
+      if (llamada && !ult?.esperandoVoz && !ult?.voz && llamada.fase === 'pensando') pintarLlamada('escuchando')
     },
     error(msg) {
       estado.avisar(`${msg} Puedes escribirle.`)
@@ -231,6 +250,9 @@ async function empezarLlamada() {
     },
   })
   if (!llamada) return oido.parar()
+  llamada.abriendo = false
+  // Mientras Ultron habla no se escucha (por turnos).
+  if (sonando && !sonando.paused && !sonando.ended) return oido.parar()
   llamada.oido = oido
   if (!oido.vivo()) return terminarLlamada()
   try {
@@ -246,6 +268,7 @@ function terminarLlamada() {
   try {
     sonando?.pause()
   } catch {}
+  modoAudio('auto')
   document.querySelector('.u-llamada')?.remove()
 }
 
