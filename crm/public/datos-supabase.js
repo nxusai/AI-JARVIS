@@ -295,6 +295,9 @@ export function crearSupabase({ url, anon }) {
     async correo(a) {
       return funcion('correo', { archivo: a.id })
     },
+    async correoVarios(ids) {
+      return funcion('correo', { archivos: ids })
+    },
     anotar(accion, id) {
       sb.rpc('anotar', { p_accion: accion, p_archivo: id }).then(
         () => {},
