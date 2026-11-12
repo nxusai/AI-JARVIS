@@ -979,7 +979,8 @@ function abrirTarea(id) {
   const entregas = t.archivos.filter((a) => a.tipo === 'entrega' && !a.correccion_id)
   const correcciones = [...t.correcciones].sort((a, b) => a.n - b.n)
   const abierta = t.estatus !== 'aprobada'
-  const entregado = Boolean(t.entregada)
+  // "Entregada" también cuando el equipo la marcó a mano sin subir el PDF con el botón.
+  const entregado = Boolean(t.entregada) || t.estatus === 'entregada'
   const ultimo = [...t.archivos.filter((a) => a.tipo === 'entrega')].sort((a, b) => aFecha(b.subido) - aFecha(a.subido))[0]
 
   const pedidoHTML = `
@@ -1071,6 +1072,7 @@ function abrirTarea(id) {
       ${t.urgente ? '<span class="chip urgente">Urgente</span>' : ''}
       ${esEquipo() ? `<span class="chip">Cliente: ${h(nombreCliente(t.cliente_id))}</span>` : ''}
     </div>
+    ${esCliente() && mia && abierta && entregado ? `<div class="revisar-ya"><div><b>👉 Te toca revisarla.</b> Si ya quedó, apruébala y se va a “Aprobadas”.</div><div class="revisar-botones"><button class="btn" data-accion="m-correccion">Pedir corrección</button><button class="btn ok" data-accion="aprobar" data-ocupado="Aprobando…">✅ Aprobar</button></div></div>` : ''}
     <div class="seccion" style="padding:16px 10px 12px">${avance(t.estatus)}</div>
     <div class="fechas" style="margin-bottom:12px">
       <div class="fecha-caja auto"><span>Pedida</span><b>${fecha(t.pedida, true)}</b></div>

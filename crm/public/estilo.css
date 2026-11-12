@@ -1082,3 +1082,9 @@ body.ver-fondo { cursor: zoom-out; }
   #caja-correccion:not(.abierta) { display: none; }
   #modal .m-grupo .m-fila-l { padding: 13px 14px; }
 }
+
+/* Arriba del detalle: cuando al cliente le toca revisar, aprobar sin tener que bajar. */
+.revisar-ya { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 16px; margin-bottom: 12px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, .14), rgba(46, 229, 157, .12)), rgba(255, 255, 255, .55); border: 1px solid rgba(139, 92, 246, .35); }
+.revisar-ya > div:first-child { flex: 1 1 260px; }
+.revisar-botones { display: flex; gap: 8px; }
