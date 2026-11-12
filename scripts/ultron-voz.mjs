@@ -71,7 +71,7 @@ const HERRAMIENTAS = [
   cliente('ver_tarea', 'El detalle de una tarea por su folio (número): lo que se pidió, estado, fechas, archivos y correcciones.', { folio: { type: 'number', description: 'Número de folio' } }, ['folio']),
   cliente('buscar_archivos', 'Busca archivos (PDFs, catálogos, biblioteca, entregas de tareas) por nombre o empresa. Regresa hasta 6 con su id.', { texto: texto('Qué archivo buscar') }, ['texto']),
   cliente('mandar_al_correo', 'Manda a quien habla, a su correo, uno o varios archivos juntos en un solo correo. Solo después de que confirme cuáles.', {
-    ids: { type: 'array', items: { type: 'string' }, description: 'Los id de los archivos (de buscar_archivos o ver_tarea)' },
+    ids: { type: 'array', items: { type: 'string', description: 'El id de un archivo' }, description: 'Los id de los archivos (de buscar_archivos o ver_tarea)' },
   }, ['ids']),
   cliente('pedir_tarea', 'Registra una tarea nueva para el equipo. Antes de usarla, repite en voz alta qué y para qué empresa, y espera el sí.', {
     empresa: texto('Nombre de la empresa (de la lista de empresas)'),
