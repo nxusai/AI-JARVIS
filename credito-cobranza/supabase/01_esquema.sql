@@ -161,7 +161,10 @@ begin
   foreach t in array array['regiones','zonas','gerencias','oficinas','rutas','clientes','creditos','pagos','solicitudes'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists leer_activos on public.%I', t);
-    execute format('create policy leer_activos on public.%I for select to authenticated using (public.usuario_activo())', t);
+    -- Si ya se corrió 04_ambito.sql, se respeta su candado por ámbito.
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'leer_ambito') then
+      execute format('create policy leer_activos on public.%I for select to authenticated using (public.usuario_activo())', t);
+    end if;
   end loop;
 end $$;
 

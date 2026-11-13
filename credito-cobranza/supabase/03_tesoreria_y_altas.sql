@@ -85,7 +85,10 @@ begin
   foreach t in array array['cuentas_bancarias','movimientos_tesoreria'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists leer_activos on public.%I', t);
-    execute format('create policy leer_activos on public.%I for select to authenticated using (public.usuario_activo())', t);
+    -- Si ya se corrió 04_ambito.sql, se respeta su candado por ámbito.
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'leer_ambito') then
+      execute format('create policy leer_activos on public.%I for select to authenticated using (public.usuario_activo())', t);
+    end if;
   end loop;
   -- Altas y ediciones de estructura y tesorería: sólo administradores
   foreach t in array array['regiones','zonas','gerencias','oficinas','rutas','cuentas_bancarias','movimientos_tesoreria'] loop

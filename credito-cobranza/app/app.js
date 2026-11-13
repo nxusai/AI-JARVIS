@@ -194,6 +194,15 @@ function prep(raw) {
     oficinas: uniq('oficina_id', 'oficina', (r) => ({ gerencia_id: r.gerencia_id })),
   }
 }
+// Ámbito del usuario: la base de datos ya sólo entrega su parte; aquí se usa para
+// el selector (no puede subir más arriba de su ámbito) y el nivel inicial.
+const NIVEL = ['emp', 'region', 'zona', 'gerencia', 'oficina', 'ruta']
+function raiz() {
+  const p = DB.perfil
+  if (ADMIN_ROLES.includes(p.rol) || !p.ambito || p.ambito === 'empresa') return 'emp'
+  return p.ambito
+}
+const nivelDe = (sc) => NIVEL.indexOf(sc.split(':')[0])
 function inScope(row) {
   if (SCOPE === 'emp') return true
   const [nivel, id] = SCOPE.split(':')
@@ -210,7 +219,7 @@ function scopeLabel() {
   if (SCOPE === 'emp') return 'toda la empresa'
   const [nivel, id] = SCOPE.split(':')
   const r = DB.rutas.find((x) => String(x[nivel + '_id']) === id)
-  const name = { zona: r?.zona, gerencia: r?.gerencia, oficina: 'oficina ' + r?.oficina, ruta: 'ruta ' + r?.ruta }[nivel]
+  const name = { region: r?.region, zona: r?.zona, gerencia: r?.gerencia, oficina: 'oficina ' + r?.oficina, ruta: 'ruta ' + r?.ruta }[nivel]
   return name || 'toda la empresa'
 }
 function porDia(rows, fechaKey, valKey, desde, hasta) {
@@ -250,12 +259,37 @@ function showApp() {
   $('#bannerTxt').innerHTML = DB.demo
     ? '<b>DATOS DE EJEMPLO</b> — nombres y deudas inventados para mostrar el avance; se borrarán antes de cargar la información real.'
     : `Información al ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`
+  $('#bannerTxt').dataset.corto = DB.demo ? 'DATOS DE EJEMPLO' : ''
+  if (!scopeValido(SCOPE)) SCOPE = raiz()
+  const ok = vistasPermitidas()
+  if (!ok.includes(VIEW)) VIEW = 'tablero'
   const nRev = DB.solicitudes.filter((s) => s.estado === 'revision').length
-  $('#nav').innerHTML = NAV.map(([k, t]) => k === 'h' ? `<div class="nav-h">${t}</div>`
-    : `<a data-view="${k}" class="${k === VIEW ? 'on' : ''}"><svg class="ic" viewBox="0 0 24 24">${ICON[k]}</svg>${t}${k === 'solicitudes' && nRev ? `<span class="tag">${nRev}</span>` : ''}</a>`).join('')
+  const tag = (k) => k === 'solicitudes' && nRev ? `<span class="tag">${nRev}</span>` : ''
+  // Encabezados de sección sólo si debajo queda alguna opción visible
+  const nav = NAV.filter(([k], i) => {
+    if (k !== 'h') return ok.includes(k)
+    const resto = NAV.slice(i + 1), fin = resto.findIndex(([x]) => x === 'h')
+    return (fin < 0 ? resto : resto.slice(0, fin)).some(([x]) => ok.includes(x))
+  })
+  $('#nav').innerHTML = nav.map(([k, t]) => k === 'h' ? `<div class="nav-h">${t}</div>`
+    : `<a data-view="${k}" class="${k === VIEW ? 'on' : ''}"><svg class="ic" viewBox="0 0 24 24">${ICON[k]}</svg>${t}${tag(k)}</a>`).join('')
   $$('#nav a').forEach((a) => a.addEventListener('click', () => go(a.dataset.view)))
+  // Celular: 4 secciones principales abajo + «Más» (guías de iOS y Android: 3 a 5 destinos)
+  const tabs = (DB.perfil.rol === 'asesor' ? ['tablero', 'cobranza', 'clientes', 'cajas'] : ['tablero', 'cobranza', 'normalidad', 'reportes']).filter((k) => ok.includes(k))
+  const corto = { tablero: 'Inicio', cobranza: 'Cobranza', clientes: 'Clientes', cajas: 'Mi caja', normalidad: 'Normalidad', reportes: 'Reportes' }
+  $('#tabbar').innerHTML = tabs.map((k) => `<button type="button" data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><span>${corto[k]}</span></button>`).join('')
+    + `<button type="button" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Más</span>${nRev ? '<i class="dot"></i>' : ''}</button>`
+  $$('#tabbar button').forEach((b) => b.addEventListener('click', () => b.dataset.tab === 'mas' ? abrirMenu() : go(b.dataset.tab)))
   go(VIEW, false)
 }
+function vistasPermitidas() {
+  const rol = DB.perfil.rol
+  return NAV.map(([k]) => k).filter((k) => k !== 'h'
+    && !(k === 'tesoreria' && rol === 'asesor')
+    && !(['importar', 'admin'].includes(k) && !esAdmin()))
+}
+function abrirMenu() { $('#side').classList.add('open'); $('#scrim').classList.add('on') }
+function cerrarMenu() { $('#side').classList.remove('open'); $('#scrim').classList.remove('on') }
 function reveal() {
   if (reduceMotion) return
   const app = $('#app'); app.classList.add('reveal'); clearTimeout(reveal.t); reveal.t = setTimeout(() => app.classList.remove('reveal'), 210)
@@ -263,7 +297,9 @@ function reveal() {
 function go(view, animate = true) {
   VIEW = view
   $$('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.view === view))
-  $('#side').classList.remove('open'); $('#scrim').classList.remove('on')
+  const enTab = $$('#tabbar [data-tab]').some((b) => b.dataset.tab === view)
+  $$('#tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === view || (!enTab && b.dataset.tab === 'mas')))
+  cerrarMenu()
   if (animate) reveal()
   render()
 }
@@ -275,17 +311,52 @@ function render() {
   v.init?.()
   $('#main').scrollTop = 0
 }
-$('#menuBtn').addEventListener('click', () => { $('#side').classList.add('open'); $('#scrim').classList.add('on') })
-$('#scrim').addEventListener('click', () => { $('#side').classList.remove('open'); $('#scrim').classList.remove('on') })
+$('#menuBtn').addEventListener('click', abrirMenu)
+$('#scrim').addEventListener('click', cerrarMenu)
 
+// Celular: cada celda de tabla lleva el nombre de su columna para mostrarse como tarjeta.
+function etiquetarTablas(root) {
+  root.querySelectorAll('table.tbl').forEach((t) => {
+    const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent.trim())
+    t.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => {
+      let i = 0
+      tr.querySelectorAll('td').forEach((td) => {
+        if (!td.dataset.l && heads[i]) td.dataset.l = heads[i]
+        if (!td.textContent.trim() && !td.querySelector('button,svg,img,input')) td.classList.add('vacia')
+        i += +(td.getAttribute('colspan') || 1)
+      })
+    })
+  })
+}
+let etqPend = false
+new MutationObserver(() => {
+  if (etqPend) return
+  etqPend = true
+  requestAnimationFrame(() => { etqPend = false; etiquetarTablas(document.body) })
+}).observe(document.body, { childList: true, subtree: true })
+
+function scopeOpciones() {
+  const R = raiz(), nr = nivelDe(R)
+  const grupos = [
+    ['zona', 'Zonas', DB.zonas.map((z) => ['zona:' + z.id, z.nombre])],
+    ['gerencia', 'Gerencias', DB.gerencias.map((g) => ['gerencia:' + g.id, g.nombre])],
+    ['oficina', 'Oficinas', DB.oficinas.map((x) => ['oficina:' + x.id, x.nombre])],
+    ['ruta', 'Rutas', DB.rutas.map((r) => ['ruta:' + r.ruta_id, `${r.ruta} · ${r.asesor || ''}`])],
+  ].filter(([n, , ops]) => NIVEL.indexOf(n) > nr && ops.length)
+  const top = R === 'emp' ? ['emp', 'Toda la empresa'] : [R, 'Todo mi ámbito · ' + scopeLabelDe(R)]
+  return { top, grupos }
+}
+function scopeLabelDe(sc) { const k = SCOPE; SCOPE = sc; const l = scopeLabel(); SCOPE = k; return l }
+function scopeValido(sc) {
+  const { top, grupos } = scopeOpciones()
+  return sc === top[0] || grupos.some(([, , ops]) => ops.some(([v]) => v === sc))
+}
 function scopeField() {
   const o = (v, t) => `<option value="${v}"${SCOPE === v ? ' selected' : ''}>${esc(t)}</option>`
+  const { top, grupos } = scopeOpciones()
   return `<div class="field sel"><label for="scope">Ámbito</label><select class="ctl" id="scope">
-    ${o('emp', 'Toda la empresa')}
-    <optgroup label="Zonas">${DB.zonas.map((z) => o('zona:' + z.id, z.nombre)).join('')}</optgroup>
-    <optgroup label="Gerencias">${DB.gerencias.map((g) => o('gerencia:' + g.id, g.nombre)).join('')}</optgroup>
-    <optgroup label="Oficinas">${DB.oficinas.map((x) => o('oficina:' + x.id, x.nombre)).join('')}</optgroup>
-    <optgroup label="Rutas">${DB.rutas.map((r) => o('ruta:' + r.ruta_id, `${r.ruta} · ${r.asesor || ''}`)).join('')}</optgroup>
+    ${o(top[0], top[1])}
+    ${grupos.map(([, lab, ops]) => `<optgroup label="${lab}">${ops.map(([v, t]) => o(v, t)).join('')}</optgroup>`).join('')}
   </select></div>`
 }
 function bindScope() {
