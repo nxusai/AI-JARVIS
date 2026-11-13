@@ -10,9 +10,10 @@ const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const resp = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 
 export default async (req) => {
-  if (req.method !== 'POST') return resp(405, { error: 'Método no permitido.' })
   const url = process.env.SUPABASE_URL, secret = process.env.SUPABASE_SECRET_KEY, pub = process.env.SUPABASE_ANON_KEY
+  // Sin la clave responde 503; con la clave, una visita normal (GET) responde 405.
   if (!url || !secret || !pub) return resp(503, { error: 'Las invitaciones aún no están activadas en el servidor.' })
+  if (req.method !== 'POST') return resp(405, { error: 'Método no permitido.' })
 
   const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
   if (!token) return resp(401, { error: 'Inicia sesión de nuevo.' })
