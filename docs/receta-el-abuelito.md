@@ -11,16 +11,18 @@
 4. **Se revisa el video terminado** (duración de audio y video, transcripción del audio final, fotogramas, volumen) y se entrega.
 
 ## Marca
-> **PENDIENTE DE CONFIRMAR.** Estos valores salieron del sitio `el-abuelito-web/` de este repositorio, no del cliente. No usarlos en un video final hasta que se confirmen.
+> Valores tomados del sitio oficial abuelitoinc.com (el cliente lo dio como referencia de diseño el 12 de noviembre de 2026).
 
 - **Colores (hex):**
-  - Verde `#0b7a3e` (por confirmar)
-  - Dorado `#f2b33d` (por confirmar)
-  - Rojo `#c8102e` (por confirmar)
-  - Rosa `#d94f8a` (por confirmar)
-  - Crema `#fff8ec` (por confirmar)
-- **Letras:** Lilita One (títulos), Nunito (texto), Caveat Brush (detalles a mano). Por confirmar.
-- **Logo:** pendiente (archivo, dónde va y cuándo).
+  - Verde `#0b7a3e`
+  - Dorado `#f2b33d`
+  - Rojo `#c8102e`
+  - Rosa `#d94f8a`
+  - Crema `#fff8ec`
+- Verde oscuro para contornos `#043d1e`.
+- **Letras:** Lilita One (títulos y subtítulos), Caveat Brush (frases a mano, en amarillo), Nunito (texto chico).
+- **Logo:** el abuelito con la placa "EL ABUELITO" y "¡Solo lo Mejor...!" (`img/ui/logo.webp` del sitio). Salta cuando se menciona la marca y va grande en el cierre.
+- **Motivos:** papel picado de colores arriba y rayos tipo sol detrás, como en el sitio.
 - **Tono:** divertido, estilo "funny" de redes; sketches de trabajo con las dos influencers.
 - **Idioma:** español de México. Renata mezcla algunas palabras en inglés.
 - **Formato:** vertical 9:16.
@@ -70,6 +72,7 @@ Las fichas completas, las imágenes maestras y la guía de guiones están en Dri
 ## Notas técnicas para editar video generado
 - Los videos de Higgsfield salen en 720 × 1280. Para edición final conviene generarlos en 1080p; desde 720p los acercamientos se limitan a unas 1.2 veces.
 - El modelo de video con voz (Intone) agrega unos 2.5 s al final del audio: recortar la cola en edición.
+- Los efectos de sonido justo encima de una palabra tapan la consonante ("neta" se oyó "meta"): ponerlos unos 70 ms antes y más bajos, y transcribir el audio final.
 - Intone puede **repetir un pedazo de la frase**. Siempre transcribir el audio del video generado y comparar con el guion antes de aprobarlo.
 - Revisar accesorios cuadro por cuadro: a Renata le apareció un reloj que no usa.
 - El encuadre sale cerrado en el busto; pedir plano más abierto si el video va a pauta.
@@ -99,7 +102,7 @@ Las fichas completas, las imágenes maestras y la guía de guiones están en Dri
 ### Videos ya editados
 | Fecha | Origen | Archivo final | Notas |
 |---|---|---|---|
-| | | | Todavía ninguno |
+| 12 nov 2026 | Renata, presentación v2 (`e17e25f1-35c5-4c93-a096-8378b1fcde1e`) | Renata_El_Abuelito_EDITADO.mp4 (15.2 s, 1080 × 1920) | Primera edición, pendiente de aprobación. Cortes de pausas, acercamientos en cada corte, nombre detrás de la cabeza, subtítulos de 1 a 3 palabras con clave en amarillo o rosa, rayos y destellos, logo al nombrar la marca, corazones, cierre verde con logo y "¡Síguenos!", música y efectos originales |
 
 ## Carpetas de Drive
 - Ejemplos de referencia: "videos de referencia para crear con IA" (`10oLOsauvzJjmdCoNL4QtU0auYKHaUh5R`)
