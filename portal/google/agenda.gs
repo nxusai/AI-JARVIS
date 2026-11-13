@@ -6,8 +6,10 @@
 // le llega además un correo de confirmación. Cada 15 minutos manda los
 // recordatorios de 24 horas y de 1 hora antes.
 //
-// Solo responde si viene la clave. Solo lee tus horarios ocupados (no el
-// contenido de tus citas) y solo crea citas del portal.
+// Solo responde si viene la clave. Para el portal solo lee tus horarios
+// ocupados y solo crea citas del portal. Para el calendario de NXUS HQ (solo
+// Eduardo, desde su sesión de admin) lee y escribe tus eventos: cal_listar,
+// cal_crear, cal_editar y cal_borrar.
 //
 // Instalación (una vez):
 //   1. script.google.com con la cuenta de NXUS → Nuevo proyecto → pegar esto.
@@ -47,6 +49,10 @@ function doPost(e) {
     if (d.accion === 'horarios') return respuesta_({ ok: true, horarios: horarios_() })
     if (d.accion === 'agendar') return respuesta_(agendar_(d))
     if (d.accion === 'bienvenida') return respuesta_(bienvenida_(d))
+    if (d.accion === 'cal_listar') return respuesta_(calListar_(d))
+    if (d.accion === 'cal_crear') return respuesta_(calCrear_(d))
+    if (d.accion === 'cal_editar') return respuesta_(calEditar_(d))
+    if (d.accion === 'cal_borrar') return respuesta_(calBorrar_(d))
     return respuesta_({ ok: false, error: 'acción desconocida' })
   } catch (err) {
     return respuesta_({ ok: false, error: String((err && err.message) || err) })
@@ -219,4 +225,120 @@ function recordatorios() {
       ev.setTag('aviso1', '1')
     }
   })
+}
+
+
+// ---------------------------------------------------------------------------
+// El calendario de NXUS HQ (solo Eduardo): HQ lee tus eventos y escribe los que
+// anotas ahí (cumpleaños, fechas importantes, recordatorios, eventos).
+// ---------------------------------------------------------------------------
+
+const COLORES_ = { cumple: '4', importante: '5', recordatorio: '2', evento: '' } // Flamingo, Banana, Sage
+
+function ymd_(fecha) {
+  return Utilities.formatDate(fecha, ZONA, 'yyyy-MM-dd')
+}
+
+function regla_(repetir) {
+  const r = CalendarApp.newRecurrence()
+  if (repetir === 'anual') return r.addYearlyRule()
+  if (repetir === 'mensual') return r.addMonthlyRule()
+  if (repetir === 'semanal') return r.addWeeklyRule()
+  return null
+}
+
+/** Tus eventos entre dos fechas (ISO). */
+function calListar_(d) {
+  const cal = CalendarApp.getDefaultCalendar()
+  const evs = cal.getEvents(new Date(d.desde), new Date(d.hasta)).slice(0, 1500)
+  return {
+    ok: true,
+    eventos: evs.map((ev) => {
+      const todo = ev.isAllDayEvent()
+      const desc = String(ev.getDescription() || '')
+      return {
+        id: ev.getId(),
+        titulo: ev.getTitle(),
+        todo_el_dia: todo,
+        inicio: todo ? ymd_(ev.getAllDayStartDate()) : ev.getStartTime().toISOString(),
+        fin: todo ? ymd_(ev.getAllDayEndDate()) : ev.getEndTime().toISOString(),
+        descripcion: desc.slice(0, 1500),
+        lugar: ev.getLocation() || '',
+        recurrente: ev.isRecurringEvent(),
+        tipo: ev.getTag('hq_tipo') || '',
+        meet: (desc.match(/https:\/\/meet\.google\.com\/\S+/) || [''])[0],
+        portal: desc.indexOf(MARCA) === 0,
+        invitados: ev.getGuestList().length,
+      }
+    }),
+  }
+}
+
+/** Crea un evento: { titulo, fecha (yyyy-MM-dd), todo_el_dia, hora_inicio, hora_fin (HH:mm), repetir, descripcion, tipo, aviso_min } */
+function calCrear_(d) {
+  const cal = CalendarApp.getDefaultCalendar()
+  const titulo = String(d.titulo || '').slice(0, 200)
+  if (!titulo || !/^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '')) return { ok: false, error: 'Falta el título o la fecha' }
+  const opts = { description: String(d.descripcion || '').slice(0, 4000) }
+  const regla = regla_(d.repetir)
+  let ev
+  if (d.todo_el_dia) {
+    const dia = instante_(d.fecha, 12, 0)
+    ev = regla ? cal.createAllDayEventSeries(titulo, dia, regla, opts) : cal.createAllDayEvent(titulo, dia, opts)
+  } else {
+    const hi = String(d.hora_inicio || '09:00').split(':').map(Number)
+    const hf = String(d.hora_fin || '').split(':').map(Number)
+    const ini = instante_(d.fecha, hi[0], hi[1] || 0)
+    const fin = hf.length === 2 && !isNaN(hf[0]) ? instante_(d.fecha, hf[0], hf[1] || 0) : new Date(ini.getTime() + 60 * 60e3)
+    ev = regla ? cal.createEventSeries(titulo, ini, fin, regla, opts) : cal.createEvent(titulo, ini, fin, opts)
+  }
+  if (d.tipo) ev.setTag('hq_tipo', String(d.tipo))
+  if (COLORES_[d.tipo]) ev.setColor(COLORES_[d.tipo])
+  if (Number(d.aviso_min) > 0) ev.addPopupReminder(Math.min(40320, Number(d.aviso_min)))
+  return { ok: true, id: ev.getId() }
+}
+
+/** Cambia un evento (si se repite, cambia la serie). */
+function calEditar_(d) {
+  const cal = CalendarApp.getDefaultCalendar()
+  const ev = cal.getEventById(d.id)
+  if (!ev) return { ok: false, error: 'Ya no existe ese evento' }
+  const titulo = String(d.titulo || '').slice(0, 200)
+  if (ev.isRecurringEvent()) {
+    const serie = cal.getEventSeriesById(d.id)
+    if (titulo) serie.setTitle(titulo)
+    if (d.descripcion !== undefined) serie.setDescription(String(d.descripcion || '').slice(0, 4000))
+    if (d.fecha && ev.isAllDayEvent()) {
+      const regla = regla_(d.repetir || 'anual')
+      if (regla) serie.setRecurrence(regla, instante_(d.fecha, 12, 0))
+    }
+    if (d.tipo) serie.setTag('hq_tipo', String(d.tipo))
+    if (COLORES_[d.tipo]) serie.setColor(COLORES_[d.tipo])
+    return { ok: true, id: d.id }
+  }
+  if (titulo) ev.setTitle(titulo)
+  if (d.descripcion !== undefined) ev.setDescription(String(d.descripcion || '').slice(0, 4000))
+  if (d.fecha) {
+    if (d.todo_el_dia) ev.setAllDayDate(instante_(d.fecha, 12, 0))
+    else {
+      const hi = String(d.hora_inicio || '09:00').split(':').map(Number)
+      const hf = String(d.hora_fin || '').split(':').map(Number)
+      const ini = instante_(d.fecha, hi[0], hi[1] || 0)
+      const fin = hf.length === 2 && !isNaN(hf[0]) ? instante_(d.fecha, hf[0], hf[1] || 0) : new Date(ini.getTime() + 60 * 60e3)
+      ev.setTime(ini, fin)
+    }
+  }
+  if (d.tipo) ev.setTag('hq_tipo', String(d.tipo))
+  if (COLORES_[d.tipo]) ev.setColor(COLORES_[d.tipo])
+  return { ok: true, id: d.id }
+}
+
+/** Borra un evento (si se repite, borra la serie completa). */
+function calBorrar_(d) {
+  const cal = CalendarApp.getDefaultCalendar()
+  const ev = cal.getEventById(d.id)
+  if (!ev) return { ok: true }
+  if (ev.isRecurringEvent()) cal.getEventSeriesById(d.id).deleteEventSeries()
+  else ev.deleteEvent()
+  return { ok: true }
 }

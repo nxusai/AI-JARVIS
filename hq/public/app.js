@@ -9,6 +9,8 @@ import { fraseDelDia, saludo } from './frases.js'
 import { vistaAnuncios } from './anuncios.js'
 import { vistaFinanzas, vistaAhorro, paydaysPendientes, resumenParaNex, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
 import { iniciarNex } from './nex.js'
+import { vistaCalendario } from './calendario.js'
+import { vistaStoic } from './stoic.js'
 import { editarPermisos, matrizPermisos, alternar, plantillaDe, estadoAcceso, NOMBRE as NOMBRE_PERMISO, CORTO as CORTO_PERMISO } from './permisos.js'
 
 const $ = (s, el = document) => el.querySelector(s)
@@ -279,6 +281,8 @@ export function iniciar(D, { muestra = false } = {}) {
   const SECCIONES_ADMIN = [
     ['pendientes', 'Mis pendientes', '✓'],
     ['metas', 'Metas y hábitos', '◎'],
+    ['calendario', 'Calendario', '▦'],
+    ['stoic', 'STOIC', 'Ω'],
   ]
   // Administración: Eduardo siempre; los demás solo con el permiso.
   const SECCIONES_PERMISO = [
@@ -378,7 +382,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const ny = !misma ? momentoNY() : null
     if (!misma) vista.innerHTML = '<div class="cargando">Cargando…</div>'
     else vista.classList.add('actualizando')
-    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, anuncios: (v) => vistaAnuncios(v, { D, h, titulo, dinero: puede('anuncios_gasto') ? dinero : () => '—' }), cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, pendientes: vistaPendientes, metas: vistaMetas, nomina: vistaNomina, finanzas: (v) => vistaFinanzas(v, ctxFinanzas()), personas: vistaPersonas, bitacora: vistaBitacora }
+    const VISTAS = { inicio, clientes: vistaClientes, prospectos: vistaProspectos, leads: vistaLeads, anuncios: (v) => vistaAnuncios(v, { D, h, titulo, dinero: puede('anuncios_gasto') ? dinero : () => '—' }), cartera: vistaCartera, tareas: vistaTareas, equipo: vistaEquipo, reloj: vistaReloj, pendientes: vistaPendientes, metas: vistaMetas, nomina: vistaNomina, finanzas: (v) => vistaFinanzas(v, ctxFinanzas()), personas: vistaPersonas, bitacora: vistaBitacora, calendario: (v) => vistaCalendario(v, ctxFinanzas()), stoic: (v) => vistaStoic(v, ctxFinanzas()) }
     try {
       if (ruta === 'cliente' && arg) await vistaCliente(vista, arg)
       else if (ruta === 'prospecto' && arg && vePros()) await vistaProspecto(vista, arg)

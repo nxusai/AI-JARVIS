@@ -1092,3 +1092,25 @@ export async function resumenParaNex(D, ctx) {
   const sig = new Date(Y, Mo + 1, 1)
   return { hoy, cortes: [corte(Y, Mo, 1), corte(Y, Mo, 2), corte(sig.getFullYear(), sig.getMonth(), 1)] }
 }
+
+/** Lo de Finanzas que va en el calendario de HQ (no en Google): paydays de clientes y los días de preparar cada corte. */
+export async function eventosFinanzas(D, ctx, desde, hasta) {
+  const [clientes, din, cobros, omitidos, config] = await Promise.all([D.clientes(), D.dinero().catch(() => []), D.cobros().catch(() => []), D.cobrosOmitidos().catch(() => []), D.finanzasConfig().catch(() => null)])
+  const M = motor({ clientes, dinero: din, cobros, omitidos, pagosPros: [], gastos: [], aportes: [], metas: [], nomina: [], jornadas: [], ajustes: [], comisiones: [], config: { ...(config ?? {}), desde: '2000-01-01' } }, ctx, null)
+  const out = M.cobrosProgramados(desde, hasta).map((p) => ({
+    fecha: p.fecha,
+    tipo: 'payday',
+    titulo: `💰 ${p.cliente.nombre} · ${p.monto.toLocaleString('es-MX')} ${p.moneda}`,
+    detalle: p.estado === 'cobrado' ? 'Llegó ✓' : p.estado === 'omitido' ? 'No llegó' : p.fecha <= hoyIso() ? 'Payday sin confirmar' : 'Por llegar',
+    ruta: 'finanzas/entradas',
+  }))
+  const a = deIso(desde)
+  const z = deIso(hasta)
+  for (let y = a.getFullYear(), m = a.getMonth(); y * 12 + m <= z.getFullYear() * 12 + z.getMonth(); m === 11 ? ((m = 0), y++) : m++) {
+    const p1 = iso(new Date(y, m + 1, 0))
+    const p2 = iso(new Date(y, m, 14))
+    if (p2 >= desde && p2 < hasta) out.push({ fecha: p2, tipo: 'corte', titulo: '✈ Preparar corte del 15 al 31', detalle: 'Mandar a México y pasar los automáticos', ruta: 'finanzas' })
+    if (p1 >= desde && p1 < hasta) out.push({ fecha: p1, tipo: 'corte', titulo: '✈ Preparar corte del 1 al 14', detalle: 'Mandar a México y pasar los automáticos', ruta: 'finanzas' })
+  }
+  return out
+}

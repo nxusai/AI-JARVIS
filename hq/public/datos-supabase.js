@@ -242,6 +242,29 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    // Calendario de Eduardo (Google Calendar de NXUS por la agenda) y STOIC (su cuaderno).
+    calListar: async (desde, hasta) => (await funcion('calendario', { accion: 'listar', desde: desde.toISOString(), hasta: hasta.toISOString() })).eventos,
+    calCrear: (d) => funcion('calendario', { accion: 'crear', ...d }),
+    calEditar: (id, d) => funcion('calendario', { accion: 'editar', id, ...d }),
+    calBorrar: (id) => funcion('calendario', { accion: 'borrar', id }),
+    stoicResumir: async (n) => (await funcion('stoic', { accion: 'resumir', ...n })).resumen,
+    stoicPreguntar: async (mensajes) => (await funcion('stoic', { accion: 'preguntar', mensajes })).texto,
+    stoicNotas: async () => ok(await tabla('stoic_notas').select('*').order('fecha', { ascending: false }).order('creado', { ascending: false })),
+    stoicGuardar: (n) => guardar('stoic_notas', n),
+    async stoicBorrar(id) {
+      ok(await tabla('stoic_notas').delete().eq('id', id))
+      return true
+    },
+    stoicTarjetas: async () => ok(await tabla('stoic_tarjetas').select('*').order('proximo')),
+    async stoicGuardarTarjetas(filas) {
+      if (filas.length) ok(await tabla('stoic_tarjetas').insert(filas))
+      return true
+    },
+    async stoicBorrarTarjetasDe(nota_id) {
+      ok(await tabla('stoic_tarjetas').delete().eq('nota_id', nota_id))
+      return true
+    },
+    stoicRepasar: async (id, c) => ok(await tabla('stoic_tarjetas').update(c).eq('id', id).select().single()),
     // NEX dentro de HQ (solo el admin).
     nexMemoria: async () => ok(await tabla('nex_memoria').select('*').eq('activo', true).order('creado', { ascending: false })),
     async borrarMemoria(id) {

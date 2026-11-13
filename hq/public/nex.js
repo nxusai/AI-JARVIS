@@ -184,7 +184,8 @@ export function iniciarNex(ctx) {
     return {
       ruta: location.hash.slice(1) || 'inicio',
       titulo: document.getElementById('titulo')?.textContent || '',
-      texto: (vista?.innerText || '').replace(/\n{3,}/g, '\n\n').slice(0, 7000),
+      // STOIC es aparte: NEX solo sabe que está ahí, no lee lo que escribió.
+      texto: location.hash.startsWith('#stoic') ? '(Está en STOIC, su cuaderno privado; no lo lees.)' : (vista?.innerText || '').replace(/\n{3,}/g, '\n\n').slice(0, 7000),
       botones,
       paydays: pd,
       finanzas: await finanzasCache(),

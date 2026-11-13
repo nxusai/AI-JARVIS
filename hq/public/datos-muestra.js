@@ -31,6 +31,15 @@ const db = {
     { id: S1, nombre: 'Barbara', correo: 'barbara@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('barbara', 'suyos', true, true, false, false) },
     { id: S2, nombre: 'Tania', correo: 'tania@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('tania', 'suyos', true, true, false, false) },
   ],
+  cal: [],
+  stoic_notas: [
+    { id: 'sn1', fecha: new Date(Date.now() - 20 * 864e5).toLocaleDateString('en-CA'), tipo: 'libro', titulo: 'Meditaciones', autor: 'Marco Aurelio', texto: 'No controlo lo que pasa, controlo cómo respondo. Cada mañana debo recordar que me toparé con gente difícil y no por eso tengo que perder la calma.', resumen: { bullets: ['Solo controlas tu respuesta, no lo que pasa', 'Prepárate cada mañana para gente difícil', 'La calma es una decisión'], lecciones: ['Cuando algo me enoje, yo respiro y elijo mi respuesta.'], frase: 'Lo que no depende de mí no me quita la paz.', etiquetas: ['mentalidad', 'disciplina'] } },
+    { id: 'sn2', fecha: new Date(Date.now() - 5 * 864e5).toLocaleDateString('en-CA'), tipo: 'podcast', titulo: 'El costo de no decidir', autor: '', texto: 'No decidir también es decidir. Cuando dudo mucho con un cliente, pierdo la venta y la energía.', resumen: { bullets: ['No decidir también es una decisión', 'La duda cuesta ventas y energía'], lecciones: ['Cuando dude más de un día, yo decido con lo que tengo.'], frase: 'Mejor una decisión hoy que una perfecta nunca.', etiquetas: ['negocios'] } },
+  ],
+  stoic_tarjetas: [
+    { id: 'st1', nota_id: 'sn1', frente: '¿Qué es lo único que controlas?', reverso: 'Cómo respondo. Lo que pasa no depende de mí.', proximo: new Date().toLocaleDateString('en-CA'), intervalo: 0, repasos: 0 },
+    { id: 'st2', nota_id: 'sn2', frente: '¿Qué pasa cuando no decides?', reverso: 'También es decidir: pierdo la venta y la energía.', proximo: new Date().toLocaleDateString('en-CA'), intervalo: 0, repasos: 0 },
+  ],
   clientes: [],
   clientes_dinero: [],
   tareas: [],
@@ -665,6 +674,78 @@ export function crearMuestra() {
       if (/llam|llegó|llego/.test(t) && t.includes('pago')) acciones.push({ tipo: 'proponer', accion: 'apuntar_pendiente', datos: { texto: 'Revisar pago' }, resumen: 'Apuntar: revisar pago (muestra)' })
       await new Promise((r) => setTimeout(r, 400))
       return { ok: true, texto: d ? (acciones.some((a) => a.tipo === 'senalar') ? 'Aquí está, te lo marqué en dorado.' : 'Listo, ya estás ahí.') : 'En la muestra solo entiendo "llévame a…" y "no encuentro…". Con HQ de verdad te contesto todo.', acciones }
+    },
+    // Calendario y STOIC de muestra (solo Eduardo).
+    async calListar(desde, hasta) {
+      if (!admin()) nunca()
+      const a = new Date().getFullYear()
+      const ev = [
+        { id: 'g1', titulo: 'Cumpleaños de mamá', todo_el_dia: true, inicio: `${a}-12-02`, fin: `${a}-12-03`, recurrente: true, tipo: 'cumple' },
+        { id: 'g2', titulo: 'Aniversario de NXUS', todo_el_dia: true, inicio: `${a}-11-20`, fin: `${a}-11-21`, recurrente: true, tipo: 'importante' },
+        { id: 'g3', titulo: 'Junta con Abuelito INC', todo_el_dia: false, inicio: dia(2, 11), fin: dia(2, 12), meet: 'https://meet.google.com/xxx', tipo: '' },
+        ...db.cal,
+      ]
+      return copia(ev.filter((e) => new Date(e.fin || e.inicio) >= desde && new Date(e.inicio) <= hasta))
+    },
+    async calCrear(d) {
+      if (!admin()) nunca()
+      const fin = d.todo_el_dia ? new Date(new Date(`${d.fecha}T12:00:00`).getTime() + 864e5).toLocaleDateString('en-CA') : `${d.fecha}T${d.hora_fin || d.hora_inicio}:00`
+      const e = { id: id(), titulo: d.titulo, todo_el_dia: !!d.todo_el_dia, inicio: d.todo_el_dia ? d.fecha : `${d.fecha}T${d.hora_inicio}:00`, fin, descripcion: d.descripcion || '', recurrente: !!d.repetir && d.repetir !== 'no', tipo: d.tipo || '' }
+      db.cal.push(e)
+      return { ok: true, evento: copia(e) }
+    },
+    async calEditar(eid, d) {
+      db.cal = db.cal.filter((e) => e.id !== eid)
+      return this.calCrear(d)
+    },
+    async calBorrar(eid) {
+      db.cal = db.cal.filter((e) => e.id !== eid)
+      return { ok: true }
+    },
+    async stoicResumir(n) {
+      if (!admin()) nunca()
+      await new Promise((r) => setTimeout(r, 300))
+      const frases = n.texto.split(/[.\n]+/).map((x) => x.trim()).filter((x) => x.length > 8)
+      return {
+        titulo: n.titulo || frases[0]?.slice(0, 40) || 'Nota',
+        bullets: frases.slice(0, 4),
+        lecciones: [`Cuando lo olvide, yo vuelvo a esto: ${frases[0] || n.texto.slice(0, 80)}`],
+        frase: frases.at(-1) || n.texto.slice(0, 80),
+        etiquetas: ['mentalidad'],
+        tarjetas: [{ frente: `¿Qué aprendiste de “${n.titulo || 'esta nota'}”?`, reverso: frases.slice(0, 2).join('. ') || n.texto.slice(0, 200) }],
+      }
+    },
+    async stoicPreguntar(mensajes) {
+      if (!admin()) nunca()
+      await new Promise((r) => setTimeout(r, 400))
+      const n = db.stoic_notas[0]
+      return n ? `Recuerda lo que escribiste el ${new Date(`${n.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}, de “${n.titulo}”: ${n.resumen.frase} (En la muestra contesto siempre esto; con HQ de verdad STOIC lee todo tu cuaderno.)` : 'Tu cuaderno está vacío: escribe lo que aprendes y te aconsejo con eso.'
+    },
+    stoicNotas: () => espera(admin() ? [...db.stoic_notas].sort((a, b) => b.fecha.localeCompare(a.fecha)) : []),
+    async stoicGuardar(n) {
+      if (!admin()) nunca()
+      const fila = { ...(db.stoic_notas.find((x) => x.id === n.id) || { id: id(), creado: new Date().toISOString() }), ...n }
+      db.stoic_notas = [fila, ...db.stoic_notas.filter((x) => x.id !== fila.id)]
+      return copia(fila)
+    },
+    async stoicBorrar(nid) {
+      db.stoic_notas = db.stoic_notas.filter((x) => x.id !== nid)
+      db.stoic_tarjetas = db.stoic_tarjetas.filter((x) => x.nota_id !== nid)
+      return true
+    },
+    stoicTarjetas: () => espera(admin() ? db.stoic_tarjetas : []),
+    async stoicGuardarTarjetas(filas) {
+      db.stoic_tarjetas.push(...filas.map((f) => ({ id: id(), intervalo: 0, repasos: 0, ...f })))
+      return true
+    },
+    async stoicBorrarTarjetasDe(nid) {
+      db.stoic_tarjetas = db.stoic_tarjetas.filter((x) => x.nota_id !== nid)
+      return true
+    },
+    async stoicRepasar(tid, c) {
+      const t = db.stoic_tarjetas.find((x) => x.id === tid)
+      Object.assign(t, c)
+      return copia(t)
     },
     nexVoz: async () => null,
     nexMemoria: async () => [{ id: 'm1', texto: 'Los pagos de cada dos viernes que llegan del 4 al 14 pagan el corte del 15 al 31.', tema: 'finanzas', creado: new Date().toISOString() }],

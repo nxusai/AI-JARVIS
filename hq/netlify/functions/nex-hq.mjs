@@ -32,6 +32,8 @@ const RUTAS = {
   'nomina/asistencia': 'Nómina → Asistencia: historial de entradas y salidas, corregir, descargar Excel',
   personas: 'Usuarios: dar de alta, 🔑 Permisos, matriz de permisos, reenviar acceso',
   bitacora: 'Bitácora: quién hizo qué y cuándo',
+  calendario: 'Calendario (solo Eduardo): su Google Calendar de NXUS con capas de HQ (paydays, cortes, tareas, pendientes, citas); "+ Evento", fechas importantes y cumpleaños que se repiten cada año',
+  stoic: 'STOIC (solo Eduardo): su cuaderno de lo que aprende (Escribir, Mi biblioteca, Estudiar, Pregúntale a STOIC). Tiene su propia IA: tú no lees ni opinas de lo que escribe ahí',
 }
 
 const HERRAMIENTAS = [

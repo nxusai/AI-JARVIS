@@ -1789,3 +1789,40 @@ create table if not exists public.nex_memoria (
 alter table public.nex_memoria enable row level security;
 drop policy if exists solo_admin on public.nex_memoria;
 create policy solo_admin on public.nex_memoria for all to authenticated using (es_admin()) with check (es_admin());
+
+-- STOIC (13 nov 2026): lo que Eduardo aprende (libros, podcasts, videos, la vida), resumido por la IA
+-- en bullets, lecciones y una frase, con tarjetas para estudiar. Su IA (STOIC) solo lee esto. Solo Eduardo.
+create table if not exists public.stoic_notas (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null default current_date,
+  tipo text not null default 'libro' check (tipo in ('libro', 'podcast', 'video', 'curso', 'conversacion', 'vida', 'idea', 'otro')),
+  titulo text not null default '' check (char_length(titulo) <= 200),
+  autor text not null default '' check (char_length(autor) <= 120),
+  texto text not null check (char_length(texto) between 1 and 30000),
+  resumen jsonb not null default '{}', -- { bullets: [], lecciones: [], frase: '', etiquetas: [] }
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists stoic_notas_fecha on public.stoic_notas (fecha desc);
+create table if not exists public.stoic_tarjetas (
+  id uuid primary key default gen_random_uuid(),
+  nota_id uuid references public.stoic_notas (id) on delete cascade,
+  frente text not null check (char_length(frente) between 1 and 500),
+  reverso text not null check (char_length(reverso) between 1 and 1500),
+  proximo date not null default current_date, -- cuándo toca repasarla
+  intervalo int not null default 0, -- días
+  repasos int not null default 0,
+  creado timestamptz not null default now()
+);
+create index if not exists stoic_tarjetas_proximo on public.stoic_tarjetas (proximo);
+drop trigger if exists hq_actualizado on public.stoic_notas;
+create trigger hq_actualizado before update on public.stoic_notas for each row execute function public.al_cambiar_fila();
+do $$
+declare t text;
+begin
+  foreach t in array array['stoic_notas', 'stoic_tarjetas'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists solo_admin on public.%I', t);
+    execute format('create policy solo_admin on public.%I for all to authenticated using (es_admin()) with check (es_admin())', t);
+  end loop;
+end $$;
