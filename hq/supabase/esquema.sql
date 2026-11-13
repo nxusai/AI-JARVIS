@@ -1775,3 +1775,17 @@ create policy permiso_borrar on public.cobros_omitidos for delete to authenticat
 -- México también va por quincena (12 nov 2026): 'mexico-1' (lo de 1 al 14) y 'mexico-2' (lo del 15 al 31).
 alter table public.movimientos drop constraint if exists movimientos_tipo_check;
 alter table public.movimientos add constraint movimientos_tipo_check check (tipo in ('mexico', 'mexico-1', 'mexico-2', 'auto-1', 'auto-2'));
+
+-- La memoria de NEX (13 nov 2026): lo que aprende cuando Eduardo lo corrige o le enseña cómo funciona algo.
+-- NEX en HQ la lee en cada conversación; NEX en la Mac la podrá leer también. Solo Eduardo.
+create table if not exists public.nex_memoria (
+  id uuid primary key default gen_random_uuid(),
+  texto text not null check (char_length(texto) between 3 and 500),
+  tema text not null default 'general' check (char_length(tema) <= 40),
+  origen text not null default 'hq' check (origen in ('hq', 'telegram', 'mac')),
+  activo boolean not null default true,
+  creado timestamptz not null default now()
+);
+alter table public.nex_memoria enable row level security;
+drop policy if exists solo_admin on public.nex_memoria;
+create policy solo_admin on public.nex_memoria for all to authenticated using (es_admin()) with check (es_admin());

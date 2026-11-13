@@ -8,7 +8,7 @@
 import { abrirOido } from './nex/oido.js'
 
 export function iniciarNex(ctx) {
-  const { D, h, mostrar, aviso, yo, marcarEntrada, marcarSalida, paydays } = ctx
+  const { D, h, mostrar, aviso, yo, marcarEntrada, marcarSalida, paydays, finanzas } = ctx
   if (document.getElementById('nex-orbe')) return
   const $ = (s, el = document) => el.querySelector(s)
 
@@ -45,6 +45,7 @@ export function iniciarNex(ctx) {
       <div class="nex-botones">
         <button type="button" id="nex-voz" title="Que lea en voz alta lo que te contesta">🔊</button>
         <button type="button" id="nex-conv" title="Conversación: hablas y te contesta con su voz">🎧</button>
+        <button type="button" id="nex-memoria" title="Lo que NEX ha aprendido">🧠</button>
         <button type="button" id="nex-limpiar" title="Empezar de nuevo">↺</button>
         <button type="button" id="nex-cerrar" title="Cerrar (Esc)">✕</button>
       </div>
@@ -110,6 +111,24 @@ export function iniciarNex(ctx) {
     guardar()
     pintarHistorial()
   }
+  $('#nex-memoria', panel).onclick = async () => {
+    let xs = []
+    try {
+      xs = await D.nexMemoria()
+    } catch (err) {
+      aviso(err.message, 'mal')
+      return
+    }
+    const card = burbuja('nex', `<div class="nex-mem"><b>🧠 Lo que he aprendido de ti</b>${xs.length ? `<ul>${xs.map((x) => `<li><span>${h(x.texto)}</span><button type="button" class="enlace" data-olvidar="${x.id}" title="Olvidar esto">olvidar</button></li>`).join('')}</ul>` : '<small>Todavía nada. Cuando me corrijas, lo anoto aquí para no repetirlo.</small>'}</div>`)
+    card.querySelectorAll('[data-olvidar]').forEach(
+      (b) =>
+        (b.onclick = async () => {
+          if (!confirm('¿Que NEX olvide esto?')) return
+          await D.borrarMemoria(b.dataset.olvidar).catch((e) => aviso(e.message, 'mal'))
+          b.closest('li')?.remove()
+        }),
+    )
+  }
   $('#nex-voz', panel).onclick = () => {
     leerVoz = !leerVoz
     try {
@@ -144,6 +163,17 @@ export function iniciarNex(ctx) {
   }
 
   // ---------------------------------------------------------- la pantalla que está viendo
+  // Las finanzas del mes (las mismas cuentas de la pantalla de Finanzas), para que NEX nunca se pierda.
+  let finCache = null
+  async function finanzasCache() {
+    if (finCache && Date.now() - finCache.t < 20000) return finCache.v
+    try {
+      finCache = { t: Date.now(), v: finanzas ? await finanzas() : null }
+    } catch {
+      finCache = { t: Date.now(), v: null }
+    }
+    return finCache.v
+  }
   async function pantalla() {
     const vista = document.getElementById('vista')
     const botones = [...new Set([...(vista?.querySelectorAll('button, a.btn, a.enlace, .segmento button') ?? [])].map((b) => b.textContent.replace(/\s+/g, ' ').trim()).filter((t) => t && t.length <= 40))]
@@ -157,6 +187,7 @@ export function iniciarNex(ctx) {
       texto: (vista?.innerText || '').replace(/\n{3,}/g, '\n\n').slice(0, 7000),
       botones,
       paydays: pd,
+      finanzas: await finanzasCache(),
       mesFinanzas: sessionStorage.getItem('hq-fin-mes') || '0',
     }
   }
@@ -187,6 +218,7 @@ export function iniciarNex(ctx) {
       burbuja('nex', formato(r.texto))
       ventana = Date.now() + 25000
       if (voz || leerVoz) decir(r.texto)
+      finCache = null // pudo haber cambiado algo
       for (const a of r.acciones ?? []) await hacer(a)
     } catch (err) {
       espera.remove()
@@ -324,6 +356,7 @@ export function iniciarNex(ctx) {
         senalar(a.objetivo)
       }
     } else if (a.tipo === 'proponer') proponer(a)
+    else if (a.tipo === 'aprendi') burbuja('nex', `🧠 <small>Lo aprendí: ${h(a.texto)}</small>`, 'aprendi')
   }
 
   // ---------------------------------------------------------- su voz

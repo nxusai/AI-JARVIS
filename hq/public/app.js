@@ -7,7 +7,7 @@
 
 import { fraseDelDia, saludo } from './frases.js'
 import { vistaAnuncios } from './anuncios.js'
-import { vistaFinanzas, vistaAhorro, paydaysPendientes, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
+import { vistaFinanzas, vistaAhorro, paydaysPendientes, resumenParaNex, editarPlanCliente, describirPlan, planCliente } from './finanzas.js'
 import { iniciarNex } from './nex.js'
 import { editarPermisos, matrizPermisos, alternar, plantillaDe, estadoAcceso, NOMBRE as NOMBRE_PERMISO, CORTO as CORTO_PERMISO } from './permisos.js'
 
@@ -336,7 +336,7 @@ export function iniciar(D, { muestra = false } = {}) {
     onhashchange = () => mostrar()
     mostrar()
     // NEX dentro de HQ: solo para Eduardo.
-    if (esAdmin()) iniciarNex({ D, h, mostrar, aviso, yo, marcarEntrada, marcarSalida, paydays: () => paydaysPendientes(D, ctxFinanzas()) })
+    if (esAdmin()) iniciarNex({ D, h, mostrar, aviso, yo, marcarEntrada, marcarSalida, paydays: () => paydaysPendientes(D, ctxFinanzas()), finanzas: () => resumenParaNex(D, ctxFinanzas()) })
   }
 
   function pintarReloj() {

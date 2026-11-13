@@ -59,6 +59,17 @@ const HERRAMIENTAS = [
     input_schema: { type: 'object', additionalProperties: false, required: ['texto'], properties: { texto: { type: 'string' } } },
   },
   {
+    name: 'aprender',
+    description:
+      'Guarda una lección en tu memoria para no repetir un error. Úsala SIEMPRE que Eduardo te corrija ("estás mal", "no es así", "ya te dije…") o te explique cómo funciona algo de su negocio o su dinero. Escribe la regla general en una o dos frases claras (no el dato del momento), por ejemplo: "Los pagos de cada dos viernes que llegan del 4 al 14 pagan el corte del 15 al 31; si en las entradas dice YA LLEGÓ, ya entró: dilo en pasado." No guardes cosas que ya están en tus lecciones.',
+    input_schema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['leccion', 'tema'],
+      properties: { leccion: { type: 'string' }, tema: { type: 'string', description: 'Una palabra: finanzas, clientes, leads, equipo, pendientes, hq o general.' } },
+    },
+  },
+  {
     name: 'proponer',
     description:
       'Propone una acción que cambia algo en HQ. NO se hace sola: la página le muestra a Eduardo un botón "Sí, hazlo" y solo se hace si dice que sí. Úsala cuando él te pide hacer algo. Acciones:\n' +
@@ -97,6 +108,10 @@ Cómo funciona el dinero de Eduardo (no lo pierdas de vista):
 - Cada corte se paga con dinero que YA entró antes: el del 15 al 31 con lo que entró del 4 al 14 del mes; el del 1 al 14 con lo que entra del 15 al fin del mes anterior (y del 1 al 3, por si el cliente de México paga a principios de mes).
 - Varios clientes pagan cada dos viernes (un viernes sí y otro no). El cliente de México paga una vez al mes, a fin o principios de mes.
 - En Finanzas, "Dinero para esto" de cada tabla ya es lo que paga esa mitad. Distingue tiempos: si una entrada dice "✓ Llegó", ya entró (dilo en pasado: "te entraron"); si dice "Por llegar", todavía no ("te van a entrar"). Nunca uses para un corte dinero que llega después de su fecha de preparación.
+
+Tus datos de finanzas: en cada mensaje te llega "Finanzas del mes" (calculado igual que la pantalla de Finanzas), esté Eduardo en la pantalla que esté. Para cualquier pregunta de dinero, cortes, entradas o gastos, usa ESOS números; no digas que "no se ve en esta pantalla". En las entradas, "YA LLEGÓ" = ya entró (en pasado), "POR LLEGAR" = todavía no, "payday sin confirmar" = su día ya pasó pero no ha confirmado si llegó (pregúntale).
+
+Tus lecciones: lo que Eduardo te ha enseñado (te llegan como "Lo que has aprendido"). Síguelas siempre; mandan sobre tus suposiciones. Cuando te corrija, reconoce el error en una frase, guarda la lección (aprender) y contesta bien.
 
 Cuando el mensaje llegó por micrófono, puede ser ruido: música, la tele u otras personas platicando cerca. Si lo que llegó no es algo que Eduardo te está pidiendo o preguntando a ti (letra de canción, una plática entre otras personas, frases sueltas sin sentido), contesta exactamente IGNORAR y nada más, sin usar herramientas. Si sí es para ti aunque venga con palabras de más, quédate con lo que te pidió.
 
@@ -158,6 +173,8 @@ export default async (req) => {
   while (historial.length && historial[0].role !== 'user') historial.shift()
 
   const p = b.pantalla ?? {}
+  // Su memoria: las lecciones que le ha enseñado Eduardo.
+  const lecciones = await sb('/rest/v1/nex_memoria?activo=is.true&select=id,texto,tema&order=creado.asc&limit=80', { token: yo.token }).catch(() => [])
   const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })
   const contexto =
     `Ahora: ${ahora} (Nueva York).\n` +
@@ -166,7 +183,9 @@ export default async (req) => {
     `Texto de la pantalla:\n${String(p.texto || '').slice(0, 7000)}\n` +
     (Array.isArray(p.paydays) && p.paydays.length ? `Paydays sin confirmar: ${JSON.stringify(p.paydays.slice(0, 20))}\n` : '') +
     (p.mesFinanzas ? `Mes que tiene abierto en Finanzas: ${p.mesFinanzas}\n` : '') +
-    (b.voz ? 'Este último mensaje llegó por MICRÓFONO (transcrito): si no era para ti, contesta IGNORAR.\n' : '')
+    (b.voz ? 'Este último mensaje llegó por MICRÓFONO (transcrito): si no era para ti, contesta IGNORAR.\n' : '') +
+    (p.finanzas ? `Finanzas del mes (montos en USD/MXN): ${JSON.stringify(p.finanzas).slice(0, 9000)}\n` : '') +
+    (lecciones.length ? `Lo que has aprendido de Eduardo (síguelo siempre):\n${lecciones.map((l) => `- ${l.texto}`).join('\n')}\n` : '')
   // El contexto de la pantalla va como mensaje de sistema a mitad de conversación, después de la última pregunta.
   const mensajes = [...historial, { role: 'system', content: contexto }]
 
@@ -205,6 +224,13 @@ export default async (req) => {
         } else if (u.name === 'senalar') {
           acciones.push({ tipo: 'senalar', objetivo: String(u.input?.objetivo || '') })
           r = 'Señalado en la pantalla.'
+        } else if (u.name === 'aprender') {
+          const t = String(u.input?.leccion || '').trim().slice(0, 500)
+          if (t.length >= 3) {
+            await sb('/rest/v1/nex_memoria', { token: yo.token, method: 'POST', prefer: 'return=minimal', body: { texto: t, tema: String(u.input?.tema || 'general').slice(0, 40), origen: 'hq' } }).catch(() => null)
+            acciones.push({ tipo: 'aprendi', texto: t })
+            r = 'Guardado en tu memoria.'
+          } else r = 'Lección vacía, no se guardó.'
         } else if (u.name === 'proponer') {
           acciones.push({ tipo: 'proponer', accion: u.input?.accion, datos: u.input?.datos ?? {}, resumen: String(u.input?.resumen || '') })
           r = 'Se lo mostré para que confirme. Todavía NO está hecho.'

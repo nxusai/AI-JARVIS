@@ -1020,3 +1020,75 @@ function aportar({ D, h, $, abrirModal, cerrarModal, intenta, mostrar }, m, sign
     },
   )
 }
+
+/**
+ * Lo que NEX necesita saber de las finanzas del mes, esté Eduardo en la pantalla que esté:
+ * cada corte con el dinero que lo paga (y qué entradas ya llegaron o están por llegar),
+ * lo que hay que tener (NXUS y personal), lo que sobra y sus movimientos (México, automáticos).
+ * Es el mismo cálculo de Finanzas → Gastos del mes.
+ */
+export async function resumenParaNex(D, ctx) {
+  const [clientes, din, cobros, omitidos, pagosPros, gastos, estados, movs, config] = await Promise.all([
+    D.clientes(),
+    D.dinero().catch(() => []),
+    D.cobros().catch(() => []),
+    D.cobrosOmitidos().catch(() => []),
+    D.pagosProspectos().catch(() => []),
+    D.gastos().catch(() => []),
+    D.gastosEstado ? D.gastosEstado().catch(() => []) : [],
+    D.movimientos ? D.movimientos().catch(() => []) : [],
+    D.finanzasConfig().catch(() => null),
+  ])
+  const hoy = hoyIso()
+  const ahora = new Date()
+  const Y = ahora.getFullYear()
+  const Mo = ahora.getMonth()
+  const d0 = config?.desde ? deIso(String(config.desde).slice(0, 10)) : ahora
+  const M = motor({ clientes, dinero: din, cobros, omitidos, pagosPros: [], gastos: [], aportes: [], metas: [], nomina: [], jornadas: [], ajustes: [], comisiones: [], config: { ...(config ?? {}), desde: iso(new Date(d0.getFullYear(), d0.getMonth() - 1, 15)) } }, ctx, null)
+  const fondo = (y, m, n) => (n === 1 ? { desde: iso(new Date(y, m - 1, 15)), hasta: iso(new Date(y, m, 4)) } : { desde: iso(new Date(y, m, 4)), hasta: iso(new Date(y, m, 15)) })
+  const entradas = (r) => {
+    const prog = M.cobrosProgramados(r.desde, r.hasta)
+    const usados = new Set(prog.filter((p) => p.cobro).map((p) => p.cobro.id))
+    return [
+      ...prog.map((p) => ({ de: p.cliente.nombre, fecha: p.fecha, monto: p.cobro ? Number(p.cobro.monto) : p.monto, moneda: p.cobro ? p.cobro.moneda : p.moneda, estado: p.estado === 'cobrado' ? 'YA LLEGÓ' : p.estado === 'omitido' ? 'NO LLEGÓ' : p.fecha <= hoy ? 'payday sin confirmar' : 'POR LLEGAR' })),
+      ...cobros.filter((x) => !x.para_fecha && x.fecha >= r.desde && x.fecha < r.hasta && !usados.has(x.id)).map((x) => ({ de: x.cliente_id ? clientes.find((c) => c.id === x.cliente_id)?.nombre || 'Cliente' : x.concepto || 'Otra entrada', fecha: x.fecha, monto: Number(x.monto), moneda: x.moneda, estado: 'YA LLEGÓ' })),
+      ...pagosPros.filter((g) => { const f = iso(new Date(g.fecha)); return f >= r.desde && f < r.hasta }).map((g) => ({ de: 'Consultoría (Stripe)', fecha: iso(new Date(g.fecha)), monto: Number(g.monto), moneda: g.moneda, estado: 'YA LLEGÓ' })),
+    ].sort((a, b) => a.fecha.localeCompare(b.fecha))
+  }
+  const r2 = (o) => ({ USD: Math.round(o.USD * 100) / 100, MXN: Math.round(o.MXN * 100) / 100 })
+  const sum = (xs) => r2(xs.reduce((o, x) => ((o[x.moneda || 'USD'] += Number(x.monto || 0)), o), suma()))
+  const corte = (y, m, n) => {
+    const clave = `${y}-${String(m + 1).padStart(2, '0')}-${n}`
+    const estadoDe = (g) => estados.find((e) => e.gasto_id === g.id && e.mes === clave)?.estado ?? (g.activo === false ? 'cancelado' : g.automatico ? 'pagado' : 'debe')
+    const mitad = n === 1 ? 'primera' : 'segunda'
+    const vivos = gastos.filter((g) => [mitad, 'ambas'].includes(mitadDe(g)) && estadoDe(g) !== 'cancelado')
+    const ent = entradas(fondo(y, m, n))
+    const cuentan = ent.filter((x) => x.estado !== 'NO LLEGÓ')
+    const yaLlego = sum(cuentan.filter((x) => x.estado === 'YA LLEGÓ'))
+    const porLlegar = sum(cuentan.filter((x) => x.estado !== 'YA LLEGÓ'))
+    const nxus = sum(vivos.filter((g) => g.tipo !== 'personal'))
+    const personal = sum(vivos.filter((g) => g.tipo === 'personal'))
+    const total = sum(vivos)
+    const dinero = sum(cuentan)
+    const mesClave = clave.slice(0, 7)
+    const mov = (tipo) => (movs.find((x) => x.mes === mesClave && x.tipo === tipo) ? 'HECHO' : 'PENDIENTE')
+    const r = fondo(y, m, n)
+    return {
+      corte: `${n === 1 ? 'del 1 al 14' : 'del 15 al 31'} de ${new Date(y, m, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`,
+      se_paga_con_lo_que_entra: `del ${r.desde} al ${sumarDias(r.hasta, -1)}`,
+      prepararlo_antes_del: n === 1 ? iso(new Date(y, m, 0)) : iso(new Date(y, m, 14)),
+      entradas: ent,
+      dinero_para_el_corte: dinero,
+      de_eso_ya_llego: yaLlego,
+      de_eso_por_llegar: porLlegar,
+      a_tener_nxus: nxus,
+      a_tener_personal: personal,
+      a_tener_total: total,
+      sobran: r2({ USD: dinero.USD - total.USD, MXN: dinero.MXN - total.MXN }),
+      mandar_a_mexico: { monto: sum(vivos.filter((g) => pagoDe(g) === 'mexico')), estado: mov(`mexico-${n}`) },
+      pasar_a_automaticos: { monto: sum(vivos.filter((g) => pagoDe(g) === 'automatica')), estado: mov(`auto-${n}`) },
+    }
+  }
+  const sig = new Date(Y, Mo + 1, 1)
+  return { hoy, cortes: [corte(Y, Mo, 1), corte(Y, Mo, 2), corte(sig.getFullYear(), sig.getMonth(), 1)] }
+}

@@ -667,6 +667,8 @@ export function crearMuestra() {
       return { ok: true, texto: d ? (acciones.some((a) => a.tipo === 'senalar') ? 'Aquí está, te lo marqué en dorado.' : 'Listo, ya estás ahí.') : 'En la muestra solo entiendo "llévame a…" y "no encuentro…". Con HQ de verdad te contesto todo.', acciones }
     },
     nexVoz: async () => null,
+    nexMemoria: async () => [{ id: 'm1', texto: 'Los pagos de cada dos viernes que llegan del 4 al 14 pagan el corte del 15 al 31.', tema: 'finanzas', creado: new Date().toISOString() }],
+    borrarMemoria: async () => true,
     nexOido: async () => '',
     movimientos: () => espera(admin() ? db.movimientos : []),
     async marcarMovimiento(m) {
