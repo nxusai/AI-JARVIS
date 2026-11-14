@@ -455,3 +455,33 @@ Si Ultron falla solo (un error, no tú), **las demás siguen trabajando**: el ce
   - la contraseña de Soporte NXUS;
   - la llave de recuperación de FileVault;
   - el código de Tiempo en pantalla.
+
+---
+
+## Si alguien intenta entrar al Mac mini
+
+NEX revisa el cerebro cada minuto. Qué avisa y qué hacer:
+
+| Aviso | Cómo llega | Qué hacer |
+|---|---|---|
+| Contraseña de administrador mal escrita | Llamada de NEX + 🚨 Telegram | Si no fuiste tú: llama a la oficina, que alguien vea quién está en el Mac mini. Todavía no entran. |
+| Entraron con la cuenta de administrador después de equivocarse | Llamada urgente + 🚨 Telegram | Corta todo (abajo), ya. |
+| Entraron con la cuenta de administrador (sin fallas antes) | 🔐 Telegram | Casi siempre eres tú. Si no, corta todo. |
+| El sello del programa no cuadra | Llamada + 🚨 Telegram | Alguien tocó el programa; el cerebro no arrancó ninguna IA. Reinstala con `node scripts/cerebro.mjs enviar mi-semago` y revisa quién entró. |
+
+**Cortar todo (desde tu Mac, en 10 segundos):**
+```
+cd ~/Desktop/nexy && node scripts/cerebro.mjs borrar-llaves mi-semago
+```
+Apaga el cerebro y borra sus llaves (Claude, ElevenLabs, Drive, calendario, el bot y la llave de Supabase de Ultron).
+
+**Después, cambia las llaves en cada servicio** (así lo que se hayan copiado ya no sirve):
+1. console.anthropic.com → workspace Cerebro Mi Semago → borra la llave "Mac mini".
+2. elevenlabs.io → Developers → API Keys → borra "Cerebro Mi Semago".
+3. Telegram → @BotFather → /mybots → Ana Sofi → API Token → Revoke.
+4. Supabase del Centro de trabajo → Settings → API keys → rota la llave secreta.
+5. Apps Script de Drive y del calendario → corre `preparar` otra vez (da clave nueva).
+6. login.tailscale.com/admin/machines → el Mac mini → Remove (si crees que lo controlan).
+7. Cambia la contraseña de la cuenta de administrador del Mac mini.
+
+Luego, en persona: reinstala el cerebro y pon las llaves nuevas (Fases 3 y 4).

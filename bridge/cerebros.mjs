@@ -237,8 +237,19 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
       if (!first) {
         for (const a of notices.slice(-3)) messages.push(`⚠️ Cerebro ${name}: ${a.text}`)
         const fails = fresh.filter(([k]) => k === 'falla')
-        if (fails.length) messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nSi no fuiste tú, alguien está intentando entrar.`)
-        for (const [, l] of fresh.filter(([k]) => k === 'entrada').slice(-3)) messages.push(`🔐 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador: ${l.slice(0, 160)}. Si no fuiste tú, avísame.`)
+        const stop = `Si no fuiste tú, corta todo ya desde tu Mac:\n  cd ~/Desktop/nexy && node scripts/cerebro.mjs borrar-llaves ${name}\n(apaga el cerebro y borra sus llaves; luego cambia las llaves en Anthropic, ElevenLabs, BotFather y Supabase).`
+        if (fails.length) {
+          m.lastFail = now
+          messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nAlguien está intentando entrar. ${stop}`)
+        }
+        // A login right after wrong passwords is someone getting in; a login alone is almost always the owner.
+        const suspicious = m.lastFail && now - m.lastFail < 30 * 60_000
+        for (const [, l] of fresh.filter(([k]) => k === 'entrada').slice(-3))
+          messages.push(
+            suspicious
+              ? `🚨 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador después de intentos fallidos: ${l.slice(0, 160)}. ${stop}`
+              : `🔐 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador: ${l.slice(0, 160)}. Si no fuiste tú, avísame.`,
+          )
       }
     }
     // Problems that start, and problems that are over.
@@ -268,17 +279,20 @@ async function tellOwner(text) {
 }
 
 /** What is worth a phone call, not only a message: someone trying the password, or the program touched. */
-export const URGENT = /escribió mal la contraseña de administrador|El sello del cerebro .* no cuadra/
+export const URGENT = /escribió mal la contraseña de administrador|administrador después de intentos fallidos|El sello del cerebro .* no cuadra/
 
 /** The call's words: short, to be heard. */
 export function spokenAlarm(text) {
   const brain = /cerebro (\S+)/.exec(text)?.[1] ?? ''
-  const where = brain ? ` en el cerebro de ${brain.replace(/-/g, ' ')}` : ''
+  const where = brain ? ` del cerebro de ${brain.replace(/-/g, ' ')}` : ''
+  if (/después de intentos fallidos/.test(text)) {
+    return `Boss, urgente: alguien logró entrar al Mac mini${where} con la cuenta de administrador, después de equivocarse con la contraseña. Si no fuiste tú, corta todo ya: en Telegram te dejé el comando para apagar el cerebro y borrar sus llaves.`
+  }
   if (/contraseña/.test(text)) {
     const times = /\((\d+) ve/.exec(text)?.[1]
-    return `Boss, alerta de seguridad${where}: alguien escribió mal la contraseña de administrador del Mac mini${times ? `, ${times} ${times === '1' ? 'vez' : 'veces'}` : ''}. Si no fuiste tú, alguien está intentando entrar. Te dejé los detalles en Telegram.`
+    return `Boss, alguien está intentando entrar al Mac mini${where}. Escribieron mal la contraseña de administrador${times ? ` ${times} ${times === '1' ? 'vez' : 'veces'}` : ''}. Todavía no entran. Los detalles y qué hacer están en Telegram.`
   }
-  return `Boss, alerta de seguridad${where}: el sello del programa no cuadra, alguien le movió al cerebro y no prendió ninguna inteligencia artificial. Te dejé los detalles en Telegram.`
+  return `Boss, alguien le movió al programa${where}: el sello no cuadra y no prendió ninguna inteligencia artificial. Los detalles y qué hacer están en Telegram.`
 }
 
 /** Every minute while NEX is on, when there are brains. Security alarms also ring the owner. */
@@ -292,8 +306,8 @@ export function startBrainWatch({ callOwner = null } = {}) {
     try {
       for (const m of await checkBrains()) {
         await tellOwner(m)
-        // One call every 10 minutes at most: the rest of a burst goes to Telegram.
-        if (callOwner && URGENT.test(m) && Date.now() - lastCall > 10 * 60_000) {
+        // One call every 10 minutes at most (the rest of a burst goes to Telegram), except someone getting in.
+        if (callOwner && URGENT.test(m) && (Date.now() - lastCall > 10 * 60_000 || /después de intentos fallidos/.test(m))) {
           lastCall = Date.now()
           const failed = await callOwner(spokenAlarm(m))
           if (failed) {
