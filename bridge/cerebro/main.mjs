@@ -163,13 +163,7 @@ export async function main() {
     }
     arrancar()
     // His voice console on this Mac mini (only this machine opens it): http://127.0.0.1:8790
-    startConsolaLocal({
-      model: cfg.modelo_ultron || ULTRON_MODEL,
-      modeloRapido: cfg.modelo || MODEL,
-      effort: cfg.esfuerzo || EFFORT,
-      env: claudeEnv,
-      elevenKey: () => readKeys().elevenlabs ?? null,
-    })
+    startConsolaLocal({ elevenKey: () => readKeys().elevenlabs ?? null })
   } else if (ultron) {
     state.ias.ultron = 'en espera'
   }

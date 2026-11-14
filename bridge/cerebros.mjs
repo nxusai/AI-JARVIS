@@ -157,6 +157,15 @@ export async function mirror(name) {
 }
 
 /** What NEX sends a brain as data: signed with the same key as the packages. */
+/** Ultron's voice: the one chosen for his live agent (scripts/ultron-voz.mjs), so he sounds the same everywhere. */
+function vozDeUltron() {
+  try {
+    const v = JSON.parse(readFileSync(join(homedir(), '.nexy', 'ultron-voz.json'), 'utf8'))?.voiceId
+    if (/^[A-Za-z0-9]{20}$/.test(v ?? '')) return v
+  } catch {}
+  return readUltron()?.voz ?? null
+}
+
 export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
   let sales = {}
   try {
@@ -171,8 +180,8 @@ export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
     ...(readLabelConfig().canal ? { canal: readLabelConfig().canal } : {}),
     ...(labels ? { etiquetas: Object.fromEntries(listClients().map((c) => [c.id, c])) } : {}),
     // Whether Ultron answers from the brain (moving day or calling it off), with his voice.
-    ...(typeof ultron === 'boolean' || typeof apagado === 'boolean'
-      ? { ultron: { ...(typeof ultron === 'boolean' ? { prendido: ultron } : {}), ...(typeof apagado === 'boolean' ? { apagado } : {}), ...(readUltron()?.voz ? { voz: readUltron().voz } : {}) } }
+    ...(typeof ultron === 'boolean' || typeof apagado === 'boolean' || vozDeUltron()
+      ? { ultron: { ...(typeof ultron === 'boolean' ? { prendido: ultron } : {}), ...(typeof apagado === 'boolean' ? { apagado } : {}), ...(vozDeUltron() ? { voz: vozDeUltron() } : {}) } }
       : {}),
     // Ana Sofi's sales line: whether it calls from the brain, with her agent and number (no keys).
     ...(typeof ventas === 'boolean' ? { ventas: { prendido: ventas, agentId: sales.agentId, phoneId: sales.phoneId, avisos: sales.avisos === 'todo' ? 'todo' : 'meetings' } } : {}),

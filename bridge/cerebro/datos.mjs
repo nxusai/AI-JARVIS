@@ -84,7 +84,7 @@ export function applyData(file, publicPem) {
     writeLabelConfig({ ...readLabelConfig(), canal: data.canal })
     done.push('la línea directa de la impresora')
   }
-  if (data.ultron && typeof data.ultron === 'object' && (typeof data.ultron.prendido === 'boolean' || typeof data.ultron.apagado === 'boolean')) {
+  if (data.ultron && typeof data.ultron === 'object' && (typeof data.ultron.prendido === 'boolean' || typeof data.ultron.apagado === 'boolean' || typeof data.ultron.voz === 'string')) {
     // His address and key are typed on the brain (llaves.mjs); this says whether he answers from here,
     // and the owner's master switch (apagado: no AI of this brain starts).
     const file = join(DATA, 'ultron.json')
@@ -98,7 +98,10 @@ export function applyData(file, publicPem) {
       next.apagado = data.ultron.apagado
       done.push(data.ultron.apagado ? 'Ultron apagado: ninguna IA arranca' : 'Ultron prendido otra vez')
     }
-    if (typeof data.ultron.voz === 'string' && VOICE.test(data.ultron.voz)) next.voz = data.ultron.voz
+    if (typeof data.ultron.voz === 'string' && VOICE.test(data.ultron.voz) && next.voz !== data.ultron.voz) {
+      next.voz = data.ultron.voz
+      done.push('la voz de Ultron')
+    }
     writePrivate(file, next)
   }
   if (data.ventas && typeof data.ventas === 'object' && typeof data.ventas.prendido === 'boolean') {
