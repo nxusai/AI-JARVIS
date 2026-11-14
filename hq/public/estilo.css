@@ -1124,3 +1124,52 @@ body.vista-ny .nex-orbe, body.vista-ny .nex-panel { opacity: 1; }
 .stoic-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .stoic-tabs button { white-space: nowrap; flex: none; }
 .nav { overflow-y: auto; scrollbar-width: none; }
 @media (max-width: 600px) { .stoic-tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 16px; } .stoic-tabs button { white-space: normal; border-radius: 12px; } }
+
+/* ---------------- Portafolio ---------------- */
+.port-filtro { padding: 0; margin: 4px 0 14px; }
+.port-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.port-card { padding: 0; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; transition: transform .2s, border-color .2s; }
+.port-card:hover { transform: translateY(-3px); border-color: rgba(227,200,150,.55); }
+.port-foto { position: relative; aspect-ratio: 16 / 10; background: rgba(255,255,255,.04); display: grid; place-items: center; overflow: hidden; }
+.port-foto img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.port-foto > span:not(.chip) { font-size: 34px; color: #e3c896; opacity: .6; }
+.port-foto .chip { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,.6); }
+.port-info { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.port-info small { color: #e3c896; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; font-size: 11px; }
+.port-info p { margin: 2px 0 0; color: var(--suave); font-size: 13.5px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.port-form { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.port-drop { border: 1.5px dashed rgba(227,200,150,.45); border-radius: 16px; padding: 26px 16px; text-align: center; display: flex; flex-direction: column; gap: 6px; cursor: pointer; background: rgba(0,0,0,.18); }
+.port-drop.encima, .port-drop:hover { border-color: #e3c896; background: rgba(227,200,150,.08); }
+.port-drop small { color: var(--suave); }
+.port-drop ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.port-rev { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+.port-rev .fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.port-rev h2 { margin: 0; }
+.port-rev .grupo small { font-weight: 500; color: var(--suave); font-size: 13px; }
+.port-editores { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.port-editor { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.port-editor canvas { width: 100%; height: auto; border-radius: 12px; cursor: crosshair; touch-action: none; background: #000; }
+.port-editor .acciones { flex-wrap: wrap; gap: 10px; font-size: 13px; }
+.port-pedido { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.port-portada { padding: 22px; border-radius: 16px; background: linear-gradient(135deg, rgba(8,13,32,.9), rgba(16,26,51,.85)); border: .8px solid rgba(227,200,150,.3); }
+.port-portada h2 { font-size: clamp(22px, 3vw, 32px); margin: 8px 0 4px; }
+.port-portada .sub { color: #e3c896; margin: 0 0 10px; }
+.port-item { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 16px; align-items: start; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.035); }
+.port-item .port-foto { border-radius: 10px; }
+.port-item p { margin: 6px 0; color: var(--suave); line-height: 1.5; }
+.port-item ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.port-mover { display: flex; flex-direction: column; gap: 6px; }
+.port-cierre { font-family: Georgia, serif; font-style: italic; font-size: 18px; color: #f3dfb4; margin: 4px 0; }
+.port-detalle { display: flex; flex-direction: column; gap: 8px; }
+.port-detalle h2 { margin: 0; }
+.port-detalle h4 { margin: 8px 0 2px; color: #e3c896; }
+.port-detalle p { margin: 0; line-height: 1.55; }
+.port-galeria { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+.port-galeria img { height: 220px; border-radius: 10px; flex: none; }
+.port-guion { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.port-pasos { margin: 0 0 10px; padding-left: 20px; line-height: 1.6; }
+@media (max-width: 700px) {
+  .port-item { grid-template-columns: 1fr; }
+  .port-mover { flex-direction: row; }
+  .port-galeria img { height: 160px; }
+}

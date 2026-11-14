@@ -54,6 +54,11 @@ export const GRUPOS = [
     ],
   },
   {
+    grupo: 'Portafolio',
+    icono: '❖',
+    items: [['portafolio', 'Usar el portafolio: subir trabajos (Eduardo los aprueba) y generar portafolios para clientes', '']],
+  },
+  {
     grupo: 'Administración',
     icono: '⚙',
     items: [
@@ -78,6 +83,7 @@ const CORTO = {
   anuncios_gasto: 'Gasto en anuncios',
   documentos_ver: 'Contratos y propuestas',
   bitacora_ver: 'Bitácora',
+  portafolio: 'Portafolio',
   personas_gestionar: 'Alta de personas',
 }
 const RIESGO = Object.fromEntries(GRUPOS.flatMap((g) => g.items.map(([k, , r]) => [k, r])))

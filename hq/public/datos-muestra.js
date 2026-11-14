@@ -31,6 +31,12 @@ const db = {
     { id: S1, nombre: 'Barbara', correo: 'barbara@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('barbara', 'suyos', true, true, false, false) },
     { id: S2, nombre: 'Tania', correo: 'tania@nxusai.org', rol: 'equipo', activo: true, cargo: 'Socia · NXUS México', sede: 'mexico', foto: null, reporta_a: ED, creado: dia(-30), ...permisos('tania', 'suyos', true, true, false, false) },
   ],
+  portafolio: [
+    { id: 'pt1', titulo: 'Tienda en línea para marca de ropa', categoria: 'web', industria: 'Moda', ficha: { descripcion: 'Tienda en línea con catálogo, pagos y correos automáticos de carrito abandonado.', reto: 'Vendía solo por Instagram.', solucion: 'Tienda propia conectada a sus redes.', resultados: ['Ventas en línea desde el primer mes'], servicios: ['Diseño web', 'Automatización'], tecnologias: ['Shopify'] }, imagenes: ['muestra/pt1'], privado: { link: '', notas: '', quitado: ['logo'] }, fecha: dia(-40).slice(0, 10), estado: 'aprobado', creado: dia(-40) },
+    { id: 'pt2', titulo: 'Agente de IA que contesta leads de anuncios', categoria: 'ia', industria: 'Bienes raíces', ficha: { descripcion: 'Un agente que llama y escribe a cada lead en menos de un minuto y agenda la cita.', reto: 'Los leads se enfriaban.', solucion: 'Agente de voz y WhatsApp conectado al CRM.', resultados: ['Respuesta en menos de 1 minuto'], servicios: ['Agente de IA', 'CRM'], tecnologias: ['ElevenLabs', 'Claude'] }, imagenes: ['muestra/pt2'], privado: { link: '', notas: '', quitado: ['teléfonos', 'nombres de leads'] }, fecha: dia(-15).slice(0, 10), estado: 'aprobado', creado: dia(-15) },
+  ],
+  port_archivos: {},
+  port_pedidos: [],
   cal: [],
   stoic_notas: [
     { id: 'sn1', fecha: new Date(Date.now() - 20 * 864e5).toLocaleDateString('en-CA'), tipo: 'libro', titulo: 'Meditaciones', autor: 'Marco Aurelio', texto: 'No controlo lo que pasa, controlo cómo respondo. Cada mañana debo recordar que me toparé con gente difícil y no por eso tengo que perder la calma.', resumen: { bullets: ['Solo controlas tu respuesta, no lo que pasa', 'Prepárate cada mañana para gente difícil', 'La calma es una decisión'], lecciones: ['Cuando algo me enoje, yo respiro y elijo mi respuesta.'], frase: 'Lo que no depende de mí no me quita la paz.', etiquetas: ['mentalidad', 'disciplina'] } },
@@ -263,6 +269,35 @@ lead({ nombre: 'Andrea Gil', empresa: 'Café Gil', telefono: '', ciudad: 'León'
 
 let yo = null
 const copia = (x) => JSON.parse(JSON.stringify(x))
+/** Una "captura" de sitio dibujada (para el portafolio de muestra, sin internet). */
+const portCache = {}
+function muestraPort(clave, texto = 'NXUS', conLogo = false) {
+  if (portCache[clave]) return portCache[clave]
+  const c = Object.assign(document.createElement('canvas'), { width: 1366, height: 860 })
+  const g = c.getContext('2d')
+  const tono = [...String(clave)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360
+  const fondo = g.createLinearGradient(0, 0, 1366, 860)
+  fondo.addColorStop(0, `hsl(${tono} 45% 22%)`)
+  fondo.addColorStop(1, `hsl(${(tono + 60) % 360} 50% 12%)`)
+  g.fillStyle = fondo
+  g.fillRect(0, 0, 1366, 860)
+  g.fillStyle = '#e3c896'
+  g.font = 'bold 54px sans-serif'
+  g.fillText(conLogo ? '★ La Casa de Don Pepe · 555-123-4567' : texto, 60, 90)
+  g.fillStyle = 'rgba(255,255,255,.9)'
+  g.font = 'bold 76px sans-serif'
+  g.fillText('Sabor que se queda contigo', 60, 380)
+  g.font = '34px sans-serif'
+  g.fillStyle = 'rgba(255,255,255,.7)'
+  g.fillText('Reserva en línea en segundos', 60, 450)
+  g.fillStyle = '#e3c896'
+  g.fillRect(60, 510, 300, 80)
+  g.fillStyle = '#1a1208'
+  g.font = 'bold 32px sans-serif'
+  g.fillText('Reservar', 140, 562)
+  for (let i = 0; i < 3; i++) (g.fillStyle = 'rgba(255,255,255,.08)'), g.fillRect(60 + i * 420, 650, 380, 170)
+  return (portCache[clave] = c.toDataURL('image/jpeg', 0.85))
+}
 const admin = () => yo?.rol === 'admin'
 const nunca = () => {
   throw new Error('No tienes permiso para hacer eso')
@@ -674,6 +709,78 @@ export function crearMuestra() {
       if (/llam|llegó|llego/.test(t) && t.includes('pago')) acciones.push({ tipo: 'proponer', accion: 'apuntar_pendiente', datos: { texto: 'Revisar pago' }, resumen: 'Apuntar: revisar pago (muestra)' })
       await new Promise((r) => setTimeout(r, 400))
       return { ok: true, texto: d ? (acciones.some((a) => a.tipo === 'senalar') ? 'Aquí está, te lo marqué en dorado.' : 'Listo, ya estás ahí.') : 'En la muestra solo entiendo "llévame a…" y "no encuentro…". Con HQ de verdad te contesto todo.', acciones }
+    },
+    // Portafolio de muestra: sin IA; la "IA" marca el encabezado como borroso para probar el editor.
+    portTrabajos: () => espera(tiene('portafolio') ? [...db.portafolio].sort((a, b) => b.fecha.localeCompare(a.fecha)) : []),
+    async portCrear(t) {
+      if (!tiene('portafolio') || (!admin() && t.estado !== 'borrador')) nunca()
+      const fila = { creado: new Date().toISOString(), creado_por: yo.id, ...t }
+      db.portafolio.push(fila)
+      return copia(fila)
+    },
+    async portGuardar(t) {
+      const f = db.portafolio.find((x) => x.id === t.id)
+      if (!f || !tiene('portafolio') || (!admin() && (f.estado !== 'borrador' || t.estado === 'aprobado'))) nunca()
+      Object.assign(f, t)
+      return copia(f)
+    },
+    async portBorrar(t) {
+      if (!admin() && !(tiene('portafolio') && t.estado === 'borrador')) nunca()
+      db.portafolio = db.portafolio.filter((x) => x.id !== t.id)
+      return true
+    },
+    async portSubirImagen(id, n, blob) {
+      const ruta = `${id}/${n}.jpg`
+      db.port_archivos[ruta] = await new Promise((ok) => Object.assign(new FileReader(), { onload: (e) => ok(e.target.result) }).readAsDataURL(blob))
+      return ruta
+    },
+    portUrl: async (ruta) => db.port_archivos[ruta] ?? muestraPort(ruta),
+    async portCaptura(link) {
+      await new Promise((r) => setTimeout(r, 300))
+      return { imagen: muestraPort(link, 'Sitio del cliente', true), texto: `Página de muestra: ${link}` }
+    },
+    async portAnalizar(d) {
+      await new Promise((r) => setTimeout(r, 500))
+      return {
+        titulo: 'Sitio web con agente de citas para restaurante',
+        categoria: 'web',
+        industria: 'Restaurantes',
+        descripcion: 'Diseñamos un sitio rápido y moderno con menú, reservaciones y un agente de IA que contesta y agenda.',
+        reto: 'Perdían reservaciones porque nadie contestaba el teléfono en horas pico.',
+        solucion: 'Sitio nuevo con reservaciones en línea y un agente que responde 24/7.',
+        resultados: d.notas?.match(/\d+\s?%/) ? [`Más citas: ${d.notas.match(/\d+\s?%/)[0]}`] : [],
+        servicios: ['Diseño web', 'Agente de IA'],
+        tecnologias: ['Netlify', 'Claude'],
+        quitado: ['nombre del restaurante', 'logo', 'teléfono'],
+        zonas: (d.imagenes ?? []).map((_, i) => ({ imagen: i, x: 0.03, y: 0.03, w: 0.42, h: 0.14, que: 'logo y nombre' })),
+      }
+    },
+    async portPedir(d) {
+      await new Promise((r) => setTimeout(r, 500))
+      const ap = db.portafolio.filter((t) => t.estado === 'aprobado')
+      if (!ap.length) throw new Error('Todavía no hay trabajos aprobados en el portafolio')
+      const en = d.idioma === 'en'
+      return {
+        titulo: en ? 'NXUS AI · Selected work' : `NXUS AI · ${d.solicitud}`,
+        subtitulo: en ? 'Websites, automation and AI agents' : 'Sitios web, automatizaciones y agentes de IA',
+        introduccion: en ? 'We build websites and AI systems that bring in clients and save hours every week.' : 'Hacemos sitios y sistemas con IA que traen clientes y ahorran horas cada semana.',
+        trabajos: ap.map((t, i) => ({ id: t.id, titulo: t.titulo, texto: t.ficha.descripcion, puntos: [...(t.ficha.resultados ?? []), ...(t.ficha.servicios ?? [])].slice(0, 4), destacado: i === 0 })),
+        cierre: en ? "Let's build yours next." : 'El siguiente puede ser el tuyo.',
+        nota_para_ti: 'En la muestra pongo todos los trabajos aprobados; con HQ de verdad la IA escoge según lo que pidas.',
+      }
+    },
+    async portVideo(pedido, archivos) {
+      return { titulo: pedido.titulo, duracion_seg: 45, formato: 'Horizontal 16:9', estilo: 'Azul marino y dorado, cortes suaves', musica: 'Electrónica elegante', escenas: archivos.map((a) => ({ segundos: 6, imagen: a.archivo, texto_pantalla: a.trabajo, voz: `Así quedó: ${a.trabajo}.`, movimiento: 'Zoom lento' })), cierre: 'nxusai.org' }
+    },
+    portPedidos: () => espera(tiene('portafolio') ? [...db.port_pedidos].reverse() : []),
+    async portGuardarPedido(p) {
+      const f = { id: id(), creado: new Date().toISOString(), ...p }
+      db.port_pedidos.push(f)
+      return copia(f)
+    },
+    async portBorrarPedido(pid) {
+      db.port_pedidos = db.port_pedidos.filter((x) => x.id !== pid)
+      return true
     },
     // Calendario y STOIC de muestra (solo Eduardo).
     async calListar(desde, hasta) {

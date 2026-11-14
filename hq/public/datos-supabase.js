@@ -242,6 +242,37 @@ export function crearSupabase({ url, anon }) {
     },
     finanzasConfig: async () => ok(await tabla('finanzas_config').select('*').eq('id', 1).maybeSingle()),
     guardarFinanzasConfig: async (c) => ok(await tabla('finanzas_config').update(c).eq('id', 1).select().single()),
+    // Portafolio (Eduardo y quien tenga el permiso): solo se suben imágenes ya borrosas.
+    portTrabajos: async () => ok(await tabla('portafolio_trabajos').select('*').order('fecha', { ascending: false }).order('creado', { ascending: false })),
+    portCrear: async (t) => ok(await tabla('portafolio_trabajos').insert(t).select().single()),
+    portGuardar: (t) => guardar('portafolio_trabajos', t),
+    async portBorrar(t) {
+      ok(await tabla('portafolio_trabajos').delete().eq('id', t.id))
+      if (t.imagenes?.length) await sb.storage.from('portafolio').remove(t.imagenes).catch(() => null)
+      return true
+    },
+    async portSubirImagen(id, n, blob) {
+      const ruta = `${id}/${n}-${Math.random().toString(36).slice(2, 8)}.jpg`
+      ok(await sb.storage.from('portafolio').upload(ruta, blob, { contentType: 'image/jpeg', upsert: false }))
+      return ruta
+    },
+    async portUrl(ruta) {
+      if (fotos.has(`p:${ruta}`)) return fotos.get(`p:${ruta}`)
+      const { data, error } = await sb.storage.from('portafolio').createSignedUrl(ruta, 60 * 60 * 6)
+      if (error) throw error
+      fotos.set(`p:${ruta}`, data.signedUrl)
+      return data.signedUrl
+    },
+    portCaptura: (link) => funcion('portafolio', { accion: 'captura', link }),
+    portAnalizar: async (d) => (await funcion('portafolio', { accion: 'analizar', ...d })).ficha,
+    portPedir: async (d) => (await funcion('portafolio', { accion: 'pedir', ...d })).portafolio,
+    portVideo: async (pedido, archivos) => (await funcion('portafolio', { accion: 'video', pedido, archivos })).video,
+    portPedidos: async () => ok(await tabla('portafolio_pedidos').select('*').order('creado', { ascending: false }).limit(100)),
+    portGuardarPedido: async (p) => ok(await tabla('portafolio_pedidos').insert(p).select().single()),
+    async portBorrarPedido(id) {
+      ok(await tabla('portafolio_pedidos').delete().eq('id', id))
+      return true
+    },
     // Calendario de Eduardo (Google Calendar de NXUS por la agenda) y STOIC (su cuaderno).
     calListar: async (desde, hasta) => (await funcion('calendario', { accion: 'listar', desde: desde.toISOString(), hasta: hasta.toISOString() })).eventos,
     calCrear: (d) => funcion('calendario', { accion: 'crear', ...d }),

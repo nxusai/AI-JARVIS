@@ -1826,3 +1826,72 @@ begin
     execute format('create policy solo_admin on public.%I for all to authenticated using (es_admin()) with check (es_admin())', t);
   end loop;
 end $$;
+
+-- PORTAFOLIO (14 nov 2026): los trabajos de NXUS, limpios por la IA (sin datos de clientes; imágenes con lo
+-- confidencial borroso). Se suben solo las imágenes ya borrosas: los originales nunca se guardan.
+-- Lo usan Eduardo y quien tenga el permiso "portafolio"; lo que suben los demás queda en borrador hasta que
+-- Eduardo lo aprueba.
+create table if not exists public.portafolio_trabajos (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null check (char_length(titulo) between 1 and 160),
+  categoria text not null default 'otro' check (categoria in ('web', 'app', 'automatizacion', 'ia', 'marketing', 'diseno', 'video', 'contenido', 'otro')),
+  industria text not null default '' check (char_length(industria) <= 120),
+  ficha jsonb not null default '{}', -- { descripcion, reto, solucion, resultados: [], servicios: [], tecnologias: [] }
+  imagenes text[] not null default '{}', -- rutas en el bucket portafolio (ya borrosas)
+  privado jsonb not null default '{}', -- { link, notas, quitado: [] }: solo en HQ, nunca sale en el portafolio
+  fecha date not null default current_date,
+  estado text not null default 'borrador' check (estado in ('borrador', 'aprobado')),
+  creado_por uuid default auth.uid() references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now(),
+  actualizado timestamptz not null default now()
+);
+create index if not exists portafolio_trabajos_fecha on public.portafolio_trabajos (fecha desc);
+drop trigger if exists hq_actualizado on public.portafolio_trabajos;
+create trigger hq_actualizado before update on public.portafolio_trabajos for each row execute function public.al_cambiar_fila();
+alter table public.portafolio_trabajos enable row level security;
+drop policy if exists port_ver on public.portafolio_trabajos;
+create policy port_ver on public.portafolio_trabajos for select to authenticated using (puede('portafolio'));
+drop policy if exists port_subir on public.portafolio_trabajos;
+create policy port_subir on public.portafolio_trabajos for insert to authenticated with check (puede('portafolio') and (es_admin() or estado = 'borrador'));
+drop policy if exists port_cambiar on public.portafolio_trabajos;
+create policy port_cambiar on public.portafolio_trabajos for update to authenticated
+  using (es_admin() or (puede('portafolio') and estado = 'borrador')) with check (es_admin() or (puede('portafolio') and estado = 'borrador'));
+drop policy if exists port_borrar on public.portafolio_trabajos;
+create policy port_borrar on public.portafolio_trabajos for delete to authenticated
+  using (es_admin() or (puede('portafolio') and estado = 'borrador' and creado_por = auth.uid()));
+
+create table if not exists public.portafolio_pedidos (
+  id uuid primary key default gen_random_uuid(),
+  solicitud text not null check (char_length(solicitud) between 1 and 2000),
+  idioma text not null default 'es' check (idioma in ('es', 'en')),
+  para text not null default '' check (char_length(para) <= 160),
+  resultado jsonb not null default '{}', -- { titulo, introduccion, trabajos: [{ id, titulo, texto, destacado }], cierre }
+  creado_por uuid default auth.uid() references public.perfiles (id) on delete set null,
+  creado timestamptz not null default now()
+);
+create index if not exists portafolio_pedidos_creado on public.portafolio_pedidos (creado desc);
+alter table public.portafolio_pedidos enable row level security;
+drop policy if exists port_ped_ver on public.portafolio_pedidos;
+create policy port_ped_ver on public.portafolio_pedidos for select to authenticated using (puede('portafolio'));
+drop policy if exists port_ped_crear on public.portafolio_pedidos;
+create policy port_ped_crear on public.portafolio_pedidos for insert to authenticated with check (puede('portafolio'));
+drop policy if exists port_ped_borrar on public.portafolio_pedidos;
+create policy port_ped_borrar on public.portafolio_pedidos for delete to authenticated using (es_admin() or creado_por = auth.uid());
+do $$
+declare t text;
+begin
+  foreach t in array array['portafolio_trabajos'] loop
+    execute format('drop trigger if exists hq_bitacora on public.%I', t);
+    execute format('create trigger hq_bitacora after insert or update or delete on public.%I for each row execute function public.anotar_cambio()', t);
+  end loop;
+end $$;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('portafolio', 'portafolio', false, 8388608, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+drop policy if exists hq_port_ver on storage.objects;
+create policy hq_port_ver on storage.objects for select to authenticated using (bucket_id = 'portafolio' and puede('portafolio'));
+drop policy if exists hq_port_subir on storage.objects;
+create policy hq_port_subir on storage.objects for insert to authenticated with check (bucket_id = 'portafolio' and puede('portafolio'));
+drop policy if exists hq_port_borrar on storage.objects;
+create policy hq_port_borrar on storage.objects for delete to authenticated using (bucket_id = 'portafolio' and es_admin());
