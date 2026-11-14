@@ -185,9 +185,9 @@ export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
 // -- the watch -------------------------------------------------------------------
 
 const WATCH_FILE = join(MIRRORS, 'vigilancia.json')
-const EVERY_MS = 5 * 60_000
-/** Three looks in a row with no answer (15 minutes) before saying it does not answer. */
-const MISSES = 3
+const EVERY_MS = 60_000
+/** Fifteen looks in a row with no answer (15 minutes) before saying it does not answer. */
+const MISSES = 15
 /** A heartbeat older than this means the brain is stuck, though its service is up. */
 const STALE_MS = 6 * 60_000
 
@@ -267,15 +267,41 @@ async function tellOwner(text) {
   }
 }
 
-/** Every five minutes while NEX is on, when there are brains. */
-export function startBrainWatch() {
+/** What is worth a phone call, not only a message: someone trying the password, or the program touched. */
+export const URGENT = /escribió mal la contraseña de administrador|El sello del cerebro .* no cuadra/
+
+/** The call's words: short, to be heard. */
+export function spokenAlarm(text) {
+  const brain = /cerebro (\S+)/.exec(text)?.[1] ?? ''
+  const where = brain ? ` en el cerebro de ${brain.replace(/-/g, ' ')}` : ''
+  if (/contraseña/.test(text)) {
+    const times = /\((\d+) ve/.exec(text)?.[1]
+    return `Boss, alerta de seguridad${where}: alguien escribió mal la contraseña de administrador del Mac mini${times ? `, ${times} ${times === '1' ? 'vez' : 'veces'}` : ''}. Si no fuiste tú, alguien está intentando entrar. Te dejé los detalles en Telegram.`
+  }
+  return `Boss, alerta de seguridad${where}: el sello del programa no cuadra, alguien le movió al cerebro y no prendió ninguna inteligencia artificial. Te dejé los detalles en Telegram.`
+}
+
+/** Every minute while NEX is on, when there are brains. Security alarms also ring the owner. */
+export function startBrainWatch({ callOwner = null } = {}) {
   if (!Object.keys(readBrains()).length) return
   let busy = false
+  let lastCall = 0
   const run = async () => {
     if (busy) return
     busy = true
     try {
-      for (const m of await checkBrains()) await tellOwner(m)
+      for (const m of await checkBrains()) {
+        await tellOwner(m)
+        // One call every 10 minutes at most: the rest of a burst goes to Telegram.
+        if (callOwner && URGENT.test(m) && Date.now() - lastCall > 10 * 60_000) {
+          lastCall = Date.now()
+          const failed = await callOwner(spokenAlarm(m))
+          if (failed) {
+            lastCall = 0
+            await tellOwner(`☎️ No pude llamarte por esta alerta: ${failed}.`)
+          }
+        }
+      }
     } catch (err) {
       console.log(`[jarvis] brain watch: ${err.message}`)
     } finally {
