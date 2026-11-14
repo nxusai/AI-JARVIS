@@ -21,6 +21,7 @@ set -uo pipefail
 LABEL="org.cerebro.ia"
 HOME_DIR="${CEREBRO_HOME:-/Library/Application Support/Cerebro}"
 export CEREBRO_HOME="$HOME_DIR"
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 PROGRAM="$HOME_DIR/programa"
 DATA="$HOME_DIR/datos"
 PLIST="/Library/LaunchDaemons/$LABEL.plist"

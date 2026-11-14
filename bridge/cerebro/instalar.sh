@@ -48,6 +48,9 @@ for n in /opt/homebrew/bin/node /usr/local/bin/node; do [ -x "$n" ] && NODE="$n"
 [ -n "$NODE" ] || fail "Falta Node.js. Instálalo desde https://nodejs.org (botón LTS) y vuelve a correr esto."
 [ "$("$NODE" -p 'process.versions.node.split(".")[0]')" -ge 20 ] || fail "Node.js es muy viejo. Instala el LTS de https://nodejs.org."
 NPM="$(dirname "$NODE")/npm"
+# npm starts with "#!/usr/bin/env node": through the door (sudo over SSH) PATH
+# does not have Node's folder, so it goes first.
+export PATH="$(dirname "$NODE"):$PATH"
 
 [ -f "$HERE/firma.pub" ] && [ -f "$HERE/firma.sig" ] || fail "Este paquete no viene firmado. No se instala."
 print_fingerprint() {
