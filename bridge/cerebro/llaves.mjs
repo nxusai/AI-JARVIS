@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, writeAnaSofi } from '../nucleo/anasofi.mjs'
 import { DATA } from '../nucleo/lugar.mjs'
@@ -148,6 +148,32 @@ function handOver() {
   }
 }
 
+/**
+ * An earlier llaves.mjs, run with sudo, kept the keys in root's own home
+ * (/var/root/Library/Application Support/Cerebro/datos) where the brain never
+ * looks. Bring them to the brain's folder (what is already there wins) and
+ * delete that copy.
+ */
+function rescueStray() {
+  if (typeof process.getuid !== 'function' || process.getuid() !== 0) return
+  const stray = '/var/root/Library/Application Support/Cerebro/datos'
+  if (stray === DATA || !existsSync(stray)) return
+  let moved = 0
+  for (const name of ['llaves.json', 'cerebro.json', 'anasofi.json', 'ultron.json']) {
+    const old = readJson(join(stray, name))
+    if (!Object.keys(old).length) continue
+    const now = readJson(join(DATA, name))
+    writePrivate(join(DATA, name), { ...old, ...now })
+    moved++
+  }
+  rmSync('/var/root/Library/Application Support/Cerebro', { recursive: true, force: true })
+  if (moved) {
+    console.log(' 🔧 Pasé las llaves que habían quedado en otra carpeta a la del cerebro.')
+    handOver()
+  }
+}
+
+rescueStray()
 const cmd = process.argv[2]
 const keys = readJson(KEYS_FILE)
 const config = readJson(CONFIG_FILE)
