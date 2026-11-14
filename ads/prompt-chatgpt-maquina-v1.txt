@@ -1,0 +1,42 @@
+Eres mi director creativo y productor de video. Vas a crear conmigo un reel para mi empresa NXUS AI usando Higgsfield. Usa todo lo que ya sabes de mí y de NXUS. Si algo de este mensaje choca con lo que sabes, pregúntame antes de seguir.
+
+## Cómo trabajar conmigo
+- Háblame en español, directo y breve, con pasos enumerados. Los nombres de los botones van en inglés, como salen en pantalla.
+- Antes de generar cualquier cosa en Higgsfield, enséñame el prompt y dime cuántos créditos va a gastar. No generes nada sin mi "sí".
+- Revisa mi saldo de créditos antes de empezar y avísame si no alcanza.
+- No inventes estadísticas, clientes ni resultados. Si hace falta un número real, pídemelo.
+- No menciones ciudades, colonias ni países en el video ni en la voz. Las zonas van en la segmentación de Meta.
+- Enséñame cada pieza (avatar, escenas, voz) antes de pasar a la siguiente.
+
+## Qué es NXUS (para el guion)
+NXUS AI le pone inteligencia artificial a negocios: una IA que contesta a sus clientes por WhatsApp e Instagram, los llama al momento, los califica, les agenda la cita y deja todo ordenado en un CRM, de día y de noche. La oferta del video es: "Agenda tu diagnóstico gratis de 30 minutos".
+
+## El estilo que quiero (referencia: el reel "La máquina")
+- **Sin cámara:** nadie graba. Todo es animación y una voz narrada.
+- **Escena base:** una oficina o cuarto en 3D, oscuro y de noche, con luna en la ventana, escritorio y un celular que marca 03:55. Ahí está mi **avatar** estilo pixel/voxel 3D (tipo figura de juego), hecho a partir de mi foto. El avatar es el presentador: celebra, camina y se sienta.
+- **App animada:** encima salen pantallas de una app ficticia de NXUS con un cursor que da clic en cada paso que dice la voz. Por ejemplo: llega un mensaje, la IA contesta, sale la llamada, la cita queda en el calendario, el lead aparece en el CRM y al final un botón "Aprobar".
+- **Ritmo:** algo nuevo o en movimiento cada 1 a 3 segundos.
+- **Subtítulos palabra a palabra:** de 1 a 3 palabras, mayúsculas gruesas, sobre una pastilla oscura, a 3/4 de la altura. La palabra clave va en el color de acento.
+- **Stickers:** etiquetas inclinadas en color de acento que entran de golpe, por ejemplo "24/7", "SIN CONTRATAR", "100% AUTOMÁTICO".
+- **Colores NXUS:** fondo negro o azul muy oscuro (#0b0f1c), texto blanco y acento con el degradado de la marca: cian #00e5ff → azul #0a6cff → morado #a01cff. El cian es para la palabra clave.
+- **Cierre en loop:** termina en la misma escena del inicio con el reloj en 03:54, para que al repetirse parezca continuo.
+- **Formato:** vertical 9:16, de 40 a 55 segundos.
+
+## Idea del guion (mejórala, pero respeta la estructura)
+1. Gancho (0 a 3 s), con frase imposible e imagen nocturna: "Mi IA atiende a mis clientes a las 3 de la mañana mientras yo duermo."
+2. "Y mira lo que hace": paso por paso, una pantalla por frase (contesta en segundos, llama al cliente, lo califica, agenda la cita y lo deja en el CRM).
+3. Lo más fuerte: "y yo solo apruebo".
+4. Cierre: "Agenda tu diagnóstico gratis de 30 minutos", con la tarjeta "DIAGNÓSTICO GRATIS · 30 minutos".
+5. Regreso a la escena inicial (loop).
+
+## Plan de trabajo (en este orden, esperando mi visto bueno en cada paso)
+1. Hazme 3 versiones del guion: palabra por palabra, con tiempos, y qué pantalla o animación va en cada frase. Yo elijo una.
+2. **Avatar:** te paso una foto mía de frente. Genera el avatar pixel/voxel 3D en Higgsfield (una imagen limpia, de cuerpo completo) y luego 2 o 3 poses (saludando, celebrando, sentado). Lo vamos a reusar en todos los videos, así que tiene que quedar bien.
+3. **Escena base:** genera la imagen del cuarto u oficina de noche con mi avatar, el escritorio y el celular con 03:55.
+4. **Tomas animadas:** con un modelo de video de Higgsfield (por ejemplo Kling), anima la escena base y las poses del avatar en tomas cortas de 3 a 5 segundos. Dime cuántas tomas y cuántos créditos antes de generar.
+5. **Pantallas de la app:** genera las imágenes de las pantallas de la app de NXUS (chat, llamada, calendario, CRM, botón Aprobar) con los colores de la marca y textos cortos legibles.
+6. **Voz:** narración en español mexicano, con energía y natural. Propónme 2 o 3 voces de Higgsfield para elegir. Si luego clono mi voz, te aviso.
+7. **Música:** fondo electrónico suave y moderno, que no tape la voz.
+8. **Entrega:** dame todo ordenado por número de escena (tomas, pantallas, voz y música) y un guion de montaje: qué va en cada segundo, qué palabra va en el subtítulo, en qué color y qué sticker entra. Así lo armo, o se lo paso a mi editor, con subtítulos palabra a palabra, cursor y animaciones.
+
+Empieza por el paso 1.
