@@ -160,9 +160,11 @@ ADMIN="${SUDO_USER:-}"
 CANAL="/usr/local/libexec/cerebro-canal"
 if [ -f "$PROGRAM/canal.pub" ] && [ -n "$ADMIN" ] && [ "$ADMIN" != "root" ]; then
   mkdir -p /usr/local/libexec
-  cp "$PROGRAM/canal.sh" "$CANAL"
-  chown root:wheel "$CANAL"
-  chmod 755 "$CANAL"
+  # A new file moved into place: the door running this install keeps reading its old copy.
+  cp "$PROGRAM/canal.sh" "$CANAL.nuevo"
+  chown root:wheel "$CANAL.nuevo"
+  chmod 755 "$CANAL.nuevo"
+  mv -f "$CANAL.nuevo" "$CANAL"
   SUDOERS="/etc/sudoers.d/cerebro-canal"
   printf 'Defaults!%s env_keep += "SSH_ORIGINAL_COMMAND"\n%s ALL=(root) NOPASSWD: %s\n' "$CANAL" "$ADMIN" "$CANAL" > "$SUDOERS.nuevo"
   chmod 440 "$SUDOERS.nuevo"
