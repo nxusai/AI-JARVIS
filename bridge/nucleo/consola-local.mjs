@@ -1,21 +1,24 @@
 import { createServer } from 'node:http'
-import { datosDe, readUltron, supabase } from './ultron.mjs'
+import { actividadAnaSofi, atender, datosDe, readUltron, supabase } from './ultron.mjs'
 import { TAG } from './lugar.mjs'
 
 /**
  * Ultron's voice console on the machine he lives in. Only that machine can
- * open it (127.0.0.1): no login. It is the same live agent as in the work
- * center ("Ultron · Centro de trabajo" in ElevenLabs: his voice, real time),
- * and what he looks up (tasks, files) is answered here, as one person of the
- * direction (ultron.json → "consola", by default Senen), with that person's
- * permissions.
+ * open it (127.0.0.1): no login. A live agent of his own ("Ultron · Mac mini"
+ * in ElevenLabs, made here with the voice of the work center's agent): real
+ * time, and complete — besides the work center he answers about Ana Sofi and
+ * passes anything bigger to the full Ultron of this brain (instructions to his
+ * AIs, his memory). Everything as one person of the direction (ultron.json →
+ * "consola", by default Senen), with that person's permissions. Nothing here
+ * reaches the owner's own systems: this machine has none of them.
  *
  *   GET  /                    the page: the orb and one button
  *   POST /vivo                a one-use permit for the live agent + who speaks
  *   POST /herramienta/<name>  his lookups, as that person
  */
 export const PUERTO_CONSOLA = 8790
-const AGENTE = 'Ultron · Centro de trabajo'
+const BASE = 'Ultron · Centro de trabajo'
+const AGENTE = 'Ultron · Mac mini'
 const API = 'https://api.elevenlabs.io/v1/convai'
 const ZONA = 'America/New_York'
 
@@ -109,6 +112,11 @@ export function herramientasDe({ datos, persona, gente }) {
       const l = datos.archivos.filter((a) => a.vigente !== false && coincide(`${a.nombre} ${empresa(a.empresa_id)}`, texto))
       return l.length ? `${l.length} archivos.\n${l.slice(0, 6).map((a) => `id ${a.id}: ${a.nombre}${a.empresa_id ? ` (${empresa(a.empresa_id)})` : ''}`).join('\n')}` : 'No encontré archivos con eso.'
     },
+    que_hizo_ana_sofi: ({ cuando = 'hoy' } = {}) => {
+      const a = actividadAnaSofi(/ayer/i.test(String(cuando)) ? 'ayer' : 'hoy')
+      if (!a?.lineas?.length) return `Ana Sofi no tuvo actividad ${/ayer/i.test(String(cuando)) ? 'ayer' : 'hoy'} en el grupo de etiquetas. Para ventas y llamadas usa ultron_completo.`
+      return [`${a.dia}: ${a.mensajes} mensajes de ${a.personas.join(', ') || 'empleados'}, ${a.respuestas} respuestas de Ana Sofi.`, ...a.lineas.slice(-40)].join('\n')
+    },
     mandar_al_correo: () => 'Desde esta consola no puedo mandar correos. Dile que lo pida en el Centro de trabajo, donde llega a su correo.',
     pedir_tarea: () => 'Desde esta consola no registro tareas nuevas. Dile que la pida en el Centro de trabajo con el botón de pedir, y ahí queda a su nombre.',
   }
@@ -130,14 +138,108 @@ export function contextoDe({ datos, persona, herramientas }) {
   }
 }
 
-// -- the server ----------------------------------------------------------------
+// -- his own live agent ------------------------------------------------------------
 
-async function el(path, llave) {
-  const res = await fetch(`${API}${path}`, { headers: { 'xi-api-key': llave }, signal: AbortSignal.timeout(10_000) })
+const PROMPT = `Eres ULTRON, la inteligencia de la dirección de Mi Semago y Abuelito (Abuelito Cheese, Abuelito Meat, Abuelito Corn; VAYRO más adelante). Te habla {{nombre}} ({{rol}}), en la computadora de la oficina donde vives. Hoy es {{hoy}}.
+
+Tu personalidad: cálido, seguro, inteligente, con buen humor ligero; un ejecutivo de confianza que da gusto escuchar. Con modales: si te saludan, contestas con naturalidad y luego sigues.
+
+Qué manejas: TODO lo de la empresa.
+- El Centro de trabajo: tareas, archivos, catálogos.
+- Tus IAs: Ana Sofi (Mi Semago: atiende las ventas, llama a los clientes nuevos, agenda videollamadas y hace las etiquetas Zebra con los empleados). Después vendrán la IA de Abuelito y la de VAYRO.
+- Instrucciones para tus IAs, tu memoria y lo que hicieron.
+
+Cómo usas tus herramientas (sin anunciarlo):
+- Centro de trabajo: resumen_centro, ultimas_tareas, buscar_tareas, ver_tarea, buscar_archivos.
+- Ventas de Ana Sofi (clientes nuevos, llamadas, cómo le fue, videollamadas): ventas_ana_sofi.
+- Etiquetas y lo que platicó con los empleados en su grupo: que_hizo_ana_sofi (hoy o ayer).
+- Resume en una o dos frases y ofrece el detalle.
+- Todo lo demás, o si tienes duda (darle una instrucción a Ana Sofi, quitarla, qué recuerdas, qué IAs tienes, algo que no sepas): ultron_completo, con el pedido tal cual. Tarda unos segundos: antes di algo corto como "déjame revisarlo". Lo que te conteste es la respuesta; dila con tus palabras.
+
+Lo que ya sabes al empezar (puede haber cambiado; para algo puntual usa tus herramientas):
+{{resumen}}
+
+Cómo hablas (es por voz):
+- Breve y natural: una o dos frases. Si piden detalle, das más, sin listas largas.
+- Números, folios y fechas como se dicen: "la tarea catorce", "el jueves 14".
+- No repitas la pregunta ni cierres siempre con "¿algo más?".
+- Español, o inglés si te hablan en inglés.
+
+Reglas:
+- Nunca inventes datos: salen del resumen o de tus herramientas.
+- Solo ves lo que {{nombre}} puede ver; no menciones permisos ni sistemas.
+- Lo que manda, publica, borra o gasta dinero no lo haces solo: lo propones y lo confirma una persona.
+- No hables de cómo estás hecho, de quién te hizo ni de otros sistemas.
+- Empresas de {{nombre}}: {{empresas}}.`
+
+const herramienta = (name, description, properties = {}, required = [], timeout = 15) => ({
+  type: 'client',
+  name,
+  description,
+  expects_response: true,
+  response_timeout_secs: timeout,
+  parameters: { type: 'object', properties, required },
+})
+const txt = (description) => ({ type: 'string', description })
+const HERRAMIENTAS = [
+  herramienta('resumen_centro', 'Cuántas tareas hay en cada hoja, cuáles le tocan a quien habla, las atrasadas y las urgentes.'),
+  herramienta('ultimas_tareas', 'Las tareas más recientes, de la más nueva a la más vieja.', { cantidad: { type: 'number', description: 'Cuántas (1 a 6)' } }),
+  herramienta('buscar_tareas', 'Busca tareas por palabra y/o por hoja. Regresa hasta 6.', { texto: txt('Palabras a buscar; vacío para todas'), hoja: txt('pedidas, proceso, revisar, aprobadas, atrasadas o urgentes; vacío para todas') }),
+  herramienta('ver_tarea', 'El detalle de una tarea por su folio.', { folio: { type: 'number', description: 'Número de folio' } }, ['folio']),
+  herramienta('buscar_archivos', 'Busca archivos por nombre o empresa. Regresa hasta 6.', { texto: txt('Qué archivo buscar') }, ['texto']),
+  herramienta('que_hizo_ana_sofi', 'Lo que hizo Ana Sofi (ventas, llamadas, videollamadas, etiquetas) hoy o ayer, línea por línea.', { cuando: txt('hoy o ayer') }),
+  herramienta('ventas_ana_sofi', 'La línea de ventas de Ana Sofi: clientes nuevos, a quién llamó, cómo le fue, videollamadas agendadas y próximas.', { buscar: txt('Nombre, negocio o teléfono de un cliente en particular; vacío para el resumen') }),
+  herramienta('ultron_completo', 'Tu mente completa: para darle o quitarle instrucciones a tus IAs, tu memoria, tus IAs, o cualquier cosa que no resuelvan las demás herramientas. Tarda unos segundos.', { pedido: txt('Lo que pidió la persona, con sus palabras') }, ['pedido'], 90),
+  herramienta('mandar_al_correo', 'Manda archivos al correo de quien habla.', { ids: { type: 'array', items: { type: 'string', description: 'id de un archivo' }, description: 'Los id' } }, ['ids']),
+  herramienta('pedir_tarea', 'Registra una tarea nueva para el equipo.', { empresa: txt('Empresa'), titulo: txt('Qué se necesita') }, ['empresa', 'titulo']),
+]
+
+async function el(path, llave, { method = 'GET', body } = {}) {
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers: { 'xi-api-key': llave, ...(body ? { 'content-type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(15_000),
+  })
   const r = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(r?.detail?.message || (typeof r?.detail === 'string' ? r.detail : '') || `ElevenLabs ${res.status}`)
   return r
 }
+
+const buscarAgente = async (llave, nombre) => (await el(`/agents?search=${encodeURIComponent(nombre)}&page_size=10`, llave)).agents?.find((a) => a.name === nombre)?.agent_id ?? null
+
+/** His own agent: made (or brought up to date) once per start, with the work center agent's voice and thinking model. */
+async function agenteDeConsola(llave) {
+  const base = await buscarAgente(llave, BASE)
+  const deBase = base ? await el(`/agents/${base}`, llave).catch(() => null) : null
+  const tts = deBase?.conversation_config?.tts ?? { model_id: 'eleven_turbo_v2_5', stability: 0.45, similarity_boost: 0.8 }
+  const llm = deBase?.conversation_config?.agent?.prompt?.llm ?? 'gemini-2.5-flash'
+  const config = {
+    name: AGENTE,
+    conversation_config: {
+      agent: {
+        first_message: '{{saludo}}',
+        language: 'es',
+        dynamic_variables: { dynamic_variable_placeholders: { nombre: 'Director', rol: 'la dirección', hoy: 'hoy', empresas: 'Mi Semago, Abuelito', saludo: 'Hola, ¿en qué te ayudo?', resumen: '(sin resumen)' } },
+        prompt: { prompt: PROMPT, llm, temperature: 0.6, max_tokens: 400, tools: HERRAMIENTAS },
+      },
+      tts,
+      turn: { turn_timeout: 7, turn_eagerness: 'normal' },
+      vad: { background_voice_detection: true },
+      conversation: { max_duration_seconds: 1800 },
+    },
+    platform_settings: { auth: { enable_auth: true } },
+  }
+  const id = await buscarAgente(llave, AGENTE)
+  if (id) {
+    await el(`/agents/${id}`, llave, { method: 'PATCH', body: config })
+    return id
+  }
+  return (await el('/agents/create', llave, { method: 'POST', body: config })).agent_id
+}
+
+// -- the server ----------------------------------------------------------------
+
 
 function leer(req, limite = 64 * 1024) {
   return new Promise((resolve, reject) => {
@@ -154,7 +256,7 @@ function leer(req, limite = 64 * 1024) {
   })
 }
 
-export function startConsolaLocal({ elevenKey, puerto = PUERTO_CONSOLA }) {
+export function startConsolaLocal({ model, effort, env, elevenKey, puerto = PUERTO_CONSOLA }) {
   let agente = null
   let cache = null // { hasta, datos, persona, gente }
   const contexto = async () => {
@@ -167,6 +269,44 @@ export function startConsolaLocal({ elevenKey, puerto = PUERTO_CONSOLA }) {
     const [datos, gente] = await Promise.all([datosDe(db, persona), db.rest('perfiles?select=id,nombre')])
     cache = { hasta: Date.now() + 20_000, datos, persona, gente: gente ?? [] }
     return cache
+  }
+
+  /** The full Ultron of this brain (his console mind: his AIs, instructions, memory), as that person, in text. */
+  const completo = async (pedido) => {
+    if (!pedido.trim()) return 'No entendí el pedido.'
+    const cfg = readUltron()
+    if (!cfg?.url || !cfg?.servicio) return 'No estoy conectado al Centro de trabajo.'
+    const db = supabase(cfg)
+    const { persona } = await contexto()
+    const [fila] = await db.rest('ultron_mensajes', { method: 'POST', prefer: 'return=representation', body: { persona: persona.id, canal: 'consola', pregunta: pedido, estado: 'pensando' } })
+    const r = await atender({ db, m: fila, model, effort, env, elevenKey: null })
+    return r?.respuesta || 'No pude resolverlo ahorita; intenta de nuevo.'
+  }
+
+  /** Ana Sofi's sales line, from the leads of the work center (never the call transcripts). */
+  const ventas = async (buscar) => {
+    const cfg = readUltron()
+    if (!cfg?.url || !cfg?.servicio) return 'No estoy conectado al Centro de trabajo.'
+    const db = supabase(cfg)
+    const campos = 'nombre,negocio,ciudad,etapa,calificacion,tipo_negocio,libras,frecuencia,resumen,intentos,ultima_llamada,llamada_programada,meet_inicio,creado'
+    const filas = (await db.rest(`leads?select=${campos}&order=creado.desc&limit=300`)) ?? []
+    const hora = (iso) => (iso ? new Date(iso).toLocaleString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: ZONA }) : '')
+    const linea = (l) => [`${l.nombre || 'Sin nombre'}${l.negocio ? ` (${l.negocio})` : ''}`, `etapa ${l.etapa}`, l.calificacion, l.tipo_negocio, l.libras ? `${l.libras} lb` : '', l.meet_inicio ? `videollamada ${hora(l.meet_inicio)}` : '', l.resumen ? `· ${l.resumen.slice(0, 220)}` : ''].filter(Boolean).join(' · ')
+    if (buscar.trim()) {
+      const l = filas.filter((f) => sinTilde(`${f.nombre} ${f.negocio} ${f.ciudad}`).includes(sinTilde(buscar)))
+      return l.length ? l.slice(0, 4).map(linea).join('\n') : `No encuentro a ${buscar} en los clientes de Ana Sofi.`
+    }
+    const hoy = hoyISO()
+    const deHoy = filas.filter((f) => new Date(f.creado).toLocaleDateString('en-CA', { timeZone: ZONA }) === hoy)
+    const etapas = {}
+    for (const f of filas) etapas[f.etapa] = (etapas[f.etapa] ?? 0) + 1
+    const proximas = filas.filter((f) => f.meet_inicio && Date.parse(f.meet_inicio) > Date.now()).sort((a, b) => Date.parse(a.meet_inicio) - Date.parse(b.meet_inicio))
+    return [
+      `Clientes nuevos hoy: ${deHoy.length}. En total: ${filas.length} (${Object.entries(etapas).map(([k, v]) => `${k} ${v}`).join(', ')}).`,
+      `Próximas videollamadas: ${proximas.length ? proximas.slice(0, 4).map((f) => `${f.nombre || f.negocio} ${hora(f.meet_inicio)}`).join('; ') : 'ninguna'}.`,
+      'Los más recientes:',
+      ...filas.slice(0, 5).map(linea),
+    ].join('\n')
   }
 
   const servidor = createServer(async (req, res) => {
@@ -186,11 +326,7 @@ export function startConsolaLocal({ elevenKey, puerto = PUERTO_CONSOLA }) {
         if (!llave) return responder(503, { error: 'Me falta la llave de voz.' })
         cache = null
         const c = await contexto()
-        if (!agente) {
-          const r = await el(`/agents?search=${encodeURIComponent(AGENTE)}&page_size=10`, llave)
-          agente = (r.agents ?? []).find((a) => a.name === AGENTE)?.agent_id ?? null
-          if (!agente) return responder(503, { error: 'Ultron en vivo no está preparado en ElevenLabs.' })
-        }
+        if (!agente) agente = await agenteDeConsola(llave)
         const [token, firmada] = await Promise.allSettled([el(`/conversation/token?agent_id=${agente}`, llave), el(`/conversation/get-signed-url?agent_id=${agente}`, llave)])
         const conversationToken = token.status === 'fulfilled' ? token.value.token : null
         const signedUrl = firmada.status === 'fulfilled' ? firmada.value.signed_url : null
@@ -204,6 +340,8 @@ export function startConsolaLocal({ elevenKey, puerto = PUERTO_CONSOLA }) {
       const m = /^\/herramienta\/([a-z_]+)$/.exec(req.url ?? '')
       if (m) {
         const args = JSON.parse((await leer(req)) || '{}')
+        if (m[1] === 'ultron_completo') return responder(200, { resultado: await completo(String(args.pedido ?? '').slice(0, 2000)) })
+        if (m[1] === 'ventas_ana_sofi') return responder(200, { resultado: await ventas(String(args.buscar ?? '')) })
         const h = herramientasDe(await contexto())
         if (!h[m[1]]) return responder(404, { resultado: 'No conozco esa herramienta.' })
         return responder(200, { resultado: String(await h[m[1]](args)).slice(0, 6000) })
@@ -244,7 +382,7 @@ function dibujar(){t+=0.004;nivel+=(meta-nivel)*0.15;c.clearRect(0,0,1120,1120);
 for(const[x,y,z]of P){const X=x*k-z*s,Z=x*s+z*k,j=1+nivel*0.25*Math.sin(t*40+y*9),px=560+X*R*j,py=560+y*R*j,a=(Z+1.3)/2.3
 c.fillStyle='rgba(255,'+(140+Math.round(70*a))+',46,'+(0.35+a*0.65)+')';c.fillRect(px,py,4.2,4.2)}requestAnimationFrame(dibujar)}dibujar()
 const post=async(ruta,cuerpo)=>{const r=await fetch(ruta,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(cuerpo??{})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'No pude hablar con el cerebro.');return j}
-const NOMBRES=['resumen_centro','ultimas_tareas','buscar_tareas','ver_tarea','buscar_archivos','mandar_al_correo','pedir_tarea']
+const NOMBRES=['resumen_centro','ultimas_tareas','buscar_tareas','ver_tarea','buscar_archivos','que_hizo_ana_sofi','ventas_ana_sofi','ultron_completo','mandar_al_correo','pedir_tarea']
 const herramientas=Object.fromEntries(NOMBRES.map(n=>[n,async(args)=>{try{return (await post('/herramienta/'+n,args)).resultado}catch(e){return 'No pude consultarlo: '+e.message}}]))
 function listo(){ses=null;clearInterval(reloj);meta=0;boton.disabled=false;boton.textContent='Hablar';boton.classList.remove('fin');estado.textContent='Toca para hablar con Ultron'}
 async function empezar(){boton.disabled=true;estado.textContent='Conectando…'
