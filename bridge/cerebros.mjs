@@ -237,7 +237,7 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
       if (!first) {
         for (const a of notices.slice(-3)) messages.push(`⚠️ Cerebro ${name}: ${a.text}`)
         const fails = fresh.filter(([k]) => k === 'falla')
-        const stop = `Si no fuiste tú, corta todo ya desde tu Mac:\n  cd ~/Desktop/nexy && node scripts/cerebro.mjs borrar-llaves ${name}\n(apaga el cerebro y borra sus llaves; luego cambia las llaves en Anthropic, ElevenLabs, BotFather y Supabase).`
+        const stop = `Si no fuiste tú, toca 🛑 Cortar todo (o escríbeme "corta todo"): apago el cerebro y borro sus llaves. Desde tu Mac también: node scripts/cerebro.mjs borrar-llaves ${name}. Luego cambia las llaves en Anthropic, ElevenLabs, BotFather y Supabase.`
         if (fails.length) {
           m.lastFail = now
           messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nAlguien está intentando entrar. ${stop}`)
@@ -262,15 +262,31 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
   return messages
 }
 
-/** To the owner's own Telegram (NEX's bot), like the ads' alerts. */
+/** The emergency stop: the brain goes off and its keys are wiped (canal.sh borrar-llaves). */
+export async function cutBrain(name) {
+  if (!readBrains()[name]) return `No conozco el cerebro "${name}".`
+  try {
+    const r = await order(name, 'borrar-llaves', null, { timeoutMs: 60_000 })
+    const out = r.out.toString().trim()
+    return r.code === 0 ? `🛑 Cerebro ${name}: ${out || 'llaves borradas y cerebro apagado'}.` : `❌ No pude cortar el cerebro ${name}: ${out || r.err || `respondió ${r.code}`}`
+  } catch (err) {
+    return `❌ No pude hablar con el cerebro ${name}: ${err.message}. Si no contesta, desconéctalo de la luz o del internet en la oficina.`
+  }
+}
+
+/** The button under an alarm: asks once more before cutting. */
+export const cutButton = (name) => ({ inline_keyboard: [[{ text: '🛑 Cortar todo', callback_data: `corte:${name}` }]] })
+
+/** To the owner's own Telegram (NEX's bot), like the ads' alerts. Alarms carry the cut button. */
 async function tellOwner(text) {
   const tg = readTelegram()
   if (!tg?.token || !tg.owner?.id) return false
+  const brain = URGENT.test(text) ? /cerebro (\S+?)[\s:]/.exec(text)?.[1] : null
   try {
     await fetch(`https://api.telegram.org/bot${tg.token}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: tg.owner.id, text: text.slice(0, 4000) }),
+      body: JSON.stringify({ chat_id: tg.owner.id, text: text.slice(0, 4000), ...(brain && readBrains()[brain] ? { reply_markup: cutButton(brain) } : {}) }),
     })
     return true
   } catch {
@@ -286,7 +302,7 @@ export function spokenAlarm(text) {
   const brain = /cerebro (\S+)/.exec(text)?.[1] ?? ''
   const where = brain ? ` del cerebro de ${brain.replace(/-/g, ' ')}` : ''
   if (/después de intentos fallidos/.test(text)) {
-    return `Boss, urgente: alguien logró entrar al Mac mini${where} con la cuenta de administrador, después de equivocarse con la contraseña. Si no fuiste tú, corta todo ya: en Telegram te dejé el comando para apagar el cerebro y borrar sus llaves.`
+    return `Boss, urgente: alguien logró entrar al Mac mini${where} con la cuenta de administrador, después de equivocarse con la contraseña. Si no fuiste tú, corta todo ya: en Telegram toca el botón rojo, Cortar todo.`
   }
   if (/contraseña/.test(text)) {
     const times = /\((\d+) ve/.exec(text)?.[1]

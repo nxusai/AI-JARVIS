@@ -22,6 +22,7 @@ import { setAutonomyNotifier } from './autonomia.mjs'
 import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { louder, smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
+import { cutBrain, readBrains } from './cerebros.mjs'
 
 /**
  * NEX on Telegram: the owner's way to reach her away from the office.
@@ -678,6 +679,28 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         await say(owner.id, '✅ Listo: por 1 hora no te pido aprobación para Notion (crear o editar páginas, tablas y filas). Borrar sigue bloqueado. Para volver a preguntar antes: /preguntar')
         return
       }
+      // The emergency stop: the alarm's button asks once more; only the second tap cuts.
+      if (kind === 'corte' && id) {
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id }).catch(() => {})
+        await api(token, 'sendMessage', {
+          chat_id: owner.id,
+          text: `⚠️ ¿Seguro? Apago el cerebro ${id} y borro sus llaves. Ana Sofi y Ultron de ese cliente dejan de contestar hasta que reinstales en persona.`,
+          reply_markup: { inline_keyboard: [[{ text: '🛑 Sí, cortar todo ya', callback_data: `cc:${id}` }, { text: 'No', callback_data: 'cn:' }]] },
+        }).catch(() => {})
+        return
+      }
+      if (kind === 'cc' && id) {
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: 'Cortando…' }).catch(() => {})
+        await api(token, 'editMessageReplyMarkup', { chat_id: owner.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
+        console.log(`[jarvis] telegram: emergency cut of brain ${id}`)
+        await say(owner.id, await cutBrain(id))
+        return
+      }
+      if (kind === 'cn') {
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: 'No se cortó nada' }).catch(() => {})
+        await api(token, 'editMessageReplyMarkup', { chat_id: owner.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
+        return
+      }
       if ((kind === 'ap' || kind === 'rj') && id) {
         hub.answer(id, kind === 'ap', kind === 'rj' ? 'Rechazado desde Telegram.' : '')
         await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: kind === 'ap' ? 'Aprobado' : 'Rechazado' }).catch(() => {})
@@ -714,6 +737,16 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
 
     const chatId = m.chat.id
     if (text === '/start' || text === '/ayuda' || text === '/help') return say(chatId, HELP)
+    // "corta todo" / /cortar: the emergency stop, with the same confirmation as the alarm's button.
+    if (/^\/cortar\b|^corta(r)? todo\b/i.test(text)) {
+      const names = Object.keys(readBrains())
+      if (!names.length) return say(chatId, 'No hay cerebros conectados.')
+      return api(token, 'sendMessage', {
+        chat_id: chatId,
+        text: `⚠️ ¿Cuál corto? Apago el cerebro y borro sus llaves; sus IAs dejan de contestar hasta que reinstales en persona.`,
+        reply_markup: { inline_keyboard: [...names.map((n) => [{ text: `🛑 Cortar ${n}`, callback_data: `cc:${n}` }]), [{ text: 'No', callback_data: 'cn:' }]] },
+      }).catch(() => {})
+    }
     if (text === '/voz' || text === '/texto' || text === '/auto') {
       const voice = { '/voz': 'siempre', '/texto': 'nunca', '/auto': 'auto' }[text]
       cfg = { ...cfg, voice }
