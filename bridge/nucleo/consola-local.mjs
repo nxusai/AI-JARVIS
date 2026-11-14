@@ -165,6 +165,10 @@ Cómo hablas (es por voz):
 - No repitas la pregunta ni cierres siempre con "¿algo más?".
 - Español, o inglés si te hablan en inglés.
 
+Cuándo te despides y cuelgas:
+- Si te dicen que ya terminaron ("sería todo", "es todo", "eso es todo", "ya", "gracias, ya", "apágate", "duérmete", "adiós", "bye", "hasta luego", "ya no", "listo, gracias" o algo parecido), di una despedida MUY corta ("Perfecto, aquí estoy cuando me necesites.") y usa end_call de inmediato. No sigas hablando ni preguntes nada más.
+- Si se quedan callados, no insistas ni preguntes "¿sigues ahí?": espera en silencio.
+
 Reglas:
 - Nunca inventes datos: salen del resumen o de tus herramientas.
 - Solo ves lo que {{nombre}} puede ver; no menciones permisos ni sistemas.
@@ -190,6 +194,7 @@ const HERRAMIENTAS = [
   herramienta('que_hizo_ana_sofi', 'Lo que hizo Ana Sofi (ventas, llamadas, videollamadas, etiquetas) hoy o ayer, línea por línea.', { cuando: txt('hoy o ayer') }),
   herramienta('ventas_ana_sofi', 'La línea de ventas de Ana Sofi: clientes nuevos, a quién llamó, cómo le fue, videollamadas agendadas y próximas.', { buscar: txt('Nombre, negocio o teléfono de un cliente en particular; vacío para el resumen') }),
   herramienta('ultron_completo', 'Tu mente completa: para darle o quitarle instrucciones a tus IAs, tu memoria, tus IAs, o cualquier cosa que no resuelvan las demás herramientas. Tarda unos segundos.', { pedido: txt('Lo que pidió la persona, con sus palabras') }, ['pedido'], 90),
+  { type: 'system', name: 'end_call', description: 'Cuelga cuando la persona dice que ya terminó (sería todo, apágate, adiós…), después de una despedida muy corta.', params: { system_tool_type: 'end_call' } },
   herramienta('mandar_al_correo', 'Manda archivos al correo de quien habla.', { ids: { type: 'array', items: { type: 'string', description: 'id de un archivo' }, description: 'Los id' } }, ['ids']),
   herramienta('pedir_tarea', 'Registra una tarea nueva para el equipo.', { empresa: txt('Empresa'), titulo: txt('Qué se necesita') }, ['empresa', 'titulo']),
 ]
@@ -224,18 +229,30 @@ async function agenteDeConsola(llave) {
         prompt: { prompt: PROMPT, llm, temperature: 0.6, max_tokens: 400, tools: HERRAMIENTAS },
       },
       tts,
-      turn: { turn_timeout: 7, turn_eagerness: 'normal' },
+      // Long silences: no "are you there?" — after 40 s of silence the call just ends.
+      turn: { turn_timeout: 30, turn_eagerness: 'normal', silence_end_call_timeout: 40 },
       vad: { background_voice_detection: true },
       conversation: { max_duration_seconds: 1800 },
     },
     platform_settings: { auth: { enable_auth: true } },
   }
   const id = await buscarAgente(llave, AGENTE)
-  if (id) {
-    await el(`/agents/${id}`, llave, { method: 'PATCH', body: config })
-    return id
+  const guardar = (c) => (id ? el(`/agents/${id}`, llave, { method: 'PATCH', body: c }).then(() => id) : el('/agents/create', llave, { method: 'POST', body: c }).then((r) => r.agent_id))
+  try {
+    return await guardar(config)
+  } catch (err) {
+    // An account without a setting (the silence hang-up, the end_call tool's shape): the rest still goes.
+    console.log(`${TAG} voice console: agent setting refused (${err.message}); trying the plain one`)
+    delete config.conversation_config.turn.silence_end_call_timeout
+    config.conversation_config.agent.prompt.tools = HERRAMIENTAS.filter((h) => h.type !== 'system')
+    config.conversation_config.agent.prompt.built_in_tools = { end_call: { name: 'end_call', description: 'Cuelga cuando la persona dice que ya terminó.', params: { system_tool_type: 'end_call' } } }
+    try {
+      return await guardar(config)
+    } catch {
+      delete config.conversation_config.agent.prompt.built_in_tools
+      return guardar(config)
+    }
   }
-  return (await el('/agents/create', llave, { method: 'POST', body: config })).agent_id
 }
 
 // -- the server ----------------------------------------------------------------
@@ -389,7 +406,7 @@ async function empezar(){boton.disabled=true;estado.textContent='Conectando…'
 let cred,Conversation;try{[cred,{Conversation}]=await Promise.all([post('/vivo'),import(SDK)])}catch(e){estado.textContent=e.message;boton.disabled=false;return}
 const base={clientTools:herramientas,dynamicVariables:cred.variables,
 onModeChange:({mode})=>{modo=mode;estado.textContent=mode==='speaking'?'Ultron está hablando…':'Te escucho…'},
-onDisconnect:listo,onError:(m)=>{estado.textContent='Ultron: '+m}}
+onDisconnect:()=>{listo();estado.textContent='Ultron se despidió. Toca para hablar otra vez.'},onError:(m)=>{estado.textContent='Ultron: '+m}}
 try{ses=cred.conversationToken?await Conversation.startSession({...base,conversationToken:cred.conversationToken,connectionType:'webrtc'}):await Conversation.startSession({...base,signedUrl:cred.signedUrl,connectionType:'websocket'})}
 catch(e){try{if(!cred.signedUrl)throw e;ses=await Conversation.startSession({...base,signedUrl:cred.signedUrl,connectionType:'websocket'})}catch(e2){estado.textContent=/permission|denied|NotAllowed/i.test(String(e2))?'Necesito permiso para el micrófono.':'No pude conectar: '+(e2.message||e2);boton.disabled=false;return}}
 boton.disabled=false;boton.textContent='Terminar';boton.classList.add('fin');estado.textContent='Te escucho…'
