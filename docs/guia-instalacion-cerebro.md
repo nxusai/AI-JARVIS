@@ -469,7 +469,9 @@ NEX revisa el cerebro cada minuto. Qué avisa y qué hacer:
 | Entraron con la cuenta de administrador (sin fallas antes) | 🔐 Telegram | Casi siempre eres tú. Si no, corta todo. |
 | El sello del programa no cuadra | Llamada + 🚨 Telegram | Alguien tocó el programa; el cerebro no arrancó ninguna IA. Reinstala con `node scripts/cerebro.mjs enviar mi-semago` y revisa quién entró. |
 
-**Cortar todo (desde tu Mac, en 10 segundos):**
+**Cortar todo, desde el celular:** en Telegram toca **🛑 Cortar todo** debajo de la alarma, o escríbele a NEX "corta todo" (o /cortar); confirma con **Sí, cortar todo ya**. Necesita que NEX esté prendida.
+
+**Cortar todo, desde tu Mac:**
 ```
 cd ~/Desktop/nexy && node scripts/cerebro.mjs borrar-llaves mi-semago
 ```
