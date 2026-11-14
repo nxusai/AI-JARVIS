@@ -501,11 +501,12 @@ export async function atender({ db, m, model, modeloRapido, effort, env, elevenK
   if (!respuesta) respuesta = 'Listo.'
   // Primero el texto (la página lo enseña ya); luego su voz, que tarda un poco más.
   await cerrar({ respuesta, acciones })
-  const llave = elevenKey?.()
+  const llave = typeof elevenKey === 'function' ? elevenKey() : elevenKey
+  let audio = null
   if (llave && VOICE_ID.test(voz)) {
     try {
       const lang = languageOf(respuesta)
-      const audio = await speakAs(llave, voz, forSpeech(respuesta.replace(/\*\*/g, '')), lang, { natural: true })
+      audio = await speakAs(llave, voz, forSpeech(respuesta.replace(/\*\*/g, '')), lang, { natural: true })
       const rutaVoz = await db.subir(`${persona.id}/${m.id}.mp3`, audio)
       await db.rest(`ultron_mensajes?id=eq.${m.id}`, { method: 'PATCH', body: { voz: rutaVoz } })
     } catch (err) {
@@ -514,6 +515,7 @@ export async function atender({ db, m, model, modeloRapido, effort, env, elevenK
   }
   hub.endTask?.(tarea, 'done', respuesta.slice(0, 200))
   anota({ persona: persona.nombre, canal: m.canal, pregunta: m.pregunta, respuesta, acciones: acciones.length })
+  return { respuesta, audio }
 }
 
 /**

@@ -2,6 +2,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, startAnaSofi } from '../nucleo/anasofi.mjs'
 import { readUltron, startUltron } from '../nucleo/ultron.mjs'
+import { startConsolaLocal } from '../nucleo/consola-local.mjs'
 import { api } from '../nucleo/telegram.mjs'
 import { iniciarVentas, leerVentas } from '../nucleo/ventas.mjs'
 import { setRemoteFolder } from '../nucleo/etiquetas.mjs'
@@ -152,7 +153,8 @@ export async function main() {
         modeloRapido: cfg.modelo || MODEL,
         effort: cfg.esfuerzo || EFFORT,
         env: claudeEnv,
-        elevenKey: readKeys().elevenlabs ?? null,
+        // A function: the key is read each time (llaves.mjs can change it), and his voice needs it so.
+        elevenKey: () => readKeys().elevenlabs ?? null,
       }).catch((err) => {
         state.ias.ultron = 'reiniciando'
         warn(`Ultron se detuvo (${err?.message ?? err}); lo vuelvo a arrancar en ${Math.min(10, vez)} min. Ana Sofi sigue trabajando.`)
@@ -160,6 +162,14 @@ export async function main() {
       })
     }
     arrancar()
+    // His voice console on this Mac mini (only this machine opens it): http://127.0.0.1:8790
+    startConsolaLocal({
+      model: cfg.modelo_ultron || ULTRON_MODEL,
+      modeloRapido: cfg.modelo || MODEL,
+      effort: cfg.esfuerzo || EFFORT,
+      env: claudeEnv,
+      elevenKey: () => readKeys().elevenlabs ?? null,
+    })
   } else if (ultron) {
     state.ias.ultron = 'en espera'
   }

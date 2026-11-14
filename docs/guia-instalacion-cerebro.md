@@ -385,6 +385,8 @@ Ultron es la IA de la dirección en el Centro de trabajo (el orbe). Después de 
 4. **Prueba:** entra al Centro de trabajo como dirección (por ejemplo Senen, o tu usuario de prueba con Ultron prendido), abre el orbe y pregúntale "¿qué tareas tengo pendientes?". Debe contestar en unos segundos.
 5. **En tu Mac:** `node scripts/cerebro.mjs estado` debe decir "ultron: prendida".
 
+**Consola de voz en el Mac mini:** con Ultron en el cerebro, el Mac mini tiene su propia consola de voz en http://127.0.0.1:8790 (solo se abre en esa computadora, sin iniciar sesión). Habla como Senen (o la persona de `consola` en ultron.json): Ultron le contesta con sus permisos. En Chrome: ⋮ → Cast, save, and share → Install page as app → "Ultron", y Allow al micrófono.
+
 **Si algo sale mal:**
 ```
 cd ~/Desktop/nexy && node scripts/cerebro.mjs regresar-ultron
