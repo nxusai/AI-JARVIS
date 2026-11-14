@@ -118,7 +118,7 @@ export function herramientasDe({ datos, persona, gente }) {
       return [`${a.dia}: ${a.mensajes} mensajes de ${a.personas.join(', ') || 'empleados'}, ${a.respuestas} respuestas de Ana Sofi.`, ...a.lineas.slice(-40)].join('\n')
     },
     mandar_al_correo: () => 'Desde esta consola no puedo mandar correos. Dile que lo pida en el Centro de trabajo, donde llega a su correo.',
-    pedir_tarea: () => 'Desde esta consola no registro tareas nuevas. Dile que la pida en el Centro de trabajo con el botón de pedir, y ahí queda a su nombre.',
+    pedir_tarea: () => 'No pude registrarla desde aquí.',
   }
 }
 
@@ -150,7 +150,7 @@ Qué manejas: TODO lo de la empresa.
 - Instrucciones para tus IAs, tu memoria y lo que hicieron.
 
 Cómo usas tus herramientas (sin anunciarlo):
-- Centro de trabajo: resumen_centro, ultimas_tareas, buscar_tareas, ver_tarea, buscar_archivos.
+- Centro de trabajo: resumen_centro, ultimas_tareas, buscar_tareas, ver_tarea, buscar_archivos. Para pedir una tarea nueva: pedir_tarea (antes repite qué y para qué empresa y espera el sí; queda a nombre de {{nombre}}).
 - Ventas de Ana Sofi (clientes nuevos, llamadas, cómo le fue, videollamadas): ventas_ana_sofi.
 - Etiquetas y lo que platicó con los empleados en su grupo: que_hizo_ana_sofi (hoy o ayer).
 - Resume en una o dos frases y ofrece el detalle.
@@ -196,7 +196,12 @@ const HERRAMIENTAS = [
   herramienta('ultron_completo', 'Tu mente completa: para darle o quitarle instrucciones a tus IAs, tu memoria, tus IAs, o cualquier cosa que no resuelvan las demás herramientas. Tarda unos segundos.', { pedido: txt('Lo que pidió la persona, con sus palabras') }, ['pedido'], 90),
   { type: 'system', name: 'end_call', description: 'Cuelga cuando la persona dice que ya terminó (sería todo, apágate, adiós…), después de una despedida muy corta.', params: { system_tool_type: 'end_call' } },
   herramienta('mandar_al_correo', 'Manda archivos al correo de quien habla.', { ids: { type: 'array', items: { type: 'string', description: 'id de un archivo' }, description: 'Los id' } }, ['ids']),
-  herramienta('pedir_tarea', 'Registra una tarea nueva para el equipo.', { empresa: txt('Empresa'), titulo: txt('Qué se necesita') }, ['empresa', 'titulo']),
+  herramienta('pedir_tarea', 'Registra una tarea nueva para el equipo, a nombre de quien habla. Antes de usarla, repite en una frase qué y para qué empresa, y espera el sí.', {
+    empresa: txt('Nombre de la empresa (de la lista de empresas)'),
+    titulo: txt('Qué se necesita, en pocas palabras'),
+    detalles: txt('Detalles que dijo'),
+    urgente: { type: 'boolean', description: 'Si dijo que es urgente' },
+  }, ['empresa', 'titulo']),
 ]
 
 async function el(path, llave, { method = 'GET', body } = {}) {
@@ -300,6 +305,28 @@ export function startConsolaLocal({ model, effort, env, elevenKey, puerto = PUER
     return r?.respuesta || 'No pude resolverlo ahorita; intenta de nuevo.'
   }
 
+  /** A new task, as that person asked it in the work center (his name on it; the team takes it from "Pedidas"). */
+  const pedir = async ({ empresa: nombreEmp = '', titulo = '', detalles = '', urgente = false } = {}) => {
+    const cfg = readUltron()
+    if (!cfg?.url || !cfg?.servicio) return 'No estoy conectado al Centro de trabajo.'
+    const db = supabase(cfg)
+    const { datos, persona } = await contexto()
+    const suyas = datos.empresas.filter((e) => (!persona.empresas || persona.empresas.includes(e.id)) && persona.ve_tareas !== false)
+    const q = sinTilde(nombreEmp)
+    const e = suyas.find((x) => sinTilde(x.nombre).includes(q) || (q && q.includes(sinTilde(x.nombre))))
+    if (!e) return `No encuentro la empresa ${nombreEmp}. Opciones: ${suyas.map((x) => x.nombre).join(', ') || 'ninguna'}.`
+    if (!String(titulo).trim()) return 'Falta qué se necesita.'
+    const [t] = await db.rest('tareas', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: { cliente_id: persona.id, empresa_id: e.id, titulo: String(titulo).trim().slice(0, 200), descripcion: `${String(detalles || titulo).trim()}\n\n(Pedida hablando con Ultron)`, urgente: Boolean(urgente) },
+    })
+    // Who registered it: the person (the service key leaves it empty).
+    await db.rest(`tareas?id=eq.${t.id}`, { method: 'PATCH', body: { creada_por: persona.id } }).catch(() => {})
+    cache = null
+    return `Registrada como tarea ${t.folio} para ${e.nombre}, a nombre de ${primerNombre(persona.nombre)}.`
+  }
+
   /** Ana Sofi's sales line, from the leads of the work center (never the call transcripts). */
   const ventas = async (buscar) => {
     const cfg = readUltron()
@@ -358,6 +385,7 @@ export function startConsolaLocal({ model, effort, env, elevenKey, puerto = PUER
       if (m) {
         const args = JSON.parse((await leer(req)) || '{}')
         if (m[1] === 'ultron_completo') return responder(200, { resultado: await completo(String(args.pedido ?? '').slice(0, 2000)) })
+        if (m[1] === 'pedir_tarea') return responder(200, { resultado: await pedir(args) })
         if (m[1] === 'ventas_ana_sofi') return responder(200, { resultado: await ventas(String(args.buscar ?? '')) })
         const h = herramientasDe(await contexto())
         if (!h[m[1]]) return responder(404, { resultado: 'No conozco esa herramienta.' })
