@@ -128,7 +128,7 @@ function pick(args) {
   return null
 }
 
-const answer = (r) => (r.out.toString().trim() || r.err || `respondió ${r.code}`)
+const answer = (r) => [r.out.toString().trim(), r.code === 0 ? '' : String(r.err ?? '').trim()].filter(Boolean).join('\n') || `respondió ${r.code}`
 
 async function door(what, args) {
   const name = pick(args)
