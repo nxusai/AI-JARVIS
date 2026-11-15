@@ -222,3 +222,7 @@ Con eso se arma el **prompt v2**: incorporar sus quejas como reglas, sus zonas e
 - Usuario de sistema nuevo **"NXUS HQ lectura"** (Employee) en AI Ramos Digital Solutions: cuenta "Eduardo's" solo con View performance; app NXUS HQ con permiso mínimo. Token sin caducidad. El usuario viejo "NXUS HQ" (con Manage campaigns) no se tocó.
 - Netlify `nxus-hq`: `META_TOKEN` reemplazado por el token de "NXUS HQ lectura" (el anterior venía de las funciones de contenido quitadas el 1 nov; hoy solo `anuncios.mjs` usa `META_TOKEN`). `META_AD_ACCOUNT_ID` ya era act_736971049130563. `META_PAGE_ID`, `META_IG_ID`, `META_DATASET_ID` ya no las usa nada (se pueden borrar).
 - Primera lectura en vivo (desde el inicio de las campañas nuevas): $117.68 gastado · 7,777 vistas · 5 chats ($23.54 c/u) · 1 cita ($117.68 por cita). Todavía en aprendizaje: no tocar hasta cumplir 7 días.
+
+## Carpetas de Drive (15 nov 2026)
+- **Videos de trabajo para analizar y replicar** (Mi unidad): https://drive.google.com/drive/folders/17LNkGEbQ9s44d4ALVQ_4d94bX9dWJFf2 → aquí Eduardo sube videos de trabajos/anuncios de otros para analizarlos y replicar lo que funciona.
+- Otras: "videos de referencia para crear con IA" (estilo para generar con IA), "Videos para editar" → "Ejemplos de edicion" y "Mis videos crudos", "Next Level Reels" (1-Crudos, 2-Listos, 3-Archivo).
