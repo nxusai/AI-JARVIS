@@ -38,3 +38,27 @@ Giros a nombrar en variantes (no uno solo): clínicas y consultorios, laboratori
 
 ## Fuentes
 Confect, Atria, Segwise, TheOptimizer, Jetfuel (Andromeda); interestexplorer, adsuploader, deepsolv (formato Flexible); brandsearch, verdemedia, growwithsakib (B2B y founder-led); wpreset, rework, benly (click-to-message y calidad); kosmo.com.mx, plazbot, goeva (competencia MX); bookipi, vendasta, skipcalls, themissedai, usegreet (recepcionistas IA); admanage.ai (anuncios de academias de automatización).
+
+## 6. Competencia en la Biblioteca de Anuncios (informe de la extensión, 15 nov 2026)
+20 anunciantes revisados (MX y US en español). Datos sin gasto ni resultados (Meta no los muestra); ⭐ = activo más de 30 días.
+- Mensaje saturado: "pierdes ventas/clientes por no contestar a tiempo" (Treble, Leadsales, Dapta, Beefast, MiCierro, Andrómeda Mkt, AG3, Doctor Negocio…). Si NXUS dice lo mismo, se pierde entre todos.
+- Ganadores que llevan más tiempo (⭐): videos sencillos, persona a cámara o pantalla mostrando el producto, botón a WhatsApp (Azul Web, Telechat AI, CloudChatbot, Whaticket).
+- Botones: "Learn more" (web) el más común; agencias chicas usan "Send WhatsApp message"; solo 1 usa Messenger.
+- Especialistas por giro: Cliengo (inmobiliarias), Saint Agency (clínicas), Andamia (contratistas US), Maspedidos (restaurantes, pero software de pedidos).
+- Huecos:
+  - Nadie junta mensajes + llamadas + citas en un mismo anuncio.
+  - En MX casi nadie habla de contestar LLAMADAS (en US en español sí: Andamia, CallPro, UWUPI, Zurcall).
+  - Nadie en MX ofrece garantía ni "funcionando en X días".
+  - Casi nadie invita a probar el agente en vivo (solo Bull Rocket).
+  - Ningún agente de IA para restaurantes en MX.
+  - Ningún "Call now".
+  - Casi nadie muestra precio (los que sí: WhatChimp 12 USD, UWUPI $29): NXUS no compite por precio.
+
+## 7. Ajuste de la ronda 3 con lo de la competencia
+- **C3 · Pruébelo en vivo** sube a idea principal: "Escríbanos y en 1 minuto una IA le llama. Si le convence a usted, le convence a sus clientes."
+- **C7 · Todo en uno (nuevo):** "Contesta sus mensajes, contesta sus llamadas y le agenda las citas. Se lo dejamos funcionando." Nadie lo dice junto.
+- **C2 · Sucursales** se queda (ganador de la 1.ª semana).
+- C6 (llamadas perdidas) solo como variante en NY; en MX va dentro de C7.
+- No abrir con "pierde ventas por no contestar" (todos lo dicen); si se usa, que sea la segunda línea.
+- Formato: video con persona a cámara o pantalla del celular mostrando a NEX y el chat; imagen fija con el mismo mensaje.
+- Pendiente de decisión de Eduardo: (1) ¿ofrecer "funcionando en X días" o garantía? (2) ¿probar más adelante botón a WhatsApp en vez de Messenger? (exige canal de WhatsApp en ManyChat y repetir el filtro antibots ahí).
