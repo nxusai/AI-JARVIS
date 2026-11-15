@@ -47,4 +47,5 @@ Para revisar el cerebro: `cd ~/Desktop/nexy && node scripts/cerebro.mjs estado` 
 - `docs/estado-nxus.md`: estado general de NXUS.
 - `docs/estado-crm.md`: el CRM / Centro de trabajo.
 - `docs/estado-ads-nxus.md`: anuncios de NXUS.
+- `docs/estado-contenido-nxus.md`: contenido orgánico de NXUS (videos, imágenes, mandarlos por Telegram).
 - `docs/receta-edicion.md` y `docs/habilidad-editor-video.md`: edición de video.
