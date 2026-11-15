@@ -57,6 +57,18 @@ function telefono(t, x, y, escala, contenido, brillo) {
     <div class="abs" style="inset:0;background:linear-gradient(160deg,#122046,#0a0f22);opacity:${.25 + .75 * brillo}"></div>${contenido}</div>`
 }
 
+// Tu muñeco en capas: cuerpo + dos brazos que giran en el hombro; parpadea solo.
+function muneco(t, { x, y, h, ojos = 'abiertos', bi = 0, bd = 0, filtro = '' }) {
+  const parpadeo = ojos === 'abiertos' && ((t + 0.7) % 3.1 < 0.13 || (t + 2.2) % 7.3 < 0.11)
+  const cuerpo = ojos === 'dormido' || parpadeo ? 'pjd_cuerpo.png' : ojos === 'feliz' ? 'pjf_cuerpo.png' : 'pj_cuerpo.png'
+  const w = h * 817 / 1888
+  const img = (src, extra = '') => `<img src="${src}" class="abs" style="left:0;top:0;width:${w}px;height:${h}px;${extra}">`
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${filtro ? `filter:${filtro}` : ''}">
+    ${img('brazo_i.png', `transform-origin:22% 47.4%;transform:rotate(${bi}deg)`)}
+    ${img('brazo_d.png', `transform-origin:77.1% 47.4%;transform:rotate(${bd}deg)`)}
+    ${img(cuerpo)}</div>`
+}
+
 function personaje(t, src, x, y, h, extra = '') {
   return `<img src="${src}" class="abs" style="left:${x}px;top:${y}px;height:${h}px;image-rendering:auto;${extra}">`
 }
@@ -78,14 +90,21 @@ function escenaNoche(t, t0, reloj) {
     <div class="abs" style="left:18px;right:18px;top:240px;padding:16px 18px;border-radius:22px;background:rgba(255,255,255,.12);${entra(t, t0 + .5, .35)}">
       <div style="font:700 20px Inter;color:#7fe9ff">💬 Mensaje nuevo</div><div style="font:500 20px Inter;margin-top:6px">Hola, ¿me pasan precios?</div></div>`
   return cuarto(t, false) +
-    personaje(t, 'pj_dormido.png', 150, 470 + Math.sin(t * 2.2) * 6, 1180, 'filter:brightness(.62) saturate(.8)') + zzz(t) +
+    muneco(t, { x: 150, y: 470 + Math.sin(t * 2.2) * 6, h: 1180, ojos: 'dormido', bi: 2 + Math.sin(t * 2.2) * 1.5, bd: -2 - Math.sin(t * 2.2) * 1.5, filtro: 'brightness(.62) saturate(.8)' }) + zzz(t) +
     telefono(t, 700 + vib, 690, 1, pant, llega)
 }
 
 function escenaManana(t) {
   // Despierta, ve el celular y festeja.
   const salta = t > MANANA + 2.1 ? Math.abs(Math.sin((t - MANANA - 2.1) * 6)) * 70 : 0
-  const src = t < MANANA + .5 ? 'pj_dormido.png' : t < MANANA + 2.1 ? 'pj.png' : 'pj_feliz.png'
+  const k = t - MANANA
+  const ojos = k < .5 ? 'dormido' : k < 2.1 ? 'abiertos' : 'feliz'
+  // Se estira, señala el celular y festeja con los dos brazos arriba.
+  let bi = 0, bd = 0
+  if (k < .5) { bi = 2; bd = -2 }
+  else if (k < 1.1) { const e = ease(sal(k, .5, .35)); bi = 160 * e; bd = -160 * e }
+  else if (k < 2.1) { const e = ease(sal(k, 1.1, .3)); bi = 160 * (1 - e) + 4 * Math.sin(t * 3); bd = -160 + 105 * e + Math.sin(t * 9) * 6 }
+  else { bi = 150 + Math.sin(t * 12) * 18; bd = -150 - Math.sin(t * 12 + 1) * 18 }
   const pant = `
     <div class="abs" style="left:0;right:0;top:70px;text-align:center;font:700 92px Sora">8:02</div>
     <div class="abs" style="left:18px;right:18px;top:220px;padding:16px 18px;border-radius:22px;background:rgba(255,255,255,.14);${entra(t, MANANA + 1.1, .35)}">
@@ -95,7 +114,7 @@ function escenaManana(t) {
     return `<div class="abs" style="left:${80 + ((i * 131) % 920)}px;top:${-40 + k * 700 + ((i * 37) % 200)}px;width:18px;height:28px;background:${['#00e5ff', '#0a6cff', '#a01cff', '#ffd23f'][i % 4]};transform:rotate(${k * 300 + i * 20}deg)"></div>`
   }).join('') : ''
   return cuarto(t, true) +
-    personaje(t, src, 150, 470 - salta, 1180, 'filter:brightness(1.02)') +
+    muneco(t, { x: 150, y: 470 - salta, h: 1180, ojos, bi, bd }) +
     telefono(t, 700, 690, 1, pant, 1) + confeti
 }
 
@@ -162,7 +181,8 @@ function cierre(t) {
     <div class="abs" style="left:150px;right:150px;top:930px;padding:44px;border-radius:36px;background:rgba(12,17,32,.9);border:2px solid rgba(0,229,255,.35);text-align:center;box-shadow:0 0 120px rgba(0,229,255,.18);${entra(t, CIERRE + 1.6)}">
       <div style="font:800 64px Sora" class="g">DIAGNÓSTICO GRATIS</div>
       <div style="font:600 40px Inter;margin-top:14px">30 minutos</div>
-      <div style="font:500 28px Inter;color:#9fb0d0;margin-top:14px">Cupos limitados este mes</div></div>`
+      <div style="font:500 28px Inter;color:#9fb0d0;margin-top:14px">Cupos limitados este mes</div></div>` +
+    muneco(t, { x: 60, y: 1460 + (1 - ease(sal(t, CIERRE + .3, .5))) * 500, h: 470, ojos: 'abiertos', bi: 4 + Math.sin(t * 2) * 3, bd: t < CIERRE + 1.6 ? -125 + Math.sin(t * 14) * 22 : -55 + Math.sin(t * 3) * 4 })
 }
 
 const STICKERS = [
@@ -188,7 +208,7 @@ function subtitulos(t) {
 window.render = (t) => {
   let h = ''
   if (t < NOCHE_FIN) h = escenaNoche(t, 0, '3:12')
-  else if (t < MANANA) h = `<div class="abs" style="inset:0;background:radial-gradient(circle at 50% 35%,#0d1838,#05070d 70%)"></div>` + app(t) + `<img src="pj_dormido.png" class="abs" style="left:70px;top:${1500 + Math.sin(t * 2.2) * 4}px;height:420px;filter:brightness(.7)">` + [0, 1, 2].map((i) => { const k = ((t * .55 + i / 3) % 1); return `<div class="abs" style="left:${215 + k * 70}px;top:${1540 - k * 150}px;font:800 ${30 + i * 10}px Sora;color:#9fd8ff;opacity:${Math.sin(k * Math.PI)}">Z</div>` }).join('') + `<div class="abs" style="left:300px;top:1700px;font:600 30px Inter;color:#7f8db0">mientras tú duermes…</div>`
+  else if (t < MANANA) h = `<div class="abs" style="inset:0;background:radial-gradient(circle at 50% 35%,#0d1838,#05070d 70%)"></div>` + app(t) + muneco(t, { x: 70, y: 1500 + Math.sin(t * 2.2) * 4, h: 420, ojos: 'dormido', filtro: 'brightness(.7)' }) + [0, 1, 2].map((i) => { const k = ((t * .55 + i / 3) % 1); return `<div class="abs" style="left:${215 + k * 70}px;top:${1540 - k * 150}px;font:800 ${30 + i * 10}px Sora;color:#9fd8ff;opacity:${Math.sin(k * Math.PI)}">Z</div>` }).join('') + `<div class="abs" style="left:300px;top:1700px;font:600 30px Inter;color:#7f8db0">mientras tú duermes…</div>`
   else if (t < CIERRE) h = escenaManana(t)
   else if (t < LOOP) h = cierre(t)
   else h = escenaNoche(t, LOOP - .3, '3:11')
