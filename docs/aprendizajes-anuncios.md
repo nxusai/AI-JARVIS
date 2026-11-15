@@ -15,6 +15,7 @@ Este archivo es la memoria de lo que funciona y lo que no en los anuncios de NXU
 - ¿Un video de Eduardo a cámara baja el costo por cita frente a los videos con voz de IA?
 
 ## Cómo se actualiza
+0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
 2. El asesor compara contra este archivo, decide (apagar, subir presupuesto, cambiar gancho) y anota aquí el resultado con fecha.
 3. Cuando un video se apaga, queda en "Historial" del panel con sus números; aquí se anota por qué se apagó y qué se aprendió.

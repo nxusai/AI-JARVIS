@@ -62,3 +62,22 @@ Confect, Atria, Segwise, TheOptimizer, Jetfuel (Andromeda); interestexplorer, ad
 - No abrir con "pierde ventas por no contestar" (todos lo dicen); si se usa, que sea la segunda línea.
 - Formato: video con persona a cámara o pantalla del celular mostrando a NEX y el chat; imagen fija con el mismo mensaje.
 - Pendiente de decisión de Eduardo: (1) ¿ofrecer "funcionando en X días" o garantía? (2) ¿probar más adelante botón a WhatsApp en vez de Messenger? (exige canal de WhatsApp en ManyChat y repetir el filtro antibots ahí).
+
+## 8. Reglas de Meta para prometer (revisado 15 nov 2026)
+- Meta rechaza promesas de RESULTADOS que no se pueden comprobar: "garantizado", "100%", "duplica sus ventas", "más clientes en 30 días", "o le devolvemos su dinero" atado a resultados, cifras exactas sin fuente, urgencia falsa. Rechaza por tipo de promesa, no por palabra: cambiar la redacción no lo arregla.
+- "Unrealistic outcomes" de Meta apunta sobre todo a salud, peso y oportunidades de ingreso; aun así, la revisión automática marca "resultados en X días".
+- Lo que SÍ se puede decir (si es verdad siempre): lo que NXUS ENTREGA, no lo que el cliente va a ganar. Ej.: "Se lo dejamos funcionando en 14 días" / "Instalación en 14 días". Nunca "más ventas en 14 días".
+- Ponerlo fuera del gancho y del título: en el cuerpo del texto o al final del video. Sin la palabra "garantía" en la 1.ª ronda.
+- Atributos personales: no afirmar cosas de quien ve ("usted está perdiendo dinero", "¿está cansado…?"). Preguntar por el negocio sí ("¿Su negocio tiene varias sucursales?" ya fue aprobado).
+- Casos reales solo con permiso por escrito del cliente y sin cifras que no podamos comprobar.
+- Si Meta rechaza: no reescribir la misma promesa; quitar la promesa y pedir revisión.
+
+## 9. Plan de la ronda 3 (decidido 15 nov 2026)
+- Destino: Messenger (sin WhatsApp por ahora, decisión de Eduardo). Promesa permitida: tiempo de entrega real (días por confirmar con Eduardo), sin "garantía".
+- Por mercado: 1 campaña `NXUS | MX | TEST | 2026-11` (y `NXUS | NY | TEST | 2026-11`), 1 conjunto, $20/día, 6 anuncios (3 ideas × video + imagen). Mismas reglas antibots.
+- MX: C2 Sucursales (Video C actual + imagen), C3 Pruébelo en vivo, C7 Todo en uno.
+- NY: C3 Pruébelo en vivo, C7 Todo en uno, C6 Llamadas perdidas.
+- Producción: 3 videos nuevos (C3, C7, C6) + Video C que ya existe; 4 imágenes (C2, C3, C7, C6), cada una en 4:5 y 9:16.
+- Nombres en Meta: `MX | C3-V1 | VID | Pruébelo`; fuente en ManyChat: `Anuncio MX · C3-V1`. Hay que ajustar el panel de HQ para leer C#-V# antes de lanzar.
+- Cuando la ronda 3 esté aprobada y prendida, apagar las campañas v2 (quedan en Historial).
+- 7 días sin tocar; a los 14 días, la idea con la cita más barata pasa a `NXUS | MX | SCALE`.
