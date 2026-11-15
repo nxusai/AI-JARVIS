@@ -43,11 +43,14 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 - Hoy Eduardo publica y programa en **Meta Business Suite** (Instagram y Facebook), con ayuda de Claude in Chrome. HQ ya no publica (se quitó el 1 nov).
 - **TikTok:** Higgsfield puede publicar directo cuando Eduardo conecte su cuenta (`tiktok_connect`).
 
-## Por construir: mandar los videos por Telegram al equipo (Eduardo dijo que sí se hará)
-Idea acordada:
-1. El chat termina un video y lo sube a una carpeta de Drive "Videos listos NXUS" (el chat corre en la nube y no tiene la llave del bot).
-2. NEX, mientras está prendida en la Mac de Eduardo, detecta el video nuevo y lo manda por su bot de Telegram (@nexy_nxus_bot), con el texto para publicar (copy, hashtags, red y hora).
-3. Pendiente decidir con Eduardo: **con su aprobación primero** (le llega con ✅ Mandar al equipo / ❌ No) o **directo al grupo del equipo**. Se recomendó con aprobación.
-4. Él: crear el grupo del equipo, agregar a @nexy_nxus_bot y decirle a NEX desde el grupo "este es el grupo de videos". El bot solo manda ahí; no obedece a nadie más que a Eduardo.
-- Límites: solo funciona con NEX prendida (si no, espera en Drive); Telegram acepta videos de hasta 50 MB.
-- Lo que cambie en NEX (`bridge/*.mjs`, `scripts/`) se activa actualizando NEX con el zip (ver `CLAUDE.md`); no toca el cerebro del cliente.
+## Mandar los videos e imágenes por Telegram al equipo (construido el 15 nov 2026; falta probarlo en la Mac de Eduardo)
+Código: `bridge/entregas.mjs` (lo conecta `bridge/telegram.mjs`) y `scripts/entregas.mjs`. Es solo NEX: no toca el cerebro del cliente.
+
+Cómo funciona:
+1. El chat sube a la carpeta de Drive **"Videos listos NXUS"** (cuenta de NXUS, id `11gk8HOTJQm627CBWCIpRKunsrrvt_3rb`) **primero** el texto y **después** el video o imagen, con el mismo nombre: `cliente-3am.txt` y `cliente-3am.mp4`. El `.txt` lleva lo que el equipo necesita (copy, hashtags, red y hora) y se sube con `disableConversionToGoogleType: true` (si se convierte en Google Doc, NEX no lo puede leer). Un archivo por entrega: mp4, mov, m4v, jpg, png o webp.
+2. NEX, mientras está prendida, revisa esa carpeta cada 30 segundos (la ve por la app Google Drive de la Mac) y le manda a Eduardo, en su chat con @nexy_nxus_bot, el archivo y el texto con dos botones: **✅ Mandar al equipo** / **❌ No**.
+3. Solo con su ✅ se manda al grupo del equipo. Con ❌ no sale nada. Lo mandado pasa a la subcarpeta `Enviados` y lo rechazado a `No enviados`.
+4. El grupo es donde Eduardo escribió `/grupovideos@nexy_nxus_bot`. El bot no obedece a nadie más en el grupo.
+- Para corregir un video rechazado: subir la versión nueva (otro nombre o el mismo); llega como entrega nueva.
+- Revisar: en Telegram `/entregas`; en la Mac `cd ~/Desktop/nexy && node scripts/entregas.mjs estado`. Si hay varias cuentas de Google Drive en la Mac: `node scripts/entregas.mjs carpeta correo`.
+- Límites: solo con NEX prendida (si no, espera en Drive); videos de hasta 50 MB; si llega un video sin `.txt`, a los 2 minutos se ofrece sin texto.

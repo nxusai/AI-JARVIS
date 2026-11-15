@@ -23,6 +23,7 @@ import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { louder, smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
 import { cutBrain, readBrains } from './cerebros.mjs'
+import { deliveries } from './entregas.mjs'
 
 /**
  * NEX on Telegram: the owner's way to reach her away from the office.
@@ -84,6 +85,7 @@ const HELP =
   '/nuevo — empezar una conversación nueva\n' +
   '/estado — qué estoy haciendo ahora\n' +
   '/cancelar — detener lo que estoy haciendo\n' +
+  '/entregas — videos e imágenes que esperan tu ✅ para ir al equipo\n' +
   'Si me escribes mientras trabajo, dejo lo anterior y atiendo tu mensaje nuevo. Para ver cómo voy sin interrumpirme: /estado\n' +
   'También puedes mandarme fotos, videos, música, o un contacto de tu agenda para que lo guarde.\n' +
   '/ayuda — ver esto otra vez'
@@ -666,6 +668,11 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     },
   })
 
+  // Finished videos and images for the team: offered to the owner here first,
+  // and sent to the team's group only on his tap (see entregas.mjs).
+  const entregas = deliveries({ token, owner: () => readTelegram()?.owner })
+  entregas.start()
+
   async function handle(update) {
     if (update.callback_query) {
       const q = update.callback_query
@@ -701,6 +708,11 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         await api(token, 'editMessageReplyMarkup', { chat_id: owner.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
         return
       }
+      if ((kind === 'ev' || kind === 'en') && id) {
+        const line = await entregas.decide(id, kind === 'ev')
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: line }).catch(() => {})
+        return
+      }
       if ((kind === 'ap' || kind === 'rj') && id) {
         hub.answer(id, kind === 'ap', kind === 'rj' ? 'Rechazado desde Telegram.' : '')
         await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: kind === 'ap' ? 'Aprobado' : 'Rechazado' }).catch(() => {})
@@ -709,6 +721,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     }
 
     const m = update.message
+    // A group: only the owner naming it as the team's group is heard (see entregas.mjs).
+    if (m?.from && (m.chat?.type === 'group' || m.chat?.type === 'supergroup')) return entregas.fromGroup(m)
     if (!m || m.chat?.type !== 'private' || !m.from) return
     // Read fresh each time: pairing, /voz and scripts/telegram.mjs all change it.
     const fresh = readTelegram()
@@ -757,6 +771,7 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
       hub.untrust('notion')
       return say(chatId, 'Listo: vuelvo a pedirte aprobación para todo en Notion.')
     }
+    if (text === '/entregas') return say(chatId, entregas.status())
     if (text === '/estado') {
       return say(chatId, convo?.busy ? busyLine(convo.status(), false) : 'Estoy libre. ¿Qué hacemos?')
     }
