@@ -480,6 +480,7 @@ export function crearMuestra() {
     // Leads: las mismas reglas que la base de datos (supabase/esquema.sql).
     leads: () => espera(db.leads.filter(veLead).map(({ transcripcion, ...l }) => l).sort((a, b) => b.creado.localeCompare(a.creado))),
     lead: (lid) => espera(db.leads.find((l) => l.id === lid && veLead(l)) ?? null),
+    anunciosSemanas: () => espera([]),
     // Números de Meta de muestra (en la versión real los trae la función "anuncios").
     metaAnuncios: () => {
       const f = (anuncio, campana, gasto, impresiones, conversaciones, vistas3s, thruplays, frecuencia) => ({ anuncio, campana, gasto, impresiones, alcance: Math.round(impresiones / frecuencia), frecuencia, cpm: (gasto / impresiones) * 1000, clics: Math.round(conversaciones * 1.6), conversaciones, vistas3s, thruplays, dia: '' })

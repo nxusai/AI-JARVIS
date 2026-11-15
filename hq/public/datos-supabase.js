@@ -169,6 +169,8 @@ export function crearSupabase({ url, anon }) {
     estadoLlamada: (id) => funcion('nex-estado', { id }),
     traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
     metaAnuncios: () => funcion('anuncios', {}),
+    /** La foto de cada semana por anuncio (la guarda la función anuncios-semana cada lunes). */
+    anunciosSemanas: async () => ok(await tabla('anuncios_semanas').select('*').order('semana', { ascending: false }).limit(800)),
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
     // Propuestas (del prospecto) y contratos (del cliente) en PDF, en el almacenamiento privado "documentos".

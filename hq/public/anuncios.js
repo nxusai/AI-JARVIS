@@ -13,25 +13,17 @@ const num = (n) => Number(n || 0).toLocaleString('es-MX')
 const leerObjetivo = () => { try { return Number(localStorage.getItem('nx-objetivo-cita')) || 40 } catch { return 40 } }
 const guardarObjetivo = (n) => { try { localStorage.setItem('nx-objetivo-cita', String(n)) } catch {} }
 
-/** "Anuncio MX · Video C" → { camp: 'MX', video: 'C' }; lo que no viene de un anuncio es orgánico. */
-export function claveDeFuente(fuente) {
-  const m = /Anuncio\s+(MX|NY)\s*·\s*Video\s+([A-Z])/i.exec(fuente || '')
-  return m ? { camp: m[1].toUpperCase(), video: m[2].toUpperCase() } : null
-}
-/** Anuncio de Meta "NY | B | Empleado" en la campaña "NXUS | NY | …" → { camp: 'NY', video: 'B' }. */
-export function claveDeAnuncio(nombre, campana) {
-  const camp = /\|\s*NY\s*\|/i.test(campana) || /^NY\b/i.test(nombre) ? 'NY' : /\|\s*MX\s*\|/i.test(campana) || /^MX\b/i.test(nombre) ? 'MX' : ''
-  const video = /^\s*(?:MX|NY)\s*\|\s*([A-Z])\s*\|/i.exec(nombre || '')?.[1]?.toUpperCase() || ''
-  return camp && video ? { camp, video } : null
-}
+import { claveDeFuente, claveDeAnuncio, nombreCorto } from './anuncios-claves.js'
+export { claveDeFuente, claveDeAnuncio }
 
 export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   titulo('Anuncios · de la vista al cliente')
   const estado = v._an || (v._an = { camp: 'todo', periodo: 'todo', vista: 'activos' })
-  const [leads, prospectos, meta] = await Promise.all([
+  const [leads, prospectos, meta, semanas] = await Promise.all([
     D.leads().catch(() => []),
     D.prospectos().catch(() => []),
     D.metaAnuncios ? D.metaAnuncios().catch((e) => ({ conectado: false, motivo: e.message })) : Promise.resolve({ conectado: false }),
+    D.anunciosSemanas ? D.anunciosSemanas().catch(() => []) : Promise.resolve([]),
   ])
   const moneda = meta.moneda || 'USD'
   const $$ = (n) => dinero(n, moneda === 'MXN' ? 'MXN' : 'USD')
@@ -170,7 +162,7 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
     const mini = [['Chats', m?.conversaciones], ['Reales', x.p.calif], ['Citas', x.p.agendo], ['Clientes', x.p.cliente]]
     const mmax = Math.max(1, ...mini.map(([, n]) => n || 0))
     return `<article class="an-video ${!pasado && ganador === x ? 'gana' : ''} ${pasado ? 'pasado' : ''}">
-      <header><span class="an-letra">${x.video}</span><div><b>${CAMP[x.camp]} · Video ${x.video}</b><small>${h(LETRAS[x.video] || x.anuncio || '')}</small></div>${x.est ? `<span class="chip ${x.est.estado === 'ACTIVE' ? 'verde' : ''}">${x.est.estado === 'ACTIVE' ? '● Activo' : h(x.est.estado.toLowerCase())}</span>` : ''}</header>
+      <header><span class="an-letra">${x.video}</span><div><b>${CAMP[x.camp]} · ${nombreCorto(x.video)}</b><small>${h(LETRAS[x.video] || x.anuncio || '')}</small></div>${x.est ? `<span class="chip ${x.est.estado === 'ACTIVE' ? 'verde' : ''}">${x.est.estado === 'ACTIVE' ? '● Activo' : h(x.est.estado.toLowerCase())}</span>` : ''}</header>
       <div class="an-cifras">
         <div><span>Gastado</span><b>${m ? $$(m.gasto) : '—'}</b></div>
         <div><span>Costo por cita</span><b class="${x.costoCita != null && x.costoCita <= objetivo ? 'ok' : ''}">${x.costoCita != null ? $$(x.costoCita) : '—'}</b></div>
@@ -201,7 +193,7 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
       <div class="an-videos">${xs.map((x) => tarjeta(x, true)).join('')}</div></section>`
   }).join('')
   const mejor = (lista, f, menor = false) => lista.filter((x) => f(x) != null).sort((a, b) => (menor ? f(a) - f(b) : f(b) - f(a)))[0]
-  const nombreV = (x) => `${CAMP[x.camp]} · Video ${x.video}${x.anuncio ? ` <small>(${h(x.anuncio)})</small>` : ''}`
+  const nombreV = (x) => `${CAMP[x.camp]} · ${nombreCorto(x.video)}${x.anuncio ? ` <small>(${h(x.anuncio)})</small>` : ''}`
   const lecciones = [
     ['🎣 Mejor gancho', mejor(todos, (x) => (x.meta?.impresiones > 500 ? x.gancho : null)), (x) => `${x.gancho}% se detiene a verlo`],
     ['💸 Cita más barata', mejor(todos, (x) => x.costoCita, true), (x) => `${$$(x.costoCita)} por cita`],
@@ -210,7 +202,22 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   ].filter(([, x]) => x)
   const leccionesHtml = `<section class="tarjeta an-lecciones"><h3>Lo aprendido <small>de todos los videos, activos y apagados</small></h3>
     ${lecciones.length ? `<div class="an-lec">${lecciones.map(([t, x, f]) => `<div><span>${t}</span><b>${nombreV(x)}</b><small>${f(x)}</small></div>`).join('')}</div>` : '<p class="vacio">Con más datos aquí aparece qué funciona mejor.</p>'}</section>`
-  const historialBloque = `${leccionesHtml}${historialHtml || '<div class="tarjeta"><p class="vacio">Todavía no se ha apagado ningún video. Cuando apagues uno en Meta, aquí queda guardado en su mes, con su nombre y sus números.</p></div>'}`
+  // ---- Semana por semana (foto que HQ guarda cada lunes; no depende de Meta)
+  const porSemana = {}
+  for (const r of semanas || []) if (estado.camp === 'todo' || r.camp === estado.camp) (porSemana[r.semana] ??= []).push(r)
+  const fSem = (iso) => new Date(iso + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+  const filaSemana = (k) => {
+    const xs = porSemana[k]
+    const t = (c) => xs.reduce((a, r) => a + Number(r[c] || 0), 0)
+    const g = t('gasto'), ci = t('agendo')
+    const mejor = xs.filter((r) => r.agendo).sort((a, b) => a.gasto / a.agendo - b.gasto / b.agendo)[0] || [...xs].sort((a, b) => b.reales - a.reales || b.conversaciones - a.conversaciones)[0]
+    return `<tr><td>${fSem(k)} – ${fSem(xs[0].hasta)}</td><td>${$$(g)}</td><td>${num(t('impresiones'))}</td><td>${pct(t('vistas3s'), t('impresiones'))}%</td><td>${num(t('conversaciones'))}</td><td>${num(t('reales'))}</td><td>${num(ci)}</td><td>${num(t('cliente'))}</td><td>${ci ? $$(g / ci) : '—'}</td><td>${mejor ? `${CAMP[mejor.camp]} · ${h(nombreCorto(mejor.anuncio))}` : '—'}</td></tr>`
+  }
+  const semanasHtml = Object.keys(porSemana).length ? `<section class="tarjeta an-semanas"><h3>Semana por semana <small>foto que HQ guarda cada lunes</small></h3>
+    <div style="overflow-x:auto"><table><thead><tr><th>Semana</th><th>Gastado</th><th>Vistas</th><th>Gancho</th><th>Chats</th><th>Reales</th><th>Citas</th><th>Clientes</th><th>Por cita</th><th>Mejor anuncio</th></tr></thead><tbody>
+    ${Object.keys(porSemana).sort().reverse().map(filaSemana).join('')}</tbody></table></div></section>` : ''
+
+  const historialBloque = `${leccionesHtml}${semanasHtml}${historialHtml || '<div class="tarjeta"><p class="vacio">Todavía no se ha apagado ningún video. Cuando apagues uno en Meta, aquí queda guardado en su mes, con su nombre y sus números.</p></div>'}`
 
   const sinMeta = !meta.conectado
     ? `<div class="tarjeta an-aviso"><b>📡 Falta conectar Meta</b><p>El embudo de HQ ya funciona. Para ver lo gastado, cuántos vieron cada video y el costo por cita, falta la llave de Meta (solo lectura). ${h(meta.motivo || '')}</p>

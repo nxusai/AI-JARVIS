@@ -226,3 +226,8 @@ Con eso se arma el **prompt v2**: incorporar sus quejas como reglas, sus zonas e
 ## Carpetas de Drive (15 nov 2026)
 - **Videos de trabajo para analizar y replicar** (Mi unidad): https://drive.google.com/drive/folders/17LNkGEbQ9s44d4ALVQ_4d94bX9dWJFf2 → aquí Eduardo sube videos de trabajos/anuncios de otros para analizarlos y replicar lo que funciona.
 - Otras: "videos de referencia para crear con IA" (estilo para generar con IA), "Videos para editar" → "Ejemplos de edicion" y "Mis videos crudos", "Next Level Reels" (1-Crudos, 2-Listos, 3-Archivo).
+
+## Aprendizaje automático semanal (15 nov 2026)
+- **B · Foto semanal en HQ:** función programada `hq/netlify/functions/anuncios-semana.mjs` (lunes 11:00 UTC) → `lib/semana.mjs` guarda por anuncio los números de Meta de los 7 días + el embudo de HQ de los leads de esa semana en la tabla `anuncios_semanas` (SQL al final de `hq/supabase/esquema.sql`). El panel muestra "Semana por semana" en 🗂 Historial.
+- **A · Reporte automático:** `hq/netlify/functions/anuncios-reporte.mjs` (solo lectura, encabezado `X-Reporte-Key` = `REPORTE_CLAVE` en Netlify; POST toma la foto). Una tarea programada de Claude en la nube corre cada lunes, lee ese acceso, escribe "Semana del …" en `docs/aprendizajes-anuncios.md` y avisa a Eduardo. Nunca cambia campañas: solo recomienda.
+- Nombres desde la ronda 3: anuncio `MX | C3-V1 | VID | …`, fuente ManyChat `Anuncio MX · C3-V1` (`hq/public/anuncios-claves.js` entiende los dos formatos).

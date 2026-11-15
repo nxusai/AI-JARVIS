@@ -1895,3 +1895,39 @@ drop policy if exists hq_port_subir on storage.objects;
 create policy hq_port_subir on storage.objects for insert to authenticated with check (bucket_id = 'portafolio' and puede('portafolio'));
 drop policy if exists hq_port_borrar on storage.objects;
 create policy hq_port_borrar on storage.objects for delete to authenticated using (bucket_id = 'portafolio' and es_admin());
+
+-- ============================================================================
+-- Foto semanal de los anuncios (15 nov 2026). La llena la función programada
+-- anuncios-semana (lunes) con la llave de servicio. Solo lectura para el admin
+-- y quien ve prospectos (los mismos que ven el panel "Anuncios").
+-- ============================================================================
+create table if not exists public.anuncios_semanas (
+  semana date not null,                -- primer día de la semana (7 días)
+  hasta date not null,
+  camp text not null check (camp in ('MX', 'NY')),
+  anuncio text not null check (char_length(anuncio) <= 20), -- "C" (rondas 1–2) o "C3-V1"
+  nombre text not null default '' check (char_length(nombre) <= 200),
+  campana text not null default '' check (char_length(campana) <= 200),
+  estado text not null default '' check (char_length(estado) <= 40),
+  moneda text not null default 'USD' check (char_length(moneda) <= 5),
+  gasto numeric(12, 2) not null default 0,
+  impresiones int not null default 0,
+  alcance int not null default 0,
+  vistas3s int not null default 0,
+  thruplays int not null default 0,
+  clics int not null default 0,
+  conversaciones int not null default 0,
+  frecuencia numeric(8, 2) not null default 0,
+  leads int not null default 0,
+  reales int not null default 0,
+  hablo int not null default 0,
+  agendo int not null default 0,
+  asistio int not null default 0,
+  cliente int not null default 0,
+  creado timestamptz not null default now(),
+  primary key (semana, camp, anuncio)
+);
+alter table public.anuncios_semanas enable row level security;
+drop policy if exists an_sem_ver on public.anuncios_semanas;
+create policy an_sem_ver on public.anuncios_semanas for select to authenticated
+  using (es_admin() or exists (select 1 from public.perfiles p where p.id = auth.uid() and p.activo and p.pros_ver <> 'nada'));
