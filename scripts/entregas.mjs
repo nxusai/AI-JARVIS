@@ -3,8 +3,10 @@
 //
 //   node scripts/entregas.mjs estado            the Drive folder, the team's group and what waits for the owner's yes
 //   node scripts/entregas.mjs carpeta [correo]  choose which Google Drive account's "Videos listos NXUS" to watch
+//   node scripts/entregas.mjs modo directo      straight to the team at 9:00 am New York time (the default)
+//   node scripts/entregas.mjs modo aprobar      to the owner first, with ✅ / ❌ buttons
 //
-// Nothing here sends anything: sending is only the owner's tap in Telegram.
+// Nothing here sends anything: NEX does, while she is on.
 
 import { existsSync, mkdirSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -31,6 +33,9 @@ if (cmd === 'carpeta') {
   mkdirSync(carpeta, { recursive: true })
   writeDeliveries({ ...readDeliveries(), carpeta })
   console.log(` ✅ Carpeta lista: ${carpeta}\n (En Google Drive se ve como "Mi unidad › ${FOLDER_NAME}".) No hace falta reiniciar NEX.`)
+} else if (cmd === 'modo' && ['directo', 'aprobar'].includes(process.argv[3])) {
+  writeDeliveries({ ...readDeliveries(), modo: process.argv[3] })
+  console.log(process.argv[3] === 'directo' ? ' ✅ Directo: cada video e imagen se manda al equipo a las 9:00 am (hora de Nueva York), sin preguntar.' : ' ✅ Con aprobación: cada video e imagen te llega primero a ti con ✅ Mandar al equipo / ❌ No.')
 } else if (cmd === 'estado') {
   const state = readDeliveries()
   const dir = findFolder(state)
@@ -38,10 +43,11 @@ if (cmd === 'carpeta') {
   console.log(dir ? ` Carpeta: ${dir}` : ` Carpeta: NO la encuentro (${state.carpeta ?? `"${FOLDER_NAME}" en Google Drive`}). ¿Está abierta la app Google Drive? Para elegirla: node scripts/entregas.mjs carpeta`)
   if (!state.carpeta && driveFolders().length > 1) console.log(` Ojo: hay ${driveFolders().length} cuentas con esa carpeta; uso la primera. Para elegir: node scripts/entregas.mjs carpeta correo@ejemplo.com`)
   console.log(state.grupo ? ` Grupo del equipo: ${state.grupo.titulo}` : ' Grupo del equipo: falta. En Telegram, agrega el bot al grupo y escribe ahí /grupovideos')
+  console.log(state.modo === 'aprobar' ? ' Modo: con tu aprobación (✅ / ❌ en Telegram)' : ' Modo: directo al equipo a las 9:00 am, hora de Nueva York')
   const waiting = all.filter((e) => e.estado === 'pendiente')
-  console.log(` Esperan tu ✅ en Telegram: ${waiting.length ? waiting.map((e) => e.nombre).join(', ') : 'nada'}`)
+  if (state.modo === 'aprobar') console.log(` Esperan tu ✅ en Telegram: ${waiting.length ? waiting.map((e) => e.nombre).join(', ') : 'nada'}`)
   console.log(` Mandados al equipo: ${all.filter((e) => e.estado === 'enviado').length} · No mandados: ${all.filter((e) => e.estado === 'descartado').length}`)
 } else {
-  console.log(' Uso: node scripts/entregas.mjs estado | carpeta [correo]')
+  console.log(' Uso: node scripts/entregas.mjs estado | carpeta [correo] | modo directo | modo aprobar')
   process.exit(1)
 }

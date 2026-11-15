@@ -5,9 +5,16 @@
 ## Qué es este chat
 Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el personaje de Eduardo, **imágenes** para redes, y **mandarlo por Telegram** para que su equipo lo publique.
 
+## El plan diario (decidido por Eduardo el 15 nov 2026)
+- **Todos los días: un video y una imagen** de NXUS AI. Los temas los elige el chat, día con día (qué hace NXUS: `docs/estado-nxus.md`). Cómo deben ser las imágenes está **pendiente de definir con Eduardo**.
+- Se suben a Drive "Videos listos NXUS" con la fecha al inicio del nombre (`2026-11-16-tema.mp4`, `.png`, y su `.txt`), y NEX los manda **directo** al grupo de su equipo a las **9:00 am, hora de Nueva York**. Sin aprobación previa: por eso la revisión del video terminado (abajo) es obligatoria antes de subir.
+- **Créditos: máximo 250 al mes** (Higgsfield y Bloom juntos). La mayoría del trabajo se hace con código, que no gasta. Llevar la cuenta en `docs/creditos-contenido-nxus.md` y **avisarle a Eduardo si se van a acabar antes de los 30 días**. Dentro de ese tope ya no hay que pedir el "sí" cada vez.
+- **Aprender**: cada vez que Eduardo mande contenido, ejemplos o pida revisar algo, anotar lo aprendido en `docs/aprendizajes-contenido-nxus.md` y aplicarlo. Leer ese archivo antes de hacer contenido.
+- Pendiente: que el video y la imagen se generen solos cada día (tarea programada en la nube). Primero hay que definir las imágenes y hacer a mano el primer día completo para comprobar el camino.
+
 ## Reglas del contenido
 - Enseñar fotos o vista previa antes de entregar o subir algo.
-- Antes de gastar créditos (Higgsfield, Bloom), decir cuánto cuesta y esperar el "sí". Lo que se hace con código (ffmpeg, HTML, Python) no gasta.
+- Créditos (Higgsfield, Bloom): hay un tope de 250 al mes ya autorizado (ver "El plan diario"); anotar cada gasto. Lo que se hace con código (ffmpeg, HTML, Python) no gasta.
 - No inventar estadísticas, clientes ni resultados. Los datos de ejemplo en pantallas de la app se presentan como ejemplo.
 - No mencionar ciudades, colonias ni países en videos o imágenes (las zonas van en la segmentación de Meta).
 - Llamada a la acción: "Agenda tu diagnóstico gratis de 30 minutos" (tarjeta "DIAGNÓSTICO GRATIS · 30 minutos · Cupos limitados este mes").
@@ -23,8 +30,9 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 
 ## El personaje de Eduardo
 - Pixel/voxel 3D, sudadera negra con detalles del degradado, fondo gris liso. Prompt para crear más poses: `ads/prompt-chatgpt-personaje-v1.txt` (ChatGPT + Higgsfield).
-- Hoy solo existe la imagen base de frente. Con código se le hicieron: ojos cerrados (dormido y feliz), brazos sueltos que giran en el hombro y parpadeo. Ver `ads/maquina-video/LEEME.md`.
-- Faltan poses (acostado, estirándose, sentado en laptop, caminando, boca abierta y cerrada para hablar). Pedírselas a Eduardo cuando haga falta.
+- De la imagen base de frente se hicieron con código: ojos cerrados (dormido y feliz), brazos sueltos que giran en el hombro y parpadeo. Ver `ads/maquina-video/LEEME.md`.
+- Poses que mandó Eduardo el 15 nov, en `ads/personaje/` (1498×1998, fondo gris liso): `brazos-arriba` (festejo o estirarse), `caminando`, `acostado`, `cara-boca-cerrada` y `cara-boca-abierta` (acercamiento, para hablar alternándolas).
+- Falta: sentado en la laptop. Pedírsela a Eduardo cuando haga falta.
 
 ## Videos
 - Formato y análisis del ejemplo: `docs/estilo-maquina.md`.
@@ -47,10 +55,10 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 Código: `bridge/entregas.mjs` (lo conecta `bridge/telegram.mjs`) y `scripts/entregas.mjs`. Es solo NEX: no toca el cerebro del cliente.
 
 Cómo funciona:
-1. El chat sube a la carpeta de Drive **"Videos listos NXUS"** (cuenta de NXUS, id `11gk8HOTJQm627CBWCIpRKunsrrvt_3rb`) **primero** el texto y **después** el video o imagen, con el mismo nombre: `cliente-3am.txt` y `cliente-3am.mp4`. El `.txt` lleva lo que el equipo necesita (copy, hashtags, red y hora) y se sube con `disableConversionToGoogleType: true` (si se convierte en Google Doc, NEX no lo puede leer). Un archivo por entrega: mp4, mov, m4v, jpg, png o webp.
-2. NEX, mientras está prendida, revisa esa carpeta cada 30 segundos (la ve por la app Google Drive de la Mac) y le manda a Eduardo, en su chat con @nexy_nxus_bot, el archivo y el texto con dos botones: **✅ Mandar al equipo** / **❌ No**.
-3. Solo con su ✅ se manda al grupo del equipo. Con ❌ no sale nada. Lo mandado pasa a la subcarpeta `Enviados` y lo rechazado a `No enviados`.
-4. El grupo es donde Eduardo escribió `/grupovideos@nexy_nxus_bot`. El bot no obedece a nadie más en el grupo.
-- Para corregir un video rechazado: subir la versión nueva (otro nombre o el mismo); llega como entrega nueva.
+1. El chat sube a la carpeta de Drive **"Videos listos NXUS"** (cuenta de NXUS, id `11gk8HOTJQm627CBWCIpRKunsrrvt_3rb`) **primero** el texto y **después** el video o imagen, con el mismo nombre y la fecha de envío al inicio: `2026-11-16-tema.txt` y `2026-11-16-tema.mp4`. El `.txt` lleva lo que el equipo necesita (copy, hashtags, red y hora) y se sube con `disableConversionToGoogleType: true` (si se convierte en Google Doc, NEX no lo puede leer). Un archivo por entrega: mp4, mov, m4v, jpg, png o webp.
+2. NEX, mientras está prendida, revisa esa carpeta cada 30 segundos (la ve por la app Google Drive de la Mac). A las **9:00 am de Nueva York** del día que dice el nombre manda el archivo con su texto al grupo del equipo, y le avisa a Eduardo en su chat ("📤 Mandado al grupo…"). Si a las 9:00 NEX estaba apagada, lo manda en cuanto la prenda. Un archivo sin fecha en el nombre sale a las siguientes 9:00.
+3. Lo mandado pasa a la subcarpeta `Enviados`.
+4. El grupo es el chat del equipo donde Eduardo escribió `/grupovideos@nexy_nxus_bot`. El bot no obedece a nadie más en el grupo.
+- Si Eduardo quiere volver a aprobar antes: `node scripts/entregas.mjs modo aprobar` (le llega primero a él con ✅ Mandar al equipo / ❌ No). Regresar: `modo directo`.
 - Revisar: en Telegram `/entregas`; en la Mac `cd ~/Desktop/nexy && node scripts/entregas.mjs estado`. Si hay varias cuentas de Google Drive en la Mac: `node scripts/entregas.mjs carpeta correo`.
-- Límites: solo con NEX prendida (si no, espera en Drive); videos de hasta 50 MB; si llega un video sin `.txt`, a los 2 minutos se ofrece sin texto.
+- Límites: solo con NEX prendida; videos de hasta 50 MB; si llega un video sin `.txt`, a los 2 minutos se toma sin texto.

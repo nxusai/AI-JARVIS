@@ -85,7 +85,7 @@ const HELP =
   '/nuevo — empezar una conversación nueva\n' +
   '/estado — qué estoy haciendo ahora\n' +
   '/cancelar — detener lo que estoy haciendo\n' +
-  '/entregas — videos e imágenes que esperan tu ✅ para ir al equipo\n' +
+  '/entregas — los videos e imágenes para el equipo: qué espera y qué ya se mandó\n' +
   'Si me escribes mientras trabajo, dejo lo anterior y atiendo tu mensaje nuevo. Para ver cómo voy sin interrumpirme: /estado\n' +
   'También puedes mandarme fotos, videos, música, o un contacto de tu agenda para que lo guarde.\n' +
   '/ayuda — ver esto otra vez'
@@ -668,8 +668,8 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
     },
   })
 
-  // Finished videos and images for the team: offered to the owner here first,
-  // and sent to the team's group only on his tap (see entregas.mjs).
+  // Finished videos and images for the team's group: straight there at 9:00 am
+  // New York time, or with the owner's tap first if he chose that (see entregas.mjs).
   const entregas = deliveries({ token, owner: () => readTelegram()?.owner })
   entregas.start()
 
