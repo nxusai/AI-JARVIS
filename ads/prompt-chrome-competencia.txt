@@ -1,0 +1,52 @@
+Eres mi analista de anuncios. Soy Eduardo (NXUS AI: le dejamos funcionando a negocios agentes de IA que contestan
+mensajes, llaman por teléfono y agendan citas, en español). Trabaja en mi Chrome; yo te veo.
+Objetivo: revisar en la Biblioteca de Anuncios de Meta qué anuncios tiene ACTIVOS mi competencia, para aprender qué
+ganchos, formatos y ofertas usan. SOLO MIRAR Y ANOTAR.
+
+REGLAS (obligatorias)
+- Solo lectura. No des clic en "Send message", "Learn more", "Sign up" ni en ningún botón de los anuncios. No escribas
+  a ningún negocio, no llenes formularios, no des "Like" ni "Follow", no compartas nada.
+- No entres a mi Ads Manager ni cambies nada de mis campañas.
+- Si algo pide iniciar sesión, contraseña o código, detente y avísame.
+- Trabaja en una pestaña nueva. No cierres mis otras pestañas.
+- No inventes datos: si algo no se ve, escribe "no se ve".
+
+PASO 1. Abre https://www.facebook.com/ads/library
+- Ad category: "All ads". Country: "Mexico". En los filtros: Active status = "Active ads", Platform = Facebook e
+  Instagram, Media type = "All media".
+
+PASO 2. Busca por palabra (escribe la palabra y elige "Search" por palabra clave, no por anunciante). Una por una:
+  "agente de IA", "chatbot WhatsApp", "automatizar WhatsApp", "inteligencia artificial para negocios",
+  "asistente virtual", "recepcionista virtual", "CRM WhatsApp", "responder mensajes automáticamente".
+- En cada búsqueda revisa los primeros 10–15 anuncios que sean de empresas que venden IA, chatbots o automatización
+  a negocios. Ignora cursos para aprender IA, apps para personas y anuncios que no tienen que ver.
+
+PASO 3. Busca por anunciante (cambia a búsqueda por nombre de página), en México:
+  Leadsales, Kommo, Wati, Plazbot, Kosmo, respond.io, Cliengo, Treble, Botmaker, ManyChat.
+- Si no aparece o no tiene anuncios activos, anótalo y sigue.
+
+PASO 4. Cambia Country a "United States" y busca:
+  "AI receptionist", "AI agent for small business", "never miss a call", "recepcionista IA", "chatbot para negocios".
+- Para EE. UU. fíjate sobre todo en anuncios en español (si existe el filtro Language, usa "Spanish").
+
+PASO 5. Por cada anunciante relevante (máximo 20 en total), anota:
+1. Nombre de la página y país.
+2. Cuántos anuncios activos tiene (el número que muestra Meta).
+3. Fecha de inicio del anuncio activo MÁS VIEJO ("Started running on…"). Un anuncio que lleva más de 30 días
+   prendido casi seguro les funciona: márcalo con ⭐.
+4. Formato: video, imagen, carrusel. Si es video: ¿sale una persona a cámara, pantalla de celular, animación, voz de IA?
+5. Gancho: la primera línea del texto y lo que se ve o se dice en los primeros 3 segundos del video.
+6. A qué giro le habla (restaurantes, clínicas, inmobiliarias, todos…).
+7. Oferta: prueba gratis, demo, precio, garantía, "listo en X días"…
+8. Botón y destino: "Send message" (Messenger / WhatsApp / Instagram), "Learn more" (página web), "Sign up"
+   (formulario), "Call now". Solo lee el botón; NO le des clic.
+9. Si hay varias versiones del mismo anuncio ("This ad has multiple versions"), anota cuántas.
+
+PASO 6. Informe final (corto, con ✅ / ⚠️ / ❌ donde aplique):
+A) Tabla con los anunciantes (columnas = puntos 1 al 9).
+B) Los 5 anuncios ⭐ con más tiempo activos: anunciante, fecha de inicio, gancho exacto, formato, botón.
+C) Los 10 ganchos más repetidos o más fuertes, copiados tal cual.
+D) Qué formato domina (video vs imagen) y qué botón usan más (mensaje, web, formulario).
+E) Qué NO hace nadie (huecos que NXUS podría usar).
+F) Las búsquedas que no dieron resultados.
+No me des tu opinión de estrategia; eso lo hace mi asesor. Solo datos.
