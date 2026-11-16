@@ -4,6 +4,13 @@
 
 **No usar colores, letras ni marca de NXUS en nada de este cliente.**
 
+## Dato clave del negocio (lo dijo el cliente el 16 de noviembre de 2026)
+**Abuelito Cheese NO produce su queso: solo lo distribuye.** En guiones, textos y escenas:
+- Nunca decir "fábrica", "producción", "cómo hacemos nuestros quesos", "recién hecho aquí" ni mostrar gente fabricando queso.
+- Sí se puede hablar de almacén, bodega, cuarto frío, pedidos, camiones, rutas, entregas, tiendas, clientes y muestras.
+- El edificio de 607 Main St es su local de distribución, no una fábrica.
+- Los guiones de presentación de Regina y Renata del 12 de noviembre dicen "fábrica" y "cómo hacemos nuestros quesos": están mal y hay que regrabarlos antes de publicarlos.
+
 ## Cómo se trabaja con este cliente
 1. **Se crea** el contenido con Higgsfield (imágenes, voz y video de las influencers).
 2. **Se aprueba** la toma generada, sin editar.
@@ -42,7 +49,7 @@ Las fichas completas, las imágenes maestras y la guía de guiones están en Dri
 | Rostro para video | imagen `a1734e50-a439-4bab-9289-7b0ad805b0b3` | imagen `a764db50-07de-4427-91fb-711a8c712b5d` |
 | Carpeta de Drive | `1595vAF4AhDC1pNXQmqPPpFRE4q5ifVFf` | `1UjqV9WMjBHDce0O_LbTRw212epGxOaOt` |
 
-**Locación real:** fachada de Abuelito Cheese, 607 Main St, Paterson, NJ. Imagen de referencia en Higgsfield: `742ce232-8e4e-460b-9e80-814d56a3b583` (sale un chofer en el montacargas al fondo).
+**Locación real:** fachada del local de distribución de Abuelito Cheese, 607 Main St, Paterson, NJ. Imagen de referencia en Higgsfield: `742ce232-8e4e-460b-9e80-814d56a3b583` (sale un chofer en el montacargas al fondo).
 
 ## Preferencias (mandan sobre todo lo demás)
 ### Cómo se ven
