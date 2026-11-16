@@ -13,4 +13,6 @@ Formato de cada entrada:
 - Más análisis ya hechos (anuncios): `docs/analisis-video-agentes-meta.md`, `docs/aprendizajes-anuncios.md`, `docs/estrategia-ads-nxus-v3.md`.
 
 ## Entradas nuevas
+- **16 nov 2026 · Eduardo, al pedir el video del punto de venta para come todo.** Quiere videos **limpios, con buenas transiciones y efectos, y sin huecos** (sin silencios ni pantallas vacías), y la **voz hecha en el chat**, no en Higgsfield. Cómo se aplica: la voz se genera frase por frase y se pega con 0.16 s entre frases; cada escena entra mientras la anterior sale; siempre hay algo moviéndose. Receta en `ads/pos-come-todo/LEEME.md`.
+- **16 nov 2026 · tema nuevo de NXUS: puntos de venta a la medida para restaurantes**, empezando por los come todo. Qué se puede decir y qué no: `docs/investigacion-pos-come-todo.md`.
 (Agregar abajo.)

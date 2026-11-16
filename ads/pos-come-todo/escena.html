@@ -1,0 +1,292 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#05070d}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Inter,sans-serif;color:#fff;overflow:hidden}
+.abs{position:absolute}
+.g{background:linear-gradient(100deg,#00e5ff,#0a6cff 55%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.titulo{position:absolute;left:60px;right:60px;top:205px;text-align:center;font:800 76px/1.08 Sora;letter-spacing:-.01em}
+.panel{position:absolute;left:70px;width:940px;border-radius:40px;background:rgba(12,17,32,.94);border:2px solid rgba(255,255,255,.10);box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(0,229,255,.08);overflow:hidden}
+.barra{height:84px;display:flex;align-items:center;gap:14px;padding:0 34px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07);font:600 30px Inter;color:#dbe6ff}
+.sticker{position:absolute;padding:18px 34px;border-radius:18px;font:800 50px Sora;letter-spacing:.02em;color:#04121c;background:linear-gradient(100deg,#00e5ff,#36a2ff);box-shadow:0 14px 0 rgba(0,0,0,.35),0 20px 60px rgba(0,229,255,.35);white-space:nowrap}
+.sub{position:absolute;left:0;right:0;top:1296px;text-align:center}
+.pill{display:inline-block;padding:14px 30px;border-radius:22px;background:rgba(5,8,16,.78);font:800 62px Sora;letter-spacing:.02em;text-transform:uppercase;border:1px solid rgba(255,255,255,.06)}
+.nota{font:500 24px Inter;color:#6f7da0}
+.fila{display:flex;align-items:center;justify-content:space-between}
+</style></head>
+<body><div id="st"></div>
+<script>
+const LOGO = (id) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const W = window.PALABRAS, F = window.FRASES
+const T_FIN = window.T_FIN
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const io = (k) => k * k * (3 - 2 * k)
+const back = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const lerp = (a, b, k) => a + (b - a) * k
+const entra = (t, a, d = .42, dy = 70) => { const k = sal(t, a, d); return `opacity:${cl(k * 3)};transform:translateY(${(1 - ease(k)) * dy}px) scale(${.94 + .06 * back(k)});` }
+const pop = (t, a, d = .34) => { const k = sal(t, a, d); return `opacity:${cl(k * 4)};transform:scale(${k <= 0 ? 0 : back(k)});` }
+const golpe = (t, a, rot = -4) => { const k = sal(t, a, .3); return `opacity:${cl(k * 4)};transform:rotate(${rot}deg) scale(${k < 1 ? 1.6 - .6 * back(k) : 1});` }
+const dinero = (n) => '$' + Math.round(n).toLocaleString('en-US')
+// Cuándo se dice una palabra (la n-ésima que coincide), a partir de un tiempo.
+const C = (re, desde = 0, n = 0) => { const m = W.filter((w) => w[0] >= desde - .01 && re.test(w[2])); return (m[n] ?? m.at(-1) ?? [desde])[0] }
+const S = F.map((f) => f[0]) // inicio de cada frase
+const E = [0, S[1] - .08, S[2] - .08, S[3] - .08, S[4] - .08, S[5] - .08, S[6] - .08, S[7] - .08, S[8] - .08, S[9] - .08, T_FIN - .75, T_FIN + 9]
+
+/* ---------- fondo vivo, siempre en movimiento ---------- */
+function fondo(t) {
+  const b = (x, y, r, c, o) => `<div class="abs" style="left:${x - r}px;top:${y - r}px;width:${2 * r}px;height:${2 * r}px;border-radius:50%;background:radial-gradient(circle,${c} 0%,transparent 68%);opacity:${o}"></div>`
+  const lineas = Array.from({ length: 13 }, (_, i) => `<div class="abs" style="left:0;right:0;top:${((i * 160 + t * 26) % 2080) - 80}px;height:1px;background:rgba(120,160,255,.055)"></div>`).join('') +
+    Array.from({ length: 7 }, (_, i) => `<div class="abs" style="top:0;bottom:0;left:${i * 180}px;width:1px;background:rgba(120,160,255,.04)"></div>`).join('')
+  return `<div class="abs" style="inset:0;background:linear-gradient(180deg,#070b18,#05070d 55%,#070916)"></div>${lineas}` +
+    b(200 + Math.sin(t * .35) * 160, 380 + Math.cos(t * .28) * 120, 620, 'rgba(0,229,255,.20)', 1) +
+    b(900 + Math.cos(t * .31) * 150, 1100 + Math.sin(t * .22) * 200, 700, 'rgba(160,28,255,.20)', 1) +
+    b(420 + Math.sin(t * .2 + 2) * 200, 1750, 560, 'rgba(10,108,255,.22)', 1)
+}
+
+/* ---------- piezas ---------- */
+const cabecera = (ico, titulo, der = '') => `<div class="barra"><span style="font-size:34px">${ico}</span><span>${titulo}</span><span style="margin-left:auto;font:600 24px Inter;color:#00e5ff">${der}</span></div>`
+const titulo = (t, a, html, top = 205) => `<div class="titulo" style="top:${top}px;${entra(t, a, .45, 50)}">${html}</div>`
+const cursor = (x, y, clic = 0) => `<div class="abs" style="left:${x}px;top:${y}px;width:54px;height:54px;transform:scale(${1 - .25 * clic})"><svg viewBox="0 0 24 24" width="54" height="54"><path d="M4 2l15 9-6.5 1.6L9.6 19z" fill="#fff" stroke="#04121c" stroke-width="1.6" stroke-linejoin="round"/></svg></div>` +
+  (clic > 0 ? `<div class="abs" style="left:${x - 40}px;top:${y - 40}px;width:90px;height:90px;border-radius:50%;border:5px solid #00e5ff;opacity:${1 - clic};transform:scale(${.4 + clic})"></div>` : '')
+function mesaIco(x, y, s, num, color, cont, extra = '') {
+  const sillas = [[-.2, -.41], [.2, -.41], [-.2, .41], [.2, .41]].map(([a, b]) => `<div class="abs" style="left:${s / 2 + a * s - s * .13}px;top:${s / 2 + b * s - s * .09}px;width:${s * .26}px;height:${s * .18}px;border-radius:${s * .08}px;background:${color};opacity:.55"></div>`).join('')
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:${s}px;height:${s}px;${extra}">${sillas}
+    <div class="abs" style="inset:${s * .13}px;border-radius:${s * .18}px;background:rgba(14,22,44,.96);border:4px solid ${color};box-shadow:0 0 ${s * .3}px ${color}55;display:grid;place-items:center">
+      <div style="text-align:center"><div style="font:600 ${s * .13}px Inter;color:#8fa0c6">Mesa ${num}</div><div style="font:800 ${s * .3}px Sora;line-height:1.05">${cont}</div></div></div></div>`
+}
+
+/* ---------- 1 · gancho: el salón lleno y la pregunta ---------- */
+const MESAS = [[0, 0, 1], [1, 0, 2], [2, 0, 3], [0, 1, 4], [1, 1, 5], [2, 1, 6], [0, 2, 7], [1, 2, 8], [2, 2, 9]]
+const GANA = [1, 0, 1, 0, 1, 1, 1, 0, 1]
+function salon(t, opt = {}) {
+  const tSabes = opt.sabes ?? 9e9, tG = opt.gana ?? 9e9, tP = opt.pierde ?? 9e9, rev = opt.revela ?? 9e9
+  return MESAS.map(([cx, cy, n], i) => {
+    const a = (opt.a ?? 0) + .05 + i * .07
+    const llena = sal(t, (opt.llena ?? 0) + i * .13, .25)
+    let color = llena > 0 ? '#2f7bff' : '#2a3554', cont = llena > 0 ? '<span style="font-size:.62em">👥</span>' : ''
+    if (t >= tSabes + i * .05) { cont = `<span style="display:inline-block;transform:scale(${1 + .12 * Math.sin(t * 9 + i)})">?</span>`; color = '#7f8db0' }
+    if (t >= tG && t < tP) { const f = cl(1 - (t - tG) / .9); if (GANA[i]) color = `rgba(46,230,140,${.45 + .55 * f})` }
+    if (t >= tP) { const f = cl(1 - (t - tP) / .9); color = GANA[i] ? 'rgba(46,230,140,.5)' : `rgba(255,84,104,${.5 + .5 * f})` }
+    if (t >= rev + i * .06) { color = GANA[i] ? '#2ee68c' : '#ff5468'; cont = `<span style="font-size:.7em;color:${color}">${GANA[i] ? '▲' : '▼'}</span>` }
+    return mesaIco(92 + cx * 258, 14 + cy * 258, 240, n, color, cont, pop(t, a))
+  }).join('')
+}
+function e1(t, t0 = -.75, mudo = false) {
+  const k = t - t0
+  const tS = mudo ? 9e9 : C(/sabes/i), tG = mudo ? 9e9 : C(/ganaste/i), tP = mudo ? 9e9 : C(/perdiste/i)
+  return titulo(t, t0 + .05, mudo || t < tS - .15 ? `Tu <span class="g">come todo</span><br>se llena…` : `¿En qué mesas <span style="color:#2ee68c">ganas</span><br>y en cuáles <span style="color:#ff5468">pierdes</span>?`) +
+    `<div class="panel" style="top:400px;height:880px;${entra(t, t0, .4)}">${cabecera('🍽️', 'Salón · Come todo', mudo ? '' : t > tS ? 'sin datos' : `${Math.min(9, Math.floor(k / .13) + 0)} / 9 mesas`)}
+      <div class="abs" style="left:0;top:84px;right:0;bottom:0">${salon(t, { a: t0, llena: t0 + .35, sabes: tS, gana: tG, pierde: tP })}</div></div>`
+}
+
+/* ---------- 2 · precio fijo, costo distinto ---------- */
+function e2(t) {
+  const a = S[1], tF = C(/fijo/i, a), tC = C(/cada/i, a), tD = C(/distinto/i, a)
+  const tarjeta = (x, n, costo, i) => {
+    const k = ease(sal(t, tC + i * .25, .9)); const h = costo / 420 * 330 * k; const pasa = costo > 349 && k > .83
+    return `<div class="abs" style="left:${x}px;top:120px;width:400px;height:720px;border-radius:32px;background:rgba(255,255,255,.04);border:2px solid ${pasa ? '#ff5468' : 'rgba(255,255,255,.09)'};${entra(t, a + .1 + i * .12)}">
+      <div style="text-align:center;font:700 40px Sora;margin-top:26px">Mesa ${n}</div>
+      <div style="margin:18px auto 0;width:300px;padding:14px 0;border-radius:18px;text-align:center;background:rgba(0,229,255,.12);border:2px solid rgba(0,229,255,.5);font:800 46px Sora;${pop(t, tF + i * .08)}">🔒 $349</div>
+      <div style="text-align:center;font:500 24px Inter;color:#8fa0c6;margin-top:8px">precio por persona</div>
+      <div class="abs" style="left:60px;right:60px;bottom:120px;height:330px;border-bottom:3px solid #33415f">
+        <div class="abs" style="left:-20px;right:-20px;bottom:${349 / 420 * 330}px;border-top:3px dashed rgba(0,229,255,.7)"></div>
+        <div class="abs" style="left:50px;right:50px;bottom:0;height:${h}px;border-radius:16px 16px 0 0;background:${pasa ? 'linear-gradient(#ff5468,#b3243a)' : 'linear-gradient(#2ee68c,#14915a)'}"></div></div>
+      <div class="abs" style="left:0;right:0;bottom:34px;text-align:center;font:800 44px Sora;color:${pasa ? '#ff5468' : '#fff'}">costo ${dinero(costo * k)}</div></div>`
+  }
+  return titulo(t, a, `Precio <span class="g">fijo</span>,<br>costo <span style="color:#ff5468">distinto</span>`) +
+    `<div class="panel" style="top:400px;height:880px;${entra(t, a, .4)}">${cabecera('⚖️', 'Mismo precio, distinta mesa', 'ejemplo')}
+      <div class="abs" style="left:0;top:84px;right:0;bottom:0">${tarjeta(50, 3, 148, 0)}${tarjeta(490, 8, 402, 1)}</div></div>` +
+    (t > tD + .15 ? `<div class="sticker" style="left:500px;top:770px;background:linear-gradient(100deg,#ff8a5c,#ff5468);${golpe(t, tD + .15, 5)}">AQUÍ PIERDES</div>` : '')
+}
+
+/* ---------- 3 · el truco del punto de venta genérico ---------- */
+function e3(t) {
+  const a = S[2], tT = C(/truco/i, a), tP = C(/platillos/i, a), tZ = C(/ceros/i, a)
+  const filas = [['Buffet adulto', '$349.00', a + .5], ['Sushi roll', '$0.00', tT + .05], ['Arrachera', '$0.00', tT + .45], ['Camarones', '$0.00', tP], ['Ramen', '$0.00', tP + .35], ['Postre', '$0.00', tZ]]
+  return titulo(t, a, `En un punto de venta<br><span style="color:#9aa3b8">genérico…</span>`) +
+    `<div class="panel" style="top:400px;height:810px;background:#1a1d24;border-color:#3a3f4b;box-shadow:0 40px 120px rgba(0,0,0,.6);filter:saturate(.5);${entra(t, a, .4)}">
+      <div class="barra" style="background:#262a33;color:#c9cfdb"><span>🖥️</span><span>Punto de venta genérico</span><span style="margin-left:auto;font:600 24px Inter;color:#8b93a5">Mesa 7</span></div>
+      <div style="padding:24px 40px">
+        ${filas.map(([n, p, ta]) => `<div class="fila" style="padding:22px 0;border-bottom:1px solid #343945;font:600 38px Inter;${entra(t, ta, .28, 30)}"><span>${n}</span><span style="font-family:Sora;font-weight:700;color:${p === '$0.00' ? '#ffb347' : '#fff'}">${p}</span></div>`).join('')}
+        <div class="fila" style="padding:30px 0 0;font:700 40px Sora"><span>Total</span><span>$349.00</span></div>
+        <div style="margin-top:34px;padding:22px 28px;border-radius:18px;background:#262a33;font:600 32px Inter;color:#c9cfdb;${entra(t, tZ + .3, .3, 30)}">¿Cuánto te costó esta mesa? <span style="float:right;color:#ff5468;font-weight:800">sin dato</span></div>
+      </div></div>` +
+    (t > tT ? `<div class="sticker" style="left:500px;top:1165px;background:linear-gradient(100deg,#ffd23f,#ffb347);${golpe(t, tT, 4)}">EL TRUCO DEL $0</div>` : '')
+}
+
+/* ---------- 4 · NXUS: a tu medida ---------- */
+function e4(t) {
+  const a = S[3], tN = C(/nexus/i, a), tM = C(/medida/i, a)
+  const k = sal(t, a, .5), salto = Math.abs(Math.sin((t - a) * 5.2)) * 46 * cl(1.6 - (t - a) * .35)
+  const confeti = Array.from({ length: 46 }, (_, i) => { const q = (t - a - .15) * (0.55 + (i % 5) * .13); return q < 0 ? '' : `<div class="abs" style="left:${40 + ((i * 131) % 1000)}px;top:${-60 + q * 760 + ((i * 37) % 260)}px;width:18px;height:28px;border-radius:4px;background:${['#00e5ff', '#0a6cff', '#a01cff', '#ffffff'][i % 4]};transform:rotate(${q * 300 + i * 20}deg);opacity:.9"></div>` }).join('')
+  return confeti +
+    `<div class="abs" style="left:340px;top:${250 - 30 * ease(k)}px;width:400px;height:264px;opacity:${k};filter:drop-shadow(0 0 50px rgba(10,108,255,.8));transform:scale(${.7 + .3 * back(k)})">${LOGO('l4')}</div>
+     <div class="titulo" style="top:560px;font-size:88px;${entra(t, tN + .25, .4)}">Punto de venta</div>
+     <div class="titulo" style="top:668px;font-size:112px;font-style:italic;${entra(t, tM - .25, .4)}"><span class="g" style="padding:0 16px">a tu medida</span></div>
+     <img src="pj_brazos-arriba.png" class="abs" style="left:${540 - 215}px;top:${880 - salto + (1 - ease(sal(t, a + .1, .45))) * 900}px;width:430px">`
+}
+
+/* ---------- 5 · el mesero abre un come todo y anota ---------- */
+const COMIDA = [['🍣', 'Sushi roll'], ['🥩', 'Arrachera'], ['🍤', 'Camarones'], ['🍜', 'Ramen'], ['🍮', 'Postre'], ['🥗', 'Ensalada']]
+function e5(t) {
+  const a = S[4], tA = C(/abre/i, a), tAn = C(/anota/i, a), tS = C(/sin/i, a)
+  const abierto = t >= tA + .2
+  const pos = (i) => [70 + (i % 3) * 270, 318 + Math.floor(i / 3) * 166]
+  const orden = [0, 1, 2, 0, 3, 4, 1, 0], paso = (S[5] - .15 - tAn) / orden.length, taps = orden.map((c, j) => [c, tAn + j * paso])
+  const hechos = taps.filter(([, ta]) => t >= ta)
+  const cuenta = {}; hechos.forEach(([c]) => (cuenta[c] = (cuenta[c] || 0) + 1))
+  // cursor: botón → platillos
+  let cx = 700, cy = 1150, clic = 0
+  const btn = [300, 300]
+  if (t < tA + .2) { const k = io(sal(t, a + .25, tA - a - .1)); cx = lerp(800, btn[0], k); cy = lerp(1000, btn[1], k); clic = t > tA ? cl(1 - (t - tA) / .25) * .001 + sal(t, tA, .2) * (t < tA + .2 ? 1 : 0) : 0 }
+  else {
+    const prox = taps.findIndex(([, ta]) => t < ta); const j = prox < 0 ? taps.length - 1 : prox
+    const de = j === 0 ? btn : pos(taps[j - 1][0]).map((v, q) => v + (q ? 60 : 130)), a2 = pos(taps[j][0]).map((v, q) => v + (q ? 60 : 130))
+    const t0 = j === 0 ? tA + .2 : taps[j - 1][1], k = io(sal(t, t0, taps[j][1] - t0))
+    cx = lerp(de[0], a2[0], prox < 0 ? 1 : k); cy = lerp(de[1], a2[1], prox < 0 ? 1 : k)
+    const ult = hechos.at(-1); clic = ult && t - ult[1] < .22 ? (t - ult[1]) / .22 : 0
+  }
+  const lista = Object.entries(cuenta).map(([c, n]) => `<div class="fila" style="padding:5px 0;font:600 29px Inter"><span>${COMIDA[c][0]} ${COMIDA[c][1]}</span><span style="font:800 30px Sora;color:#00e5ff">×${n}</span></div>`).join('')
+  const flot = hechos.filter(([, ta]) => t - ta < .7).map(([c, ta]) => { const k = (t - ta) / .7; return `<div class="abs" style="left:812px;top:${126 - k * 10}px;font:800 28px Sora;color:#2ee68c;opacity:${1 - k * k}">+$0</div>` }).join('')
+  return titulo(t, a, `Anota todo,<br><span class="g">sin sumar</span> a la cuenta`) +
+    `<div class="panel" style="top:400px;height:880px;${entra(t, a, .4)}">${cabecera(`<span style="display:inline-block;width:52px;height:34px;vertical-align:middle">${LOGO('l5')}</span>`, 'Mesa 7 · 4 personas', abierto ? '● come todo abierto' : 'nueva cuenta')}
+      <div class="abs" style="left:40px;top:112px;width:520px;height:110px;border-radius:26px;display:grid;place-items:center;font:800 42px Sora;${abierto ? 'background:linear-gradient(100deg,#00e5ff,#0a6cff 55%,#a01cff);color:#fff' : 'background:rgba(0,229,255,.1);border:3px dashed rgba(0,229,255,.6);color:#7fe9ff'};transform:scale(${t >= tA && t < tA + .25 ? .95 : 1})">${abierto ? '✓ Come todo × 4' : '＋ Abrir come todo'}</div>
+      <div class="abs" style="left:590px;top:112px;width:310px;height:110px;border-radius:26px;background:rgba(255,255,255,.05);border:2px solid ${t > tS ? '#2ee68c' : 'rgba(255,255,255,.1)'};text-align:center;padding-top:10px;transform:scale(${t > tS ? 1 + .05 * Math.abs(Math.sin((t - tS) * 7)) * cl(1 - (t - tS)) : 1})"><div style="font:500 22px Inter;color:#8fa0c6">${t > tS ? '<b style="color:#2ee68c">La cuenta no se mueve</b>' : `Cuenta ${abierto ? '🔒' : ''}`}</div><div style="font:800 46px Sora">${abierto ? '$1,396' : '$0'}</div></div>
+      ${COMIDA.map(([e, n], i) => { const [x, y] = pos(i); const tap = hechos.some(([c, ta]) => c === i && t - ta < .2); return `<div class="abs" style="left:${x - 30}px;top:${y - 84}px;width:250px;height:150px;border-radius:26px;background:${tap ? 'rgba(0,229,255,.25)' : 'rgba(255,255,255,.05)'};border:2px solid ${tap ? '#00e5ff' : 'rgba(255,255,255,.09)'};text-align:center;padding-top:16px;opacity:${abierto ? 1 : .35};transform:scale(${tap ? .94 : 1})"><div style="font-size:60px;line-height:1">${e}</div><div style="font:600 28px Inter;margin-top:8px">${n}</div></div>` }).join('')}
+      <div class="abs" style="left:40px;right:40px;top:566px;bottom:26px;border-radius:26px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);padding:14px 30px">
+        <div class="fila" style="font:700 26px Inter;color:#8fa0c6;margin-bottom:4px"><span>CONSUMO DE LA MESA</span><span>${hechos.length} platillos</span></div>${lista}</div>
+      ${flot}${cursor(cx, cy, clic)}</div>`
+}
+
+/* ---------- 6 · lo que ve el cliente: una línea ---------- */
+function ticket(t, a, x, y, esc = 1, rot = 0, luz = 0) {
+  const k = ease(sal(t, a, .7))
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:640px;transform:scale(${esc}) rotate(${rot}deg);transform-origin:top center">
+    <div style="height:${k * 700}px;overflow:hidden;filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))">
+    <div style="background:#f6f4ee;color:#1b1d24;padding:40px 46px 50px;font-family:'DejaVu Sans Mono',monospace;clip-path:polygon(0 0,100% 0,100% 97%,95% 100%,90% 97%,85% 100%,80% 97%,75% 100%,70% 97%,65% 100%,60% 97%,55% 100%,50% 97%,45% 100%,40% 97%,35% 100%,30% 97%,25% 100%,20% 97%,15% 100%,10% 97%,5% 100%,0 97%)">
+      <div style="text-align:center;font:800 40px Sora">TU RESTAURANTE</div>
+      <div style="text-align:center;font-size:24px;color:#666;margin-top:6px">Mesa 7 · 4 personas</div>
+      <div style="border-top:3px dashed #999;margin:26px 0"></div>
+      <div class="fila" style="font-size:34px;font-weight:700;margin:0 -18px;padding:12px 18px;border-radius:12px;box-shadow:0 0 0 ${6 * luz}px #0a9cff,0 0 ${40 * luz}px rgba(0,180,255,.8);background:rgba(0,180,255,${.12 * luz})"><span>4 Come todo</span><span>$1,396.00</span></div>
+      <div style="border-top:3px dashed #999;margin:26px 0"></div>
+      <div class="fila" style="font:800 46px Sora"><span>TOTAL</span><span>$1,396.00</span></div>
+      <div style="text-align:center;font-size:24px;color:#666;margin-top:34px">¡Gracias por su visita!</div>
+      <div style="margin:22px auto 0;width:420px;height:70px;background:repeating-linear-gradient(90deg,#1b1d24 0 6px,transparent 6px 10px,#1b1d24 10px 13px,transparent 13px 20px)"></div>
+    </div></div></div>`
+}
+function e6(t) {
+  const a = S[5], tL = C(/línea/i, a), tU = C(/^un$/i, tL)
+  const k = t - tL
+  return titulo(t, a, `Tu cliente ve<br><span class="g">una sola línea</span>`) + ticket(t, a + .05, 220, 450, 1.12, -2, cl(k * 5)) +
+    (t > tU ? `<div class="sticker" style="left:560px;top:1170px;${golpe(t, tU, 5)}">UN PRECIO</div>` : '')
+}
+
+/* ---------- 7 · lo que ve el negocio: todo, su costo y si ganó o perdió ---------- */
+const CONSUMO = [['🍣', 'Sushi roll', 6, 210], ['🥩', 'Arrachera', 3, 285], ['🍤', 'Camarones', 4, 232], ['🍜', 'Ramen', 2, 64], ['🍮', 'Postre', 3, 21]]
+function e7(t) {
+  const a = S[6], tT = C(/todo/i, a), tC = C(/cuánto/i, a), tG = C(/ganaste/i, a), tP = C(/perdiste/i, a)
+  const kc = ease(sal(t, tC, .8)); const m4 = t >= tP - .12
+  const veredicto = (gana, txt, monto, ta) => `<div class="abs" style="left:40px;right:40px;bottom:36px;height:190px;border-radius:30px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:${gana ? 'linear-gradient(100deg,#0f6b43,#2ee68c)' : 'linear-gradient(100deg,#8f1d32,#ff5468)'};box-shadow:0 0 80px ${gana ? 'rgba(46,230,140,.5)' : 'rgba(255,84,104,.5)'};${pop(t, ta, .32)}"><div><div style="font:600 28px Inter;opacity:.9">${gana ? 'Mesa 7' : 'Mesa 4 · 2 personas'}</div><div style="font:800 70px Sora;line-height:1">${txt}</div></div><div style="font:800 84px Sora">${monto}</div></div>`
+  return titulo(t, a, `Tú ves <span class="g">todo</span><br>lo que se consumió`) +
+    `<div class="abs" style="left:0;top:0;opacity:${cl(1 - (t - a) / .5) * .0}"></div>` +
+    `<div class="panel" style="top:400px;height:880px;${entra(t, a, .4)}">${cabecera(`<span style="display:inline-block;width:52px;height:34px;vertical-align:middle">${LOGO('l7')}</span>`, 'Mesa 7 · vista del negocio', 'ejemplo')}
+      <div style="padding:14px 40px 0">
+        <div class="fila" style="font:700 24px Inter;color:#8fa0c6;padding:10px 0"><span>PLATILLO</span><span>COSTO PARA TI</span></div>
+        ${CONSUMO.map(([e, n, q, c], i) => `<div class="fila" style="padding:15px 0;border-bottom:1px solid rgba(255,255,255,.07);font:600 34px Inter;${entra(t, tT + i * .16, .3, 30)}"><span>${e} ${n} <span style="color:#00e5ff;font-weight:800">×${q}</span></span><span style="font:700 34px Sora">${dinero(c)}</span></div>`).join('')}
+        <div class="fila" style="padding:20px 0 0;font:600 32px Inter;${entra(t, tC - .1, .3, 30)}"><span style="color:#8fa0c6">Cobraste <b style="color:#fff">$1,396</b></span><span>Te costó <b style="font:800 44px Sora;color:#ffd23f">${dinero(812 * kc)}</b></span></div>
+      </div>
+      ${t >= tG && !m4 ? veredicto(true, 'GANASTE', '+$584', tG) : ''}${m4 ? veredicto(false, 'PERDISTE', '−$63', tP - .12) : ''}</div>`
+}
+
+/* ---------- 8 · por mesa, por día y por platillo ---------- */
+function e8(t) {
+  const a = S[7], t1 = a, t2 = C(/día/i, a) - .12, t3 = C(/platillo/i, a) - .15
+  const tarjeta = (y, ta, tit, cuerpo) => `<div class="panel" style="top:${y}px;height:290px;${entra(t, ta, .34, 90)}"><div style="padding:22px 36px 0;font:800 40px Sora">${tit}</div>${cuerpo}</div>`
+  const mesas = `<div class="abs" style="left:36px;right:36px;top:92px;display:flex;gap:12px">${[1, 0, 1, 0, 1, 1, 1, 0, 1, 1].map((g, i) => `<div style="flex:1;height:160px;border-radius:16px;background:${g ? 'rgba(46,230,140,.2)' : 'rgba(255,84,104,.2)'};border:3px solid ${g ? '#2ee68c' : '#ff5468'};display:grid;place-items:center;font:800 30px Sora;color:${g ? '#2ee68c' : '#ff5468'};${pop(t, t1 + .12 + i * .035, .25)}">${g ? '▲' : '▼'}<span style="font:600 20px Inter;color:#8fa0c6">${i + 1}</span></div>`).join('')}</div>`
+  const dias = `<div class="abs" style="left:36px;right:36px;top:92px;height:170px;display:flex;align-items:flex-end;gap:16px">${[.5, .62, .44, .7, .9, 1, .82].map((v, i) => `<div style="flex:1;text-align:center"><div style="height:${v * 128 * ease(sal(t, t2 + .1 + i * .04, .4))}px;border-radius:10px 10px 0 0;background:linear-gradient(#00e5ff,#0a6cff)"></div><div style="font:600 20px Inter;color:#8fa0c6;margin-top:6px">${'LMXJVSD'[i]}</div></div>`).join('')}</div>`
+  const plat = `<div class="abs" style="left:36px;right:36px;top:92px">${[['🥩 Arrachera', .95, '#ff5468'], ['🍤 Camarones', .72, '#ffd23f'], ['🍣 Sushi roll', .5, '#2ee68c']].map(([n, v, c], i) => `<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;font:600 28px Inter"><span style="width:250px">${n}</span><div style="flex:1;height:30px;border-radius:15px;background:rgba(255,255,255,.07)"><div style="width:${v * 100 * ease(sal(t, t3 + .1 + i * .07, .4))}%;height:100%;border-radius:15px;background:${c}"></div></div></div>`).join('')}</div>`
+  return titulo(t, a, `Mesa, día y <span class="g">platillo</span>`, 240) +
+    tarjeta(385, t1, 'Por mesa', mesas) + tarjeta(690, t2, 'Por día', dias) + tarjeta(995, t3, 'Por platillo <span class="nota" style="margin-left:10px">lo que más te cuesta</span>', plat)
+}
+
+/* ---------- 9 · con tus reglas ---------- */
+function e9(t) {
+  const a = S[8], ts = [C(/tiempo/i, a), C(/niños/i, a), C(/bebidas/i, a)]
+  const reglas = [['⏱️', 'Tiempo por mesa', '90 min'], ['🧒', 'Niños', 'precio aparte'], ['🥤', 'Bebidas', 'se cobran aparte']]
+  return titulo(t, a, `Con <span class="g">tus reglas</span>`, 250) +
+    `<div class="panel" style="top:420px;height:735px;${entra(t, a, .4)}">${cabecera('⚙️', 'Reglas de tu come todo', 'tú decides')}
+      <div style="padding:26px 40px">${reglas.map(([e, n, v], i) => { const k = ease(sal(t, ts[i], .3)); return `<div style="display:flex;align-items:center;gap:28px;padding:36px 30px;margin-bottom:24px;border-radius:28px;background:rgba(255,255,255,${.04 + .05 * k});border:2px solid rgba(0,229,255,${.1 + .6 * k});transform:scale(${1 + .04 * Math.sin(Math.PI * sal(t, ts[i], .35))})">
+        <div style="font-size:72px;line-height:1">${e}</div><div style="flex:1"><div style="font:800 44px Sora">${n}</div><div style="font:500 30px Inter;color:#8fa0c6;margin-top:6px;opacity:${.4 + .6 * k}">${v}</div></div>
+        <div style="width:124px;height:66px;border-radius:33px;background:${k > .5 ? 'linear-gradient(100deg,#00e5ff,#0a6cff)' : '#2a3554'};position:relative"><div class="abs" style="top:6px;left:${6 + 58 * k}px;width:54px;height:54px;border-radius:50%;background:#fff"></div></div></div>` }).join('')}</div></div>`
+}
+
+/* ---------- 10 · cierre ---------- */
+function e10(t) {
+  const a = S[9], tR = C(/restaurante/i, a), tAg = C(/agenda/i, a), tGr = C(/gratis/i, a)
+  const k = sal(t, a, .5), camina = ease(sal(t, a + .1, 1.5)), paso = camina < 1 ? Math.abs(Math.sin((t - a) * 9)) * 18 : Math.sin(t * 2.4) * 5
+  return `<div class="abs" style="left:365px;top:${240 - 30 * ease(k)}px;width:350px;height:231px;opacity:${k};filter:drop-shadow(0 0 50px rgba(10,108,255,.8))">${LOGO('l10')}</div>
+    <div class="titulo" style="top:520px;font-size:78px;${entra(t, a + .15, .4)}">Un sistema hecho para</div>
+    <div class="titulo" style="top:616px;font-size:98px;font-style:italic;${entra(t, tR - .3, .4)}"><span class="g" style="padding:0 16px">tu restaurante</span></div>
+    <div class="abs" style="left:330px;right:60px;top:820px;padding:42px 30px;border-radius:36px;background:rgba(12,17,32,.92);border:2px solid rgba(0,229,255,.45);text-align:center;box-shadow:0 0 ${120 + 50 * Math.sin(t * 5)}px rgba(0,229,255,.25);${entra(t, tAg - .1, .45)}">
+      <div style="font:800 62px/1.05 Sora" class="g">DIAGNÓSTICO<br>GRATIS</div>
+      <div style="font:700 44px Inter;margin-top:16px;transform:scale(${1 + .08 * Math.sin(Math.PI * sal(t, tGr + .3, .4))})">30 minutos</div>
+      <div style="font:500 28px Inter;color:#9fb0d0;margin-top:12px">Cupos limitados este mes</div></div>
+    <div class="abs" style="left:0;right:0;top:1200px;text-align:center;font:700 40px Sora;letter-spacing:.14em;color:#dbe6ff;${entra(t, tAg + .5, .4)}">NXUS AI</div>
+    <img src="pj_caminando.png" class="abs" style="left:${lerp(-420, -10, camina)}px;top:${800 - paso}px;width:370px">`
+}
+
+/* ---------- presentador: tu cara que habla ---------- */
+function presentador(t) {
+  // Se esconde cuando sale de cuerpo completo (escenas 4 y 10) y en el loop final.
+  const fuera = Math.max(io(sal(t, S[3] - .25, .3)) - io(sal(t, S[4] - .2, .3)), io(sal(t, S[9] - .25, .3)) - io(sal(t, E[10], .4)))
+  const dentro = 1
+  const w = W.find((x) => t >= x[0] - .02 && t < x[1] - .03)
+  const abre = w && Math.sin((t - w[0]) * 30) > -.25
+  const y = 1452 + (1 - dentro) * 520 + fuera * 520 + Math.sin(t * 2.1) * 4
+  const s = 0.262
+  const img = (n, ox, oy) => `<img src="pj_cara-boca-${n}.png" class="abs" style="left:${30 + ox * s}px;top:${y + oy * s - (abre ? 3 : 0)}px;width:${(n === 'abierta' ? 1288 : 1267) * s}px;opacity:${(n === 'abierta') === Boolean(abre) ? 1 : 0}">`
+  return `<div class="abs" style="left:14px;top:${y + 60}px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,.28),transparent 68%)"></div>` + img('cerrada', 116 - 107, 152 - 145) + img('abierta', 0, 0)
+}
+
+/* ---------- subtítulos: 1 a 3 palabras, sin huecos ---------- */
+const CLAVE = /come|todo|mesas?$|ganaste|perdiste|fijo|distinto|truco|ceros|nexus|medida|sumarlo|cuenta|línea|precio|consumió|costó|día|platillo|reglas|tiempo|niños|bebidas|restaurante|diagnóstico|gratis|treinta|minutos/i
+const GRUPOS = []
+{ let g = []; for (const w of W) { g.push(w); if (g.length === 3 || /[.,?!:]$/.test(w[2])) { GRUPOS.push(g); g = [] } } if (g.length) GRUPOS.push(g) }
+function subtitulos(t) {
+  if (t > E[10]) return ''
+  let i = GRUPOS.findIndex((x, j) => t < (GRUPOS[j + 1]?.[0][0] ?? 9e9) - .04); if (i < 0) return ''
+  const g = GRUPOS[i], k = sal(t, g[0][0] - .04, .12)
+  return `<div class="sub"><span class="pill" style="transform:scale(${.9 + .1 * back(k)})">${g.map((w) => {
+    const txt = w[2].replace(/^Nexus$/i, 'NXUS').replace(/^treinta$/i, '30').replace(/[¿?.,:]/g, '')
+    return `<span style="display:inline-block;margin:0 9px;${t >= w[0] - .03 ? '' : 'opacity:.35;'}color:${CLAVE.test(txt.replace(/^NXUS$/, 'nexus').replace(/^30$/, 'treinta')) ? '#00e5ff' : '#fff'}">${txt}</span>`
+  }).join('')}</span></div>`
+}
+
+/* ---------- armado: cada escena entra mientras la anterior sale ---------- */
+const ESC = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10]
+const DT = .34
+window.render = (t) => {
+  let h = fondo(t)
+  ESC.forEach((fn, i) => {
+    const a = i === 0 ? -1 : E[i], b = E[i + 1]
+    if (t < a - .02 || t > b + DT) return
+    const sale = io(sal(t, b, DT)), ent = i === 0 ? 1 : io(sal(t, a, DT))
+    const dir = i % 2 ? 1 : -1
+    h += `<div class="abs" style="inset:0;opacity:${cl(ent * 1.6) * (1 - sale)};transform:translateX(${(1 - ent) * 220 * dir - sale * 260 * dir}px) scale(${1 - .06 * (1 - ent) + .05 * sale});filter:blur(${(1 - ent) * 14 + sale * 14}px)">${fn(t)}</div>`
+  })
+  // regreso al inicio para que el loop se sienta continuo
+  if (t > E[10]) { const k = io(sal(t, E[10], DT)); h += `<div class="abs" style="inset:0;opacity:${k};transform:scale(${1.06 - .06 * k})">${e1(t, E[10], true)}</div>` }
+  // barrido de luz en cada cambio
+  for (let i = 1; i <= 10; i++) { const k = (t - E[i] + .1) / .5; if (k > 0 && k < 1) h += `<div class="abs" style="top:-200px;bottom:-200px;left:${lerp(-500, 1300, io(k))}px;width:340px;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(0,229,255,.22),rgba(160,28,255,.22),transparent);opacity:${Math.sin(Math.PI * k)}"></div>` }
+  h += presentador(t)
+  h += subtitulos(t)
+  // marca fija y barra de avance
+  h += `<div class="abs" style="left:54px;top:92px;display:flex;align-items:center;gap:14px;font:700 30px Sora;letter-spacing:.1em;color:#dbe6ff;opacity:.92"><span style="width:62px;height:41px">${LOGO('lm')}</span>NXUS AI</div>`
+  h += `<div class="abs" style="left:0;top:0;height:8px;width:${cl(t / T_FIN) * 1080}px;background:linear-gradient(90deg,#00e5ff,#0a6cff,#a01cff)"></div>`
+  document.getElementById('st').innerHTML = h
+}
+</script></body></html>

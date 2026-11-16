@@ -26,7 +26,7 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 - Degradado de marca: cian #00e5ff → azul #0a6cff → morado #a01cff. Palabra clave en cian.
 - Letras: Sora (títulos), Inter (texto).
 - Logo: el SVG "NX" de `ads/nxus-video/capa.html` (constante `LOGO`).
-- Voz de los videos: Higgsfield `text2speech_v2` · variante ElevenLabs · voz "Mark" `27c04473-84a9-4b60-a41f-c8e8458bd4f1` (unos 1.5 créditos por 30 s).
+- Voz de los videos: **hecha en el chat, sin créditos** (Kokoro, voz `em_alex`; receta en `ads/pos-come-todo/LEEME.md`). Eduardo la pidió así el 16 nov. Alternativa de pago: Higgsfield `text2speech_v2` · ElevenLabs · voz "Mark" `27c04473-84a9-4b60-a41f-c8e8458bd4f1` (unos 1.5 créditos por 30 s).
 
 ## El personaje de Eduardo
 - Pixel/voxel 3D, sudadera negra con detalles del degradado, fondo gris liso. Prompt para crear más poses: `ads/prompt-chatgpt-personaje-v1.txt` (ChatGPT + Higgsfield).
@@ -38,6 +38,7 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 - Formato y análisis del ejemplo: `docs/estilo-maquina.md`.
 - Primer video hecho y aprobado: **"El cliente de las 3 de la mañana"** (31 s, 9:16). Código para rehacer o hacer otros: `ads/maquina-video/` (`escena.html` con `window.render(t)`, `tomar.cjs` para cuadros a 30 fps, `musica.py` para la música original, y en `LEEME.md` cómo se mezcla).
 - Habilidades generales de edición: `docs/habilidad-editor-video.md` y `docs/receta-edicion.md` (la receta de Eduardo).
+- Segundo video (16 nov, pendiente de que Eduardo lo apruebe): **"Punto de venta para come todo"** (40.7 s, 9:16, 0 créditos). Código en `ads/pos-come-todo/`.
 - Ideas pendientes:
   2. "Cuánto dinero pierdes por no contestar".
   3. "Mi empleado que no duerme" (un día corrido con el reloj).
