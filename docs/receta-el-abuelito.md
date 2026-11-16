@@ -115,3 +115,36 @@ Las fichas completas, las imágenes maestras y la guía de guiones están en Dri
 - Ejemplos de referencia: "videos de referencia para crear con IA" (`10oLOsauvzJjmdCoNL4QtU0auYKHaUh5R`)
 - Influencers, fichas, voces y guía de guiones: "Influencers IA" (`1A6jzN-O8fIrdBr4NdZ-NCWLeKMk_z8UK`)
 - Videos terminados: pendiente de crear.
+
+## Personajes de los sketches (aprobados el 16 de noviembre de 2026)
+Tres personajes recurrentes para los sketches graciosos; no son Regina ni Renata. Fichas, ángulos y guion en Drive, carpeta "El Abuelito - Sketches (Beto, Paty, Chuy)" (`1pnaA3SxKlosXeEyq5VYxe-y_1wJfdxuM`).
+
+| | Beto (oficina) | Paty (inventario) | Chuy (chofer) |
+|---|---|---|---|
+| Elemento en Higgsfield | `6ee26fc3-5e61-4793-b632-cfd7966a95db` | `33cc6ad3-fcc0-4c41-9137-0be04bb669e9` | `ae1893d7-c226-4e52-b6bd-2cfbabbdb1aa` |
+| Ficha (cuerpo y rostro) | `7f532ebf-42a0-4920-bd57-93bbc8b9aa92` | `6147dbc4-c20c-4271-a336-b1ff5a5b912e` | `78756944-f4a4-4e4e-bc5b-21313a280a7d` |
+| Ángulos | `de6a005b-9d05-471c-a1b0-fe1528350097` | `36cca637-40d3-4867-b3dc-f30bea61dba1` | `83684932-6213-4029-9ea9-e543c87a2474` |
+| Rasgos | Unos 42 años, robusto, bigote, lentes, polo verde y caqui | Unos 40 a 45 años, cola de caballo, lunar en mejilla izquierda, polo verde y pantalón negro | Unos 27 años, alto y flaco, gorra negra, chaleco naranja, jeans y botas |
+
+- Pendiente: uniforme y logo reales (el polo verde liso es inventado) y una voz fija por personaje.
+
+### Proceso que pidió el cliente para los sketches
+1. Primero un buen guion, aprobado.
+2. Luego la consistencia: fichas de personaje, locación real como base y una foto fija aprobada por toma.
+3. Hasta el final, el video.
+
+### Lo que no le gustó (16 de noviembre)
+El sketch de las muestras con dos personajes "se veía súper falso y le faltaba consistencia". Causas probables: oficina redibujada en vez de la foto real, tomas largas de 10 a 15 s, actuación exagerada y personajes sin ficha. Para sketches: tomas de 3 a 4 s, actuación contenida y estilo celular.
+
+### Sketch aprobado: "Cosas que JAMÁS vas a escuchar en El Abuelito"
+1. Beto, en su escritorio: "No, gracias. Yo no quiero queso."
+2. Paty, en el pasillo con su tabla de inventario: "El inventario cuadró a la primera."
+3. Chuy, en la puerta con el diablito cargado: "Échenme más cajas, voy ligero."
+4. Beto, colgando el teléfono: "Era un cliente. Dice que ya no quiere queso fresco."
+5. Los tres juntos: Chuy intenta decir "Sobró queso y nadie se lo…" y no aguanta la risa.
+
+Cierre: logo y "El Abuelito. Aquí el queso nunca sobra."
+
+### Lo que sí funcionó
+- Sketch de un personaje, 9 s ("Cuando avisan que sobró queso fresco del pedido"): le gustó, sobre todo la edición (texto gancho arriba, salto de cámara a la cara, música y efectos originales, remate con logo).
+- Kling 3.0 con imagen inicial genera diálogo en español claro y sincronizado, a unos 2 créditos por segundo.
