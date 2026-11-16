@@ -1,6 +1,6 @@
 # Video "Punto de venta para come todo" (NXUS, 16 nov 2026)
 
-40.7 s, 9:16, sin créditos: todo se hizo en el chat con código. Mismo formato que `ads/maquina-video/` (una página con `window.render(t)` y cuadros a 30 fps).
+43.6 s, 9:16, 2.1 créditos (solo la voz); lo demás se hizo en el chat con código. Mismo formato que `ads/maquina-video/` (una página con `window.render(t)` y cuadros a 30 fps).
 
 Cómo se rehace, en una carpeta de trabajo con estos archivos:
 1. Taller: `python3 -m venv venv && venv/bin/pip install faster-whisper soundfile numpy scipy pillow kokoro-onnx`, y en `modelos/` los archivos `kokoro-v1.0.onnx` y `voices-v1.0.bin` de `https://huggingface.co/fastrtc/kokoro-onnx/resolve/main/`.
@@ -14,3 +14,8 @@ Cómo se rehace, en una carpeta de trabajo con estos archivos:
 Qué tiene: tu cara que habla (alterna `cara-boca-cerrada` y `cara-boca-abierta` con cada palabra), 10 escenas que entran mientras la anterior sale (sin cortes a negro), barrido de luz en cada cambio, subtítulos palabra a palabra y final que regresa a la primera imagen para el loop.
 
 Los montos ($349, $1,396, $812, +$584, −$63) son de ejemplo y en pantalla dice "ejemplo". No se nombra a ningún competidor (ver `docs/investigacion-pos-come-todo.md`).
+
+## Versión 2 (16 nov): voz con emoción y el nombre bien dicho
+- Eduardo pidió corregir el nombre (**"nexus ey ay"**) y una voz con expresión. La voz ahora es Mark de Higgsfield (`text2speech_v2`, `elevenlabs`), con el texto del guion de `voz2.py` pero escribiendo "Nexus ey ay" y con exclamaciones. El paso 3 de arriba (Kokoro) ya no se usa para narrar.
+- `voz2.py` toma ese audio (`mark.mp3`), recorta los silencios de más de 0.2 s, y alinea cada palabra del guion con lo que oye whisper (`frases.json`, `palabras.json`).
+- El largo cambia con la voz: poner el mismo `T` en `tomar.cjs` (`T_FIN`) y en `musica.py`.

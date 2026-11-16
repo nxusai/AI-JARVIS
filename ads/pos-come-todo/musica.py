@@ -1,7 +1,7 @@
 # Música original: pulso limpio y moderno, golpe suave y barrido en cada cambio de escena, subida antes del cierre.
 import numpy as np, soundfile as sf, json
 from scipy.signal import butter, sosfilt
-SR=44100; T=40.7; N=int(SR*T); out=np.zeros((N,2)); rng=np.random.default_rng(7)
+SR=44100; T=43.6; N=int(SR*T); out=np.zeros((N,2)); rng=np.random.default_rng(7)
 F=json.load(open('frases.json')); CORTES=[f[0]-.08 for f in F[1:]]+[T-.75]
 def filt(x,f,t): return sosfilt(butter(2,f,t,fs=SR,output='sos'),x,axis=0)
 def poner(s,t,g=1.0,pan=0.0):

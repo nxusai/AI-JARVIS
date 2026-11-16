@@ -10,4 +10,4 @@ Saldo de Higgsfield al empezar (15 nov 2026): 1,134.14 créditos, plan Ultimate.
 
 | Fecha | Qué | Dónde | Créditos | Acumulado |
 |---|---|---|---|---|
-| (sin gastos todavía) | | | | 0 |
+| 16 nov | Voz del video "Punto de venta para come todo" (43 s, Mark) | Higgsfield | 2.1 | 2.1 |

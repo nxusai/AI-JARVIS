@@ -253,7 +253,7 @@ function presentador(t) {
 }
 
 /* ---------- subtítulos: 1 a 3 palabras, sin huecos ---------- */
-const CLAVE = /come|todo|mesas?$|ganaste|perdiste|fijo|distinto|truco|ceros|nexus|medida|sumarlo|cuenta|línea|precio|consumió|costó|día|platillo|reglas|tiempo|niños|bebidas|restaurante|diagnóstico|gratis|treinta|minutos/i
+const CLAVE = /^ai$|come|todo|mesas?$|ganaste|perdiste|fijo|distinto|truco|ceros|nexus|medida|sumarlo|cuenta|línea|precio|consumió|costó|día|platillo|reglas|tiempo|niños|bebidas|restaurante|diagnóstico|gratis|treinta|minutos/i
 const GRUPOS = []
 { let g = []; for (const w of W) { g.push(w); if (g.length === 3 || /[.,?!:]$/.test(w[2])) { GRUPOS.push(g); g = [] } } if (g.length) GRUPOS.push(g) }
 function subtitulos(t) {
@@ -261,7 +261,7 @@ function subtitulos(t) {
   let i = GRUPOS.findIndex((x, j) => t < (GRUPOS[j + 1]?.[0][0] ?? 9e9) - .04); if (i < 0) return ''
   const g = GRUPOS[i], k = sal(t, g[0][0] - .04, .12)
   return `<div class="sub"><span class="pill" style="transform:scale(${.9 + .1 * back(k)})">${g.map((w) => {
-    const txt = w[2].replace(/^Nexus$/i, 'NXUS').replace(/^treinta$/i, '30').replace(/[¿?.,:]/g, '')
+    const txt = w[2].replace(/^Nexus$/i, 'NXUS').replace(/^treinta$/i, '30').replace(/[¿?¡!.,:]/g, '')
     return `<span style="display:inline-block;margin:0 9px;${t >= w[0] - .03 ? '' : 'opacity:.35;'}color:${CLAVE.test(txt.replace(/^NXUS$/, 'nexus').replace(/^30$/, 'treinta')) ? '#00e5ff' : '#fff'}">${txt}</span>`
   }).join('')}</span></div>`
 }
