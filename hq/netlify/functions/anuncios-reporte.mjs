@@ -4,10 +4,13 @@
 // GET  → las semanas guardadas + cómo va todo desde el inicio (Meta, solo lectura).
 // POST → toma la foto de la última semana completa (o de ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD) y devuelve lo mismo.
 // GET ?desde=&hasta= → además calcula ese rango sin guardarlo (campo "rango").
+// PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
+//        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL).
 // Nunca cambia nada en Meta ni en los leads; no devuelve datos personales.
 import { timingSafeEqual } from 'node:crypto'
 import { json } from '../lib/sb.mjs'
 import { graph, fila, metaListo, cuentaMeta, FILTRO, CAMPOS } from '../lib/meta.mjs'
+import { sb } from '../lib/sb.mjs'
 import { tomarFoto, semanasGuardadas, calcular, rango } from '../lib/semana.mjs'
 
 const clave = () => (process.env.REPORTE_CLAVE || '').trim()
@@ -20,8 +23,9 @@ function autorizado(req) {
 export default async (req) => {
   if (!clave()) return json({ ok: false, error: 'Falta REPORTE_CLAVE en Netlify' }, 503)
   if (!autorizado(req)) return json({ ok: false, error: 'sin permiso' }, 401)
-  if (!['GET', 'POST'].includes(req.method)) return json({ ok: false, error: 'GET o POST' }, 405)
+  if (!['GET', 'POST', 'PUT'].includes(req.method)) return json({ ok: false, error: 'GET, POST o PUT' }, 405)
   try {
+    if (req.method === 'PUT') return json({ ok: true, ...(await guardar(await req.json().catch(() => ({})))) })
     const q = new URL(req.url).searchParams
     const r = q.get('desde') || q.get('hasta') ? rango(q.get('desde'), q.get('hasta') || new Date().toISOString().slice(0, 10)) : null
     const foto = req.method === 'POST' ? await tomarFoto(new Date(), r) : null
@@ -36,8 +40,37 @@ export default async (req) => {
         motivo = `Meta: ${err.message}`.slice(0, 300)
       }
     } else motivo = 'Meta sin conectar'
-    return json({ ok: true, foto, rango: enRango, semanas: await semanasGuardadas(), total, motivo, al: new Date().toISOString() })
+    const aprendizajes = await sb('/rest/v1/anuncios_aprendizajes?select=fecha,tipo,estado,titulo,texto,fuente&order=fecha.desc&limit=200', { servicio: true }).catch(() => [])
+    return json({ ok: true, foto, rango: enRango, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
     return json({ ok: false, error: err.message.slice(0, 300) }, 500)
   }
+}
+
+const TIPOS = ['regla', 'ronda', 'semana', 'hipotesis', 'competencia']
+const ESTADOS = ['confirmado', 'pendiente', 'descartado', 'recomendacion']
+const fecha = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : new Date().toISOString().slice(0, 10))
+const txt = (v, n) => String(v ?? '').slice(0, n)
+const ent = (v) => Math.max(0, Math.round(Number(v) || 0))
+
+async function guardar({ aprendizajes = [], registros = [] }) {
+  const apr = (Array.isArray(aprendizajes) ? aprendizajes : []).slice(0, 50).filter((a) => a?.titulo).map((a) => ({
+    fecha: fecha(a.fecha),
+    tipo: TIPOS.includes(a.tipo) ? a.tipo : 'semana',
+    estado: ESTADOS.includes(a.estado) ? a.estado : 'confirmado',
+    titulo: txt(a.titulo, 200),
+    texto: txt(a.texto, 6000),
+    fuente: txt(a.fuente, 200),
+  }))
+  const reg = (Array.isArray(registros) ? registros : []).slice(0, 50).filter((r) => ['MX', 'NY'].includes(r?.camp) && r?.anuncio).map((r) => ({
+    semana: fecha(r.semana), hasta: fecha(r.hasta), camp: r.camp, anuncio: txt(r.anuncio, 20), nombre: txt(r.nombre, 200), campana: txt(r.campana, 200),
+    estado: 'MANUAL', moneda: txt(r.moneda || 'USD', 5), gasto: Math.round((Number(r.gasto) || 0) * 100) / 100,
+    impresiones: ent(r.impresiones), alcance: ent(r.alcance), vistas3s: ent(r.vistas3s), thruplays: ent(r.thruplays), clics: ent(r.clics),
+    conversaciones: ent(r.conversaciones), frecuencia: Number(r.frecuencia) || 0, leads: ent(r.leads), reales: ent(r.reales), hablo: ent(r.hablo),
+    agendo: ent(r.agendo), asistio: ent(r.asistio), cliente: ent(r.cliente),
+  }))
+  const op = { servicio: true, method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal' }
+  if (apr.length) await sb('/rest/v1/anuncios_aprendizajes?on_conflict=fecha,titulo', { ...op, body: apr })
+  if (reg.length) await sb('/rest/v1/anuncios_semanas?on_conflict=semana,camp,anuncio', { ...op, body: reg })
+  return { aprendizajes: apr.length, registros: reg.length }
 }

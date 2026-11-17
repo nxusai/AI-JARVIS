@@ -19,11 +19,12 @@ export { claveDeFuente, claveDeAnuncio }
 export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
   titulo('Anuncios · de la vista al cliente')
   const estado = v._an || (v._an = { camp: 'todo', periodo: 'todo', vista: 'activos' })
-  const [leads, prospectos, meta, semanas] = await Promise.all([
+  const [leads, prospectos, meta, semanas, aprendizajes] = await Promise.all([
     D.leads().catch(() => []),
     D.prospectos().catch(() => []),
     D.metaAnuncios ? D.metaAnuncios().catch((e) => ({ conectado: false, motivo: e.message })) : Promise.resolve({ conectado: false }),
     D.anunciosSemanas ? D.anunciosSemanas().catch(() => []) : Promise.resolve([]),
+    D.anunciosAprendizajes ? D.anunciosAprendizajes().catch(() => []) : Promise.resolve([]),
   ])
   const moneda = meta.moneda || 'USD'
   const $$ = (n) => dinero(n, moneda === 'MXN' ? 'MXN' : 'USD')
@@ -211,13 +212,47 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
     const t = (c) => xs.reduce((a, r) => a + Number(r[c] || 0), 0)
     const g = t('gasto'), ci = t('agendo')
     const mejor = xs.filter((r) => r.agendo).sort((a, b) => a.gasto / a.agendo - b.gasto / b.agendo)[0] || [...xs].sort((a, b) => b.reales - a.reales || b.conversaciones - a.conversaciones)[0]
-    return `<tr><td>${fSem(k)} – ${fSem(xs[0].hasta)}</td><td>${$$(g)}</td><td>${num(t('impresiones'))}</td><td>${pct(t('vistas3s'), t('impresiones'))}%</td><td>${num(t('conversaciones'))}</td><td>${num(t('reales'))}</td><td>${num(ci)}</td><td>${num(t('cliente'))}</td><td>${ci ? $$(g / ci) : '—'}</td><td>${mejor ? `${CAMP[mejor.camp]} · ${h(nombreCorto(mejor.anuncio))}` : '—'}</td></tr>`
+    return `<tr><td>${fSem(k)} – ${fSem(xs[0].hasta)}</td><td>${$$(g)}</td><td>${t('impresiones') ? num(t('impresiones')) : '—'}</td><td>${t('impresiones') ? pct(t('vistas3s'), t('impresiones')) + '%' : '—'}</td><td>${num(t('conversaciones'))}</td><td>${num(t('reales'))}</td><td>${num(ci)}</td><td>${num(t('cliente'))}</td><td>${ci ? $$(g / ci) : '—'}</td><td>${mejor ? (mejor.estado === 'MANUAL' ? `${h(xs.map((r) => r.nombre).join(' + '))} <small>(registro manual)</small>` : `${CAMP[mejor.camp]} · ${h(nombreCorto(mejor.anuncio))}`) : '—'}</td></tr>`
   }
   const semanasHtml = Object.keys(porSemana).length ? `<section class="tarjeta an-semanas"><h3>Semana por semana <small>foto que HQ guarda cada lunes</small></h3>
     <div style="overflow-x:auto"><table><thead><tr><th>Semana</th><th>Gastado</th><th>Vistas</th><th>Gancho</th><th>Chats</th><th>Reales</th><th>Citas</th><th>Clientes</th><th>Por cita</th><th>Mejor anuncio</th></tr></thead><tbody>
     ${Object.keys(porSemana).sort().reverse().map(filaSemana).join('')}</tbody></table></div></section>` : ''
 
   const historialBloque = `${leccionesHtml}${semanasHtml}${historialHtml || '<div class="tarjeta"><p class="vacio">Todavía no se ha apagado ningún video. Cuando apagues uno en Meta, aquí queda guardado en su mes, con su nombre y sus números.</p></div>'}`
+
+  // ---- 📚 Aprendizajes: dónde se pierden las ventas (desde el inicio) + lo aprendido por escrito
+  const vida = todos.reduce((a, x) => {
+    a.chats += x.meta?.conversaciones || 0
+    for (const c of ['leads', 'calif', 'hablo', 'agendo', 'asistio', 'cliente']) a[c] += x.p[c]
+    return a
+  }, { chats: 0, leads: 0, calif: 0, hablo: 0, agendo: 0, asistio: 0, cliente: 0 })
+  const fugas = [
+    ['Abrieron el chat', vida.chats, 'Meta', 'El anuncio funciona: la gente escribe.'],
+    ['Entraron a HQ (tocaron el primer botón)', vida.leads, 'ManyChat', 'Si aquí se pierde mucho: robots o un primer mensaje que no invita a seguir. Revisar el saludo y la etiqueta robot-autorespuesta.'],
+    ['Personas reales (terminaron el filtro)', vida.calif, 'ManyChat', 'Si aquí se pierde: el filtro es largo o confuso. Menos preguntas, botones claros.'],
+    ['NEX habló con ellos', vida.hablo, 'NEX', 'Si aquí se pierde: no contestan. Revisar hora de la llamada, número y que el aviso de "una IA le llamará" sea claro.'],
+    ['Agendaron cita', vida.agendo, 'NEX', 'Si aquí se pierde: la llamada no convence. Revisar el guion de NEX y los motivos de la Cartera.'],
+    ['Llegaron al Meet', vida.asistio, 'Tú', 'Si aquí se pierde: recordatorios, cita muy lejana o poco interés. Confirmar el día anterior.'],
+    ['Clientes', vida.cliente, 'Tú', 'Si aquí se pierde: propuesta, precio o seguimiento. Anotar en Prospectos por qué no firmó.'],
+  ]
+  let peor = -1, peorPct = 101
+  fugas.forEach(([, n], i) => { if (i && fugas[i - 1][1] > 0) { const p = pct(n, fugas[i - 1][1]); if (p < peorPct) { peorPct = p; peor = i } } })
+  const fugasHtml = `<section class="tarjeta"><h3>Dónde se pierden las ventas <small>desde el inicio, de los anuncios</small></h3>
+    <div class="an-embudo">${fugas.map(([t, n, de, tip], i) => {
+      const prev = i ? fugas[i - 1][1] : null
+      return `<div class="an-paso" style="--w:${Math.max(6, (Math.log10(n + 1) / Math.log10(Math.max(10, fugas[0][1] + 1))) * 100)}%"><div class="an-barra"><b>${num(n)}</b><span>${h(t)}</span></div><small>${i && prev ? `${pct(n, prev)}% del paso anterior` : de}</small>${i === peor ? `<p class="an-consejo rojo">👉 Aquí se pierde más. ${h(tip)}</p>` : ''}</div>`
+    }).join('')}</div>
+    ${motivos.length ? `<h4>Por qué no agendaron (Cartera)</h4>${motivos.map(([k, n]) => `<div class="an-motivo"><span>${h(MOTIVOS[k] || k || 'Sin motivo')}</span><div><i style="width:${(n / mmot) * 100}%"></i></div><b>${n}</b></div>`).join('')}` : ''}</section>`
+  const GRUPOS = [['regla', '✅ Reglas confirmadas'], ['ronda', '🏁 Rondas y cierres'], ['semana', '📅 Semana por semana'], ['hipotesis', '🧪 Hipótesis por probar'], ['competencia', '🔎 Competencia y Meta']]
+  const ESTADOS = { confirmado: ['verde', 'Confirmado'], pendiente: ['azul', 'Por probar'], descartado: ['gris', 'Descartado'], recomendacion: ['ambar', 'Recomendación'] }
+  const fApr = (iso) => new Date(iso + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+  const aprHtml = GRUPOS.map(([g, t]) => {
+    const xs = (aprendizajes || []).filter((a) => a.tipo === g)
+    if (!xs.length) return ''
+    return `<section class="tarjeta an-apr"><h3>${t} <small>${xs.length}</small></h3>${xs.map((a) => `<details ${g === 'regla' ? '' : 'open'}><summary><span class="chip ${ESTADOS[a.estado]?.[0] || ''}">${ESTADOS[a.estado]?.[1] || h(a.estado)}</span> <b>${h(a.titulo)}</b> <small>${fApr(a.fecha)}${a.fuente ? ' · ' + h(a.fuente) : ''}</small></summary><p style="white-space:pre-line">${h(a.texto)}</p></details>`).join('')}</section>`
+  }).join('')
+  const aprendizajesBloque = `${fugasHtml}${aprHtml || '<div class="tarjeta"><p class="vacio">Todavía no hay aprendizajes guardados. Cada lunes el reporte automático escribe aquí lo de la semana.</p></div>'}
+    <p class="nota">Esto lo leen el asesor de anuncios y el reporte de cada lunes antes de proponer anuncios nuevos. También está por escrito en el repo: docs/aprendizajes-anuncios.md.</p>`
 
   const sinMeta = !meta.conectado
     ? `<div class="tarjeta an-aviso"><b>📡 Falta conectar Meta</b><p>El embudo de HQ ya funciona. Para ver lo gastado, cuántos vieron cada video y el costo por cita, falta la llave de Meta (solo lectura). ${h(meta.motivo || '')}</p>
@@ -259,12 +294,12 @@ export async function vistaAnuncios(v, { D, h, titulo, dinero }) {
     <div class="an">
       <div class="an-barra-sup">
         <div class="an-tabs">${[['todo', 'Todo'], ['MX', '🇲🇽 México'], ['NY', '🗽 Nueva York']].map(([k, t]) => `<button data-camp="${k}" class="${estado.camp === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-        <div class="an-tabs">${[['activos', `● Activos (${videos.length})`], ['historial', `🗂 Historial (${historia.length})`]].map(([k, t]) => `<button data-vista="${k}" class="${estado.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <div class="an-tabs">${[['activos', `● Activos (${videos.length})`], ['historial', `🗂 Historial (${historia.length})`], ['aprendizajes', `📚 Aprendizajes (${(aprendizajes || []).length})`]].map(([k, t]) => `<button data-vista="${k}" class="${estado.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>
         ${estado.vista === 'activos' ? `<div class="an-tabs">${[['todo', 'Desde el inicio'], ['7', 'Últimos 7 días']].map(([k, t]) => `<button data-per="${k}" class="${estado.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''}
         <div class="an-vivo"><i></i>En vivo · ${new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}</div>
       </div>
       ${sinMeta}
-      ${estado.vista === 'historial' ? historialBloque : principalBloque}
+      ${estado.vista === 'historial' ? historialBloque : estado.vista === 'aprendizajes' ? aprendizajesBloque : principalBloque}
       <p class="nota an-pie">Meta ${meta.conectado ? `actualizado ${new Date(meta.al).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}` : 'sin conectar'} · HQ en vivo · Esta pantalla se actualiza sola cada minuto. "Personas reales" = terminaron el filtro de ManyChat. "NEX habló" = llamada de 20 s o más.</p>
     </div>`
 

@@ -481,6 +481,10 @@ export function crearMuestra() {
     leads: () => espera(db.leads.filter(veLead).map(({ transcripcion, ...l }) => l).sort((a, b) => b.creado.localeCompare(a.creado))),
     lead: (lid) => espera(db.leads.find((l) => l.id === lid && veLead(l)) ?? null),
     anunciosSemanas: () => espera([]),
+    anunciosAprendizajes: () => espera([
+      { fecha: '2026-11-06', tipo: 'regla', estado: 'confirmado', titulo: 'Público con límites y saludo con botones', texto: 'Ejemplo de la muestra: con público abierto solo llegaban robots.', fuente: 'Diagnóstico' },
+      { fecha: '2026-11-17', tipo: 'hipotesis', estado: 'pendiente', titulo: '¿Pruébelo en vivo trae citas más baratas?', texto: 'Ejemplo de la muestra.', fuente: 'Estrategia' },
+    ]),
     // Números de Meta de muestra (en la versión real los trae la función "anuncios").
     metaAnuncios: () => {
       const f = (anuncio, campana, gasto, impresiones, conversaciones, vistas3s, thruplays, frecuencia) => ({ anuncio, campana, gasto, impresiones, alcance: Math.round(impresiones / frecuencia), frecuencia, cpm: (gasto / impresiones) * 1000, clics: Math.round(conversaciones * 1.6), conversaciones, vistas3s, thruplays, dia: '' })

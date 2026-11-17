@@ -1931,3 +1931,24 @@ alter table public.anuncios_semanas enable row level security;
 drop policy if exists an_sem_ver on public.anuncios_semanas;
 create policy an_sem_ver on public.anuncios_semanas for select to authenticated
   using (es_admin() or exists (select 1 from public.perfiles p where p.id = auth.uid() and p.activo and p.pros_ver <> 'nada'));
+
+-- ============================================================================
+-- Lo aprendido de los anuncios (17 nov 2026). Lo escriben el reporte de los
+-- lunes y el asesor por la función anuncios-reporte (llave de servicio).
+-- Solo lectura para el admin y quien ve prospectos. Se ve en Anuncios → 📚.
+-- ============================================================================
+create table if not exists public.anuncios_aprendizajes (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null default current_date,
+  tipo text not null default 'semana' check (tipo in ('regla', 'ronda', 'semana', 'hipotesis', 'competencia')),
+  estado text not null default 'confirmado' check (estado in ('confirmado', 'pendiente', 'descartado', 'recomendacion')),
+  titulo text not null check (char_length(titulo) between 1 and 200),
+  texto text not null default '' check (char_length(texto) <= 6000),
+  fuente text not null default '' check (char_length(fuente) <= 200),
+  creado timestamptz not null default now(),
+  unique (fecha, titulo)
+);
+alter table public.anuncios_aprendizajes enable row level security;
+drop policy if exists an_apr_ver on public.anuncios_aprendizajes;
+create policy an_apr_ver on public.anuncios_aprendizajes for select to authenticated
+  using (es_admin() or exists (select 1 from public.perfiles p where p.id = auth.uid() and p.activo and p.pros_ver <> 'nada'));

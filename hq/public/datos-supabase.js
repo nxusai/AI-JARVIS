@@ -170,6 +170,8 @@ export function crearSupabase({ url, anon }) {
     traducirLead: async (id) => (await funcion('traducir', { id })).traduccion,
     metaAnuncios: () => funcion('anuncios', {}),
     /** La foto de cada semana por anuncio (la guarda la función anuncios-semana cada lunes). */
+    /** Lo aprendido de los anuncios (lo escriben el reporte de los lunes y el asesor). */
+    anunciosAprendizajes: async () => ok(await tabla('anuncios_aprendizajes').select('*').order('fecha', { ascending: false }).limit(500)),
     anunciosSemanas: async () => ok(await tabla('anuncios_semanas').select('*').order('semana', { ascending: false }).limit(800)),
     leadAProspecto: async (id, cita = null, meet = '') => ok(await sb.rpc('lead_a_prospecto', { lid: id, cita, meet })),
 
