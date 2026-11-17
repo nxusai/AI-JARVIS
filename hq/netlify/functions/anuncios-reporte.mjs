@@ -5,7 +5,8 @@
 // POST → toma la foto de la última semana completa (o de ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD) y devuelve lo mismo.
 // GET ?desde=&hasta= → además calcula ese rango sin guardarlo (campo "rango").
 // PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
-//        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL).
+//        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL);
+//        { borrarRegistros: [{ semana, camp, anuncio }] } borra solo registros MANUALES (para corregirlos).
 // Nunca cambia nada en Meta ni en los leads; no devuelve datos personales.
 import { timingSafeEqual } from 'node:crypto'
 import { json } from '../lib/sb.mjs'
@@ -53,7 +54,7 @@ const fecha = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : new Date().toISO
 const txt = (v, n) => String(v ?? '').slice(0, n)
 const ent = (v) => Math.max(0, Math.round(Number(v) || 0))
 
-async function guardar({ aprendizajes = [], registros = [] }) {
+async function guardar({ aprendizajes = [], registros = [], borrarRegistros = [] }) {
   const apr = (Array.isArray(aprendizajes) ? aprendizajes : []).slice(0, 50).filter((a) => a?.titulo).map((a) => ({
     fecha: fecha(a.fecha),
     tipo: TIPOS.includes(a.tipo) ? a.tipo : 'semana',
@@ -69,8 +70,15 @@ async function guardar({ aprendizajes = [], registros = [] }) {
     conversaciones: ent(r.conversaciones), frecuencia: Number(r.frecuencia) || 0, leads: ent(r.leads), reales: ent(r.reales), hablo: ent(r.hablo),
     agendo: ent(r.agendo), asistio: ent(r.asistio), cliente: ent(r.cliente),
   }))
+  // Solo se pueden borrar registros MANUALES (los de Meta los vuelve a escribir la foto semanal).
+  let borrados = 0
+  for (const b of (Array.isArray(borrarRegistros) ? borrarRegistros : []).slice(0, 20)) {
+    if (!['MX', 'NY'].includes(b?.camp) || !b?.anuncio || !/^\d{4}-\d{2}-\d{2}$/.test(b?.semana || '')) continue
+    await sb(`/rest/v1/anuncios_semanas?semana=eq.${b.semana}&camp=eq.${b.camp}&anuncio=eq.${encodeURIComponent(txt(b.anuncio, 20))}&estado=eq.MANUAL`, { servicio: true, method: 'DELETE', prefer: 'return=minimal' })
+    borrados++
+  }
   const op = { servicio: true, method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal' }
   if (apr.length) await sb('/rest/v1/anuncios_aprendizajes?on_conflict=titulo', { ...op, body: apr })
   if (reg.length) await sb('/rest/v1/anuncios_semanas?on_conflict=semana,camp,anuncio', { ...op, body: reg })
-  return { aprendizajes: apr.length, registros: reg.length }
+  return { aprendizajes: apr.length, registros: reg.length, borrados }
 }
