@@ -1064,7 +1064,8 @@ VIEWS.reportes = {
         const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: `Comisión nuevos (${cn != null ? peso(cn) + ' c/u' : 'por definir'})`, num: 1, f: (r) => r.com_n == null ? '—' : peso(r.com_n), tot: (rr) => cn == null ? '—' : peso(sum(rr, (x) => x.com_n)) },
           { t: 'Renovaciones (entregado)', num: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { t: `Comisión renovaciones (${cr != null ? cr + ' %' : 'por definir'})`, num: 1, f: (r) => r.com_r == null ? '—' : peso(r.com_r), tot: (rr) => cr == null ? '—' : peso(sum(rr, (x) => x.com_r)) },
           { ...n('recompras'), t: 'Recompras' }, { t: 'Total a pagar', num: 1, b: 1, f: P('com'), tot: T('com') }]
-        body = `<div class="card panel">${hdr(fechas)}${falta ? '<div class="note-card"><b>Falta capturar las comisiones.</b> En Administración → Parámetros pon el monto por cliente nuevo y el porcentaje por renovación.</div>' : ''}${tabla(cols, rows, true)}
+        const bcom = esAdmin() ? '<button class="btn" type="button" id="rcom">Cambiar comisiones</button>' : ''
+        body = `<div class="card panel">${hdr(bcom + fechas)}${falta ? `<div class="note-card"><b>Falta capturar las comisiones.</b> ${esAdmin() ? 'Da clic en «Cambiar comisiones» y pon' : 'El dueño debe capturar'} el monto por cliente nuevo y el porcentaje por renovación.</div>` : ''}${tabla(cols, rows, true)}
           <div class="note">Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
         exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
       }
@@ -1109,6 +1110,7 @@ VIEWS.reportes = {
     $('#rd')?.addEventListener('change', (e) => { if (e.target.value) { this.desde = e.target.value; this.paint() } })
     $('#rh')?.addEventListener('change', (e) => { if (e.target.value) { this.hasta = e.target.value; this.paint() } })
     $('#rag')?.addEventListener('change', (e) => { this.agrupar = e.target.value; this.paint() })
+    $('#rcom')?.addEventListener('click', editarComisiones)
     $$('[data-col]').forEach((c) => c.addEventListener('change', () => { this.cols = Object.keys(RCOLS).filter((k) => $(`[data-col="${k}"]`).checked); this.paint() }))
     const rq = $('#rq'); if (rq) { rq.addEventListener('input', (e) => { this.q = e.target.value; this.paint(); const n = $('#rq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length) }) }
   },
@@ -1393,6 +1395,27 @@ function enviarPeticion() {
     },
   })
   const t = $('#f_texto'); if (t) { const a = document.createElement('textarea'); a.id = 'f_texto'; a.className = 'ctl'; a.rows = 4; a.style.cssText = 'width:100%;height:auto;padding:10px 13px;resize:vertical'; a.required = true; t.replaceWith(a) }
+}
+
+// Comisiones: las decide el dueño; se aplican al reporte de inmediato
+function editarComisiones() {
+  formModal({
+    titulo: 'Comisiones de los asesores', nota: 'Se aplican al reporte de comisiones de inmediato. Puedes cambiarlas cuando quieras.', boton: 'Guardar comisiones',
+    campos: [
+      { id: 'nuevo', label: 'Por cada cliente nuevo (pesos)', tipo: 'number', min: 0, step: '1', valor: PARAM('comision_nuevo') ?? '' },
+      { id: 'renov', label: 'Por renovación (% del dinero entregado)', tipo: 'number', min: 0, step: '0.1', valor: PARAM('comision_renovacion_pct') ?? '' },
+    ],
+    guardar: async (v) => {
+      const num = (x) => (x === '' ? null : +x)
+      const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
+      if (num(v.renov) != null && num(v.renov) > 100) err('El porcentaje no puede ser mayor a 100.')
+      if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
+      const a = await sb.from('parametros').update({ valor: num(v.nuevo) }).eq('clave', 'comision_nuevo')
+      if (a.error) throw errorAmigable(a.error)
+      const ok = await escribir(() => sb.from('parametros').update({ valor: num(v.renov) }).eq('clave', 'comision_renovacion_pct'))
+      return ok ? 'Comisiones guardadas.' : ''
+    },
+  })
 }
 
 // ============================================================ permisos por cargo
