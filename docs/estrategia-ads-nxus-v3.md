@@ -81,3 +81,10 @@ Confect, Atria, Segwise, TheOptimizer, Jetfuel (Andromeda); interestexplorer, ad
 - Nombres en Meta: `MX | C3-V1 | VID | Pruébelo`; fuente en ManyChat: `Anuncio MX · C3-V1`. Hay que ajustar el panel de HQ para leer C#-V# antes de lanzar.
 - Cuando la ronda 3 esté aprobada y prendida, apagar las campañas v2 (quedan en Historial).
 - 7 días sin tocar; a los 14 días, la idea con la cita más barata pasa a `NXUS | MX | SCALE`.
+
+## 10. Nombres desde la ronda 2 (decidido 17 nov 2026)
+Eduardo sigue llamando a los videos "Video A, B, C…" en cada ronda. Para que HQ no los mezcle, la RONDA va en la campaña y en ManyChat:
+- Campaña: `NXUS | MX | R2 | Mensajes` (y `NXUS | NY | R2 | Mensajes`). Sin "R#" = ronda 1 (las del 8 nov).
+- Anuncio: `MX | A | Pruébelo en vivo` (mercado | letra | de qué trata).
+- Fuente en ManyChat: `Anuncio MX R2 · Video A`.
+- En HQ cada video sale como "Ronda 2 · México · Video A (Pruébelo en vivo, 24 nov → hoy)" y en 📚 Aprendizajes → 📋 Ficha de cada video, con campaña, fechas y resultados. En la foto semanal se guarda como "R2-A".

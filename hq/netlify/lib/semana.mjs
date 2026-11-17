@@ -5,7 +5,7 @@
 // Solo lee Meta; solo escribe en anuncios_semanas.
 import { sb } from './sb.mjs'
 import { graph, fila, estadosMeta, metaListo, cuentaMeta, FILTRO, CAMPOS } from './meta.mjs'
-import { claveDeFuente, claveDeAnuncio } from '../../public/anuncios-claves.js'
+import { claveDeFuente, claveDeAnuncio, llaveDe, codigoDe } from '../../public/anuncios-claves.js'
 
 const ASISTIO = ['reunion', 'propuesta', 'cliente']
 const dia = (d) => d.toISOString().slice(0, 10)
@@ -26,8 +26,8 @@ export function rango(desde, hasta) {
 /** Calcula (sin guardar) los números por anuncio de un rango. */
 export async function calcular(s) {
   const filas = {}
-  const llave = (k) => `${k.camp}-${k.video}`
-  const nueva = (k) => ({ semana: s.desde, hasta: s.hasta, camp: k.camp, anuncio: k.video, nombre: '', campana: '', estado: '', gasto: 0, impresiones: 0, alcance: 0, vistas3s: 0, thruplays: 0, clics: 0, conversaciones: 0, frecuencia: 0, leads: 0, reales: 0, hablo: 0, agendo: 0, asistio: 0, cliente: 0, moneda: 'USD' })
+  const llave = llaveDe
+  const nueva = (k) => ({ semana: s.desde, hasta: s.hasta, camp: k.camp, anuncio: codigoDe(k), nombre: '', campana: '', estado: '', gasto: 0, impresiones: 0, alcance: 0, vistas3s: 0, thruplays: 0, clics: 0, conversaciones: 0, frecuencia: 0, leads: 0, reales: 0, hablo: 0, agendo: 0, asistio: 0, cliente: 0, moneda: 'USD' })
 
   let moneda = 'USD'
   let meta = 'sin conectar'
