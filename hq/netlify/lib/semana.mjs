@@ -10,15 +10,21 @@ import { claveDeFuente, claveDeAnuncio } from '../../public/anuncios-claves.js'
 const ASISTIO = ['reunion', 'propuesta', 'cliente']
 const dia = (d) => d.toISOString().slice(0, 10)
 
-/** La semana que se cierra: los 7 días completos antes de hoy (de lunes a domingo si corre en lunes). */
+/** La última semana completa, de lunes a domingo (si hoy es lunes, la que terminó ayer). */
 export function semanaPasada(hoy = new Date()) {
-  const fin = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate())) // hoy 00:00 UTC (no se cuenta)
-  const ini = new Date(fin.getTime() - 7 * 864e5)
-  return { desde: dia(ini), hasta: dia(new Date(fin.getTime() - 864e5)), iniISO: ini.toISOString(), finISO: fin.toISOString() }
+  const h = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate()))
+  const fin = new Date(h.getTime() - ((h.getUTCDay() + 6) % 7) * 864e5) // el lunes de esta semana, 00:00 UTC (no se cuenta)
+  return rango(dia(new Date(fin.getTime() - 7 * 864e5)), dia(new Date(fin.getTime() - 864e5)))
 }
 
-export async function tomarFoto(hoy = new Date()) {
-  const s = semanaPasada(hoy)
+/** Un rango de días, incluidos los dos: "2026-11-08" a "2026-11-17". */
+export function rango(desde, hasta) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desde || '') || !/^\d{4}-\d{2}-\d{2}$/.test(hasta || '') || desde > hasta) throw new Error('Rango de fechas inválido (AAAA-MM-DD)')
+  return { desde, hasta, iniISO: `${desde}T00:00:00.000Z`, finISO: new Date(new Date(`${hasta}T00:00:00Z`).getTime() + 864e5).toISOString() }
+}
+
+/** Calcula (sin guardar) los números por anuncio de un rango. */
+export async function calcular(s) {
   const filas = {}
   const llave = (k) => `${k.camp}-${k.video}`
   const nueva = (k) => ({ semana: s.desde, hasta: s.hasta, camp: k.camp, anuncio: k.video, nombre: '', campana: '', estado: '', gasto: 0, impresiones: 0, alcance: 0, vistas3s: 0, thruplays: 0, clics: 0, conversaciones: 0, frecuencia: 0, leads: 0, reales: 0, hablo: 0, agendo: 0, asistio: 0, cliente: 0, moneda: 'USD' })
@@ -70,7 +76,13 @@ export async function tomarFoto(hoy = new Date()) {
     }
   }
 
-  const lista = Object.values(filas).map((x) => ({ ...x, moneda, gasto: Math.round(x.gasto * 100) / 100 }))
+  return { meta, lista: Object.values(filas).map((x) => ({ ...x, moneda, gasto: Math.round(x.gasto * 100) / 100 })) }
+}
+
+/** Guarda la foto de un rango (por omisión, la última semana completa). */
+export async function tomarFoto(hoy = new Date(), r = null) {
+  const s = r || semanaPasada(hoy)
+  const { meta, lista } = await calcular(s)
   if (lista.length) await sb('/rest/v1/anuncios_semanas?on_conflict=semana,camp,anuncio', { servicio: true, method: 'POST', body: lista, prefer: 'resolution=merge-duplicates,return=minimal' })
   return { semana: s, meta, anuncios: lista.length }
 }
