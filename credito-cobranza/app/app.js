@@ -141,7 +141,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -153,8 +153,9 @@ async function loadRaw(perfil) {
     opt('oficinas', (q) => q.order('id')), opt('rutas', (q) => q.order('id')),
     opt('v_pagos', (q) => q.order('fecha').order('id')), opt('parametros', (q) => q), opt('proyecciones', (q) => q.gte('fecha', addDays(iso(new Date()), -120)).order('fecha')),
     opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
+    opt('documentos', (q) => q.order('creado', { ascending: false })),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -197,7 +198,7 @@ function prep(raw) {
     pagos: (raw.pagos || []).map((x) => ({ ...x, monto: +x.monto })),
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
-    personal: raw.personal || [], peticiones: raw.peticiones || [],
+    personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
     demo: cartera.some((c) => c.es_demo) || solicitudes.some((s) => s.es_demo),
@@ -627,7 +628,10 @@ function fichaCliente(id) {
     ${cr.map((x) => `<tr class="click" data-pg="${x.credito_id}"><td>#${x.credito_id}${x.credito_anterior_id ? `<div class="muted" style="font-size:12px">renueva #${x.credito_anterior_id}</div>` : ''}</td><td>${tipoChip(x.tipo)}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${x.descuento_renovacion ? peso(x.descuento_renovacion) : '—'}</td><td class="num">${peso(x.entregado)}</td><td class="num">${x.seguro ? peso(x.seguro) : '—'}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
     </tbody></table></div>
     <div id="fpagos"></div>
+    <div id="fdocs"></div>
     <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
+  const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
+  panelDocs($('#fdocs'), 'cliente', id, { puede: esCampo() || DB.perfil.rol === 'mesa', extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
     const L = pagos(k)
     $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
@@ -716,11 +720,12 @@ function detalleSolicitud(id) {
       ${dato('Seguro de gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
       ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Dirección', esc([s.direccion, s.colonia].filter(Boolean).join(', ')))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
       ${dato('Motivo / observación', esc(s.motivo || ''))}</div>
-    <div id="sdup"></div><div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    <div id="sdup"></div><div id="sdocs"></div><div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
     <div class="toolbar" style="justify-content:flex-end">
       ${abierta && esMesa() && s.estado !== 'borrador' ? btn('cancelada', 'Cancelar (no lo quiso)') + btn('rechazada', 'Rechazar') + btn('observada', 'Observar') + btn('aprobada', 'Aprobar y crear crédito', '') : ''}
       ${['borrador', 'observada'].includes(s.estado) && esCampo() ? btn('editar', 'Corregir') + btn('revision', 'Enviar a revisión', '') : ''}
     </div>`)
+  panelDocs($('#sdocs'), 'solicitud', s.id, { puede: abierta && (esCampo() || DB.perfil.rol === 'mesa'), titulo: 'Documentos de la solicitud' })
   if (s.tipo === 'nuevo') duplicados(s.curp, s.cliente_nombre).then((L) => { const el = $('#sdup'); if (el) el.innerHTML = dupHtml(L.filter((d) => !(d.origen === 'solicitud' && d.nombre === s.cliente_nombre && d.estado === s.estado))) }).catch(() => {})
   $$('[data-acc]').forEach((b) => b.addEventListener('click', async () => {
     const acc = b.dataset.acc
@@ -784,8 +789,11 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
         : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, direccion: ant.direccion || null, colonia: ant.colonia || null, credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }
       Object.assign(row, { monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
       if (!editar) row.creado_por = DB.perfil.id
-      const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row))
-      return ok ? (v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.') : ''
+      const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row).select('id').single())
+      if (!ok) return ''
+      const nid = editar ? editar.id : ok.id
+      if (nid) setTimeout(() => { detalleSolicitud(nid); toast('Ahora sube la INE y el comprobante de domicilio.') }, 50)
+      return v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.'
     },
   })
 }
@@ -1142,9 +1150,10 @@ VIEWS.admin = {
     } else if (this.tab === 'personal') {
       const P6 = (f) => addDays(f, 365 * 6)
       const act = DB.personal.filter((x) => !x.fecha_baja), bajas = DB.personal.filter((x) => x.fecha_baja)
-      const fila = (x) => `<tr><td class="strong">${esc(x.nombre)}</td><td>${esc(x.puesto)}</td><td>${esc(x.ambito ? ambitoNombre(x.ambito) : '')}</td><td>${esc(x.curp || '')}</td><td>${esc(x.telefono || '')}</td><td>${esc(x.correo || '')}</td><td>${esc(x.fecha_ingreso || '')}</td>
+      const foto = (x) => DB.documentos.find((d) => d.tipo === 'personal' && d.entidad_id === x.id && d.categoria === 'Foto')
+      const fila = (x) => `<tr><td class="strong"><span class="perfoto">${foto(x) ? `<img data-foto="${esc(foto(x).path)}" alt="">` : esc((x.nombre || '?').slice(0, 1))}</span>${esc(x.nombre)}</td><td>${esc(x.puesto)}</td><td>${esc(x.ambito ? ambitoNombre(x.ambito) : '')}</td><td>${esc(x.curp || '')}</td><td>${esc(x.telefono || '')}</td><td>${esc(x.correo || '')}</td><td>${esc(x.fecha_ingreso || '')}</td>
         <td>${x.fecha_baja ? `<span class="st off">Baja ${esc(x.fecha_baja)}</span><div class="muted" style="font-size:12px">${esc(x.motivo_baja || '')} · se guarda hasta ${P6(x.fecha_baja)}</div>` : '<span class="st ok">Activo</span>'}</td>
-        <td class="num">${esAdmin() ? `<button class="btn ghost sm" type="button" data-per="${x.id}">Ver / editar</button>${x.fecha_baja ? '' : ` <button class="btn ghost sm" type="button" data-baja="${x.id}">Dar de baja</button>`}` : ''}</td></tr>`
+        <td class="num">${esAdmin() ? `<button class="btn ghost sm" type="button" data-per="${x.id}">Expediente</button>${x.fecha_baja ? '' : ` <button class="btn ghost sm" type="button" data-baja="${x.id}">Dar de baja</button>`}` : ''}</td></tr>`
       const head = '<thead><tr><th>Nombre</th><th>Puesto</th><th>Ámbito</th><th>CURP</th><th>Teléfono</th><th>Correo</th><th>Ingreso</th><th>Estado</th><th></th></tr></thead>'
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Personal activo</h3><div class="sub">Expediente de asesores, gerentes y demás personal</div></div>${esAdmin() ? '<button class="btn" type="button" id="pnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar persona</button>' : ''}</div>
           <div class="tablewrap"><table class="tbl">${head}<tbody>${act.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin personal registrado</b></div></td></tr>'}</tbody></table></div></div>
@@ -1152,7 +1161,8 @@ VIEWS.admin = {
           <div class="tablewrap"><table class="tbl">${head}<tbody>${bajas.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin bajas</b></div></td></tr>'}</tbody></table></div>
           <div class="note">Dar de baja no borra a la persona: sólo marca la fecha y el motivo. Recuerda desactivar también su usuario en «Usuarios y roles».</div></div>`
       $('#pnuevo')?.addEventListener('click', () => editarPersona())
-      $$('[data-per]').forEach((b) => b.addEventListener('click', () => editarPersona(DB.personal.find((x) => x.id === +b.dataset.per))))
+      $$('[data-per]').forEach((b) => b.addEventListener('click', () => fichaPersona(DB.personal.find((x) => x.id === +b.dataset.per))))
+      $$('[data-foto]').forEach((img) => fotoEn(img, img.dataset.foto))
       $$('[data-baja]').forEach((b) => b.addEventListener('click', () => bajaPersona(DB.personal.find((x) => x.id === +b.dataset.baja))))
     } else if (this.tab === 'parametros') {
       const L = DB.parametros.slice().sort((a, b) => a.clave.localeCompare(b.clave))
@@ -1236,6 +1246,79 @@ async function escribir(fn) {
 addEventListener('offline', () => toast('Sin conexión a internet: lo que registres no se guardará hasta que vuelva la señal.', 'warn'))
 addEventListener('online', () => toast('Conexión recuperada.'))
 
+// ============================================================ documentos y fotos del expediente
+// Espacio privado «expedientes» de Supabase Storage. Carpeta: <tipo>/<id>/<archivo>.
+// No se borran desde la página (auditorías de 6 años).
+const CAT_DOC = {
+  cliente: ['INE (frente)', 'INE (reverso)', 'Comprobante de domicilio', 'Foto del cliente', 'Foto del domicilio', 'Contrato / pagaré', 'Otro'],
+  personal: ['Foto', 'INE', 'Comprobante de domicilio', 'CURP', 'Contrato laboral', 'Otro'],
+}
+const slug = (t) => norm(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'archivo'
+// Las fotos del celular pesan mucho: se reducen a 1600 px antes de subirlas.
+async function reducirImagen(file) {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 400 * 1024) return file
+  try {
+    const bmp = await createImageBitmap(file)
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k)
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.82))
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file
+  } catch { return file }
+}
+async function subirDocumento(tipo, id, categoria, file) {
+  if (!sb) { toast('Modo de prueba: los archivos no se guardan.'); return false }
+  if (!navigator.onLine) throw errorAmigable('network')
+  const okTipo = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.type)
+  if (!okTipo) { const e = new Error('tipo'); e.userMsg = 'Sólo se aceptan fotos (JPG, PNG, HEIC) o PDF.'; throw e }
+  const f = await reducirImagen(file)
+  if (f.size > 10 * 1024 * 1024) { const e = new Error('tam'); e.userMsg = 'El archivo pesa más de 10 MB.'; throw e }
+  const ext = f.type === 'application/pdf' ? 'pdf' : f.type.split('/')[1].replace('jpeg', 'jpg')
+  const path = `${tipo}/${id}/${Date.now()}-${slug(categoria)}.${ext}`
+  const up = await sb.storage.from('expedientes').upload(path, f, { contentType: f.type, upsert: false })
+  if (up.error) throw errorAmigable(up.error)
+  return escribir(() => sb.from('documentos').insert({ tipo, entidad_id: id, categoria, nombre: file.name.slice(0, 120), path, mime: f.type, tamano: f.size, subido_por: DB.perfil.id }))
+}
+const _blobs = new Map()
+async function blobDe(path) {
+  if (_blobs.has(path)) return _blobs.get(path)
+  const { data, error } = await sb.storage.from('expedientes').download(path)
+  if (error) throw errorAmigable(error)
+  const u = URL.createObjectURL(data); _blobs.set(path, u); return u
+}
+async function verDocumento(d) {
+  if (!sb) { toast('Modo de prueba: no hay archivos.'); return }
+  try {
+    const u = await blobDe(d.path), img = /^image\//.test(d.mime || '')
+    modal(`<div class="ph"><div><h3 style="font-size:19px">${esc(d.categoria)}</h3><div class="sub">${esc(d.nombre)} · subido ${esc(String(d.creado).slice(0, 10))}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+      ${img ? `<img src="${u}" alt="${esc(d.categoria)}" style="max-width:100%;max-height:70vh;border-radius:14px;justify-self:center">` : `<div class="empty"><b>Documento PDF</b>Ábrelo para verlo completo.</div>`}
+      <div class="toolbar" style="justify-content:flex-end"><a class="btn" href="${u}" target="_blank" rel="noopener" download="${esc(d.nombre)}">${img ? 'Descargar' : 'Abrir PDF'}</a></div>`)
+  } catch (e) { toast(e.userMsg || 'No se pudo abrir el archivo.', 'warn') }
+}
+// Panel de documentos: lista + subir archivo o tomar foto. «extra» suma documentos de otros expedientes ligados.
+function panelDocs(el, tipo, id, { puede = true, extra = [], titulo = 'Documentos' } = {}) {
+  if (!el) return
+  const cats = CAT_DOC[tipo === 'personal' ? 'personal' : 'cliente']
+  const L = DB.documentos.filter((d) => (d.tipo === tipo && d.entidad_id === id) || extra.some(([t, i]) => d.tipo === t && d.entidad_id === i))
+  const ico = (d) => /pdf/.test(d.mime || '') ? '📄' : '🖼️'
+  el.innerHTML = `<div class="docs"><div class="ph"><h3 class="sec-title">${titulo}</h3><span class="chip">${L.length}</span></div>
+    <div class="list">${L.map((d) => `<button type="button" class="rowitem inset docrow" data-doc="${d.id}"><div><div class="t">${ico(d)} ${esc(d.categoria)}</div><div class="s">${esc(d.nombre)} · ${esc(String(d.creado).slice(0, 10))}${d.tipo !== tipo ? ' · de la solicitud' : ''}</div></div><div class="m"><small>Ver</small></div></button>`).join('') || '<div class="note">Todavía no hay documentos.</div>'}</div>
+    ${puede ? `<div class="toolbar docup"><div class="field sel"><label>Tipo</label><select class="ctl" data-dcat>${cats.map((c) => `<option>${c}</option>`).join('')}</select></div>
+      <label class="btn ghost"><input type="file" accept="image/*,application/pdf" data-dfile hidden>Subir archivo</label>
+      <label class="btn"><input type="file" accept="image/*" capture="environment" data-dfile hidden>Tomar foto</label><span class="muted" data-dmsg></span></div>
+      <div class="note">Fotos o PDF de hasta 10 MB. Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>` : ''}</div>`
+  $$('[data-doc]', el).forEach((b) => b.addEventListener('click', () => verDocumento(DB.documentos.find((d) => d.id === +b.dataset.doc))))
+  $$('[data-dfile]', el).forEach((inp) => inp.addEventListener('change', async () => {
+    const f = inp.files?.[0]; if (!f) return
+    const msg = $('[data-dmsg]', el), cat = $('[data-dcat]', el).value
+    msg.textContent = 'Subiendo…'; $$('.docup .btn', el).forEach((b) => b.classList.add('disabled'))
+    try { const ok = await subirDocumento(tipo, id, cat, f); if (ok) toast(`${cat} guardado.`); panelDocs(el, tipo, id, { puede, extra, titulo }) }
+    catch (e) { msg.textContent = ''; toast(e.userMsg || 'No se pudo subir el archivo.', 'warn'); $$('.docup .btn', el).forEach((b) => b.classList.remove('disabled')) }
+    inp.value = ''
+  }))
+}
+async function fotoEn(img, path) { try { if (sb && path) img.src = await blobDe(path) } catch {} }
+
 // ============================================================ personal y peticiones
 function editarPersona(x) {
   const e = x || {}
@@ -1253,6 +1336,20 @@ function editarPersona(x) {
       return ok ? 'Expediente guardado.' : ''
     },
   })
+}
+function fichaPersona(x) {
+  const foto = DB.documentos.find((d) => d.tipo === 'personal' && d.entidad_id === x.id && d.categoria === 'Foto')
+  const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${esc(v)}</span></div>` : ''
+  modal(`<div class="ph"><div style="display:flex;gap:14px;align-items:center"><span class="perfoto grande">${foto ? '<img id="pfoto" alt="">' : esc((x.nombre || '?').slice(0, 1))}</span>
+      <div><h3 style="font-size:20px">${esc(x.nombre)}</h3><div class="sub">${esc(x.puesto)} · ${esc(x.ambito ? ambitoNombre(x.ambito) : '')}</div></div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    ${x.fecha_baja ? `<div class="note-card"><b>Dado de baja el ${esc(x.fecha_baja)}</b> · ${esc(x.motivo_baja || '')}. Su expediente se conserva hasta ${addDays(x.fecha_baja, 365 * 6)}.</div>` : ''}
+    <div class="kv">${dato('CURP', x.curp)}${dato('Fecha de nacimiento', x.fecha_nacimiento)}${dato('Dirección', x.direccion)}${dato('Teléfono', x.telefono)}${dato('Correo', x.correo)}${dato('Fecha de ingreso', x.fecha_ingreso)}</div>
+    <div class="toolbar"><button class="btn ghost" type="button" id="pedit">Editar datos</button>${x.fecha_baja ? '' : '<button class="btn ghost" type="button" id="pbaja">Dar de baja</button>'}</div>
+    <div id="pdocs"></div>`)
+  if (foto) fotoEn($('#pfoto'), foto.path)
+  $('#pedit').addEventListener('click', () => editarPersona(x))
+  $('#pbaja')?.addEventListener('click', () => bajaPersona(x))
+  panelDocs($('#pdocs'), 'personal', x.id, { puede: esAdmin(), titulo: 'Foto y documentos' })
 }
 function bajaPersona(x) {
   formModal({
