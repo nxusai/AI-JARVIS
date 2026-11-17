@@ -70,7 +70,7 @@ async function guardar({ aprendizajes = [], registros = [] }) {
     agendo: ent(r.agendo), asistio: ent(r.asistio), cliente: ent(r.cliente),
   }))
   const op = { servicio: true, method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal' }
-  if (apr.length) await sb('/rest/v1/anuncios_aprendizajes?on_conflict=fecha,titulo', { ...op, body: apr })
+  if (apr.length) await sb('/rest/v1/anuncios_aprendizajes?on_conflict=titulo', { ...op, body: apr })
   if (reg.length) await sb('/rest/v1/anuncios_semanas?on_conflict=semana,camp,anuncio', { ...op, body: reg })
   return { aprendizajes: apr.length, registros: reg.length }
 }

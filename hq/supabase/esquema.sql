@@ -1946,7 +1946,7 @@ create table if not exists public.anuncios_aprendizajes (
   texto text not null default '' check (char_length(texto) <= 6000),
   fuente text not null default '' check (char_length(fuente) <= 200),
   creado timestamptz not null default now(),
-  unique (fecha, titulo)
+  unique (titulo)
 );
 alter table public.anuncios_aprendizajes enable row level security;
 drop policy if exists an_apr_ver on public.anuncios_aprendizajes;
