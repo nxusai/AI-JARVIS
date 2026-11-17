@@ -470,3 +470,11 @@ textarea.ctl { border: 0; border-radius: 13px; color: var(--ink); background: rg
   font-weight: 700; font-size: 13px; color: #06221f; background: linear-gradient(135deg, var(--teal), var(--violet)); }
 .perfoto img { width: 100%; height: 100%; object-fit: cover; }
 .perfoto.grande { width: 64px; height: 64px; font-size: 24px; margin: 0; }
+
+/* ---------- Permisos por cargo ---------- */
+.matriz .grp td { background: rgba(255,255,255,.06); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
+.matriz th.num { white-space: normal; min-width: 76px; line-height: 1.25; }
+.pchk { display: inline-grid; place-items: center; width: 34px; height: 34px; cursor: pointer; }
+.pchk input { width: 19px; height: 19px; accent-color: var(--teal); cursor: pointer; }
+.pchk input:disabled { cursor: not-allowed; opacity: .7; }
+@media (max-width: 720px) { .matriz .grp td::before { display: none; } .matriz tr.grp { background: none; box-shadow: none; padding: 6px 2px 0; } .matriz td.num { justify-items: start; } }

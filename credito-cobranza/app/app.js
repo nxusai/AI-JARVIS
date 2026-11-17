@@ -31,6 +31,32 @@ const ROLES = {
   asesor: 'Asesor de crédito', mesa: 'Mesa de control', tesoreria: 'Tesorería', consulta: 'Consulta / auditoría', soporte: 'Soporte NXUS',
 }
 const CAMPO_ROLES = ['asesor', 'gerente', 'zonal', 'regional', 'dueno', 'direccion', 'soporte']
+// Permisos que el dueño decide por cargo (Administración → Usuarios). Se validan también en la base de datos.
+const PERMISOS = [
+  ['Ver secciones', [['ver_tablero', 'Tablero'], ['ver_clientes', 'Clientes'], ['ver_originacion', 'Crear crédito'], ['ver_solicitudes', 'Solicitudes'], ['ver_creditos', 'Créditos'],
+    ['ver_cobranza', 'Cobranza'], ['ver_normalidad', 'Normalidad'], ['ver_proyecciones', 'Proyecciones'], ['ver_cajas', 'Cajas'], ['ver_tesoreria', 'Tesorería'], ['ver_reportes', 'Reportes']]],
+  ['Puede hacer', [['registrar_pagos', 'Registrar pagos'], ['crear_solicitudes', 'Crear y renovar créditos (solicitudes)'], ['resolver_solicitudes', 'Mesa de control: aprobar o rechazar'],
+    ['registrar_gastos', 'Registrar gastos de su caja'], ['tesoreria_excedente', 'Pasar excedente de gerente al banco'], ['capturar_proyecciones', 'Capturar proyecciones'],
+    ['subir_documentos', 'Subir documentos y fotos'], ['descargar_excel', 'Descargar reportes en Excel']]],
+]
+const CARGOS_PERM = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'tesoreria', 'consulta']
+const V = (...k) => k.map((x) => 'ver_' + x)
+const PERM_BASE = {
+  direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'resolver_solicitudes', 'registrar_gastos', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  regional: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  zonal: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  gerente: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  asesor: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'cajas', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'subir_documentos', 'descargar_excel'],
+  mesa: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'reportes'), 'resolver_solicitudes', 'subir_documentos', 'descargar_excel'],
+  tesoreria: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'tesoreria_excedente', 'descargar_excel'],
+  consulta: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'descargar_excel'],
+}
+function permitido(rol, k) {
+  if (['dueno', 'soporte'].includes(rol)) return true
+  const x = DB.permisos.find((q) => q.rol === rol && q.permiso === k)
+  return x ? !!x.permitido : (PERM_BASE[rol] || []).includes(k)
+}
+const puede = (k) => permitido(DB.perfil.rol, k)
 const TIPO = { nuevo: 'Nuevo', renovacion: 'Renovación', recompra: 'Recompra' }
 const tipoChip = (t) => `<span class="chip ${t === 'renovacion' ? 'g' : t === 'recompra' ? 'a' : ''}">${TIPO[t] || 'Nuevo'}</span>`
 const ADMIN_ROLES = ['dueno', 'direccion', 'soporte']
@@ -141,7 +167,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -153,9 +179,9 @@ async function loadRaw(perfil) {
     opt('oficinas', (q) => q.order('id')), opt('rutas', (q) => q.order('id')),
     opt('v_pagos', (q) => q.order('fecha').order('id')), opt('parametros', (q) => q), opt('proyecciones', (q) => q.gte('fecha', addDays(iso(new Date()), -120)).order('fecha')),
     opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
-    opt('documentos', (q) => q.order('creado', { ascending: false })),
+    opt('documentos', (q) => q.order('creado', { ascending: false })), opt('permisos', (q) => q),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -198,7 +224,7 @@ function prep(raw) {
     pagos: (raw.pagos || []).map((x) => ({ ...x, monto: +x.monto })),
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
-    personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [],
+    personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
     demo: cartera.some((c) => c.es_demo) || solicitudes.some((s) => s.es_demo),
@@ -344,11 +370,7 @@ function showApp() {
 function vistasPermitidas() {
   const rol = DB.perfil.rol
   return NAV.map(([k]) => k).filter((k) => k !== 'h'
-    && !(k === 'tesoreria' && ['asesor', 'mesa'].includes(rol))
-    && !(k === 'cajas' && rol === 'mesa')
-    && !(k === 'originacion' && !esCampo())
-    && !(k === 'proyecciones' && ['asesor', 'mesa'].includes(rol))
-    && !(['importar', 'admin'].includes(k) && !esAdmin()))
+    && (['importar', 'admin'].includes(k) ? esAdmin() : k === 'tablero' || puede('ver_' + k)))
 }
 function abrirMenu() { $('#side').classList.add('open'); $('#scrim').classList.add('on') }
 function cerrarMenu() { $('#side').classList.remove('open'); $('#scrim').classList.remove('on') }
@@ -619,9 +641,9 @@ function fichaCliente(id) {
   const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${esc(v)}</span></div>` : ''
   modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="statrow">${[['Debe hoy (saldo)', peso(sum(cr, (x) => x.saldo))], ['Base (prestado)', peso(sum(act, (x) => x.monto))], ['Créditos en su historial', cr.length], ['Atraso', act.length ? Math.max(...act.map((x) => x.dias_atraso)) + ' días' : '—']].map(([l, v]) => `<div class="card"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
-    <div class="toolbar">${act.length && esCampo() ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
-      ${act.some(puedeRenovar) && esCampo() ? `<button class="btn ghost" type="button" id="fren">Renovar</button>` : ''}
-      ${!act.length && esCampo() ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
+    <div class="toolbar">${act.length && puede('registrar_pagos') ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
+      ${act.some(puedeRenovar) && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="fren">Renovar</button>` : ''}
+      ${!act.length && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
     <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Dirección', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Fecha de nacimiento', c.fecha_nacimiento)}</div>
     <h3 class="sec-title" style="margin-top:6px">Expediente de créditos</h3>
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Seguro</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
@@ -631,7 +653,7 @@ function fichaCliente(id) {
     <div id="fdocs"></div>
     <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
   const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
-  panelDocs($('#fdocs'), 'cliente', id, { puede: esCampo() || DB.perfil.rol === 'mesa', extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
+  panelDocs($('#fdocs'), 'cliente', id, { puede: puede('subir_documentos'), extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
     const L = pagos(k)
     $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
@@ -679,7 +701,7 @@ function modal(inner) {
 
 const EST_SOL = { borrador: ['Borrador', 'off'], revision: ['En revisión', 'wait'], observada: ['Observada', 'mid'], aprobada: ['Aprobada', 'ok'], rechazada: ['Rechazada', 'bad'], cancelada: ['Cancelada', 'off'] }
 const estSol = (e) => `<span class="st ${(EST_SOL[e] || ['', 'off'])[1]}">${(EST_SOL[e] || [e])[0]}</span>`
-const esMesa = () => ['mesa', 'dueno', 'direccion', 'soporte'].includes(DB.perfil.rol)
+const esMesa = () => puede('resolver_solicitudes')
 VIEWS.solicitudes = {
   html() {
     const cols = [['borrador', 'Borrador', 'Capturada, sin enviar'], ['revision', 'En revisión', 'Mesa de control revisa documentos'], ['observada', 'Observada', 'Regresa al asesor para corregir'], ['aprobada', 'Aprobada', 'Crédito creado'], ['no', 'No concretadas', 'Rechazadas o canceladas · se guardan por regulación']]
@@ -723,9 +745,9 @@ function detalleSolicitud(id) {
     <div id="sdup"></div><div id="sdocs"></div><div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
     <div class="toolbar" style="justify-content:flex-end">
       ${abierta && esMesa() && s.estado !== 'borrador' ? btn('cancelada', 'Cancelar (no lo quiso)') + btn('rechazada', 'Rechazar') + btn('observada', 'Observar') + btn('aprobada', 'Aprobar y crear crédito', '') : ''}
-      ${['borrador', 'observada'].includes(s.estado) && esCampo() ? btn('editar', 'Corregir') + btn('revision', 'Enviar a revisión', '') : ''}
+      ${['borrador', 'observada'].includes(s.estado) && puede('crear_solicitudes') ? btn('editar', 'Corregir') + btn('revision', 'Enviar a revisión', '') : ''}
     </div>`)
-  panelDocs($('#sdocs'), 'solicitud', s.id, { puede: abierta && (esCampo() || DB.perfil.rol === 'mesa'), titulo: 'Documentos de la solicitud' })
+  panelDocs($('#sdocs'), 'solicitud', s.id, { puede: abierta && puede('subir_documentos'), titulo: 'Documentos de la solicitud' })
   if (s.tipo === 'nuevo') duplicados(s.curp, s.cliente_nombre).then((L) => { const el = $('#sdup'); if (el) el.innerHTML = dupHtml(L.filter((d) => !(d.origen === 'solicitud' && d.nombre === s.cliente_nombre && d.estado === s.estado))) }).catch(() => {})
   $$('[data-acc]').forEach((b) => b.addEventListener('click', async () => {
     const acc = b.dataset.acc
@@ -804,7 +826,7 @@ VIEWS.originacion = {
     const renov = sc.activos().filter(puedeRenovar).sort((a, b) => a.saldo - b.saldo)
     const liq = porCliente(sc.cartera()).filter((c) => c.saldo === 0).sort((a, b) => a.cliente.localeCompare(b.cliente))
     return `${head('Crear crédito', 'Captura la solicitud del cliente y envíala a mesa de control. Aquí también renuevas al ' + PARAM('renovacion_pct', 80) + ' % de pagos.',
-      '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>')}
+      puede('crear_solicitudes') ? '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>' : '')}
       <div class="card panel"><div class="ph"><div><h3>Mis solicitudes</h3><div class="sub">Pendientes y de los últimos 30 días · toca una para verla</div></div><span class="chip">${mias.length}</span></div>
         ${tabla([{ t: 'Cliente', f: (s) => `<b>${esc(s.cliente_nombre)}</b>`, }, { t: 'Tipo', f: (s) => tipoChip(s.tipo) }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Ruta', k: 'ruta' }, { t: 'Estado', f: (s) => estSol(s.estado) }, { t: 'Motivo', f: (s) => esc(s.motivo || '') }], mias)}</div>
       <div class="grid2">
@@ -824,7 +846,7 @@ VIEWS.originacion = {
     }
     pinta()
     $('#oq').addEventListener('input', (e) => pinta(e.target.value))
-    $('#onuevo').addEventListener('click', () => nuevaSolicitud())
+    $('#onuevo')?.addEventListener('click', () => nuevaSolicitud())
     $$('[data-ren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.ren })))
     $$('#view .tbl tbody tr').forEach((tr, i) => { const L = sc.solicitudes().filter((s) => ['borrador', 'revision', 'observada'].includes(s.estado) || (s.creada && s.creada >= addDays(DB.hoy, -30))).sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id); if (L[i]) { tr.classList.add('click'); tr.addEventListener('click', () => detalleSolicitud(L[i].id)) } })
   },
@@ -848,7 +870,7 @@ VIEWS.creditos = {
       const rows = sc.cartera().filter((c) => this.filtro === 'todos' || c.estado === this.filtro || c.tipo === this.filtro).sort((a, b) => b.dias_atraso - a.dias_atraso || b.saldo - a.saldo)
       $('#cnt').textContent = `${NUM.format(rows.length)} créditos`
       $('#tb').innerHTML = rows.slice(0, 250).map((c) => `<tr class="click" data-id="${c.cliente_id}"><td class="muted">#${c.credito_id}</td><td class="strong">${esc(c.cliente)}</td><td>${tipoChip(c.tipo)}</td><td>${esc(c.ruta)}</td><td>${c.fecha_inicio}</td><td class="num">${peso(c.monto)}</td><td class="num">${peso(c.cuota)}</td><td class="num">${c.cuotas_pagadas}/${c.num_cuotas}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.saldo > 0 ? c.dias_atraso + ' d' : '—'}</td><td>${estadoChip(c.estado)}</td>
-        <td class="num">${puedeRenovar(c) ? `<button class="btn ghost sm" type="button" data-ren="${c.credito_id}">Renovar</button>` : ''}</td></tr>`).join('')
+        <td class="num">${puedeRenovar(c) && puede('crear_solicitudes') ? `<button class="btn ghost sm" type="button" data-ren="${c.credito_id}">Renovar</button>` : ''}</td></tr>`).join('')
         || '<tr><td colspan="12"><div class="empty"><b>Sin créditos en este filtro</b></div></td></tr>'
       $$('#tb tr.click').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('[data-ren]')) return; fichaCliente(+tr.dataset.id) }))
       $$('#tb [data-ren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.ren })))
@@ -870,7 +892,7 @@ VIEWS.cobranza = {
       return { ...r, cobrado: sum(hoyR, (x) => x.monto), pagos: sum(hoyR, (x) => x.pagos), prom: p, atN: new Set(at.map((c) => c.cliente_id)).size, atS: sum(at, (c) => c.saldo) }
     })
     const tot = sum(rows, (r) => r.cobrado)
-    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes.', esCampo() ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
+    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes.', puede('registrar_pagos') ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
       <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel"><div class="ph"><h3>Por ruta</h3></div>
@@ -891,7 +913,7 @@ function detalleRuta(rutaId) {
   modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(r.ruta)}</h3><div class="sub">${esc(r.asesor || '')} · ${esc(r.oficina)} · ${L.length} créditos por cobrar</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Cliente</th><th class="num">Cuota</th><th class="num">Debe</th><th class="num">Atraso</th><th>Hoy</th><th></th></tr></thead><tbody>
     ${L.map((c) => `<tr class="click" data-cli="${c.cliente_id}"><td class="strong">${esc(c.cliente)}<div class="muted" style="font-size:12px">${esc(c.colonia || '')} · #${c.credito_id}</div></td><td class="num">${peso(c.cuota)}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.dias_atraso ? c.dias_atraso + ' d' : '—'}</td>
-      <td>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó</span>' : '<span class="st off">Pendiente</span>'}</td><td class="num">${esCampo() ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6"><div class="empty"><b>Sin créditos por cobrar</b></div></td></tr>'}
+      <td>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó</span>' : '<span class="st off">Pendiente</span>'}</td><td class="num">${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6"><div class="empty"><b>Sin créditos por cobrar</b></div></td></tr>'}
     </tbody></table></div>`)
   $$('[data-cli]').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('[data-cobrar]')) return; fichaCliente(+tr.dataset.cli) }))
   $$('[data-cobrar]').forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
@@ -902,9 +924,9 @@ VIEWS.cajas = {
     const hoy = DB.hoy, rec = sc.recaudo(), cerrada = new Date().getHours() >= 18, S = saldos(hoy)
     const ger = DB.gerencias.filter((g) => sc.rutas().some((r) => r.gerencia_id === g.id))
     const segHoy = (rid) => sum(DB.movimientos.filter((m) => m.categoria === 'Seguro' && m.fecha === hoy && m.caja_destino === 'ruta:' + rid), (m) => m.monto)
-    const btns = [esCampo() ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
-      ['asesor', 'gerente'].includes(DB.perfil.rol) || esAdmin() ? '<button class="btn ghost" type="button" id="kgasto">Registrar gasto</button>' : '',
-      esAdmin() || DB.perfil.rol === 'tesoreria' ? '<button class="btn ghost" type="button" id="kteso">Ir a tesorería</button>' : ''].join('')
+    const btns = [puede('registrar_pagos') ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
+      puede('registrar_gastos') ? '<button class="btn ghost" type="button" id="kgasto">Registrar gasto</button>' : '',
+      puede('ver_tesoreria') && (esAdmin() || puede('tesoreria_excedente')) ? '<button class="btn ghost" type="button" id="kteso">Ir a tesorería</button>' : ''].join('')
     return `${head('Cajas', 'Lo que cobra cada asesor entra a su caja; a las 18:00 pasa solo a la caja de su gerente. Lo que se registre después de las 18:00 cuenta para el día siguiente.', btns)}
       <div class="card panel"><h3 class="sec-title">Flujo del efectivo</h3>
         <div class="flow"><div class="node inset"><b>Asesor cobra en ruta</b><span>pagos y seguros entran a su caja</span></div><div class="arr">→</div><div class="node inset"><b>Cierre 18:00</b><span>traslado automático</span></div><div class="arr">→</div><div class="node inset"><b>Caja del gerente</b><span>recibe y resguarda</span></div><div class="arr">→</div><div class="node inset"><b>Banco</b><span>tesorería retira el excedente</span></div></div></div>
@@ -986,7 +1008,7 @@ VIEWS.reportes = {
     const fechas = `<label class="field"><label>Desde</label><input class="ctl" type="date" id="rd" value="${this.desde}" max="${DB.hoy}"></label><label class="field"><label>Hasta</label><input class="ctl" type="date" id="rh" value="${this.hasta}" max="${DB.hoy}"></label>`
     const enRango = (f) => f >= this.desde && f <= this.hasta
     let body = '', exp = null
-    const hdr = (extra = '') => `<div class="ph"><div><h3>${R.t}</h3><div class="sub">${R.d} · ${esc(scopeLabel())}</div></div><div class="toolbar">${extra}<button class="btn ghost" id="bxls" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>Excel</button></div></div>`
+    const hdr = (extra = '') => `<div class="ph"><div><h3>${R.t}</h3><div class="sub">${R.d} · ${esc(scopeLabel())}</div></div><div class="toolbar">${extra}${puede('descargar_excel') ? '<button class="btn ghost" id="bxls" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>Excel</button>' : ''}</div></div>`
     const cEst = [
       { t: 'Al día', k: 'al_dia', num: 1, f: P('al_dia'), tot: T('al_dia') }, { t: 'Atrasado', k: 'atrasado', num: 1, f: P('atrasado'), tot: T('atrasado') },
       { t: 'Alto riesgo', k: 'alto_riesgo', num: 1, f: P('alto_riesgo'), tot: T('alto_riesgo') }, { t: 'Vencido', k: 'vencido', num: 1, f: P('vencido'), tot: T('vencido') },
@@ -1130,6 +1152,8 @@ VIEWS.admin = {
           <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y el ámbito que les asignes; puedes desactivarlos en cualquier momento.</div></div>
         <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
           ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
+      el.insertAdjacentHTML('beforeend', matrizPermisos())
+      $$('[data-perm]').forEach((c) => c.addEventListener('change', () => cambiarPermiso(c)))
       $('#uinv')?.addEventListener('click', invitarUsuario)
       $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
     } else if (this.tab === 'estructura') {
@@ -1372,6 +1396,28 @@ function enviarPeticion() {
   const t = $('#f_texto'); if (t) { const a = document.createElement('textarea'); a.id = 'f_texto'; a.className = 'ctl'; a.rows = 4; a.style.cssText = 'width:100%;height:auto;padding:10px 13px;resize:vertical'; a.required = true; t.replaceWith(a) }
 }
 
+// ============================================================ permisos por cargo
+function matrizPermisos() {
+  const dueno = ['dueno', 'soporte'].includes(DB.perfil.rol)
+  const fila = ([k, t]) => `<tr><td class="strong">${t}</td>${CARGOS_PERM.map((r) => `<td class="num"><label class="pchk"><input type="checkbox" data-perm="${r}|${k}"${permitido(r, k) ? ' checked' : ''}${dueno ? '' : ' disabled'} aria-label="${esc(ROLES[r])}: ${esc(t)}"></label></td>`).join('')}</tr>`
+  return `<div class="card panel" id="permisos"><div class="ph"><div><h3>Permisos por cargo</h3><div class="sub">${dueno ? 'Marca o desmarca y se guarda al instante.' : 'Sólo el dueño puede cambiarlos.'} El dueño siempre tiene todo. Cada quien sólo ve la parte de la empresa de su ámbito.</div></div></div>
+    <div class="tablewrap"><table class="tbl matriz"><thead><tr><th>Permiso</th>${CARGOS_PERM.map((r) => `<th class="num">${esc(ROLES[r])}</th>`).join('')}</tr></thead>
+    ${PERMISOS.map(([g, L]) => `<tbody><tr class="grp"><td colspan="${CARGOS_PERM.length + 1}">${g}</td></tr>${L.map(fila).join('')}</tbody>`).join('')}</table></div>
+    <div class="note">Los permisos de «Puede hacer» los revisa también la base de datos: si un cargo no lo tiene, el sistema rechaza la acción. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
+}
+async function cambiarPermiso(c) {
+  const [rol, permiso] = c.dataset.perm.split('|'), v = c.checked
+  if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); c.checked = !v; return }
+  c.disabled = true
+  try {
+    const { error } = await sb.from('permisos').update({ permitido: v, actualizado: new Date().toISOString(), actualizado_por: DB.perfil.id }).eq('rol', rol).eq('permiso', permiso)
+    if (error) throw errorAmigable(error)
+    const x = DB.permisos.find((q) => q.rol === rol && q.permiso === permiso); if (x) x.permitido = v; else DB.permisos.push({ rol, permiso, permitido: v })
+    toast(`${ROLES[rol]}: ${v ? 'puede' : 'ya no puede'} «${PERMISOS.flatMap(([, L]) => L).find(([k]) => k === permiso)[1]}».`)
+  } catch (e) { c.checked = !v; toast(e.userMsg || 'No se pudo guardar el permiso.', 'warn') }
+  c.disabled = false
+}
+
 // ============================================================ altas de estructura y usuarios
 const NIVELES = {
   region: { tabla: 'regiones', nombre: 'Región', resp: 'Gerente regional', padre: null },
@@ -1611,7 +1657,7 @@ VIEWS.normalidad = {
 
 // ============================================================ Proyecciones
 // En la mañana el gerente sube cuánto va a cobrar y colocar cada oficina; en la tarde, lo que logró.
-const puedeProyectar = () => ['gerente', 'zonal', 'regional', 'dueno', 'direccion', 'soporte'].includes(DB.perfil.rol)
+const puedeProyectar = () => puede('capturar_proyecciones')
 VIEWS.proyecciones = {
   fecha: null,
   html() {
@@ -1715,7 +1761,7 @@ VIEWS.tesoreria = {
   periodo: 'mes', tipo: 'todos',
   html() {
     return `${head('Tesorería', 'El dinero de la empresa de punta a punta: socios y bancos, cajas de gerentes, cajas de asesores y cartera en la calle.',
-      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn ghost" type="button" id="tinv">Inversión de capital</button>' : ''}${['dueno', 'soporte'].includes(DB.perfil.rol) ? '<button class="btn ghost" type="button" id="tret">Retiro de utilidades</button>' : ''}${esAdmin() || DB.perfil.rol === 'tesoreria' ? '<button class="btn ghost" type="button" id="texc">Excedente de gerente → banco</button>' : ''}${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Otro movimiento</button>' : ''}`)}
+      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn ghost" type="button" id="tinv">Inversión de capital</button>' : ''}${['dueno', 'soporte'].includes(DB.perfil.rol) ? '<button class="btn ghost" type="button" id="tret">Retiro de utilidades</button>' : ''}${puede('tesoreria_excedente') ? '<button class="btn ghost" type="button" id="texc">Excedente de gerente → banco</button>' : ''}${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Otro movimiento</button>' : ''}`)}
       <section class="kpis" id="tk"></section>
       <div class="card panel"><div class="ph"><div><h3>Flujo del dinero</h3><div class="sub" id="tflsub"></div></div></div><div class="flow" id="tflow"></div></div>
       <div class="grid2">
