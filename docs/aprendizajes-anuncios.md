@@ -14,6 +14,26 @@ Este archivo es la memoria de lo que funciona y lo que no en los anuncios de NXU
 - ¿NY (zonas hispanas, idioma español) cuesta más por cita que MX? Comparar en el panel con el filtro de campaña.
 - ¿Un video de Eduardo a cámara baja el costo por cita frente a los videos con voz de IA?
 
+## Ronda 2 · corte del 17 nov 2026 (campañas v2 desde el 8 nov, datos de HQ + Meta)
+Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la semana 9–15 nov guardada en `anuncios_semanas`.
+
+| Anuncio | Gastado | Impresiones | CPM aprox. | Gancho 3 s | Lo terminan* | Chats | Leads HQ | Reales | Citas | Meet |
+|---|---|---|---|---|---|---|---|---|---|---|
+| MX A · 11:48 | $65.11 | 7,957 | $8 | 15.2% | 14.4% | 4 | 0 | 0 | 0 | 0 |
+| MX B · Empleado | $82.56 | 6,592 | $13 | 17.9% | 19.8% | 1 | 0 | 0 | 0 | 0 |
+| MX C · Sucursales | $51.75 | 4,097 | $13 | 14.3% | 15.1% | 2 | 1 | 1 | 1 | 1 |
+| NY A · 11:48 | $60.74 | 766 | $79 | 23.0% | 33.0% | 2 | 1 | 0 | 0 | 0 |
+| NY B · Empleado | $87.02 | 978 | $89 | 26.9% | 27.8% | 3 | 0 | 0 | 0 | 0 |
+| NY C · Sucursales | $68.96 | 1,081 | $64 | 17.8% | 25.5% | 1 | 0 | 0 | 0 | 0 |
+*Lo terminan = thruplays / vistas de 3 s.
+
+- **MX: $199.42 → 1 cita que llegó al Meet (propuesta enviada).** Única cita de la ronda; vino de MX C (Sucursales) con el menor gasto de MX. MX B gastó más ($82.56) con 1 chat: el peor.
+- **NY: $216.72 → 0 personas reales.** El gancho de NY es el mejor (23–27 %) pero cada mil impresiones cuesta $64–89 (MX: $8–13). El público de NY (códigos postales + idioma español) es tan chico que Meta casi no encuentra a quién mostrarlo. **Lección: en NY el problema es el público, no el video.**
+- **De chat a HQ se pierde casi todo:** 13 chats en Meta → 2 leads en HQ. 11 conversaciones no tocaron el primer botón (robots o personas que no siguen). Revisar en ManyChat cuántos tienen la etiqueta robot-autorespuesta antes de cambiar el saludo.
+- Hipótesis "Video A tiene mejor gancho": ❌ en MX fue el más bajo (15.2 %); en NY fue el 2.º.
+- Tope de $300 por campaña: MX va en ~$199 y NY en ~$217 → se detienen solas alrededor del 21–23 nov.
+- RECOMENDACIÓN para la ronda 3: (1) concentrar el dinero en MX; (2) NY no repetir igual: público más amplio (área metro NY/NJ completa, sin códigos postales sueltos) o pausar NY hasta tener ganador en MX; (3) mantener la idea "Sucursales" y probar "Pruébelo en vivo" y "Todo en uno"; (4) revisar el primer mensaje de ManyChat (11 de 13 chats no avanzaron).
+
 ## Cómo se actualiza
 0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
