@@ -195,29 +195,36 @@ join public.regiones rg on rg.id = z.region_id;
 
 -- Estados de cartera (criterio provisional, por confirmar con el cliente):
 -- al día 0 días · atrasado 1–7 · alto riesgo 8–30 · vencido +30 · liquidado saldo 0
-drop view if exists public.v_cartera;
-create view public.v_cartera with (security_invoker = true) as
-select c.id as credito_id, c.monto, c.total_pagar, c.cuota, c.frecuencia, c.num_cuotas,
-       c.fecha_inicio, c.cuotas_pagadas, c.saldo, c.dias_atraso, c.ultimo_pago,
-       case when c.saldo = 0 then 'liquidado'
-            when c.dias_atraso = 0 then 'al_dia'
-            when c.dias_atraso <= 7 then 'atrasado'
-            when c.dias_atraso <= 30 then 'alto_riesgo'
-            else 'vencido' end as estado,
-       c.es_demo,
-       cl.id as cliente_id, cl.codigo, cl.nombre as cliente, cl.colonia,
-       vr.*
-from public.creditos c
-join public.clientes cl on cl.id = c.cliente_id
-join public.v_rutas vr on vr.ruta_id = cl.ruta_id;
+-- Si ya se corrió 05_reunion_16nov.sql, sus vistas (más completas) se respetan.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'creditos' and column_name = 'tipo') then
+    return;
+  end if;
+  drop view if exists public.v_cartera;
+  create view public.v_cartera with (security_invoker = true) as
+  select c.id as credito_id, c.monto, c.total_pagar, c.cuota, c.frecuencia, c.num_cuotas,
+         c.fecha_inicio, c.cuotas_pagadas, c.saldo, c.dias_atraso, c.ultimo_pago,
+         case when c.saldo = 0 then 'liquidado'
+              when c.dias_atraso = 0 then 'al_dia'
+              when c.dias_atraso <= 7 then 'atrasado'
+              when c.dias_atraso <= 30 then 'alto_riesgo'
+              else 'vencido' end as estado,
+         c.es_demo,
+         cl.id as cliente_id, cl.codigo, cl.nombre as cliente, cl.colonia,
+         vr.*
+  from public.creditos c
+  join public.clientes cl on cl.id = c.cliente_id
+  join public.v_rutas vr on vr.ruta_id = cl.ruta_id;
 
-create or replace view public.v_recaudo_diario with (security_invoker = true) as
-select p.fecha, cl.ruta_id, sum(p.monto)::numeric(14,2) as monto, count(*) as pagos
-from public.pagos p
-join public.creditos c on c.id = p.credito_id
-join public.clientes cl on cl.id = c.cliente_id
-where p.fecha >= current_date - 400
-group by p.fecha, cl.ruta_id;
+  create or replace view public.v_recaudo_diario with (security_invoker = true) as
+  select p.fecha, cl.ruta_id, sum(p.monto)::numeric(14,2) as monto, count(*) as pagos
+  from public.pagos p
+  join public.creditos c on c.id = p.credito_id
+  join public.clientes cl on cl.id = c.cliente_id
+  where p.fecha >= current_date - 400
+  group by p.fecha, cl.ruta_id;
+end $$;
 
 grant select on public.v_rutas, public.v_cartera, public.v_recaudo_diario to authenticated;
 revoke all on public.v_rutas, public.v_cartera, public.v_recaudo_diario from anon;

@@ -1,6 +1,8 @@
 -- Borra TODOS los datos de ejemplo (es_demo = true) antes de importar la
 -- información real. No toca usuarios ni datos reales.
 begin;
+delete from public.proyecciones where es_demo;
+delete from public.personal where es_demo;
 delete from public.movimientos_tesoreria where es_demo;
 delete from public.cuentas_bancarias where es_demo;
 delete from public.pagos where es_demo;

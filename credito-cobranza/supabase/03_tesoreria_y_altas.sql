@@ -92,8 +92,11 @@ begin
   end loop;
   -- Altas y ediciones de estructura y tesorería: sólo administradores
   foreach t in array array['regiones','zonas','gerencias','oficinas','rutas','cuentas_bancarias','movimientos_tesoreria'] loop
-    execute format('drop policy if exists alta_admin on public.%I', t);
-    execute format('create policy alta_admin on public.%I for insert to authenticated with check (public.es_administrador())', t);
+    -- Si ya se corrió 05_reunion_16nov.sql, su regla de altas de tesorería (más estricta) se respeta.
+    if not (t = 'movimientos_tesoreria' and exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'alta_tesoreria')) then
+      execute format('drop policy if exists alta_admin on public.%I', t);
+      execute format('create policy alta_admin on public.%I for insert to authenticated with check (public.es_administrador())', t);
+    end if;
     execute format('drop policy if exists editar_admin on public.%I', t);
     execute format('create policy editar_admin on public.%I for update to authenticated using (public.es_administrador()) with check (public.es_administrador())', t);
   end loop;
