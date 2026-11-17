@@ -34,6 +34,14 @@ Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la sem
 - Tope de $300 por campaña: MX va en ~$199 y NY en ~$217 → se detienen solas alrededor del 21–23 nov.
 - RECOMENDACIÓN para la ronda 3: (1) concentrar el dinero en MX; (2) NY no repetir igual: público más amplio (área metro NY/NJ completa, sin códigos postales sueltos) o pausar NY hasta tener ganador en MX; (3) mantener la idea "Sucursales" y probar "Pruébelo en vivo" y "Todo en uno"; (4) revisar el primer mensaje de ManyChat (11 de 13 chats no avanzaron).
 
+## Anuncio de octubre que trajo al primer cliente de México (analizado el 17 nov 2026)
+"¿Sabes dónde está tu repartidor AHORA?" · cuenta Eduardo's · campaña "[12/10/2026] Promoción de…" · 12–16 oct · lo hizo una socia de NXUS México.
+- Video vertical de 10 s, animación collage (morado/azul, sin personas), pregunta grande en pantalla desde el segundo 0; texto sobre rastrear repartidores y entregas; botón Send message a Messenger.
+- $120.55 · 67,997 impresiones · CPM $1.77 · 27 conversaciones a $4.46 · gancho 34 % · 16 % lo ve completo · 78 % hombres (35–44 el grupo mayor).
+- Resultado: 2–3 personas reales y 1 cliente: Nexus Capital MX (financiera con asesores de ruta). Contexto del cliente: `docs/cliente-nexus-capital-ads.md`.
+- Lecciones: (1) los clientes grandes llegan por problemas de OPERACIÓN (equipo en la calle, rutas, sucursales, control), no por "chatbot"; (2) video corto con la pregunta grande desde el segundo 0 (34 % de gancho vs 14–27 % en la ronda 1); (3) FB Reels el más barato ($1.45 por conversación), reel in-stream el más caro ($9.16, 38 % del gasto) → ubicaciones manuales sin in-stream; (4) hipótesis: con el filtro de botones se puede abrir el público a CDMX + Edomex completos para bajar el costo.
+- Ojo: ese anuncio tiene "Unpublished edits" (un borrador ligado al flujo "Anuncio NY · Video C · FB"). No publicarlo.
+
 ## Cómo se actualiza
 0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.

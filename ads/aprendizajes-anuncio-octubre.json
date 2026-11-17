@@ -1,0 +1,49 @@
+{
+  "borrarRegistros": [{ "semana": "2026-10-01", "camp": "MX", "anuncio": "PROMO-OCT" }],
+  "registros": [
+    {
+      "semana": "2026-10-12", "hasta": "2026-10-16", "camp": "MX", "anuncio": "PROMO-OCT",
+      "nombre": "Octubre · \"¿Sabes dónde está tu repartidor AHORA?\" (trajo a Nexus Capital)",
+      "campana": "[12/10/2026] Promoción de… · Mensajes · Advantage+ abierto CDMX+Edomex",
+      "gasto": 120.55, "impresiones": 67997, "alcance": 57335, "vistas3s": 15269, "thruplays": 7374,
+      "clics": 946, "conversaciones": 27, "frecuencia": 1.19, "reales": 2, "agendo": 1, "asistio": 1, "cliente": 1
+    }
+  ],
+  "aprendizajes": [
+    {
+      "fecha": "2026-11-06", "tipo": "ronda", "estado": "confirmado", "fuente": "Diagnóstico del 6 nov + análisis del 17 nov",
+      "titulo": "Anuncios viejos de octubre: $330.90 y casi puros robots",
+      "texto": "Video Rest MX 1 y Video Rest 2 MX: objetivo Leads con Advantage+ leads campaign, destino DM de Instagram, ~$25/día cada uno. $210.35 gastados, 0 leads, 0 personas reales; ~25 conversaciones que eran respuestas automáticas de otros negocios.\nPromoción de octubre (12–16 oct, \"¿Sabes dónde está tu repartidor AHORA?\"): $120.55, 27 conversaciones a $4.46, 2 o 3 personas reales, y UNA de ellas fue el primer cliente de México (Nexus Capital, financiera). Ver su ficha aparte.\nCausas de los robots: público Advantage+ abierto, saludo de Meta sin botones, ManyChat con \"contiene INFO\", mejoras automáticas prendidas. Pausados el 8 nov."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "ronda", "estado": "confirmado", "fuente": "Análisis de la extensión (Ads Manager) 17 nov",
+      "titulo": "Octubre · \"¿Sabes dónde está tu repartidor AHORA?\": el anuncio que trajo a Nexus Capital",
+      "texto": "Cuenta Eduardo's · campaña \"[12/10/2026] Promoción de…\" · anuncio \"Promoción del sitio web\". Lo hizo una socia de NXUS México. Corrió 12–16 oct (3.3 días), Mensajes a Messenger, $120.55 (~$37/día, presupuesto de campaña).\nCreativo: video vertical de 10 s, animación tipo collage (papel rasgado, cinta, recortes) morado/azul, sin personas. Segundo 0: celular con mapa de rutas y la pregunta grande \"¿Sabes dónde está tu repartidor AHORA?\"; luego moto en ruta, \"Coordenadas en tiempo real\", pin, \"Certeza absoluta\", \"Entregado\"; cierre: \"Con NXUS AI tú lo ves, y tu cliente también\" + logo.\nTexto: \"🚚 ¿Tu empresa todavía necesita llamar para saber dónde van sus entregas?…\" Visibilidad de rutas, seguimiento de pedidos, control de la operación. Botón Send message. Sin precio ni oferta.\nPúblico: CDMX y Naucalpan +40 km y Edomex, 18–65+, Advantage+ audience, sin intereses, ubicaciones automáticas.\nResultados: 67,997 impresiones, 57,335 personas, CPM $1.77, 27 conversaciones a $4.46, gancho 34 % (3 s / impresiones), 47.8 % de los que pasan 3 s llegan a ThruPlay, 16 % lo ve completo. 78 % de las conversaciones fueron hombres ($3.89 c/u), más en 35–44.\nPor ubicación: FB Reels 4 a $1.45 y notificaciones 2 a $0.76 (lo más barato); FB reel in-stream 5 a $9.16 y se llevó el 38 % del gasto (lo más caro).\nResultado de negocio: 2–3 personas reales y 1 cliente: una financiera con asesores de ruta (Nexus Capital MX)."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "regla", "estado": "confirmado", "fuente": "Anuncio de octubre que trajo a Nexus Capital",
+      "titulo": "Los clientes grandes llegan por problemas de OPERACIÓN, no por \"chatbot\"",
+      "texto": "El anuncio que trajo al primer cliente de México no hablaba de IA que contesta mensajes: hablaba de saber dónde está tu equipo en la calle (rutas, entregas, certeza). Lo vio una financiera con asesores de ruta y le aplicó. Igual que el laboratorio dental llegó por \"varias sucursales\". Patrón: los negocios que sí compran tienen operación grande (equipo en campo, rutas, sucursales) y buscan control. NXUS vende soluciones a la medida, no solo chat."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "regla", "estado": "confirmado", "fuente": "Anuncio de octubre vs ronda 1",
+      "titulo": "Video corto con la pregunta grande desde el segundo 0",
+      "texto": "Octubre: 10 s, pregunta en pantalla desde el segundo 0, animación llamativa → gancho 34 %. Ronda 1 (30–34 s): gancho 14–27 %. En ambos casos la mitad se va antes del segundo 3: el inicio y la duración pesan más que el resto."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "regla", "estado": "confirmado", "fuente": "Anuncio de octubre",
+      "titulo": "Ubicaciones: Reels baratos, reel in-stream caro",
+      "texto": "Con ubicaciones automáticas, FB reel in-stream se llevó el 38 % del gasto a $9.16 por conversación; FB Reels salió a $1.45 e IG Reels a $3.06. Mantener ubicaciones manuales (Feed, Stories, Reels) y fuera in-stream."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "hipotesis", "estado": "pendiente", "fuente": "Octubre vs ronda 1",
+      "titulo": "¿Público más amplio + filtro de botones = más barato sin robots?",
+      "texto": "Octubre (CDMX+Edomex abierto) costó $1.77 por mil impresiones; la ronda 1 (pines de 1 milla, 30+) costó $8–13 en MX y $64–89 en NY. Con el filtro de botones de ManyChat los robots ya no pasan, así que se puede abrir un poco el público (CDMX + Edomex completos, 30+, sin intereses) para bajar el costo, cuidando que no se prendan las mejoras automáticas."
+    },
+    {
+      "fecha": "2026-11-17", "tipo": "hipotesis", "estado": "pendiente", "fuente": "Octubre",
+      "titulo": "¿Los hombres 35–54 son el público que responde?",
+      "texto": "En octubre, 78 % de las conversaciones fueron hombres y más barato ($3.89 vs $7.59). No limitar por sexo todavía: revisar en la ronda 2 el desglose por sexo y edad de las PERSONAS REALES y citas, no solo de las conversaciones."
+    }
+  ]
+}
