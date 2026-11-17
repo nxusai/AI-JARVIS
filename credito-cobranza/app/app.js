@@ -1152,8 +1152,7 @@ VIEWS.admin = {
           <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y el ámbito que les asignes; puedes desactivarlos en cualquier momento.</div></div>
         <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
           ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
-      el.insertAdjacentHTML('beforeend', matrizPermisos())
-      $$('[data-perm]').forEach((c) => c.addEventListener('change', () => cambiarPermiso(c)))
+      el.insertAdjacentHTML('beforeend', '<div id="permisos"></div>'); pintarPermisos()
       $('#uinv')?.addEventListener('click', invitarUsuario)
       $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
     } else if (this.tab === 'estructura') {
@@ -1397,13 +1396,31 @@ function enviarPeticion() {
 }
 
 // ============================================================ permisos por cargo
+// Explicación corta de cada permiso (lo que ve el dueño)
+const PERM_DESC = {
+  ver_tablero: 'Resumen de la cartera, normalidad y cobranza del día', ver_clientes: 'Lista de clientes y su expediente', ver_originacion: 'Pantalla para capturar créditos nuevos y renovaciones',
+  ver_solicitudes: 'Solicitudes en revisión, aprobadas y rechazadas', ver_creditos: 'Todos los créditos con su saldo y atraso', ver_cobranza: 'Lo cobrado por ruta y los clientes por cobrar',
+  ver_normalidad: 'Porcentaje de cartera al día y comparativos', ver_proyecciones: 'Metas y logros de cada oficina', ver_cajas: 'Dinero en la caja de cada asesor y gerente',
+  ver_tesoreria: 'Bancos, flujo del dinero y movimientos', ver_reportes: 'Reportes de cartera, comisiones y seguros',
+  registrar_pagos: 'Cobrar a los clientes desde el celular', crear_solicitudes: 'Capturar créditos nuevos, renovaciones y recompras', resolver_solicitudes: 'Aprobar, observar, rechazar o cancelar solicitudes',
+  registrar_gastos: 'Gasolina, papelería y otros gastos de su caja', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
+  capturar_proyecciones: 'Subir la meta de la mañana y el logro de la tarde', subir_documentos: 'INE, comprobantes y fotos del expediente', descargar_excel: 'Bajar los reportes a Excel',
+}
+let permCargo = 'asesor'
 function matrizPermisos() {
-  const dueno = ['dueno', 'soporte'].includes(DB.perfil.rol)
-  const fila = ([k, t]) => `<tr><td class="strong">${t}</td>${CARGOS_PERM.map((r) => `<td class="num"><label class="pchk"><input type="checkbox" data-perm="${r}|${k}"${permitido(r, k) ? ' checked' : ''}${dueno ? '' : ' disabled'} aria-label="${esc(ROLES[r])}: ${esc(t)}"></label></td>`).join('')}</tr>`
-  return `<div class="card panel" id="permisos"><div class="ph"><div><h3>Permisos por cargo</h3><div class="sub">${dueno ? 'Marca o desmarca y se guarda al instante.' : 'Sólo el dueño puede cambiarlos.'} El dueño siempre tiene todo. Cada quien sólo ve la parte de la empresa de su ámbito.</div></div></div>
-    <div class="tablewrap"><table class="tbl matriz"><thead><tr><th>Permiso</th>${CARGOS_PERM.map((r) => `<th class="num">${esc(ROLES[r])}</th>`).join('')}</tr></thead>
-    ${PERMISOS.map(([g, L]) => `<tbody><tr class="grp"><td colspan="${CARGOS_PERM.length + 1}">${g}</td></tr>${L.map(fila).join('')}</tbody>`).join('')}</table></div>
-    <div class="note">Los permisos de «Puede hacer» los revisa también la base de datos: si un cargo no lo tiene, el sistema rechaza la acción. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
+  const dueno = ['dueno', 'soporte'].includes(DB.perfil.rol), r = permCargo
+  const fila = ([k, t]) => `<label class="perm inset${dueno ? '' : ' ro'}"><span><b>${t}</b><small>${PERM_DESC[k] || ''}</small></span>
+    <span class="sw"><input type="checkbox" data-perm="${r}|${k}"${permitido(r, k) ? ' checked' : ''}${dueno ? '' : ' disabled'} aria-label="${esc(t)}"><i></i></span></label>`
+  return `<div class="card panel" id="permisos"><div class="ph"><div><h3>Permisos por cargo</h3><div class="sub">${dueno ? 'Elige un cargo y enciende o apaga lo que puede ver y hacer. Se guarda al instante.' : 'Sólo el dueño puede cambiarlos.'} El dueño siempre tiene todo.</div></div></div>
+    <div class="field sel" style="display:block"><label for="pcargo">Cargo</label><select class="ctl" id="pcargo" style="width:100%">${CARGOS_PERM.map((x) => `<option value="${x}"${x === r ? ' selected' : ''}>${esc(ROLES[x])}</option>`).join('')}</select></div>
+    ${PERMISOS.map(([g, L]) => `<h3 class="sec-title" style="margin-top:4px">${g}</h3><div class="perms">${L.map(fila).join('')}</div>`).join('')}
+    <div class="note">Cada quien sólo ve la parte de la empresa de su ámbito. Lo de «Puede hacer» también lo revisa la base de datos: si el cargo no lo tiene, el sistema lo rechaza. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
+}
+function pintarPermisos() {
+  const el = document.getElementById('permisos'); if (!el) return
+  el.outerHTML = matrizPermisos()
+  document.getElementById('pcargo').addEventListener('change', (e) => { permCargo = e.target.value; pintarPermisos() })
+  document.querySelectorAll('[data-perm]').forEach((c) => c.addEventListener('change', () => cambiarPermiso(c)))
 }
 async function cambiarPermiso(c) {
   const [rol, permiso] = c.dataset.perm.split('|'), v = c.checked
