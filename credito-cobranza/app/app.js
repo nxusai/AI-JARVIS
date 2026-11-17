@@ -1311,7 +1311,7 @@ function ambitoOpciones() {
     ...E.gerencias.map((x) => ['gerencia:' + x.id, 'Gerencia · ' + x.nombre]), ...E.oficinas.map((x) => ['oficina:' + x.id, 'Oficina · ' + x.nombre]), ...E.rutas.map((x) => ['ruta:' + x.id, 'Ruta · ' + x.nombre])]
 }
 function ambitoNombre(a) { return (ambitoOpciones().find(([v]) => v === a) || [a, a])[1] }
-const cargoOpciones = () => Object.entries(ROLES).filter(([k]) => !['soporte', 'dueno'].includes(k) || (k === 'dueno' && DB.perfil.rol === 'soporte'))
+const cargoOpciones = () => Object.entries(ROLES).filter(([k]) => !['soporte', 'dueno'].includes(k) || (k === 'dueno' && ['soporte', 'dueno'].includes(DB.perfil.rol)))
 function editarUsuario(u) {
   if (!u) return
   formModal({

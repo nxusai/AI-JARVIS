@@ -424,6 +424,13 @@ create policy admin_alta on public.personal for insert to authenticated with che
 drop policy if exists admin_editar on public.personal;
 create policy admin_editar on public.personal for update to authenticated using (public.es_administrador()) with check (public.es_administrador());
 
+-- Usuarios: sólo soporte o el dueño pueden dar el cargo de dueño
+drop policy if exists editar_perfiles on public.perfiles;
+create policy editar_perfiles on public.perfiles for update to authenticated
+  using (public.es_administrador() and id <> auth.uid() and (rol <> 'soporte' or public.mi_rol() = 'soporte')
+         and (rol <> 'dueno' or public.mi_rol() in ('dueno', 'soporte')))
+  with check (public.es_administrador() and rol <> 'soporte' and (rol <> 'dueno' or public.mi_rol() in ('dueno', 'soporte')));
+
 -- Peticiones de mejora: cualquiera manda; las ve quien las mandó, el dueño y soporte
 drop policy if exists mandar on public.peticiones;
 create policy mandar on public.peticiones for insert to authenticated

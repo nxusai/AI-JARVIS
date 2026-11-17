@@ -3,7 +3,9 @@
 // Netlify (SUPABASE_SECRET_KEY). La página nunca la ve.
 // Sólo un administrador activo (dueño, dirección o soporte) puede invitar.
 
-const ROLES = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'consulta']
+const ROLES = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'tesoreria', 'consulta']
+// El cargo de dueño sólo lo puede dar soporte NXUS o el mismo dueño.
+const ROLES_DUENO = [...ROLES, 'dueno']
 const AMBITO = /^empresa$|^(region|zona|gerencia|oficina|ruta):[0-9]+$/
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -34,7 +36,9 @@ export default async (req) => {
   const nombre = String(v.nombre || '').trim().slice(0, 120), correo = String(v.correo || '').trim().toLowerCase()
   const rol = String(v.rol || ''), ambito = String(v.ambito || 'empresa')
   if (!nombre || !CORREO.test(correo)) return resp(400, { error: 'Revisa el nombre y el correo.' })
-  if (!ROLES.includes(rol) || !AMBITO.test(ambito)) return resp(400, { error: 'Cargo o ámbito no válido.' })
+  const permitidos = ['dueno', 'soporte'].includes(perfil.rol) ? ROLES_DUENO : ROLES
+  if (!permitidos.includes(rol) || !AMBITO.test(ambito)) return resp(400, { error: 'Cargo o ámbito no válido.' })
+  if (rol === 'dueno' && ambito !== 'empresa') return resp(400, { error: 'El dueño ve toda la empresa: elige «Toda la empresa».' })
 
   const origin = new URL(req.url).origin
   const inv = await fetch(`${url}/auth/v1/invite`, { method: 'POST', headers: adm, body: JSON.stringify({ email: correo, data: { nombre }, redirect_to: origin }) })
