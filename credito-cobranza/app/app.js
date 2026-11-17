@@ -28,8 +28,11 @@ const ESTADOS = [
 const ESTADO = Object.fromEntries([...ESTADOS, { k: 'liquidado', n: 'Liquidado', c: '#8892a6', s: 'pagado', st: 'off' }].map((e) => [e.k, e]))
 const ROLES = {
   dueno: 'Dueño', direccion: 'Dirección', regional: 'Gerente regional', zonal: 'Gerente zonal', gerente: 'Gerente',
-  asesor: 'Asesor de crédito', mesa: 'Mesa de control', consulta: 'Consulta / auditoría', soporte: 'Soporte NXUS',
+  asesor: 'Asesor de crédito', mesa: 'Mesa de control', tesoreria: 'Tesorería', consulta: 'Consulta / auditoría', soporte: 'Soporte NXUS',
 }
+const CAMPO_ROLES = ['asesor', 'gerente', 'zonal', 'regional', 'dueno', 'direccion', 'soporte']
+const TIPO = { nuevo: 'Nuevo', renovacion: 'Renovación', recompra: 'Recompra' }
+const tipoChip = (t) => `<span class="chip ${t === 'renovacion' ? 'g' : t === 'recompra' ? 'a' : ''}">${TIPO[t] || 'Nuevo'}</span>`
 const ADMIN_ROLES = ['dueno', 'direccion', 'soporte']
 const PER = { semanal: 7, quincenal: 15, mensual: 30 }
 const ICON = {
@@ -43,11 +46,13 @@ const ICON = {
   importar: '<path d="M12 3v12M8 11l4 4 4-4M4 21h16"/>',
   normalidad: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   tesoreria: '<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
+  originacion: '<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',
+  proyecciones: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
 }
 const NAV = [
-  ['h', 'Operación'], ['tablero', 'Tablero'], ['clientes', 'Clientes'], ['solicitudes', 'Solicitudes'], ['creditos', 'Créditos'],
-  ['cobranza', 'Cobranza'], ['normalidad', 'Normalidad'], ['cajas', 'Cajas'], ['tesoreria', 'Tesorería'], ['reportes', 'Reportes'],
+  ['h', 'Operación'], ['tablero', 'Tablero'], ['clientes', 'Clientes'], ['originacion', 'Crear crédito'], ['solicitudes', 'Solicitudes'], ['creditos', 'Créditos'],
+  ['cobranza', 'Cobranza'], ['normalidad', 'Normalidad'], ['proyecciones', 'Proyecciones'], ['cajas', 'Cajas'], ['tesoreria', 'Tesorería'], ['reportes', 'Reportes'],
   ['h', 'Sistema'], ['importar', 'Importar datos'], ['admin', 'Administración'],
 ]
 
@@ -136,7 +141,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -146,8 +151,10 @@ async function loadRaw(perfil) {
     opt('perfiles', (q) => q.order('creado')),
     opt('regiones', (q) => q.order('id')), opt('zonas', (q) => q.order('id')), opt('gerencias', (q) => q.order('id')),
     opt('oficinas', (q) => q.order('id')), opt('rutas', (q) => q.order('id')),
+    opt('v_pagos', (q) => q.order('fecha').order('id')), opt('parametros', (q) => q), opt('proyecciones', (q) => q.gte('fecha', addDays(iso(new Date()), -120)).order('fecha')),
+    opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -177,7 +184,8 @@ async function loadAndShow(session) {
 function prep(raw) {
   const rutas = raw.rutas || []
   const R = Object.fromEntries(rutas.map((r) => [r.ruta_id, r]))
-  const cartera = (raw.cartera || []).map((c) => ({ ...c, monto: +c.monto, saldo: +c.saldo, cuota: +c.cuota, total_pagar: +c.total_pagar }))
+  const cartera = (raw.cartera || []).map((c) => ({ ...c, monto: +c.monto, saldo: +c.saldo, cuota: +c.cuota, total_pagar: +c.total_pagar,
+    tipo: c.tipo || 'nuevo', entregado: c.entregado != null ? +c.entregado : +c.monto - (+c.descuento_renovacion || 0), seguro: +c.seguro || 0, descuento_renovacion: +c.descuento_renovacion || 0 }))
   const recaudo = (raw.recaudo || []).map((p) => ({ ...p, monto: +p.monto, ...(R[p.ruta_id] || {}) }))
   const solicitudes = (raw.solicitudes || []).map((s) => ({ ...s, monto: +s.monto, ...(R[s.ruta_id] || {}) }))
   const uniq = (key, name, extra = () => ({})) => {
@@ -186,6 +194,10 @@ function prep(raw) {
   const movimientos = (raw.movimientos || []).map((m) => ({ ...m, monto: +m.monto }))
   return {
     rutas, R, cartera, recaudo, solicitudes, perfil: raw.perfil || {}, movimientos, cuentas: raw.cuentas || [], perfiles: raw.perfiles || [],
+    pagos: (raw.pagos || []).map((x) => ({ ...x, monto: +x.monto })),
+    param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
+    proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
+    personal: raw.personal || [], peticiones: raw.peticiones || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
     demo: cartera.some((c) => c.es_demo) || solicitudes.some((s) => s.es_demo),
@@ -215,6 +227,46 @@ const sc = {
   rutas: () => DB.rutas.filter(inScope),
   solicitudes: () => DB.solicitudes.filter(inScope),
 }
+const PARAM = (k, d = null) => (DB.param && DB.param[k] != null ? DB.param[k] : d)
+const dias = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5)
+const lunes = (d) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return iso(x) }
+const fechaCorta = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+const esCampo = () => CAMPO_ROLES.includes(DB.perfil.rol)
+// Al día = menos días de atraso que el umbral (parámetro, 1 por omisión)
+const alDia = (c) => c.saldo > 0 && c.dias_atraso < PARAM('atraso_dias', 1)
+// Normalidad en dinero (fórmula del dueño): cartera al día ÷ cartera total × 100
+function normalidadHoy(rows) {
+  const act = rows.filter((c) => c.saldo > 0), tot = sum(act, (c) => c.saldo), ok = sum(act.filter(alDia), (c) => c.saldo)
+  return { tot, ok, p: tot ? (ok / tot) * 100 : 0 }
+}
+// Historia: reconstruye el saldo y el atraso de cada crédito en cada fecha con sus pagos
+const _hist = new Map()
+function historiaNormalidad(fechas, clave = '') {
+  const key = SCOPE + '|' + clave + '|' + fechas[0] + '|' + fechas[fechas.length - 1] + '|' + fechas.length
+  if (_hist.has(key)) return _hist.get(key)
+  const umbral = PARAM('atraso_dias', 1)
+  const porCredito = new Map()
+  DB.pagos.forEach((x) => { let L = porCredito.get(x.credito_id); if (!L) porCredito.set(x.credito_id, (L = [])); L.push(x) })
+  const out = new Map(fechas.map((d) => [d, { tot: 0, ok: 0 }]))
+  const orden = [...fechas].sort()
+  sc.cartera().forEach((c) => {
+    const ps = (porCredito.get(c.credito_id) || []).slice().sort((a, b) => a.fecha.localeCompare(b.fecha))
+    const per = PER[c.frecuencia] || 7, pagadoHoy = c.total_pagar - c.saldo
+    let despues = sum(ps, (x) => x.monto), i = 0
+    for (const d of orden) {
+      while (i < ps.length && ps[i].fecha <= d) { despues -= ps[i].monto; i++ }
+      if (d < c.fecha_inicio) continue
+      const pagado = pagadoHoy - despues, saldo = c.total_pagar - pagado
+      if (saldo <= 0.5) continue
+      const esperadas = Math.min(c.num_cuotas, Math.floor(dias(c.fecha_inicio, d) / per))
+      const pagadas = Math.floor(pagado / c.cuota + 1e-4)
+      const atraso = pagadas >= esperadas ? 0 : Math.max(1, dias(addDays(c.fecha_inicio, (pagadas + 1) * per), d))
+      const o = out.get(d); o.tot += saldo; if (atraso < umbral) o.ok += saldo
+    }
+  })
+  _hist.set(key, out)
+  return out
+}
 function scopeLabel() {
   if (SCOPE === 'emp') return 'toda la empresa'
   const [nivel, id] = SCOPE.split(':')
@@ -232,9 +284,9 @@ function porCliente(rows) {
   const m = new Map()
   rows.forEach((c) => {
     let x = m.get(c.cliente_id)
-    if (!x) { x = { ...c, creditos: 0, activos: 0, saldo: 0, prestado: 0, dias: 0 }; m.set(c.cliente_id, x) }
+    if (!x) { x = { ...c, creditos: 0, activos: 0, saldo: 0, prestado: 0, base: 0, dias: 0 }; m.set(c.cliente_id, x) }
     x.creditos++; x.prestado += c.monto
-    if (c.saldo > 0) { x.activos++; x.saldo += c.saldo; x.dias = Math.max(x.dias, c.dias_atraso) }
+    if (c.saldo > 0) { x.activos++; x.saldo += c.saldo; x.base += c.monto; x.dias = Math.max(x.dias, c.dias_atraso) }
   })
   return [...m.values()].map((x) => ({ ...x, estado: x.saldo > 0 ? estadoDeDias(x.dias) : 'liquidado' }))
 }
@@ -274,9 +326,15 @@ function showApp() {
   $('#nav').innerHTML = nav.map(([k, t]) => k === 'h' ? `<div class="nav-h">${t}</div>`
     : `<a data-view="${k}" class="${k === VIEW ? 'on' : ''}"><svg class="ic" viewBox="0 0 24 24">${ICON[k]}</svg>${t}${tag(k)}</a>`).join('')
   $$('#nav a').forEach((a) => a.addEventListener('click', () => go(a.dataset.view)))
+  if (!$('#btnPeticion')) {
+    const b = document.createElement('button'); b.id = 'btnPeticion'; b.type = 'button'; b.className = 'btn ghost peticion'
+    b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Enviar petición'
+    b.addEventListener('click', () => { cerrarMenu(); enviarPeticion() }); $('.side-foot').prepend(b)
+  }
   // Celular: 4 secciones principales abajo + «Más» (guías de iOS y Android: 3 a 5 destinos)
-  const tabs = (DB.perfil.rol === 'asesor' ? ['tablero', 'cobranza', 'clientes', 'cajas'] : ['tablero', 'cobranza', 'normalidad', 'reportes']).filter((k) => ok.includes(k))
-  const corto = { tablero: 'Inicio', cobranza: 'Cobranza', clientes: 'Clientes', cajas: 'Mi caja', normalidad: 'Normalidad', reportes: 'Reportes' }
+  const tabs = ({ asesor: ['tablero', 'cobranza', 'originacion', 'cajas'], mesa: ['tablero', 'solicitudes', 'clientes', 'reportes'], tesoreria: ['tablero', 'tesoreria', 'cajas', 'reportes'] }[DB.perfil.rol]
+    || ['tablero', 'cobranza', 'normalidad', 'reportes']).filter((k) => ok.includes(k))
+  const corto = { tablero: 'Inicio', cobranza: 'Cobranza', clientes: 'Clientes', cajas: 'Mi caja', normalidad: 'Normalidad', reportes: 'Reportes', originacion: 'Crédito', solicitudes: 'Mesa', tesoreria: 'Tesorería' }
   $('#tabbar').innerHTML = tabs.map((k) => `<button type="button" data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><span>${corto[k]}</span></button>`).join('')
     + `<button type="button" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Más</span>${nRev ? '<i class="dot"></i>' : ''}</button>`
   $$('#tabbar button').forEach((b) => b.addEventListener('click', () => b.dataset.tab === 'mas' ? abrirMenu() : go(b.dataset.tab)))
@@ -285,7 +343,10 @@ function showApp() {
 function vistasPermitidas() {
   const rol = DB.perfil.rol
   return NAV.map(([k]) => k).filter((k) => k !== 'h'
-    && !(k === 'tesoreria' && rol === 'asesor')
+    && !(k === 'tesoreria' && ['asesor', 'mesa'].includes(rol))
+    && !(k === 'cajas' && rol === 'mesa')
+    && !(k === 'originacion' && !esCampo())
+    && !(k === 'proyecciones' && ['asesor', 'mesa'].includes(rol))
     && !(['importar', 'admin'].includes(k) && !esAdmin()))
 }
 function abrirMenu() { $('#side').classList.add('open'); $('#scrim').classList.add('on') }
@@ -393,6 +454,10 @@ VIEWS.tablero = {
         </div>
         <div class="card panel"><div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado hoy vs promedio diario de las últimas 2 semanas</div></div></div><div class="list" id="cobranza"></div></div>
       </div>
+      <div class="grid2">
+        <div class="card panel"><div class="ph"><div><h3>Colocación: nuevos y renovaciones</h3><div class="sub">Nuevos se pagan por cliente; renovaciones por dinero entregado</div></div><div class="seg" id="colp"><button type="button" data-p="sem" class="on">Semana</button><button type="button" data-p="mes">Mes</button></div></div><div id="colTab"></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Seguros cobrados</h3><div class="sub">$${PARAM('seguro_monto', 150)} por crédito · no cambia la deuda del cliente</div></div></div><div class="grid-rep" id="segTab"></div></div>
+      </div>
       <div class="grid3">
         <div class="card panel span2"><div class="ph"><div><h3>Recaudo vs colocación</h3><div class="sub" id="trendSub"></div></div></div><div class="chart-box" style="height:250px"><canvas id="trend"></canvas></div></div>
         <div class="card panel"><div class="ph"><div><h3>Cajas por gerente</h3><div class="sub">Cobranza recibida hoy</div></div></div><div class="list" id="cajas"></div>
@@ -411,16 +476,22 @@ VIEWS.tablero = {
     const recPrev = sum(rec.filter((r) => r.fecha >= addDays(hoy, -14) && r.fecha < hoy), (r) => r.monto) / 14
     const porEstado = Object.fromEntries(ESTADOS.map((e) => [e.k, sum(act.filter((c) => c.estado === e.k), (c) => c.saldo)]))
     const meter = (parts) => `<div class="meter">${parts.map(([v, c]) => `<i style="width:${v}%;background:${c}"></i>`).join('')}</div>`
+    const umbral = PARAM('atraso_dias', 1)
+    const N = normalidadHoy(car), meta = PARAM('meta_normalidad', 90)
+    const colm = car.filter((c) => c.fecha_inicio >= mes)
+    const nuevos = colm.filter((c) => c.tipo !== 'renovacion'), renov = colm.filter((c) => c.tipo === 'renovacion')
+    const clientes = new Set(act.map((c) => c.cliente_id)).size
     const K = [
-      { lab: 'Cartera total', val: peso(total), meta: `${NUM.format(act.length)} créditos activos`, grad: [COL.teal, COL.blue], ico: '<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>',
+      { lab: 'Cartera total', val: peso(total), meta: `${NUM.format(clientes)} clientes · ${NUM.format(act.length)} créditos activos`, grad: [COL.teal, COL.blue], ico: '<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>',
         extra: meter(ESTADOS.map((e) => [pct(porEstado[e.k], total), e.c])) },
-      { lab: 'Cartera con atraso', val: peso(atraso), meta: `${pct(atraso, total)}% de la cartera`, grad: [COL.rose, COL.red], ico: '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>',
-        chip: `<span class="chip ${pct(atraso, total) > 25 ? 'r' : 'a'}">${pct(atraso, total)}%</span>`, extra: meter([[pct(atraso, total), COL.rose]]) },
-      { lab: 'Recaudo del día', val: peso(recHoy), meta: `promedio diario ${peso(recPrev)}`, grad: [COL.blue, COL.violet], ico: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+      { lab: 'Normalidad', val: Math.round(N.p) + '%', meta: `${peso(N.ok)} al día de ${pesoK(N.tot)} · meta ${meta}%`, grad: [COL.green, COL.teal], ico: ICON.normalidad,
+        chip: `<span class="chip ${N.p >= meta ? 'g' : N.p >= meta - 15 ? 'a' : 'r'}">${N.p >= meta ? 'En meta' : 'Abajo de meta'}</span>`, extra: meter([[Math.round(N.p), N.p >= meta ? COL.green : COL.amber]]) },
+      { lab: 'Cobrado hoy', val: peso(recHoy), meta: `promedio diario ${peso(recPrev)}`, grad: [COL.blue, COL.violet], ico: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
         chip: recPrev ? `<span class="chip ${recHoy >= recPrev ? 'g' : 'a'}">${recHoy >= recPrev ? '▲' : '▼'} ${Math.abs(pct(recHoy - recPrev, recPrev))}%</span>` : '', spark: d14.map((d) => recD.get(d) || 0), sc: COL.blue },
-      { lab: 'Colocación del mes', val: peso(colMes), meta: `${NUM.format(car.filter((c) => c.fecha_inicio >= mes).length)} créditos nuevos`, grad: [COL.violet, COL.teal], ico: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+      { lab: 'Colocado este mes', val: peso(colMes), meta: `${NUM.format(new Set(nuevos.map((c) => c.cliente_id)).size)} clientes nuevos · renovaciones ${pesoK(sum(renov, (c) => c.entregado))}`, grad: [COL.violet, COL.teal], ico: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
         spark: d14.map((d) => colD.get(d) || 0), sc: COL.violet },
     ]
+    this.atraso = { atraso, total, umbral }
     $('#kpis').innerHTML = K.map((k, i) => `<div class="card kpi lift">
       <div class="row1"><div class="ico" style="background:linear-gradient(135deg,${k.grad[0]},${k.grad[1]})"><svg viewBox="0 0 24 24">${k.ico}</svg></div>${k.chip || ''}</div>
       <div><div class="lab">${k.lab}</div><div class="val">${k.val}</div><div class="meta">${k.meta}</div></div>
@@ -432,11 +503,11 @@ VIEWS.tablero = {
     }))
 
     const cli = new Set(act.map((c) => c.cliente_id)).size
-    $('#cliDeuda').textContent = `${NUM.format(cli)} clientes con deuda`
+    $('#cliDeuda').innerHTML = `<b style="color:#ff9a9a">${peso(atraso)}</b>&nbsp;con atraso · ${pct(atraso, total)}%`
     $('#donutTot').textContent = pesoK(total)
     $('#legend').innerHTML = ESTADOS.map((e) => {
       const n = new Set(act.filter((c) => c.estado === e.k).map((c) => c.cliente_id)).size
-      return `<div class="li"><span class="dot" style="background:${e.c};color:${e.c}"></span><span>${e.n}</span><span class="amt">${peso(porEstado[e.k])}</span><small>${e.s} · ${n} clientes · ${pct(porEstado[e.k], total)}%</small></div>`
+      return `<div class="li"><span class="dot" style="background:${e.c};color:${e.c}"></span><span>${e.n}</span><span class="amt">${peso(porEstado[e.k])}</span><small>${pct(porEstado[e.k], total)}% de lo que deben · ${e.s} · ${n} clientes</small></div>`
     }).join('')
     chart($('#donut'), {
       type: 'doughnut',
@@ -459,8 +530,24 @@ VIEWS.tablero = {
       const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto)
       return `<div class="rowitem inset"><div><div class="t">${esc(g.resp || g.nombre)}</div><div class="s">${esc(g.nombre)}</div></div><div class="m">${peso(m)}<small><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Recibido 18:00' : 'Cierre 18:00'}</span></small></div></div>`
     }).join('')
+    this.colocacion('sem'); this.seguros()
+    $$('#colp button').forEach((b) => b.addEventListener('click', () => { $$('#colp button').forEach((x) => x.classList.toggle('on', x === b)); this.colocacion(b.dataset.p) }))
     this.trend()
     $$('#period button').forEach((b) => b.addEventListener('click', () => { this.periodo = b.dataset.p; $$('#period button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.trend() }))
+  },
+  colocacion(p) {
+    const desde = p === 'sem' ? lunes(DB.hoy) : DB.hoy.slice(0, 8) + '01'
+    const L = sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= DB.hoy)
+    const g = (t) => L.filter((c) => c.tipo === t)
+    const rows = [['Nuevos', g('nuevo')], ['Renovaciones', g('renovacion')], ['Recompras', g('recompra')]].map(([n, X]) => ({ n, clientes: new Set(X.map((c) => c.cliente_id)).size, base: sum(X, (c) => c.monto), entregado: sum(X, (c) => c.entregado) }))
+    $('#colTab').innerHTML = tabla([{ t: 'Tipo', k: 'n', b: 1 }, { t: 'Clientes', k: 'clientes', num: 1, tot: (r) => sum(r, (x) => x.clientes) }, { t: 'Prestado (base)', num: 1, f: P('base'), tot: T('base') }, { t: 'Entregado', num: 1, b: 1, f: P('entregado'), tot: T('entregado') }], rows, true)
+      + `<div class="note">${p === 'sem' ? 'Desde el lunes' : 'Desde el día 1'} · ${esc(scopeLabel())}. En renovaciones, «entregado» ya descuenta lo que debía el cliente.</div>`
+  },
+  seguros() {
+    const L = DB.movimientos.filter((m) => m.categoria === 'Seguro' && cajasAmbito().has(m.caja_destino))
+    const s = (desde) => sum(L.filter((m) => m.fecha >= desde && m.fecha <= DB.hoy), (m) => m.monto)
+    const tiles = [['Hoy', s(DB.hoy)], ['Esta semana', s(lunes(DB.hoy))], ['Este mes', s(DB.hoy.slice(0, 8) + '01')], ['Últimos 12 meses', s(addDays(DB.hoy, -365))]]
+    $('#segTab').innerHTML = tiles.map(([l, v]) => `<div class="mini inset"><div class="lab">${l}</div><div class="val">${peso(v)}</div></div>`).join('')
   },
   trend() {
     const hoy = DB.hoy, rec = sc.recaudo(), car = sc.cartera()
@@ -519,15 +606,63 @@ VIEWS.clientes = {
     $('#q').addEventListener('input', (e) => { this.q = e.target.value; paint() })
   },
 }
+function puedeRenovar(c) {
+  return c.saldo > 0 && (c.total_pagar - c.saldo) >= c.total_pagar * PARAM('renovacion_pct', 80) / 100 - 0.01
+    && !DB.solicitudes.some((s) => s.credito_anterior_id === c.credito_id && ['borrador', 'revision', 'observada'].includes(s.estado))
+}
 function fichaCliente(id) {
   const cr = DB.cartera.filter((c) => c.cliente_id === id).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio))
   if (!cr.length) return
-  const c = cr[0]
-  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.colonia || '')} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="statrow">${[['Saldo total', peso(sum(cr, (x) => x.saldo))], ['Prestado', peso(sum(cr, (x) => x.monto))], ['Créditos', cr.length], ['Atraso máx.', Math.max(...cr.map((x) => x.dias_atraso)) + ' días']].map(([l, v]) => `<div class="card"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
-    <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Inicio</th><th class="num">Monto</th><th class="num">Cuota</th><th>Frecuencia</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
-    ${cr.map((x) => `<tr><td>#${x.credito_id}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${peso(x.cuota)}</td><td>${x.frecuencia}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
-    </tbody></table></div>`)
+  const c = cr[0], act = cr.filter((x) => x.saldo > 0)
+  const pagos = (k) => DB.pagos.filter((x) => x.credito_id === k).sort((a, b) => b.fecha.localeCompare(a.fecha))
+  const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${esc(v)}</span></div>` : ''
+  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="statrow">${[['Debe hoy (saldo)', peso(sum(cr, (x) => x.saldo))], ['Base (prestado)', peso(sum(act, (x) => x.monto))], ['Créditos en su historial', cr.length], ['Atraso', act.length ? Math.max(...act.map((x) => x.dias_atraso)) + ' días' : '—']].map(([l, v]) => `<div class="card"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
+    <div class="toolbar">${act.length && esCampo() ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
+      ${act.some(puedeRenovar) && esCampo() ? `<button class="btn ghost" type="button" id="fren">Renovar</button>` : ''}
+      ${!act.length && esCampo() ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
+    <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Dirección', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Fecha de nacimiento', c.fecha_nacimiento)}</div>
+    <h3 class="sec-title" style="margin-top:6px">Expediente de créditos</h3>
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Seguro</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
+    ${cr.map((x) => `<tr class="click" data-pg="${x.credito_id}"><td>#${x.credito_id}${x.credito_anterior_id ? `<div class="muted" style="font-size:12px">renueva #${x.credito_anterior_id}</div>` : ''}</td><td>${tipoChip(x.tipo)}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${x.descuento_renovacion ? peso(x.descuento_renovacion) : '—'}</td><td class="num">${peso(x.entregado)}</td><td class="num">${x.seguro ? peso(x.seguro) : '—'}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div id="fpagos"></div>
+    <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
+  const verPagos = (k) => {
+    const L = pagos(k)
+    $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
+  }
+  $$('[data-pg]').forEach((tr) => tr.addEventListener('click', () => verPagos(+tr.dataset.pg)))
+  verPagos(cr[0].credito_id)
+  $('#fpago')?.addEventListener('click', () => registrarPago(act[0].credito_id))
+  $('#fren')?.addEventListener('click', () => nuevaSolicitud({ renovar: act.find(puedeRenovar).credito_id }))
+  $('#frec')?.addEventListener('click', () => nuevaSolicitud({ recompra: cr[0].credito_id }))
+}
+// Registro de pago desde la ruta. La fecha la pone la base de datos: después de las 18:00 cuenta para mañana.
+function registrarPago(creditoId) {
+  const act = sc.activos().sort((a, b) => a.cliente.localeCompare(b.cliente))
+  if (!act.length) { toast('No hay créditos activos en tu ámbito.', 'warn'); return }
+  const c0 = act.find((c) => c.credito_id === creditoId) || null
+  const tarde = new Date().getHours() >= 18
+  formModal({
+    titulo: 'Registrar pago', boton: 'Procesar pago',
+    nota: tarde ? 'Ya pasó el cierre de las 18:00: este pago cuenta para mañana.' : 'Se registra con la fecha de hoy y tu usuario. Queda en la caja de la ruta hasta el cierre de las 18:00.',
+    campos: [
+      { id: 'credito', label: 'Cliente y crédito', tipo: 'select', req: 1, valor: c0?.credito_id ?? act[0].credito_id,
+        opciones: act.map((c) => [c.credito_id, `${c.cliente} · #${c.credito_id} · cuota ${peso(c.cuota)} · debe ${peso(c.saldo)}${c.dias_atraso ? ' · ' + c.dias_atraso + ' d atraso' : ''}`]) },
+      { id: 'monto', label: 'Monto cobrado (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1, valor: c0 ? Math.min(c0.cuota, c0.saldo) : '' },
+    ],
+    guardar: async (v) => {
+      const c = act.find((x) => x.credito_id === +v.credito), m = +v.monto
+      const err = (t) => { const e = new Error(t); e.userMsg = t; throw e }
+      if (!(m > 0)) err('El monto debe ser mayor a cero.')
+      if (m > c.saldo + 0.01) err(`El pago no puede ser mayor a lo que debe (${peso(c.saldo)}).`)
+      const ok = await escribir(() => sb.from('pagos').insert({ credito_id: c.credito_id, monto: m }))
+      return ok ? `Pago de ${peso(m)} registrado a ${c.cliente}.` : ''
+    },
+  })
+  const sel = $('#f_credito'), mon = $('#f_monto')
+  sel?.addEventListener('change', () => { const c = act.find((x) => x.credito_id === +sel.value); if (c) mon.value = Math.min(c.cuota, c.saldo) })
 }
 function modal(inner) {
   const host = $('#modalHost')
@@ -538,14 +673,152 @@ function modal(inner) {
   $('.modal', host).addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close() })
 }
 
+const EST_SOL = { borrador: ['Borrador', 'off'], revision: ['En revisión', 'wait'], observada: ['Observada', 'mid'], aprobada: ['Aprobada', 'ok'], rechazada: ['Rechazada', 'bad'], cancelada: ['Cancelada', 'off'] }
+const estSol = (e) => `<span class="st ${(EST_SOL[e] || ['', 'off'])[1]}">${(EST_SOL[e] || [e])[0]}</span>`
+const esMesa = () => ['mesa', 'dueno', 'direccion', 'soporte'].includes(DB.perfil.rol)
 VIEWS.solicitudes = {
   html() {
-    const cols = [['borrador', 'Borrador', 'Capturada por el asesor'], ['revision', 'En revisión', 'Mesa de control revisa documentos'], ['observada', 'Observada', 'Regresa al asesor'], ['aprobada', 'Aprobada', 'Lista para desembolsar'], ['rechazada', 'Rechazada', 'Con motivo y bitácora']]
-    const S = sc.solicitudes()
-    return `${head('Solicitudes', 'Cada crédito registrado pasa a mesa de control dentro del mismo sistema: revisión humana que aprueba, rechaza o devuelve.')}
-      <div class="note-card"><b>Mesa de control integrada.</b> Reemplaza el sistema externo que hoy se usa para validar documentos.</div>
-      <div class="pipe">${cols.map(([k, t, d]) => { const L = S.filter((s) => s.estado === k); return `<div class="card col"><div class="ch"><h4>${t}</h4><span class="cnt">${L.length}</span></div>
-        ${L.map((s) => `<div class="sol inset"><b>${esc(s.cliente_nombre)}</b><span>${peso(s.monto)} · ${esc(s.ruta || '')}</span><span class="muted">${esc(s.asesor || '')}</span></div>`).join('') || `<div class="note">${d}</div>`}</div>` }).join('')}</div>`
+    const cols = [['borrador', 'Borrador', 'Capturada, sin enviar'], ['revision', 'En revisión', 'Mesa de control revisa documentos'], ['observada', 'Observada', 'Regresa al asesor para corregir'], ['aprobada', 'Aprobada', 'Crédito creado'], ['no', 'No concretadas', 'Rechazadas o canceladas · se guardan por regulación']]
+    const S = sc.solicitudes().slice().sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id)
+    return `${head('Solicitudes', 'Mesa de control: revisa cada solicitud y la aprueba, la observa, la rechaza o la cancela. Toca una para verla completa.')}
+      <div class="note-card"><b>Mesa de control integrada.</b> Al aprobar, el sistema crea el cliente y el crédito con la fórmula vigente, cobra el seguro y, si es renovación, liquida el crédito anterior. Las que no se concretan se guardan con su motivo.</div>
+      <div class="pipe">${cols.map(([k, t, d]) => { const L = S.filter((s) => k === 'no' ? ['rechazada', 'cancelada'].includes(s.estado) : s.estado === k); return `<div class="card col"><div class="ch"><h4>${t}</h4><span class="cnt">${L.length}</span></div>
+        ${L.slice(0, 40).map((s) => `<button type="button" class="sol inset click" data-sol="${s.id}" style="text-align:left;border:0;color:inherit;cursor:pointer"><b>${esc(s.cliente_nombre)}</b><span>${peso(s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</span><span class="muted">${esc(s.asesor || '')}${s.motivo ? ' · ' + esc(s.motivo) : ''}</span></button>`).join('') || `<div class="note">${d}</div>`}</div>` }).join('')}</div>`
+  },
+  init() { $$('[data-sol]').forEach((b) => b.addEventListener('click', () => detalleSolicitud(+b.dataset.sol))) },
+}
+async function duplicados(curp, nombre) {
+  if (sb) {
+    const { data, error } = await sb.rpc('buscar_duplicado', { p_curp: curp || '', p_nombre: nombre || '' })
+    if (error) throw errorAmigable(error)
+    return data || []
+  }
+  const n = norm(nombre), c = String(curp || '').toUpperCase()
+  const cl = [...new Map(DB.cartera.filter((x) => (c && String(x.curp || '').toUpperCase() === c) || (n && norm(x.cliente) === n)).map((x) => [x.cliente_id, x])).values()]
+    .map((x) => ({ origen: 'cliente', nombre: x.cliente, ruta: x.ruta, estado: DB.cartera.some((y) => y.cliente_id === x.cliente_id && y.saldo > 0) ? 'con crédito activo' : 'sin crédito activo' }))
+  const so = DB.solicitudes.filter((x) => (c && String(x.curp || '').toUpperCase() === c) || (n && norm(x.cliente_nombre) === n)).map((x) => ({ origen: 'solicitud', nombre: x.cliente_nombre, ruta: x.ruta, estado: x.estado }))
+  return [...cl, ...so]
+}
+const dupHtml = (L) => L.length ? `<div class="note-card" style="background:rgba(255,200,87,.12);box-shadow:inset 0 0 0 1px rgba(255,200,87,.45)"><b>Este cliente ya está registrado.</b>
+  ${L.map((d) => `<div>${d.origen === 'cliente' ? 'Cliente' : 'Solicitud'}: ${esc(d.nombre)} · ruta ${esc(d.ruta)} · ${esc(EST_SOL[d.estado]?.[0] || d.estado)}</div>`).join('')}</div>` : ''
+function detalleSolicitud(id) {
+  const s = DB.solicitudes.find((x) => x.id === id); if (!s) return
+  const ant = s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
+  const desc = s.tipo === 'renovacion' && ant ? ant.saldo : 0
+  const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${v}</span></div>` : ''
+  const abierta = ['borrador', 'revision', 'observada'].includes(s.estado)
+  const btn = (k, t, cls = 'ghost') => `<button class="btn ${cls}" type="button" data-acc="${k}">${t}</button>`
+  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(s.cliente_nombre)}</h3><div class="sub">Solicitud #${s.id} · ${esc(s.ruta || '')} (${esc(s.asesor || '')}) · capturada ${esc(s.creada || '')}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="toolbar">${estSol(s.estado)} ${tipoChip(s.tipo)}</div>
+    <div class="kv">${dato('Monto solicitado', peso(s.monto))}${dato('Frecuencia', esc(s.frecuencia || 'semanal'))}
+      ${s.tipo === 'renovacion' ? dato('Debe del crédito anterior (#' + s.credito_anterior_id + ')', peso(desc)) + dato('Se le entrega', peso(s.monto - desc)) : ''}
+      ${dato('Total a pagar', peso(s.monto * (1 + PARAM('interes_pct', 50) / 100)))}${dato('Pago', peso(s.monto * (1 + PARAM('interes_pct', 50) / 100) / PARAM('num_cuotas', 10)) + ' × ' + PARAM('num_cuotas', 10))}
+      ${dato('Seguro de gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
+      ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Dirección', esc([s.direccion, s.colonia].filter(Boolean).join(', ')))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
+      ${dato('Motivo / observación', esc(s.motivo || ''))}</div>
+    <div id="sdup"></div><div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    <div class="toolbar" style="justify-content:flex-end">
+      ${abierta && esMesa() && s.estado !== 'borrador' ? btn('cancelada', 'Cancelar (no lo quiso)') + btn('rechazada', 'Rechazar') + btn('observada', 'Observar') + btn('aprobada', 'Aprobar y crear crédito', '') : ''}
+      ${['borrador', 'observada'].includes(s.estado) && esCampo() ? btn('editar', 'Corregir') + btn('revision', 'Enviar a revisión', '') : ''}
+    </div>`)
+  if (s.tipo === 'nuevo') duplicados(s.curp, s.cliente_nombre).then((L) => { const el = $('#sdup'); if (el) el.innerHTML = dupHtml(L.filter((d) => !(d.origen === 'solicitud' && d.nombre === s.cliente_nombre && d.estado === s.estado))) }).catch(() => {})
+  $$('[data-acc]').forEach((b) => b.addEventListener('click', async () => {
+    const acc = b.dataset.acc
+    if (acc === 'editar') return nuevaSolicitud({ editar: s })
+    if (acc === 'revision') {
+      try { const ok = await escribir(() => sb.from('solicitudes').update({ estado: 'revision' }).eq('id', s.id)); if (ok) { $('#modalHost').innerHTML = ''; toast('Solicitud enviada a mesa de control.') } } catch (e) { $('#sErr').textContent = e.userMsg || 'No se pudo enviar.' }
+      return
+    }
+    const resolver = async (motivo) => {
+      const r = await escribir(() => sb.rpc('resolver_solicitud', { p_id: s.id, p_estado: acc, p_motivo: motivo || null }))
+      return r ? (acc === 'aprobada' ? `Crédito creado${typeof r === 'number' ? ' #' + r : ''}. Seguro cargado a la caja del asesor.` : `Solicitud ${EST_SOL[acc][0].toLowerCase()}.`) : ''
+    }
+    if (acc === 'aprobada') {
+      b.disabled = true; b.textContent = 'Creando crédito…'
+      try { const m = await resolver(''); $('#modalHost').innerHTML = ''; if (m) toast(m) } catch (e) { $('#sErr').textContent = e.userMsg || 'No se pudo aprobar.'; b.disabled = false; b.textContent = 'Aprobar y crear crédito' }
+      return
+    }
+    formModal({ titulo: { observada: 'Observar solicitud', rechazada: 'Rechazar solicitud', cancelada: 'Cancelar solicitud' }[acc], nota: 'La solicitud y sus datos se conservan con este motivo.', boton: 'Guardar',
+      campos: [{ id: 'motivo', label: 'Motivo', req: 1 }], guardar: (v) => resolver(v.motivo) })
+  }))
+}
+// Captura de solicitud: nueva, renovación (al 80 %) o recompra. Revisa duplicados por CURP o nombre.
+function nuevaSolicitud({ renovar, recompra, editar } = {}) {
+  const ant = renovar ? DB.cartera.find((c) => c.credito_id === renovar) : recompra ? DB.cartera.find((c) => c.credito_id === recompra) : null
+  const tipo = editar ? editar.tipo : renovar ? 'renovacion' : recompra ? 'recompra' : 'nuevo'
+  const rutas = sc.rutas()
+  if (!rutas.length) { toast('No tienes rutas en tu ámbito.', 'warn'); return }
+  const e = editar || {}
+  const campos = []
+  if (tipo === 'nuevo') campos.push(
+    { id: 'nombre', label: 'Nombre completo del cliente', req: 1, valor: e.cliente_nombre }, { id: 'curp', label: 'CURP', req: 1, valor: e.curp },
+    { id: 'fnac', label: 'Fecha de nacimiento', tipo: 'date', valor: e.fecha_nacimiento }, { id: 'telefono', label: 'Teléfono', tipo: 'tel', req: 1, valor: e.telefono },
+    { id: 'direccion', label: 'Dirección (calle y número)', req: 1, valor: e.direccion }, { id: 'colonia', label: 'Colonia', valor: e.colonia },
+    { id: 'ruta', label: 'Ruta', tipo: 'select', req: 1, opciones: rutas.map((r) => [r.ruta_id, `${r.ruta} · ${r.asesor || ''}`]), valor: e.ruta_id ?? rutas[0].ruta_id })
+  campos.push({ id: 'monto', label: 'Monto del crédito (MXN)', tipo: 'number', min: 500, step: '500', req: 1, valor: e.monto ?? (ant ? ant.monto : '') },
+    { id: 'frecuencia', label: 'Frecuencia de pago', tipo: 'select', req: 1, opciones: [['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['mensual', 'Mensual']], valor: e.frecuencia || ant?.frecuencia || 'semanal' },
+    { id: 'enviar', label: 'Enviar a mesa de control ahora', tipo: 'check', valor: true })
+  const saldoAnt = tipo === 'renovacion' && ant ? ant.saldo : 0
+  let confirmado = false
+  formModal({
+    titulo: editar ? 'Corregir solicitud' : { nuevo: 'Nuevo crédito', renovacion: 'Renovar crédito', recompra: 'Recompra' }[tipo],
+    nota: tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id}. Ese saldo se descuenta de lo que se le entrega.`
+      : tipo === 'recompra' ? `${esc(ant.cliente)} · ya liquidó. Se crea un crédito nuevo y queda en su expediente como recompra.`
+      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).',
+    boton: 'Guardar solicitud', campos,
+    guardar: async (v) => {
+      const err = (t) => { const x = new Error(t); x.userMsg = t; throw x }
+      const monto = +v.monto
+      if (!(monto >= 500)) err('El monto mínimo es $500.')
+      if (tipo === 'renovacion' && monto <= saldoAnt) err(`El nuevo crédito debe ser mayor a lo que debe (${peso(saldoAnt)}).`)
+      if (tipo === 'nuevo') {
+        v.curp = v.curp.toUpperCase().replace(/\s+/g, '')
+        if (!/^[A-Z]{4}\d{6}[HMX][A-Z]{5}[0-9A-Z]\d$/.test(v.curp)) err('La CURP no tiene el formato correcto (18 caracteres).')
+        if (!confirmado) {
+          const L = (await duplicados(v.curp, v.nombre)).filter((d) => !(editar && d.origen === 'solicitud' && d.nombre === editar.cliente_nombre))
+          if (L.length) { confirmado = true; $('#fmOk').textContent = 'Guardar de todos modos'; $('#fmErr').innerHTML = dupHtml(L); const x = new Error('dup'); x.userMsg = ''; x.html = true; throw x }
+        }
+      }
+      const row = tipo === 'nuevo'
+        ? { cliente_nombre: v.nombre, curp: v.curp, fecha_nacimiento: v.fnac || null, telefono: v.telefono, direccion: v.direccion, colonia: v.colonia || null, ruta_id: +v.ruta }
+        : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, direccion: ant.direccion || null, colonia: ant.colonia || null, credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }
+      Object.assign(row, { monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
+      if (!editar) row.creado_por = DB.perfil.id
+      const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row))
+      return ok ? (v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.') : ''
+    },
+  })
+}
+VIEWS.originacion = {
+  html() {
+    const mias = sc.solicitudes().filter((s) => ['borrador', 'revision', 'observada'].includes(s.estado) || (s.creada && s.creada >= addDays(DB.hoy, -30)))
+      .sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id)
+    const renov = sc.activos().filter(puedeRenovar).sort((a, b) => a.saldo - b.saldo)
+    const liq = porCliente(sc.cartera()).filter((c) => c.saldo === 0).sort((a, b) => a.cliente.localeCompare(b.cliente))
+    return `${head('Crear crédito', 'Captura la solicitud del cliente y envíala a mesa de control. Aquí también renuevas al ' + PARAM('renovacion_pct', 80) + ' % de pagos.',
+      '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>')}
+      <div class="card panel"><div class="ph"><div><h3>Mis solicitudes</h3><div class="sub">Pendientes y de los últimos 30 días · toca una para verla</div></div><span class="chip">${mias.length}</span></div>
+        ${tabla([{ t: 'Cliente', f: (s) => `<b>${esc(s.cliente_nombre)}</b>`, }, { t: 'Tipo', f: (s) => tipoChip(s.tipo) }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Ruta', k: 'ruta' }, { t: 'Estado', f: (s) => estSol(s.estado) }, { t: 'Motivo', f: (s) => esc(s.motivo || '') }], mias)}</div>
+      <div class="grid2">
+        <div class="card panel"><div class="ph"><div><h3>Listos para renovar</h3><div class="sub">Llevan ${PARAM('renovacion_pct', 80)} % o más de sus pagos</div></div><span class="chip g">${renov.length}</span></div>
+          <div class="list">${renov.slice(0, 30).map((c) => `<div class="rowitem inset"><div><div class="t">${esc(c.cliente)}</div><div class="s">${esc(c.ruta)} · #${c.credito_id} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos</div></div><div class="m">debe ${peso(c.saldo)}<small><button class="btn sm" type="button" data-ren="${c.credito_id}">Renovar</button></small></div></div>`).join('') || '<div class="empty"><b>Nadie llega todavía al ' + PARAM('renovacion_pct', 80) + ' %</b></div>'}</div></div>
+        <div class="card panel"><div class="ph"><div><h3>Recompras</h3><div class="sub">Clientes que ya liquidaron y vuelven a pedir</div></div><input class="ctl" id="oq" placeholder="Buscar cliente…" style="max-width:220px"></div>
+          <div class="list" id="oliq"></div></div>
+      </div>`
+  },
+  init() {
+    const liq = porCliente(sc.cartera()).filter((c) => c.saldo === 0).sort((a, b) => a.cliente.localeCompare(b.cliente))
+    const pinta = (q = '') => {
+      const L = liq.filter((c) => !q || norm(c.cliente).includes(norm(q))).slice(0, 25)
+      $('#oliq').innerHTML = L.map((c) => { const ult = DB.cartera.filter((x) => x.cliente_id === c.cliente_id).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio))[0]
+        return `<div class="rowitem inset"><div><div class="t">${esc(c.cliente)}</div><div class="s">${esc(c.ruta)} · ${c.creditos} crédito(s) liquidado(s)</div></div><div class="m"><small><button class="btn ghost sm" type="button" data-rec="${ult.credito_id}">Recompra</button></small></div></div>` }).join('') || '<div class="empty"><b>Sin clientes liquidados</b></div>'
+      $$('[data-rec]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ recompra: +b.dataset.rec })))
+    }
+    pinta()
+    $('#oq').addEventListener('input', (e) => pinta(e.target.value))
+    $('#onuevo').addEventListener('click', () => nuevaSolicitud())
+    $$('[data-ren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.ren })))
+    $$('#view .tbl tbody tr').forEach((tr, i) => { const L = sc.solicitudes().filter((s) => ['borrador', 'revision', 'observada'].includes(s.estado) || (s.creada && s.creada >= addDays(DB.hoy, -30))).sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id); if (L[i]) { tr.classList.add('click'); tr.addEventListener('click', () => detalleSolicitud(L[i].id)) } })
   },
 }
 
@@ -554,21 +827,23 @@ VIEWS.creditos = {
   html() {
     const act = sc.activos(), car = sc.cartera(), mes = DB.hoy.slice(0, 8) + '01'
     return `${head('Créditos', 'Cartera con condiciones, calendario de pagos y estado de atraso.')}
-      <div class="statrow">${[['Créditos activos', NUM.format(act.length)], ['Colocado este mes', peso(sum(car.filter((c) => c.fecha_inicio >= mes), (c) => c.monto))], ['Saldo por cobrar', peso(sum(act, (c) => c.saldo))], ['Liquidados', NUM.format(car.length - act.length)]]
+      <div class="statrow">${[['Créditos activos', NUM.format(act.length)], ['Colocado este mes', peso(sum(car.filter((c) => c.fecha_inicio >= mes), (c) => c.monto))], ['Renovables hoy', NUM.format(act.filter(puedeRenovar).length)], ['Saldo por cobrar', peso(sum(act, (c) => c.saldo))]]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel">
-        <div class="ph"><div class="tabs" id="fil">${[['todos', 'Todos'], ...ESTADOS.map((e) => [e.k, e.n]), ['liquidado', 'Liquidados']].map(([k, t]) => `<button type="button" data-f="${k}" class="${this.filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div><span class="chip" id="cnt"></span></div>
-        <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Cliente</th><th>Ruta</th><th>Inicio</th><th class="num">Monto</th><th class="num">Cuota</th><th>Frecuencia</th><th class="num">Pagadas</th><th class="num">Saldo</th><th class="num">Atraso</th><th>Estado</th></tr></thead><tbody id="tb"></tbody></table></div>
-        <div class="note">Fórmula tomada del sistema actual (por confirmar): 50 % de interés plano en 10 cuotas de 15 % del monto.</div>
+        <div class="ph"><div class="tabs" id="fil">${[['todos', 'Todos'], ...ESTADOS.map((e) => [e.k, e.n]), ['liquidado', 'Liquidados'], ['renovacion', 'Renovaciones'], ['recompra', 'Recompras']].map(([k, t]) => `<button type="button" data-f="${k}" class="${this.filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div><span class="chip" id="cnt"></span></div>
+        <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Cliente</th><th>Tipo</th><th>Ruta</th><th>Inicio</th><th class="num">Base (prestado)</th><th class="num">Cuota</th><th class="num">Pagadas</th><th class="num">Saldo (debe)</th><th class="num">Atraso</th><th>Estado</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+        <div class="note">Interés ${PARAM('interes_pct', 50)} % plano en ${PARAM('num_cuotas', 10)} pagos. Se puede renovar al ${PARAM('renovacion_pct', 80)} % de pagos. A cada crédito se le cobra un seguro de $${PARAM('seguro_monto', 150)} que no cambia lo que debe el cliente.</div>
       </div>`
   },
   init() {
     const paint = () => {
-      const rows = sc.cartera().filter((c) => this.filtro === 'todos' || c.estado === this.filtro).sort((a, b) => b.dias_atraso - a.dias_atraso || b.saldo - a.saldo)
+      const rows = sc.cartera().filter((c) => this.filtro === 'todos' || c.estado === this.filtro || c.tipo === this.filtro).sort((a, b) => b.dias_atraso - a.dias_atraso || b.saldo - a.saldo)
       $('#cnt').textContent = `${NUM.format(rows.length)} créditos`
-      $('#tb').innerHTML = rows.slice(0, 250).map((c) => `<tr class="click" data-id="${c.cliente_id}"><td class="muted">#${c.credito_id}</td><td class="strong">${esc(c.cliente)}</td><td>${esc(c.ruta)}</td><td>${c.fecha_inicio}</td><td class="num">${peso(c.monto)}</td><td class="num">${peso(c.cuota)}</td><td>${c.frecuencia}</td><td class="num">${c.cuotas_pagadas}/${c.num_cuotas}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.saldo > 0 ? c.dias_atraso + ' d' : '—'}</td><td>${estadoChip(c.estado)}</td></tr>`).join('')
-        || '<tr><td colspan="11"><div class="empty"><b>Sin créditos en este filtro</b></div></td></tr>'
-      $$('#tb tr.click').forEach((tr) => tr.addEventListener('click', () => fichaCliente(+tr.dataset.id)))
+      $('#tb').innerHTML = rows.slice(0, 250).map((c) => `<tr class="click" data-id="${c.cliente_id}"><td class="muted">#${c.credito_id}</td><td class="strong">${esc(c.cliente)}</td><td>${tipoChip(c.tipo)}</td><td>${esc(c.ruta)}</td><td>${c.fecha_inicio}</td><td class="num">${peso(c.monto)}</td><td class="num">${peso(c.cuota)}</td><td class="num">${c.cuotas_pagadas}/${c.num_cuotas}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.saldo > 0 ? c.dias_atraso + ' d' : '—'}</td><td>${estadoChip(c.estado)}</td>
+        <td class="num">${puedeRenovar(c) ? `<button class="btn ghost sm" type="button" data-ren="${c.credito_id}">Renovar</button>` : ''}</td></tr>`).join('')
+        || '<tr><td colspan="12"><div class="empty"><b>Sin créditos en este filtro</b></div></td></tr>'
+      $$('#tb tr.click').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('[data-ren]')) return; fichaCliente(+tr.dataset.id) }))
+      $$('#tb [data-ren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.ren })))
     }
     paint()
     $$('#fil button').forEach((b) => b.addEventListener('click', () => { this.filtro = b.dataset.f; $$('#fil button').forEach((x) => x.classList.toggle('on', x === b)); paint() }))
@@ -587,33 +862,72 @@ VIEWS.cobranza = {
       return { ...r, cobrado: sum(hoyR, (x) => x.monto), pagos: sum(hoyR, (x) => x.pagos), prom: p, atN: new Set(at.map((c) => c.cliente_id)).size, atS: sum(at, (c) => c.saldo) }
     })
     const tot = sum(rows, (r) => r.cobrado)
-    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso.')}
+    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes.', esCampo() ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
       <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel"><div class="ph"><h3>Por ruta</h3></div>
         <div class="tablewrap"><table class="tbl"><thead><tr><th>Ruta</th><th>Asesor</th><th>Oficina</th><th class="num">Cobrado hoy</th><th class="num">Pagos</th><th class="num">Promedio diario</th><th class="num">Avance</th><th class="num">Clientes con atraso</th><th class="num">Saldo en atraso</th></tr></thead><tbody>
-        ${rows.map((r) => `<tr><td class="strong">${esc(r.ruta)}</td><td>${esc(r.asesor || '')}</td><td>${esc(r.oficina)}</td><td class="num strong">${peso(r.cobrado)}</td><td class="num">${r.pagos}</td><td class="num">${peso(r.prom)}</td><td class="num"><span class="st ${pct(r.cobrado, r.prom) >= 80 ? 'ok' : pct(r.cobrado, r.prom) >= 40 ? 'wait' : 'bad'}">${pct(r.cobrado, r.prom)}%</span></td><td class="num">${r.atN}</td><td class="num">${peso(r.atS)}</td></tr>`).join('')}
+        ${rows.map((r) => `<tr class="click" data-ruta="${r.ruta_id}"><td class="strong">${esc(r.ruta)}</td><td>${esc(r.asesor || '')}</td><td>${esc(r.oficina)}</td><td class="num strong">${peso(r.cobrado)}</td><td class="num">${r.pagos}</td><td class="num">${peso(r.prom)}</td><td class="num"><span class="st ${pct(r.cobrado, r.prom) >= 80 ? 'ok' : pct(r.cobrado, r.prom) >= 40 ? 'wait' : 'bad'}">${pct(r.cobrado, r.prom)}%</span></td><td class="num">${r.atN}</td><td class="num">${peso(r.atS)}</td></tr>`).join('')}
         </tbody><tfoot><tr><td colspan="3">Total</td><td class="num">${peso(tot)}</td><td class="num">${sum(rows, (r) => r.pagos)}</td><td class="num">${peso(prom)}</td><td class="num">${pct(tot, prom)}%</td><td class="num">${sum(rows, (r) => r.atN)}</td><td class="num">${peso(sum(rows, (r) => r.atS))}</td></tr></tfoot></table></div>
-        <div class="note">Hoy los pagos son sólo en efectivo. El registro desde celular con recibo llega en la siguiente etapa.</div></div>`
+        <div class="note">Pagos en efectivo. Lo que se registre después de las 18:00 cuenta para el día siguiente.</div></div>`
   },
+  init() {
+    $('#cpago')?.addEventListener('click', () => registrarPago())
+    $$('[data-ruta]').forEach((tr) => tr.addEventListener('click', () => detalleRuta(+tr.dataset.ruta)))
+  },
+}
+function detalleRuta(rutaId) {
+  const r = DB.R[rutaId], hoy = DB.hoy
+  const L = sc.activos().filter((c) => c.ruta_id === rutaId).sort((a, b) => b.dias_atraso - a.dias_atraso || a.cliente.localeCompare(b.cliente))
+  const pagHoy = new Set(DB.pagos.filter((x) => x.fecha === hoy && x.tipo !== 'liquidacion_renovacion').map((x) => x.credito_id))
+  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(r.ruta)}</h3><div class="sub">${esc(r.asesor || '')} · ${esc(r.oficina)} · ${L.length} créditos por cobrar</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>Cliente</th><th class="num">Cuota</th><th class="num">Debe</th><th class="num">Atraso</th><th>Hoy</th><th></th></tr></thead><tbody>
+    ${L.map((c) => `<tr class="click" data-cli="${c.cliente_id}"><td class="strong">${esc(c.cliente)}<div class="muted" style="font-size:12px">${esc(c.colonia || '')} · #${c.credito_id}</div></td><td class="num">${peso(c.cuota)}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.dias_atraso ? c.dias_atraso + ' d' : '—'}</td>
+      <td>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó</span>' : '<span class="st off">Pendiente</span>'}</td><td class="num">${esCampo() ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6"><div class="empty"><b>Sin créditos por cobrar</b></div></td></tr>'}
+    </tbody></table></div>`)
+  $$('[data-cli]').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('[data-cobrar]')) return; fichaCliente(+tr.dataset.cli) }))
+  $$('[data-cobrar]').forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
 }
 
 VIEWS.cajas = {
   html() {
-    const hoy = DB.hoy, rec = sc.recaudo(), cerrada = new Date().getHours() >= 18
+    const hoy = DB.hoy, rec = sc.recaudo(), cerrada = new Date().getHours() >= 18, S = saldos(hoy)
     const ger = DB.gerencias.filter((g) => sc.rutas().some((r) => r.gerencia_id === g.id))
-    return `${head('Cajas', 'La cobranza del día pasa de la caja de cada asesor a la de su gerente, automáticamente a las 18:00 y con bitácora.')}
+    const segHoy = (rid) => sum(DB.movimientos.filter((m) => m.categoria === 'Seguro' && m.fecha === hoy && m.caja_destino === 'ruta:' + rid), (m) => m.monto)
+    const btns = [esCampo() ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
+      ['asesor', 'gerente'].includes(DB.perfil.rol) || esAdmin() ? '<button class="btn ghost" type="button" id="kgasto">Registrar gasto</button>' : '',
+      esAdmin() || DB.perfil.rol === 'tesoreria' ? '<button class="btn ghost" type="button" id="kteso">Ir a tesorería</button>' : ''].join('')
+    return `${head('Cajas', 'Lo que cobra cada asesor entra a su caja; a las 18:00 pasa solo a la caja de su gerente. Lo que se registre después de las 18:00 cuenta para el día siguiente.', btns)}
       <div class="card panel"><h3 class="sec-title">Flujo del efectivo</h3>
-        <div class="flow"><div class="node inset"><b>Asesor cobra en ruta</b><span>entra a su caja</span></div><div class="arr">→</div><div class="node inset"><b>Cierre 18:00</b><span>traslado automático</span></div><div class="arr">→</div><div class="node inset"><b>Caja del gerente</b><span>recibe y resguarda</span></div><div class="arr">→</div><div class="node inset"><b>Redistribución</b><span>reparte para colocar</span></div></div>
-        <div class="note-card"><b>Regla:</b> la suma de las cajas no cambia con un traslado y un cierre que se ejecute dos veces genera un solo traslado. Toda diferencia queda visible.</div></div>
+        <div class="flow"><div class="node inset"><b>Asesor cobra en ruta</b><span>pagos y seguros entran a su caja</span></div><div class="arr">→</div><div class="node inset"><b>Cierre 18:00</b><span>traslado automático</span></div><div class="arr">→</div><div class="node inset"><b>Caja del gerente</b><span>recibe y resguarda</span></div><div class="arr">→</div><div class="node inset"><b>Banco</b><span>tesorería retira el excedente</span></div></div></div>
       <div class="grid3">${ger.map((g) => {
         const rg = sc.rutas().filter((r) => r.gerencia_id === g.id)
-        const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto)
-        return `<div class="card panel lift"><div class="ph"><div><h3>${esc(g.resp || g.nombre)}</h3><div class="sub">${esc(g.nombre)} · ${rg.length} rutas</div></div><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Cerrada' : '18:00'}</span></div>
-          <div class="kv">${rg.map((r) => `<div class="r"><span class="k">${esc(r.asesor || r.ruta)}</span><span class="v">${peso(sum(rec.filter((x) => x.ruta_id === r.ruta_id && x.fecha === hoy), (x) => x.monto))}</span></div>`).join('')}
-          <div class="r"><span class="k strong">Recibe el gerente</span><span class="v" style="color:var(--teal)">${peso(m)}</span></div></div></div>`
+        const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto) + sum(rg, (r) => segHoy(r.ruta_id))
+        return `<div class="card panel lift"><div class="ph"><div><h3>${esc(g.resp || g.nombre)}</h3><div class="sub">${esc(g.nombre)} · caja ${peso(S.get('gerencia:' + g.id) || 0)}</div></div><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Cerrada' : '18:00'}</span></div>
+          <div class="kv">${rg.map((r) => { const c = sum(rec.filter((x) => x.ruta_id === r.ruta_id && x.fecha === hoy), (x) => x.monto), sg = segHoy(r.ruta_id)
+            return `<div class="r"><span class="k">${esc(r.asesor || r.ruta)}<div class="muted" style="font-size:12px">cobrado ${peso(c)}${sg ? ' · seguros ' + peso(sg) : ''} · en caja ${peso(S.get('ruta:' + r.ruta_id) || 0)}</div></span><span class="v">${peso(c + sg)}</span></div>` }).join('')}
+          <div class="r"><span class="k strong">${cerrada ? 'Recibió el gerente' : 'Recibe el gerente a las 18:00'}</span><span class="v" style="color:var(--teal)">${peso(m)}</span></div></div></div>`
       }).join('')}</div>`
   },
+  init() {
+    $('#kpago')?.addEventListener('click', () => registrarPago())
+    $('#kgasto')?.addEventListener('click', registrarGasto)
+    $('#kteso')?.addEventListener('click', () => go('tesoreria'))
+  },
+}
+function registrarGasto() {
+  const propias = DB.perfil.rol === 'asesor' ? sc.rutas().map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)])
+    : [...new Set(sc.rutas().map((r) => r.gerencia_id))].map((g) => ['gerencia:' + g, cajaNombre('gerencia:' + g)]).concat(esAdmin() ? sc.rutas().map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)]) : [])
+  formModal({
+    titulo: 'Registrar gasto', nota: 'Sale de la caja y queda en la bitácora con tu usuario.', boton: 'Registrar gasto',
+    campos: [{ id: 'caja', label: 'Sale de la caja', tipo: 'select', req: 1, opciones: propias }, { id: 'categoria', label: 'Tipo de gasto', tipo: 'select', req: 1, opciones: [['Gastos de ruta', 'Gasolina / transporte'], ['Papelería', 'Papelería'], ['Otros gastos', 'Otro']] },
+      { id: 'concepto', label: 'Concepto', req: 1 }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 }],
+    guardar: async (v) => {
+      if (!(+v.monto > 0)) { const e = new Error('m'); e.userMsg = 'El monto debe ser mayor a cero.'; throw e }
+      const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ fecha: DB.hoy, tipo: 'egreso', caja_origen: v.caja, caja_destino: 'externo', categoria: v.categoria, concepto: v.concepto, monto: +v.monto, creado_por: DB.perfil.id }))
+      return ok ? 'Gasto registrado.' : ''
+    },
+  })
 }
 
 // ---------------- Reportes
@@ -638,9 +952,17 @@ const REPORTES = {
   ruta: { t: 'Por ruta / asesor', d: 'Cartera, atraso y cobranza de hoy por cada ruta.' },
   cliente: { t: 'Por cliente', d: 'Deuda de cada cliente, de mayor a menor.' },
   antiguedad: { t: 'Antigüedad', d: 'Saldo agrupado por días de atraso.' },
+  colocacion: { t: 'Nuevos y renovaciones', d: 'Colocación por asesor: clientes nuevos, renovaciones y recompras.' },
+  comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado.' },
+  seguros: { t: 'Seguros', d: 'Seguro de gastos administrativos cobrado por ruta.' },
+  medida: { t: 'A la medida', d: 'Elige cómo agrupar, las fechas y las columnas; descárgalo en Excel.' },
+}
+const RCOLS = {
+  clientes: 'Clientes', creditos: 'Créditos activos', base: 'Base prestada', saldo: 'Saldo (deuda)', al_dia: 'Cartera al día', atraso: 'Con atraso', normalidad: 'Normalidad %',
+  cobrado: 'Cobrado', nuevos: 'Clientes nuevos', colocado: 'Colocado (base)', renovado: 'Renovaciones (entregado)', seguros: 'Seguros',
 }
 VIEWS.reportes = {
-  tab: 'general', q: '',
+  tab: 'general', q: '', desde: null, hasta: null, agrupar: 'ruta', cols: ['clientes', 'base', 'saldo', 'normalidad', 'cobrado', 'nuevos', 'renovado', 'seguros'],
   html() {
     return `${head('Reportes', 'Cada reporte se puede ver para toda la empresa o por zona, gerencia, oficina o ruta, y descargar en Excel.')}
       <div class="tabs" id="rtabs">${Object.entries(REPORTES).map(([k, r]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${r.t}</button>`).join('')}</div>
@@ -651,7 +973,10 @@ VIEWS.reportes = {
     this.paint()
   },
   paint() {
+    if (!this.desde) { this.hasta = DB.hoy; this.desde = lunes(DB.hoy) }
     const car = sc.cartera(), act = car.filter((c) => c.saldo > 0), R = REPORTES[this.tab]
+    const fechas = `<label class="field"><label>Desde</label><input class="ctl" type="date" id="rd" value="${this.desde}" max="${DB.hoy}"></label><label class="field"><label>Hasta</label><input class="ctl" type="date" id="rh" value="${this.hasta}" max="${DB.hoy}"></label>`
+    const enRango = (f) => f >= this.desde && f <= this.hasta
     let body = '', exp = null
     const hdr = (extra = '') => `<div class="ph"><div><h3>${R.t}</h3><div class="sub">${R.d} · ${esc(scopeLabel())}</div></div><div class="toolbar">${extra}<button class="btn ghost" id="bxls" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>Excel</button></div></div>`
     const cEst = [
@@ -659,6 +984,7 @@ VIEWS.reportes = {
       { t: 'Alto riesgo', k: 'alto_riesgo', num: 1, f: P('alto_riesgo'), tot: T('alto_riesgo') }, { t: 'Vencido', k: 'vencido', num: 1, f: P('vencido'), tot: T('vencido') },
       { t: '% con atraso', num: 1, f: (r) => pct(r.atraso, r.saldo) + '%', tot: (rows) => pct(sum(rows, (r) => r.atraso), sum(rows, (r) => r.saldo)) + '%' },
     ]
+    const porAsesor = (L, extra = () => ({})) => { const m = new Map(); sc.rutas().forEach((r) => m.set(r.ruta_id, { ruta: r.ruta, asesor: r.asesor || '', oficina: r.oficina, gerente: r.gerente, ...extra() })); return m }
     if (this.tab === 'general') {
       const tot = sum(act, (c) => c.saldo), at = sum(act.filter((c) => c.dias_atraso > 0), (c) => c.saldo)
       const tiles = [['Clientes con préstamo', NUM.format(new Set(act.map((c) => c.cliente_id)).size)], ['Créditos activos', NUM.format(act.length)], ['Total prestado (activos)', peso(sum(act, (c) => c.monto))],
@@ -686,9 +1012,60 @@ VIEWS.reportes = {
     } else if (this.tab === 'cliente') {
       const all = porCliente(car).filter((c) => c.saldo > 0).sort((a, b) => b.saldo - a.saldo)
       const q = norm(this.q), rows = q ? all.filter((c) => norm(`${c.cliente} ${c.codigo} ${c.ruta} ${c.gerente} ${c.zona}`).includes(q)) : all
-      const cols = [{ t: 'Cliente', k: 'cliente', b: 1 }, { t: 'Código', k: 'codigo' }, { t: 'Ruta', k: 'ruta' }, { t: 'Gerente', k: 'gerente' }, { t: 'Zona', k: 'zona' }, { t: 'Créditos', k: 'activos', num: 1, tot: (r) => sum(r, (x) => x.activos) }, { t: 'Deuda', num: 1, b: 1, f: P('saldo'), tot: T('saldo') }, { t: 'Días atraso', num: 1, f: (r) => r.dias }, { t: 'Estado', f: (r) => estadoChip(r.estado) }]
+      const cols = [{ t: 'Cliente', k: 'cliente', b: 1 }, { t: 'Código', k: 'codigo' }, { t: 'Ruta', k: 'ruta' }, { t: 'Gerente', k: 'gerente' }, { t: 'Zona', k: 'zona' }, { t: 'Créditos', k: 'activos', num: 1, tot: (r) => sum(r, (x) => x.activos) }, { t: 'Base (prestado)', num: 1, f: P('base'), tot: T('base') }, { t: 'Deuda (saldo)', num: 1, b: 1, f: P('saldo'), tot: T('saldo') }, { t: 'Días atraso', num: 1, f: (r) => r.dias }, { t: 'Estado', f: (r) => estadoChip(r.estado) }]
       body = `<div class="card panel">${hdr(`<input class="ctl" id="rq" placeholder="Buscar cliente…" value="${esc(this.q)}">`)}${tabla(cols, rows.slice(0, 300), true)}${rows.length > 300 ? `<div class="note">Se muestran 300 de ${NUM.format(rows.length)}; la descarga en Excel incluye todos.</div>` : ''}</div>`
-      exp = () => csv('deuda_por_cliente', [['Cliente', 'cliente'], ['Código', 'codigo'], ['Ruta', 'ruta'], ['Asesor', 'asesor'], ['Gerente', 'gerente'], ['Zona', 'zona'], ['Créditos activos', 'activos'], ['Deuda', 'saldo'], ['Días de atraso', 'dias'], ['Estado', '', (r) => ESTADO[r.estado].n]], rows)
+      exp = () => csv('deuda_por_cliente', [['Cliente', 'cliente'], ['Código', 'codigo'], ['Ruta', 'ruta'], ['Asesor', 'asesor'], ['Gerente', 'gerente'], ['Zona', 'zona'], ['Créditos activos', 'activos'], ['Base (prestado)', 'base'], ['Deuda (saldo)', 'saldo'], ['Días de atraso', 'dias'], ['Estado', '', (r) => ESTADO[r.estado].n]], rows)
+    } else if (this.tab === 'colocacion' || this.tab === 'comisiones') {
+      const L = car.filter((c) => enRango(c.fecha_inicio))
+      const m = porAsesor(L, () => ({ nuevos: 0, base_nuevos: 0, renov: 0, entregado_ren: 0, base_ren: 0, recompras: 0, base_rec: 0 }))
+      L.forEach((c) => { const x = m.get(c.ruta_id); if (!x) return
+        if (c.tipo === 'renovacion') { x.renov++; x.entregado_ren += c.entregado; x.base_ren += c.monto } else if (c.tipo === 'recompra') { x.recompras++; x.base_rec += c.monto } else { x.nuevos++; x.base_nuevos += c.monto } })
+      const rows = [...m.values()].sort((a, b) => (b.base_nuevos + b.entregado_ren) - (a.base_nuevos + a.entregado_ren))
+      const cn = PARAM('comision_nuevo'), cr = PARAM('comision_renovacion_pct')
+      rows.forEach((r) => { r.com_n = cn != null ? r.nuevos * cn : null; r.com_r = cr != null ? r.entregado_ren * cr / 100 : null; r.com = (r.com_n || 0) + (r.com_r || 0) })
+      const n = (k) => ({ t: '', k, num: 1, tot: (rr) => sum(rr, (x) => x[k]) })
+      if (this.tab === 'colocacion') {
+        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { ...n('nuevos'), t: 'Nuevos' }, { t: 'Base nuevos', num: 1, f: P('base_nuevos'), tot: T('base_nuevos') }, { ...n('renov'), t: 'Renovaciones' },
+          { t: 'Renovaciones (base)', num: 1, f: P('base_ren'), tot: T('base_ren') }, { t: 'Renovaciones (entregado)', num: 1, b: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { ...n('recompras'), t: 'Recompras' }, { t: 'Base recompras', num: 1, f: P('base_rec'), tot: T('base_rec') }]
+        body = `<div class="card panel">${hdr(fechas)}${tabla(cols, rows, true)}<div class="note">«Entregado» en renovaciones = nuevo crédito menos lo que debía el cliente.</div></div>`
+        exp = () => csv('nuevos_y_renovaciones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Nuevos', 'nuevos'], ['Base nuevos', 'base_nuevos'], ['Renovaciones', 'renov'], ['Renovaciones base', 'base_ren'], ['Renovaciones entregado', 'entregado_ren'], ['Recompras', 'recompras'], ['Base recompras', 'base_rec']], rows)
+      } else {
+        const falta = cn == null || cr == null
+        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: `Comisión nuevos (${cn != null ? peso(cn) + ' c/u' : 'por definir'})`, num: 1, f: (r) => r.com_n == null ? '—' : peso(r.com_n), tot: (rr) => cn == null ? '—' : peso(sum(rr, (x) => x.com_n)) },
+          { t: 'Renovaciones (entregado)', num: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { t: `Comisión renovaciones (${cr != null ? cr + ' %' : 'por definir'})`, num: 1, f: (r) => r.com_r == null ? '—' : peso(r.com_r), tot: (rr) => cr == null ? '—' : peso(sum(rr, (x) => x.com_r)) },
+          { ...n('recompras'), t: 'Recompras' }, { t: 'Total a pagar', num: 1, b: 1, f: P('com'), tot: T('com') }]
+        body = `<div class="card panel">${hdr(fechas)}${falta ? '<div class="note-card"><b>Falta capturar las comisiones.</b> En Administración → Parámetros pon el monto por cliente nuevo y el porcentaje por renovación.</div>' : ''}${tabla(cols, rows, true)}
+          <div class="note">Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
+        exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
+      }
+    } else if (this.tab === 'seguros') {
+      const M = DB.movimientos.filter((x) => x.categoria === 'Seguro' && enRango(x.fecha) && cajasAmbito().has(x.caja_destino))
+      const m = porAsesor(M, () => ({ n: 0, monto: 0 }))
+      M.forEach((x) => { const y = m.get(+x.caja_destino.split(':')[1]); if (y) { y.n++; y.monto += x.monto } })
+      const rows = [...m.values()].sort((a, b) => b.monto - a.monto)
+      const sem = new Map(); M.forEach((x) => { const k = lunes(x.fecha); sem.set(k, (sem.get(k) || 0) + x.monto) })
+      const semanas = [...sem.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => ({ semana: 'Semana del ' + fechaCorta(k), monto: v }))
+      body = `<div class="card panel">${hdr(fechas)}<div class="grid-rep">${[['Total cobrado', peso(sum(rows, (r) => r.monto))], ['Créditos con seguro', NUM.format(sum(rows, (r) => r.n))], ['Por crédito', peso(PARAM('seguro_monto', 150))]].map(([l, v]) => `<div class="mini inset"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
+        ${tabla([{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Créditos', k: 'n', num: 1, tot: (r) => sum(r, (x) => x.n) }, { t: 'Seguros cobrados', num: 1, b: 1, f: P('monto'), tot: T('monto') }], rows, true)}
+        <h3 class="sec-title">Por semana</h3>${tabla([{ t: 'Semana', k: 'semana', b: 1 }, { t: 'Cobrado', num: 1, f: P('monto'), tot: T('monto') }], semanas, true)}
+        <div class="note">El seguro entra a la caja del asesor; la deuda del cliente no cambia.</div></div>`
+      exp = () => csv('seguros', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Créditos', 'n'], ['Seguros', 'monto']], rows)
+    } else if (this.tab === 'medida') {
+      const key = this.agrupar, idk = key === 'cliente' ? 'cliente_id' : key + '_id', namek = { zona: 'zona', gerencia: 'gerencia', oficina: 'oficina', ruta: 'ruta', cliente: 'cliente' }[key]
+      const m = new Map(), get = (c) => { let y = m.get(c[idk]); if (!y) { y = { nombre: c[namek], resp: key === 'ruta' ? c.asesor : key === 'gerencia' || key === 'oficina' ? c.gerente : key === 'zona' ? c.zonal : c.ruta, cli: new Set(), creditos: 0, base: 0, saldo: 0, al_dia: 0, cobrado: 0, nuevosS: new Set(), colocado: 0, renovado: 0, seguros: 0 }; m.set(c[idk], y) } return y }
+      act.forEach((c) => { const y = get(c); y.cli.add(c.cliente_id); y.creditos++; y.base += c.monto; y.saldo += c.saldo; if (alDia(c)) y.al_dia += c.saldo })
+      car.filter((c) => enRango(c.fecha_inicio)).forEach((c) => { const y = get(c); if (c.tipo === 'renovacion') y.renovado += c.entregado; else { y.colocado += c.monto; if (c.tipo === 'nuevo') y.nuevosS.add(c.cliente_id) } if (c.seguro) y.seguros += c.seguro })
+      const C = new Map(car.map((c) => [c.credito_id, c]))
+      DB.pagos.filter((x) => x.tipo !== 'liquidacion_renovacion' && enRango(x.fecha)).forEach((x) => { const c = C.get(x.credito_id); if (c) get(c).cobrado += x.monto })
+      const rows = [...m.values()].map((y) => ({ ...y, clientes: y.cli.size, nuevos: y.nuevosS.size, atraso: y.saldo - y.al_dia, normalidad: y.saldo ? Math.round((y.al_dia / y.saldo) * 100) : 0 })).sort((a, b) => b.saldo - a.saldo)
+      const money = ['base', 'saldo', 'al_dia', 'atraso', 'cobrado', 'colocado', 'renovado', 'seguros']
+      const cols = [{ t: { zona: 'Zona', gerencia: 'Gerencia', oficina: 'Oficina', ruta: 'Ruta', cliente: 'Cliente' }[key], k: 'nombre', b: 1 }, { t: { ruta: 'Asesor', cliente: 'Ruta', zona: 'Zonal' }[key] || 'Gerente', k: 'resp' },
+        ...this.cols.map((k) => k === 'normalidad' ? { t: RCOLS[k], num: 1, f: (r) => r.normalidad + '%', tot: (rr) => Math.round((sum(rr, (x) => x.al_dia) / Math.max(1, sum(rr, (x) => x.saldo))) * 100) + '%' }
+          : money.includes(k) ? { t: RCOLS[k], num: 1, f: P(k), tot: T(k) } : { t: RCOLS[k], k, num: 1, tot: (rr) => sum(rr, (x) => x[k]) })]
+      const ctrl = `<label class="field sel"><label>Agrupar por</label><select class="ctl" id="rag">${[['zona', 'Zona'], ['gerencia', 'Gerencia'], ['oficina', 'Oficina'], ['ruta', 'Ruta / asesor'], ['cliente', 'Cliente']].map(([k, t]) => `<option value="${k}"${k === key ? ' selected' : ''}>${t}</option>`).join('')}</select></label>${fechas}`
+      body = `<div class="card panel">${hdr(ctrl)}<div class="toolbar">${Object.entries(RCOLS).map(([k, t]) => `<label class="fl chk" style="display:inline-flex;font-size:12.5px"><input type="checkbox" data-col="${k}"${this.cols.includes(k) ? ' checked' : ''}> <span>${t}</span></label>`).join('')}</div>
+        ${tabla(cols, rows.slice(0, 400), true)}<div class="note">Saldos y cartera: al día de hoy. Cobrado, colocado, renovaciones y seguros: entre las fechas elegidas. ${esc(scopeLabel())}.</div></div>`
+      exp = () => csv('reporte_a_la_medida', [[cols[0].t, 'nombre'], [cols[1].t, 'resp'], ...this.cols.map((k) => [RCOLS[k], k])], rows)
     } else {
       const B = [['Al día', 0, 0], ['1 a 7 días', 1, 7], ['8 a 30 días', 8, 30], ['31 a 60 días', 31, 60], ['Más de 60 días', 61, 1e9]]
       const tot = sum(act, (c) => c.saldo)
@@ -699,6 +1076,10 @@ VIEWS.reportes = {
     }
     $('#rbody').innerHTML = body
     $('#bxls')?.addEventListener('click', exp)
+    $('#rd')?.addEventListener('change', (e) => { if (e.target.value) { this.desde = e.target.value; this.paint() } })
+    $('#rh')?.addEventListener('change', (e) => { if (e.target.value) { this.hasta = e.target.value; this.paint() } })
+    $('#rag')?.addEventListener('change', (e) => { this.agrupar = e.target.value; this.paint() })
+    $$('[data-col]').forEach((c) => c.addEventListener('change', () => { this.cols = Object.keys(RCOLS).filter((k) => $(`[data-col="${k}"]`).checked); this.paint() }))
     const rq = $('#rq'); if (rq) { rq.addEventListener('input', (e) => { this.q = e.target.value; this.paint(); const n = $('#rq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length) }) }
   },
 }
@@ -716,7 +1097,7 @@ VIEWS.admin = {
   tab: 'usuarios',
   html() {
     return `${head('Administración', 'Usuarios y roles, estructura de la empresa, parámetros y bitácora. Las acciones sensibles quedan registradas.')}
-      <div class="tabs" id="atabs">${[['usuarios', 'Usuarios y roles'], ['estructura', 'Estructura'], ['parametros', 'Parámetros'], ['bitacora', 'Bitácora']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="tabs" id="atabs">${[['usuarios', 'Usuarios y roles'], ['estructura', 'Estructura'], ['personal', 'Personal'], ['parametros', 'Parámetros'], ['peticiones', 'Peticiones'], ['bitacora', 'Bitácora']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="abody" style="display:grid;gap:14px"></div>`
   },
   init() {
@@ -728,7 +1109,7 @@ VIEWS.admin = {
     if (this.tab === 'usuarios') {
       const roles = [['Dirección', 'Ve toda la empresa; autoriza acciones financieras y da de alta usuarios'], ['Gerente regional', 'Su región: zonas, gerencias, oficinas y rutas'],
         ['Gerente zonal', 'Su zona: gerencias, oficinas y rutas; ve el resumen completo de su zona'], ['Gerente', 'Sus oficinas y rutas; recibe y redistribuye la caja'],
-        ['Asesor de crédito', 'Su ruta: clientes, cobro y caja propia'], ['Mesa de control', 'Revisa documentos; aprueba, rechaza u observa'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
+        ['Asesor de crédito', 'Su ruta: crea créditos, registra cobros y su caja'], ['Mesa de control', 'Revisa solicitudes; aprueba, observa, rechaza o cancela'], ['Tesorería', 'Pasa el excedente de la caja de los gerentes al banco; ve bancos y movimientos'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
       const lista = DB.perfiles.length ? DB.perfiles : [p]
       const amb = (a) => !a || a === 'empresa' ? 'Toda la empresa' : ambitoNombre(a)
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Usuarios</h3><div class="sub">Cada usuario tiene un cargo y un ámbito: sólo ve lo que le toca. Los permisos se validan en la base de datos.</div></div>
@@ -758,10 +1139,40 @@ VIEWS.admin = {
         </div></div>`
       $$('[data-nt]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.nt)))
       $$('[data-et]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.et, +b.dataset.id)))
+    } else if (this.tab === 'personal') {
+      const P6 = (f) => addDays(f, 365 * 6)
+      const act = DB.personal.filter((x) => !x.fecha_baja), bajas = DB.personal.filter((x) => x.fecha_baja)
+      const fila = (x) => `<tr><td class="strong">${esc(x.nombre)}</td><td>${esc(x.puesto)}</td><td>${esc(x.ambito ? ambitoNombre(x.ambito) : '')}</td><td>${esc(x.curp || '')}</td><td>${esc(x.telefono || '')}</td><td>${esc(x.correo || '')}</td><td>${esc(x.fecha_ingreso || '')}</td>
+        <td>${x.fecha_baja ? `<span class="st off">Baja ${esc(x.fecha_baja)}</span><div class="muted" style="font-size:12px">${esc(x.motivo_baja || '')} · se guarda hasta ${P6(x.fecha_baja)}</div>` : '<span class="st ok">Activo</span>'}</td>
+        <td class="num">${esAdmin() ? `<button class="btn ghost sm" type="button" data-per="${x.id}">Ver / editar</button>${x.fecha_baja ? '' : ` <button class="btn ghost sm" type="button" data-baja="${x.id}">Dar de baja</button>`}` : ''}</td></tr>`
+      const head = '<thead><tr><th>Nombre</th><th>Puesto</th><th>Ámbito</th><th>CURP</th><th>Teléfono</th><th>Correo</th><th>Ingreso</th><th>Estado</th><th></th></tr></thead>'
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Personal activo</h3><div class="sub">Expediente de asesores, gerentes y demás personal</div></div>${esAdmin() ? '<button class="btn" type="button" id="pnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar persona</button>' : ''}</div>
+          <div class="tablewrap"><table class="tbl">${head}<tbody>${act.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin personal registrado</b></div></td></tr>'}</tbody></table></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Personal dado de baja</h3><div class="sub">Se conserva 6 años por auditoría: foto, nombre, fecha de nacimiento, CURP, dirección, teléfono y correo</div></div><span class="chip">${bajas.length}</span></div>
+          <div class="tablewrap"><table class="tbl">${head}<tbody>${bajas.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin bajas</b></div></td></tr>'}</tbody></table></div>
+          <div class="note">Dar de baja no borra a la persona: sólo marca la fecha y el motivo. Recuerda desactivar también su usuario en «Usuarios y roles».</div></div>`
+      $('#pnuevo')?.addEventListener('click', () => editarPersona())
+      $$('[data-per]').forEach((b) => b.addEventListener('click', () => editarPersona(DB.personal.find((x) => x.id === +b.dataset.per))))
+      $$('[data-baja]').forEach((b) => b.addEventListener('click', () => bajaPersona(DB.personal.find((x) => x.id === +b.dataset.baja))))
     } else if (this.tab === 'parametros') {
-      const kv = [['Productos de préstamo', '<span class="pend">por definir</span>'], ['Cálculo de interés', '50 % plano · 10 cuotas de 15 % del monto <span class="pend">deducido de Listo, por confirmar</span>'], ['Frecuencias', 'semanal · quincenal (2 fechas fijas) · mensual'], ['Hora de cierre de caja', '18:00'],
-        ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Mora / penalización', '<span class="pend">por definir</span>'], ['Días no laborables', '<span class="pend">por definir</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
-      el.innerHTML = `<div class="card panel"><h3 class="sec-title">Parámetros</h3><div class="kv">${kv.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
+      const L = DB.parametros.slice().sort((a, b) => a.clave.localeCompare(b.clave))
+      const fmt = (x) => x.valor == null ? '<span class="pend">por definir</span>' : /pct|_pct|meta/.test(x.clave) ? x.valor + ' %' : /monto|comision_nuevo/.test(x.clave) ? peso(x.valor) : /dias/.test(x.clave) ? x.valor + ' días' : x.valor
+      const fijos = [['Frecuencias', 'semanal · quincenal · mensual'], ['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Parámetros del negocio</h3><div class="sub">Se aplican a los créditos nuevos desde que se cambian</div></div></div>
+        <div class="kv">${L.map((x) => `<div class="r"><span class="k">${esc(x.descripcion)}</span><span class="v">${fmt(x)} ${esAdmin() ? `<button class="btn ghost sm" type="button" data-par="${esc(x.clave)}" style="margin-left:8px">Cambiar</button>` : ''}</span></div>`).join('') || '<div class="empty"><b>Falta aplicar la actualización de la base de datos</b></div>'}
+        ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
+      $$('[data-par]').forEach((b) => b.addEventListener('click', () => { const x = DB.parametros.find((y) => y.clave === b.dataset.par)
+        formModal({ titulo: 'Cambiar parámetro', nota: esc(x.descripcion), campos: [{ id: 'valor', label: 'Valor', tipo: 'number', step: 'any', min: 0, valor: x.valor ?? '' }],
+          guardar: async (v) => { const ok = await escribir(() => sb.from('parametros').update({ valor: v.valor === '' ? null : +v.valor }).eq('clave', x.clave)); return ok ? 'Parámetro actualizado.' : '' } }) }))
+    } else if (this.tab === 'peticiones') {
+      const L = DB.peticiones, quien = (id) => (DB.perfiles.find((u) => u.id === id) || {}).nombre
+      const EP = { nueva: ['Nueva', 'wait'], en_proceso: ['En proceso', 'mid'], lista: ['Lista', 'ok'], descartada: ['Descartada', 'off'] }
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Peticiones y mejoras</h3><div class="sub">Lo que se pide desde el botón «Enviar petición» del menú; le llega al equipo de NXUS AI</div></div><button class="btn" type="button" id="ppet">Enviar petición</button></div>
+        ${tabla([{ t: 'Fecha', f: (x) => esc(String(x.creado || '').slice(0, 10)) }, { t: 'Quién', f: (x) => esc(x.nombre || quien(x.creado_por) || '') }, { t: 'Sección', f: (x) => esc(x.seccion || '') }, { t: 'Petición', f: (x) => esc(x.texto) },
+          { t: 'Estado', f: (x) => `<span class="st ${(EP[x.estado] || EP.nueva)[1]}">${(EP[x.estado] || EP.nueva)[0]}</span>` },
+          { t: '', f: (x) => DB.perfil.rol === 'soporte' ? `<select class="ctl" data-pet="${x.id}" style="height:34px">${Object.entries(EP).map(([k, [t]]) => `<option value="${k}"${k === x.estado ? ' selected' : ''}>${t}</option>`).join('')}</select>` : '' }], L)}</div>`
+      $('#ppet').addEventListener('click', enviarPeticion)
+      $$('[data-pet]').forEach((sel) => sel.addEventListener('change', async () => { try { await escribir(() => sb.from('peticiones').update({ estado: sel.value }).eq('id', +sel.dataset.pet)); toast('Petición actualizada.') } catch (e) { toast(e.userMsg || 'No se pudo actualizar.', 'warn') } }))
     } else {
       el.innerHTML = `<div class="card panel"><div class="ph"><h3>Bitácora</h3><span class="chip">0 eventos</span></div><div class="empty"><b>Sin eventos todavía</b>Cada alta, cambio, pago, reverso o cierre quedará aquí: quién, cuándo, qué y por qué.</div></div>`
     }
@@ -798,17 +1209,70 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
       $('#modalHost').innerHTML = ''
       if (msg) toast(msg)
     } catch (err) {
-      console.error(err)
-      $('#fmErr').textContent = err.userMsg || 'No se pudo guardar. Revisa los datos e intenta de nuevo.'
-      b.disabled = false; b.textContent = boton
+      if (!err.html) { console.error(err); $('#fmErr').textContent = err.userMsg || 'No se pudo guardar. Revisa los datos e intenta de nuevo.' }
+      b.disabled = false; if (!err.html) b.textContent = boton
     }
   })
 }
+const SIN_RED = 'Sin conexión a internet: NO se guardó. Inténtalo de nuevo cuando tengas señal.'
+function errorAmigable(error) {
+  const m = String(error?.message || error || '')
+  const e = new Error(m)
+  e.userMsg = !navigator.onLine || /failed to fetch|network|load failed/i.test(m) ? SIN_RED
+    : /row-level security|permission|Sólo mesa/i.test(m) ? (/Sólo mesa/.test(m) ? m : 'Tu cuenta no tiene permiso para este cambio.')
+    : /duplicate|unique/i.test(m) ? 'Ya existe un registro con esos datos.'
+    : /^[A-ZÁÉÍÓÚ][^\n]{6,160}\.$/.test(m) ? m : ''
+  return e
+}
 async function escribir(fn) {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return false }
-  const { error } = await fn()
-  if (error) { const e = new Error(error.message); e.userMsg = /row-level security|permission/i.test(error.message) ? 'Tu cuenta no tiene permiso para este cambio.' : /duplicate|unique/i.test(error.message) ? 'Ya existe un registro con esos datos.' : ''; throw e }
-  await reload(); return true
+  if (!navigator.onLine) throw errorAmigable('network')
+  let res
+  try { res = await fn() } catch (err) { throw errorAmigable(err) }
+  if (res?.error) throw errorAmigable(res.error)
+  _hist.clear()
+  await reload(); return res?.data ?? true
+}
+addEventListener('offline', () => toast('Sin conexión a internet: lo que registres no se guardará hasta que vuelva la señal.', 'warn'))
+addEventListener('online', () => toast('Conexión recuperada.'))
+
+// ============================================================ personal y peticiones
+function editarPersona(x) {
+  const e = x || {}
+  const puestos = ['Asesor de crédito', 'Gerente', 'Gerente zonal', 'Gerente regional', 'Mesa de control', 'Tesorería', 'Dirección', 'Administrativo']
+  formModal({
+    titulo: x ? `Expediente de ${esc(x.nombre)}` : 'Agregar persona', nota: 'Datos que se conservan 6 años, aunque la persona se dé de baja.', boton: 'Guardar',
+    campos: [{ id: 'nombre', label: 'Nombre completo', req: 1, valor: e.nombre }, { id: 'puesto', label: 'Puesto', tipo: 'select', req: 1, opciones: puestos.map((p) => [p, p]), valor: e.puesto || 'Asesor de crédito' },
+      { id: 'ambito', label: 'Ruta, oficina o gerencia', tipo: 'select', opciones: ambitoOpciones(), valor: e.ambito || 'empresa' }, { id: 'curp', label: 'CURP', req: 1, valor: e.curp },
+      { id: 'fnac', label: 'Fecha de nacimiento', tipo: 'date', valor: e.fecha_nacimiento }, { id: 'direccion', label: 'Dirección', valor: e.direccion },
+      { id: 'telefono', label: 'Teléfono', tipo: 'tel', req: 1, valor: e.telefono }, { id: 'correo', label: 'Correo', tipo: 'email', valor: e.correo },
+      { id: 'ingreso', label: 'Fecha de ingreso', tipo: 'date', req: 1, valor: e.fecha_ingreso || DB.hoy }],
+    guardar: async (v) => {
+      const row = { nombre: v.nombre, puesto: v.puesto, ambito: v.ambito, curp: v.curp.toUpperCase(), fecha_nacimiento: v.fnac || null, direccion: v.direccion || null, telefono: v.telefono, correo: v.correo || null, fecha_ingreso: v.ingreso }
+      const ok = await escribir(() => x ? sb.from('personal').update(row).eq('id', x.id) : sb.from('personal').insert(row))
+      return ok ? 'Expediente guardado.' : ''
+    },
+  })
+}
+function bajaPersona(x) {
+  formModal({
+    titulo: `Dar de baja a ${esc(x.nombre)}`, nota: 'Su expediente se conserva 6 años para auditorías. No se borra nada.', boton: 'Dar de baja',
+    campos: [{ id: 'fecha', label: 'Fecha de baja', tipo: 'date', req: 1, valor: DB.hoy }, { id: 'motivo', label: 'Motivo', req: 1 }],
+    guardar: async (v) => { const ok = await escribir(() => sb.from('personal').update({ fecha_baja: v.fecha, motivo_baja: v.motivo }).eq('id', x.id)); return ok ? 'Baja registrada. Recuerda desactivar su usuario.' : '' },
+  })
+}
+function enviarPeticion() {
+  const secciones = NAV.filter(([k]) => k !== 'h').map(([k, t]) => [t, t]).concat([['Otra', 'Otra / general']])
+  formModal({
+    titulo: 'Enviar petición o mejora', nota: 'Dinos qué quieres cambiar, agregar o qué no te gustó. Le llega al equipo de NXUS AI.', boton: 'Enviar',
+    campos: [{ id: 'seccion', label: 'Sección', tipo: 'select', req: 1, opciones: secciones, valor: (NAV.find(([k]) => k === VIEW) || [])[1] || 'Otra' }, { id: 'texto', label: 'Tu petición', req: 1 }],
+    guardar: async (v) => {
+      if (v.texto.length < 3) { const e = new Error('t'); e.userMsg = 'Escribe un poco más.'; throw e }
+      const ok = await escribir(() => sb.from('peticiones').insert({ seccion: v.seccion, texto: v.texto, nombre: DB.perfil.nombre || null, creado_por: DB.perfil.id }))
+      return ok ? '¡Gracias! Tu petición quedó registrada.' : ''
+    },
+  })
+  const t = $('#f_texto'); if (t) { const a = document.createElement('textarea'); a.id = 'f_texto'; a.className = 'ctl'; a.rows = 4; a.style.cssText = 'width:100%;height:auto;padding:10px 13px;resize:vertical'; a.required = true; t.replaceWith(a) }
 }
 
 // ============================================================ altas de estructura y usuarios
@@ -886,9 +1350,8 @@ function invitarUsuario() {
 }
 
 // ============================================================ Normalidad
-// % de pagos  = $ cobrado ÷ $ esperado (cuotas que vencen en el periodo)
-// % de clientes = número de pagos ÷ créditos con cuota en el periodo
-// Mismo cálculo que "Estadística ruta" de Listo, pero a cualquier nivel.
+// Normalidad (fórmula del dueño) = cartera al día ÷ cartera total × 100, en dinero.
+// Como dato de apoyo se muestra también lo cobrado contra lo que tocaba cobrar.
 function agenda(desde, hasta) {
   const m = new Map()
   sc.cartera().forEach((c) => {
@@ -903,88 +1366,226 @@ function agenda(desde, hasta) {
   })
   return m
 }
-const semaforo = (p) => (p >= 90 ? 'ok' : p >= 70 ? 'wait' : 'bad')
+const semaforo = (p) => (p >= PARAM('meta_normalidad', 90) ? 'ok' : p >= PARAM('meta_normalidad', 90) - 15 ? 'wait' : 'bad')
+const rangoFechas = (a, b) => { const out = []; for (let d = a; d <= b; d = addDays(d, 1)) out.push(d); return out }
 VIEWS.normalidad = {
-  rango: '7', nivel: 'ruta',
+  rango: '30', nivel: 'ruta', fecha: null, comp: 'mes', A: null, B: null,
   html() {
-    return `${head('Normalidad', 'Qué tanto se cobra de lo que tocaba cobrar: en pesos y en clientes, por ruta, oficina, gerencia o zona.',
-      `<div class="seg" id="nrango">${[['1', 'Hoy'], ['7', '7 días'], ['30', '30 días']].map(([k, t]) => `<button type="button" data-r="${k}" class="${this.rango === k ? 'on' : ''}">${t}</button>`).join('')}</div>`)}
+    const hoy = DB.hoy
+    this.fecha = this.fecha || hoy
+    const mes = hoy.slice(0, 7), mesAnt = addDays(hoy.slice(0, 8) + '01', -1).slice(0, 7), anio = +hoy.slice(0, 4)
+    if (!this.A) this.ajustarComp()
+    return `${head('Normalidad', `Cartera al día ÷ cartera total, en dinero. Meta: ${PARAM('meta_normalidad', 90)} %.`,
+      `<div class="seg" id="nrango">${[['7', '7 días'], ['30', '30 días'], ['90', '90 días']].map(([k, t]) => `<button type="button" data-r="${k}" class="${this.rango === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+       <label class="field"><label for="nfecha">Fecha</label><input class="ctl" type="date" id="nfecha" value="${this.fecha}" max="${hoy}"></label>`)}
       <section class="kpis" id="nk"></section>
-      <div class="card panel"><div class="ph"><div><h3>Normalidad diaria</h3><div class="sub">Últimos 30 días · días sin cuotas por cobrar no se grafican</div></div></div><div class="chart-box" style="height:250px"><canvas id="nchart"></canvas></div></div>
+      <div class="card panel"><div class="ph"><div><h3>Normalidad por día</h3><div class="sub" id="ngsub"></div></div></div><div class="chart-box" style="height:250px"><canvas id="nchart"></canvas></div></div>
+      <div class="card panel"><div class="ph"><div><h3>Comparar periodos</h3><div class="sub">Un día contra otro, un mes contra otro o un año contra otro</div></div>
+        <div class="seg" id="ncomp">${[['dia', 'Día vs día'], ['mes', 'Mes vs mes'], ['anio', 'Año vs año']].map(([k, t]) => `<button type="button" data-c="${k}" class="${this.comp === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
+        <div class="toolbar" id="ncompIn"></div>
+        <div class="statrow" id="ncompK" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+        <div class="chart-box" style="height:240px"><canvas id="ncchart"></canvas></div></div>
       <div class="card panel"><div class="ph"><div><h3>Por nivel</h3><div class="sub" id="nsub"></div></div><div class="tabs" id="nnivel">${[['ruta', 'Ruta'], ['oficina', 'Oficina'], ['gerencia', 'Gerencia'], ['zona', 'Zona']].map(([k, t]) => `<button type="button" data-n="${k}" class="${this.nivel === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
         <div id="ntabla"></div>
-        <div class="note">Mismo cálculo que el reporte «Estadística ruta» del sistema actual. Puede pasar de 100 % cuando se cobran cuotas atrasadas. Verde ≥ 90 % · ámbar ≥ 70 %.</div></div>`
+        <div class="note">Normalidad = saldo de créditos al día ÷ saldo total. «Cobrado vs esperado» compara lo cobrado con las cuotas que vencían en los últimos 7 días. Verde: en meta · ámbar: hasta 15 puntos abajo.</div></div>`
+  },
+  ajustarComp() {
+    const hoy = DB.hoy
+    if (this.comp === 'dia') { this.A = addDays(hoy, -7); this.B = hoy }
+    else if (this.comp === 'mes') { this.A = addDays(hoy.slice(0, 8) + '01', -1).slice(0, 7); this.B = hoy.slice(0, 7) }
+    else { this.A = String(+hoy.slice(0, 4) - 1); this.B = hoy.slice(0, 4) }
   },
   init() {
-    $$('#nrango button').forEach((b) => b.addEventListener('click', () => { this.rango = b.dataset.r; $$('#nrango button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.pintar() }))
+    $$('#nrango button').forEach((b) => b.addEventListener('click', () => { this.rango = b.dataset.r; $$('#nrango button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.grafica() }))
     $$('#nnivel button').forEach((b) => b.addEventListener('click', () => { this.nivel = b.dataset.n; $$('#nnivel button').forEach((x) => x.classList.toggle('on', x === b)); this.tabla() }))
-    this.pintar(); this.grafica()
+    $$('#ncomp button').forEach((b) => b.addEventListener('click', () => { this.comp = b.dataset.c; $$('#ncomp button').forEach((x) => x.classList.toggle('on', x === b)); this.ajustarComp(); this.comparar() }))
+    $('#nfecha').addEventListener('change', (e) => { if (e.target.value) { this.fecha = e.target.value; reveal(); this.pintar(); this.grafica() } })
+    this.pintar(); this.grafica(); this.comparar()
   },
-  datos() {
-    const hoy = DB.hoy, n = +this.rango, desde = addDays(hoy, -(n - 1))
-    const ag = agenda(desde, hoy), rec = sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= hoy)
-    const porRuta = new Map()
-    const get = (id) => { let x = porRuta.get(id); if (!x) { x = { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }; porRuta.set(id, x) } return x }
-    ag.forEach((v, k) => { const x = get(+k.split('|')[0]); x.esperado += v.s; x.porCobrar += v.n })
-    rec.forEach((r) => { const x = get(r.ruta_id); x.cobrado += r.monto; x.pagos += +r.pagos || 0 })
-    return { porRuta, desde, hoy }
-  },
+  enFecha(d) { return historiaNormalidad([d]).get(d) },
   pintar() {
-    const { porRuta } = this.datos()
-    const T = { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }
-    porRuta.forEach((x) => { for (const k in T) T[k] += x[k] })
-    const pP = pct(T.cobrado, T.esperado), pC = pct(T.pagos, T.porCobrar)
-    const lab = { 1: 'hoy', 7: 'últimos 7 días', 30: 'últimos 30 días' }[this.rango]
+    const d = this.fecha, esHoy = d === DB.hoy
+    const N = esHoy ? normalidadHoy(sc.cartera()) : (() => { const x = this.enFecha(d); return { ...x, p: x.tot ? (x.ok / x.tot) * 100 : 0 } })()
+    const ant = this.enFecha(addDays(d, -7)), pAnt = ant.tot ? (ant.ok / ant.tot) * 100 : 0
+    const desde = addDays(d, -6), ag = agenda(desde, d)
+    let esp = 0; ag.forEach((v) => { esp += v.s })
+    const cob = sum(sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= d), (r) => r.monto)
     const k = [
-      { lab: 'Normalidad en pesos', val: pP + '%', meta: `cobrado vs esperado · ${lab}`, g: [COL.teal, COL.blue], st: semaforo(pP) },
-      { lab: 'Normalidad en clientes', val: pC + '%', meta: `pagos vs clientes por cobrar`, g: [COL.blue, COL.violet], st: semaforo(pC) },
-      { lab: 'Esperado', val: peso(T.esperado), meta: `${NUM.format(T.porCobrar)} cuotas por cobrar`, g: [COL.violet, COL.teal] },
-      { lab: 'Cobrado', val: peso(T.cobrado), meta: `${NUM.format(T.pagos)} pagos registrados`, g: [COL.green, COL.teal] },
+      { lab: 'Normalidad', val: Math.round(N.p) + '%', meta: `${esHoy ? 'hoy' : 'al ' + fechaCorta(d)} · hace una semana ${Math.round(pAnt)}%`, g: [COL.green, COL.teal], st: semaforo(N.p) },
+      { lab: 'Cartera al día', val: peso(N.ok), meta: 'saldo de créditos sin atraso', g: [COL.teal, COL.blue] },
+      { lab: 'Cartera total', val: peso(N.tot), meta: 'saldo por cobrar', g: [COL.blue, COL.violet] },
+      { lab: 'Cobrado vs esperado', val: pct(cob, esp) + '%', meta: `${peso(cob)} de ${peso(esp)} · 7 días`, g: [COL.violet, COL.teal] },
     ]
-    $('#nk').innerHTML = k.map((x) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${x.g[0]},${x.g[1]})"><svg viewBox="0 0 24 24">${ICON.normalidad}</svg></div>${x.st ? `<span class="st ${x.st}">${x.st === 'ok' ? 'Sana' : x.st === 'wait' ? 'Atención' : 'Baja'}</span>` : ''}</div>
+    $('#nk').innerHTML = k.map((x) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${x.g[0]},${x.g[1]})"><svg viewBox="0 0 24 24">${ICON.normalidad}</svg></div>${x.st ? `<span class="st ${x.st}">${x.st === 'ok' ? 'En meta' : x.st === 'wait' ? 'Atención' : 'Baja'}</span>` : ''}</div>
       <div><div class="lab">${x.lab}</div><div class="val">${x.val}</div><div class="meta">${x.meta}</div></div></div>`).join('')
-    $('#nsub').textContent = `${lab[0].toUpperCase() + lab.slice(1)} · ${scopeLabel()}`
+    $('#nsub').textContent = `${esHoy ? 'Hoy' : 'Al ' + fechaCorta(d)} · ${scopeLabel()}`
     this.tabla()
   },
   tabla() {
-    const { porRuta } = this.datos(), nivel = this.nivel
+    const d = this.fecha, nivel = this.nivel, esHoy = d === DB.hoy
+    const desde = addDays(d, -6), ag = agenda(desde, d), rec = sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= d)
     const m = new Map()
-    DB.rutas.filter(inScope).forEach((r) => {
-      const x = porRuta.get(r.ruta_id) || { esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }
-      const id = r[nivel + '_id'], nombre = nivel === 'ruta' ? r.ruta : r[nivel]
-      const resp = { ruta: r.asesor, oficina: r.gerente, gerencia: r.gerente, zona: r.zonal }[nivel]
-      let y = m.get(id); if (!y) { y = { nombre, resp, esperado: 0, porCobrar: 0, cobrado: 0, pagos: 0 }; m.set(id, y) }
-      for (const k of ['esperado', 'porCobrar', 'cobrado', 'pagos']) y[k] += x[k]
-    })
-    const rows = [...m.values()].map((y) => ({ ...y, pp: pct(y.cobrado, y.esperado), pc: pct(y.pagos, y.porCobrar) })).sort((a, b) => a.pp - b.pp)
+    const get = (r) => {
+      const id = r[nivel + '_id']; let y = m.get(id)
+      if (!y) { y = { nombre: nivel === 'ruta' ? r.ruta : r[nivel], resp: { ruta: r.asesor, oficina: r.gerente, gerencia: r.gerente, zona: r.zonal }[nivel], tot: 0, ok: 0, esp: 0, cob: 0 }; m.set(id, y) }
+      return y
+    }
+    DB.rutas.filter(inScope).forEach(get)
+    if (esHoy) sc.activos().forEach((c) => { const y = get(DB.R[c.ruta_id] || c); y.tot += c.saldo; if (alDia(c)) y.ok += c.saldo })
+    else {
+      const k0 = SCOPE
+      DB.rutas.filter(inScope).forEach((r) => { SCOPE = 'ruta:' + r.ruta_id; const x = historiaNormalidad([d]).get(d); const y = get(r); y.tot += x.tot; y.ok += x.ok })
+      SCOPE = k0
+    }
+    ag.forEach((v, k) => { const r = DB.R[+k.split('|')[0]]; if (r) get(r).esp += v.s })
+    rec.forEach((x) => { const r = DB.R[x.ruta_id]; if (r) get(r).cob += x.monto })
+    const rows = [...m.values()].map((y) => ({ ...y, p: y.tot ? Math.round((y.ok / y.tot) * 100) : 0, pc: pct(y.cob, y.esp) })).sort((a, b) => a.p - b.p)
     const chip = (p) => `<span class="st ${semaforo(p)}">${p}%</span>`
     const respT = { ruta: 'Asesor', oficina: 'Gerente', gerencia: 'Gerente', zona: 'Gerente zonal' }[nivel]
     $('#ntabla').innerHTML = tabla([
       { t: { ruta: 'Ruta', oficina: 'Oficina', gerencia: 'Gerencia', zona: 'Zona' }[nivel], k: 'nombre', b: 1 }, { t: respT, k: 'resp' },
-      { t: 'Esperado', num: 1, f: P('esperado'), tot: T('esperado') }, { t: 'Cobrado', num: 1, b: 1, f: P('cobrado'), tot: T('cobrado') },
-      { t: '% pagos', num: 1, f: (r) => chip(r.pp), tot: (r) => chip(pct(sum(r, (x) => x.cobrado), sum(r, (x) => x.esperado))) },
-      { t: 'Por cobrar', k: 'porCobrar', num: 1, tot: (r) => sum(r, (x) => x.porCobrar) }, { t: 'Pagos', k: 'pagos', num: 1, tot: (r) => sum(r, (x) => x.pagos) },
-      { t: '% clientes', num: 1, f: (r) => chip(r.pc), tot: (r) => chip(pct(sum(r, (x) => x.pagos), sum(r, (x) => x.porCobrar))) },
+      { t: 'Normalidad', num: 1, f: (r) => chip(r.p), tot: (r) => chip(Math.round((sum(r, (x) => x.ok) / Math.max(1, sum(r, (x) => x.tot))) * 100)) },
+      { t: 'Cartera al día', num: 1, f: P('ok'), tot: T('ok') }, { t: 'Cartera total', num: 1, b: 1, f: P('tot'), tot: T('tot') },
+      { t: 'Con atraso', num: 1, f: (r) => peso(r.tot - r.ok), tot: (r) => peso(sum(r, (x) => x.tot - x.ok)) },
+      { t: 'Cobrado vs esperado (7 d)', num: 1, f: (r) => r.esp ? pct(r.cob, r.esp) + '%' : '—', tot: (r) => pct(sum(r, (x) => x.cob), sum(r, (x) => x.esp)) + '%' },
     ], rows, true)
   },
   grafica() {
-    const hoy = DB.hoy, desde = addDays(hoy, -29)
-    const ag = agenda(desde, hoy), rec = sc.recaudo()
-    const dias = Array.from({ length: 30 }, (_, i) => addDays(desde, i))
-    const e = new Map(), n = new Map(), c = new Map(), p = new Map()
-    ag.forEach((v, k) => { const d = k.split('|')[1]; e.set(d, (e.get(d) || 0) + v.s); n.set(d, (n.get(d) || 0) + v.n) })
-    rec.forEach((r) => { if (r.fecha >= desde) { c.set(r.fecha, (c.get(r.fecha) || 0) + r.monto); p.set(r.fecha, (p.get(r.fecha) || 0) + (+r.pagos || 0)) } })
-    const dd = dias.filter((d) => e.get(d) > 0)
+    const fin = this.fecha, n = +this.rango, dd = rangoFechas(addDays(fin, -(n - 1)), fin)
+    const H = historiaNormalidad(dd), meta = PARAM('meta_normalidad', 90)
+    const ys = dd.map((d) => { const x = H.get(d); return x.tot ? +((x.ok / x.tot) * 100).toFixed(1) : null })
+    $('#ngsub').textContent = `Últimos ${n} días hasta el ${fechaCorta(fin)} · ${scopeLabel()}`
+    const old = charts.find((c) => c.canvas?.id === 'nchart'); if (old) { old.destroy(); charts = charts.filter((c) => c !== old) }
     chart($('#nchart'), {
       type: 'line',
-      data: { labels: dd.map((d) => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })), datasets: [
-        { label: '% pagos', data: dd.map((d) => pct(c.get(d) || 0, e.get(d))), borderColor: COL.teal, backgroundColor: COL.teal + '30', fill: true, tension: 0.35, borderWidth: 2.6, pointRadius: 2 },
-        { label: '% clientes', data: dd.map((d) => pct(p.get(d) || 0, n.get(d))), borderColor: COL.violet, borderWidth: 2.2, tension: 0.35, pointRadius: 0 },
-        { label: 'Meta 90 %', data: dd.map(() => 90), borderColor: 'rgba(255,255,255,.35)', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 },
+      data: { labels: dd.map(fechaCorta), datasets: [
+        { label: 'Normalidad', data: ys, borderColor: COL.teal, backgroundColor: COL.teal + '30', fill: true, tension: 0.3, borderWidth: 2.6, pointRadius: n > 31 ? 0 : 2 },
+        { label: `Meta ${meta} %`, data: dd.map(() => meta), borderColor: 'rgba(255,255,255,.4)', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 },
       ] },
       options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
         plugins: { legend: { labels: { color: COL.ink2, usePointStyle: true, boxHeight: 7, font: { weight: 600 } } }, tooltip: { callbacks: { label: (x) => ` ${x.dataset.label}: ${x.raw}%` } } },
-        scales: { x: { grid: { color: COL.grid }, ticks: { color: COL.ink2, maxRotation: 0, autoSkipPadding: 12 } }, y: { grid: { color: COL.grid }, ticks: { color: COL.ink2, callback: (v) => v + '%' }, beginAtZero: true, suggestedMax: 120 } } },
+        scales: { x: { grid: { color: COL.grid }, ticks: { color: COL.ink2, maxRotation: 0, autoSkipPadding: 12 } }, y: { grid: { color: COL.grid }, ticks: { color: COL.ink2, callback: (v) => v + '%' }, suggestedMin: 50, max: 100 } } },
+    })
+  },
+  comparar() {
+    const hoy = DB.hoy, mode = this.comp
+    const inp = mode === 'dia' ? (k, v) => `<label class="field"><label>${k}</label><input class="ctl" type="date" data-k="${k}" value="${v}" max="${hoy}"></label>`
+      : mode === 'mes' ? (k, v) => `<label class="field"><label>${k}</label><input class="ctl" type="month" data-k="${k}" value="${v}" max="${hoy.slice(0, 7)}"></label>`
+      : (k, v) => `<label class="field sel"><label>${k}</label><select class="ctl" data-k="${k}">${Array.from({ length: 4 }, (_, i) => String(+hoy.slice(0, 4) - i)).map((y) => `<option${y === v ? ' selected' : ''}>${y}</option>`).join('')}</select></label>`
+    $('#ncompIn').innerHTML = inp('A', this.A) + '<span class="muted">contra</span>' + inp('B', this.B)
+    $$('#ncompIn [data-k]').forEach((el) => el.addEventListener('change', () => { if (el.value) { this[el.dataset.k] = el.value; this.comparar() } }))
+    // Puntos de cada periodo
+    let labels, serie
+    if (mode === 'dia') {
+      const H = historiaNormalidad([this.A, this.B])
+      labels = ['Normalidad']
+      serie = (x) => [H.get(x)].map((v) => (v.tot ? +((v.ok / v.tot) * 100).toFixed(1) : null))
+    } else if (mode === 'mes') {
+      const diasMes = (m) => { const fin = addDays(addDays(m + '-01', 32).slice(0, 8) + '01', -1); return rangoFechas(m + '-01', fin < hoy ? fin : hoy) }
+      labels = Array.from({ length: 31 }, (_, i) => String(i + 1))
+      serie = (m) => { const dd = diasMes(m); const H = historiaNormalidad(dd, 'mes'); return labels.map((_, i) => { const x = dd[i] && H.get(dd[i]); return x && x.tot ? +((x.ok / x.tot) * 100).toFixed(1) : null }) }
+    } else {
+      labels = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+      serie = (y) => {
+        const cortes = labels.map((_, i) => { const ini = `${y}-${String(i + 1).padStart(2, '0')}-01`; if (ini > hoy) return null; const sig = i === 11 ? `${+y + 1}-01-01` : `${y}-${String(i + 2).padStart(2, '0')}-01`; const fin = addDays(sig, -1); return fin <= hoy ? fin : hoy })
+        const H = historiaNormalidad(cortes.filter(Boolean), 'anio')
+        return cortes.map((d) => { const x = d && H.get(d); return x && x.tot ? +((x.ok / x.tot) * 100).toFixed(1) : null })
+      }
+    }
+    const a = serie(this.A), b = serie(this.B)
+    const prom = (v) => { const L = v.filter((x) => x != null); return L.length ? L.reduce((s, x) => s + x, 0) / L.length : null }
+    const pa = prom(a), pb = prom(b), dif = pa != null && pb != null ? pb - pa : null
+    const nombre = (x) => mode === 'dia' ? fechaCorta(x) : mode === 'mes' ? new Date(x + '-15T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }) : x
+    $('#ncompK').innerHTML = [[nombre(this.A), pa], [nombre(this.B), pb]].map(([l, v]) => `<div class="card"><div class="lab">${esc(l)}${mode === 'dia' ? '' : ' (promedio)'}</div><div class="val">${v == null ? 'sin datos' : v.toFixed(1) + '%'}</div></div>`).join('')
+      + `<div class="card"><div class="lab">Diferencia</div><div class="val" style="color:${dif == null ? 'inherit' : dif >= 0 ? 'var(--green)' : 'var(--red)'}">${dif == null ? '—' : (dif >= 0 ? '▲ +' : '▼ ') + dif.toFixed(1) + ' pts'}</div></div>`
+    const old = charts.find((c) => c.canvas?.id === 'ncchart'); if (old) { old.destroy(); charts = charts.filter((c) => c !== old) }
+    chart($('#ncchart'), {
+      type: mode === 'dia' ? 'bar' : 'line',
+      data: { labels, datasets: [
+        { label: nombre(this.A), data: a, borderColor: COL.violet, backgroundColor: mode === 'dia' ? COL.violet + 'aa' : COL.violet + '22', borderWidth: 2.4, tension: 0.3, pointRadius: 2, spanGaps: true, borderRadius: 8 },
+        { label: nombre(this.B), data: b, borderColor: COL.teal, backgroundColor: mode === 'dia' ? COL.teal + 'aa' : COL.teal + '22', borderWidth: 2.4, tension: 0.3, pointRadius: 2, spanGaps: true, borderRadius: 8 },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: COL.ink2, usePointStyle: true, boxHeight: 7, font: { weight: 600 } } }, tooltip: { callbacks: { label: (x) => ` ${x.dataset.label}: ${x.raw ?? '—'}%` } } },
+        scales: { x: { grid: { color: COL.grid }, ticks: { color: COL.ink2, maxRotation: 0, autoSkipPadding: 8 } }, y: { grid: { color: COL.grid }, ticks: { color: COL.ink2, callback: (v) => v + '%' }, suggestedMin: 50, max: 100 } } },
+    })
+  },
+}
+
+// ============================================================ Proyecciones
+// En la mañana el gerente sube cuánto va a cobrar y colocar cada oficina; en la tarde, lo que logró.
+const puedeProyectar = () => ['gerente', 'zonal', 'regional', 'dueno', 'direccion', 'soporte'].includes(DB.perfil.rol)
+VIEWS.proyecciones = {
+  fecha: null,
+  html() {
+    this.fecha = this.fecha || DB.hoy
+    return `${head('Proyecciones', 'Meta de la mañana contra logro de la tarde, por oficina: cobranza y colocación.',
+      `<label class="field"><label>Fecha</label><input class="ctl" type="date" id="pfecha" value="${this.fecha}"></label>`)}
+      <section class="kpis" id="pk"></section>
+      <div class="card panel"><div class="ph"><div><h3>Por oficina</h3><div class="sub" id="psub"></div></div></div><div id="ptab"></div>
+        <div class="note">«Sistema» es lo que registró la plataforma ese día. Si el gerente no captura su logro, se usa el del sistema.</div></div>
+      <div class="card panel"><div class="ph"><div><h3>Cumplimiento de los últimos 30 días</h3><div class="sub">${esc(scopeLabel())}</div></div></div><div class="chart-box" style="height:240px"><canvas id="pchart"></canvas></div></div>`
+  },
+  datos(d) {
+    const ofs = DB.oficinas.filter((o) => sc.rutas().some((r) => r.oficina_id === o.id))
+    const rec = sc.recaudo().filter((r) => r.fecha === d), col = sc.cartera().filter((c) => c.fecha_inicio === d)
+    return ofs.map((o) => {
+      const pr = DB.proyecciones.find((x) => x.fecha === d && x.oficina_id === o.id) || {}
+      const sCob = sum(rec.filter((r) => r.oficina_id === o.id), (r) => r.monto), sCol = sum(col.filter((c) => c.oficina_id === o.id), (c) => c.entregado)
+      const lCob = pr.logro_cobro ?? sCob, lCol = pr.logro_colocacion ?? sCol
+      const g = sc.rutas().find((r) => r.oficina_id === o.id)
+      return { id: o.id, nombre: o.nombre, gerente: g?.gerente || '', mCob: pr.meta_cobro, mCol: pr.meta_colocacion, lCob, lCol, sCob, sCol, capt: pr.logro_cobro != null }
+    })
+  },
+  init() {
+    $('#pfecha').addEventListener('change', (e) => { if (e.target.value) { this.fecha = e.target.value; reveal(); this.pintar() } })
+    this.pintar(); this.grafica()
+  },
+  pintar() {
+    const d = this.fecha, rows = this.datos(d)
+    const tm = (k) => sum(rows, (r) => r[k] || 0)
+    const cc = pct(tm('lCob'), tm('mCob')), cl = pct(tm('lCol'), tm('mCol'))
+    const k = [['Meta de cobranza', peso(tm('mCob')), `logrado ${peso(tm('lCob'))}`], ['Cumplimiento cobranza', tm('mCob') ? cc + '%' : '—', tm('mCob') ? (cc >= 100 ? 'meta cumplida' : 'falta ' + peso(tm('mCob') - tm('lCob'))) : 'sin meta capturada'],
+      ['Meta de colocación', peso(tm('mCol')), `logrado ${peso(tm('lCol'))}`], ['Cumplimiento colocación', tm('mCol') ? cl + '%' : '—', tm('mCol') ? (cl >= 100 ? 'meta cumplida' : 'falta ' + peso(tm('mCol') - tm('lCol'))) : 'sin meta capturada']]
+    $('#pk').innerHTML = k.map(([l, v, m], i) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${[COL.teal, COL.green, COL.violet, COL.blue][i]},${COL.blue})"><svg viewBox="0 0 24 24">${ICON.proyecciones}</svg></div></div><div><div class="lab">${l}</div><div class="val">${v}</div><div class="meta">${m}</div></div></div>`).join('')
+    $('#psub').textContent = `${d === DB.hoy ? 'Hoy' : fechaCorta(d)} · ${scopeLabel()}`
+    const chip = (a, b) => b ? `<span class="st ${pct(a, b) >= 100 ? 'ok' : pct(a, b) >= 85 ? 'wait' : 'bad'}">${pct(a, b)}%</span>` : '—'
+    $('#ptab').innerHTML = tabla([
+      { t: 'Oficina', k: 'nombre', b: 1 }, { t: 'Gerente', k: 'gerente' },
+      { t: 'Meta cobro', num: 1, f: (r) => r.mCob != null ? peso(r.mCob) : '—', tot: (rr) => peso(sum(rr, (x) => x.mCob || 0)) }, { t: 'Logro cobro', num: 1, b: 1, f: (r) => peso(r.lCob) + (r.capt ? '' : ' <span class="muted">(sistema)</span>'), tot: (rr) => peso(sum(rr, (x) => x.lCob)) },
+      { t: '% cobro', num: 1, f: (r) => chip(r.lCob, r.mCob), tot: (rr) => chip(sum(rr, (x) => x.lCob), sum(rr, (x) => x.mCob || 0)) },
+      { t: 'Meta colocación', num: 1, f: (r) => r.mCol != null ? peso(r.mCol) : '—', tot: (rr) => peso(sum(rr, (x) => x.mCol || 0)) }, { t: 'Logro colocación', num: 1, b: 1, f: (r) => peso(r.lCol), tot: (rr) => peso(sum(rr, (x) => x.lCol)) },
+      { t: '% colocación', num: 1, f: (r) => chip(r.lCol, r.mCol), tot: (rr) => chip(sum(rr, (x) => x.lCol), sum(rr, (x) => x.mCol || 0)) },
+      { t: '', f: (r) => puedeProyectar() ? `<button class="btn ghost sm" type="button" data-proy="${r.id}">Capturar</button>` : '' },
+    ], rows, true)
+    $$('[data-proy]').forEach((b) => b.addEventListener('click', () => this.capturar(rows.find((r) => r.id === +b.dataset.proy))))
+  },
+  capturar(r) {
+    const tarde = new Date().getHours() >= 12 || this.fecha < DB.hoy
+    formModal({
+      titulo: `Proyección · Oficina ${esc(r.nombre)}`, nota: `${this.fecha === DB.hoy ? 'Hoy' : fechaCorta(this.fecha)}. En la mañana captura la meta; en la tarde, antes del cierre, el logro.`, boton: 'Guardar',
+      campos: [{ id: 'mCob', label: 'Meta de cobranza', tipo: 'number', min: 0, step: '100', valor: r.mCob ?? '' }, { id: 'mCol', label: 'Meta de colocación', tipo: 'number', min: 0, step: '500', valor: r.mCol ?? '' },
+        { id: 'lCob', label: `Logro de cobranza (sistema: ${peso(r.sCob)})`, tipo: 'number', min: 0, step: '0.01', valor: r.capt ? r.lCob : (tarde ? r.sCob : '') }, { id: 'lCol', label: `Logro de colocación (sistema: ${peso(r.sCol)})`, tipo: 'number', min: 0, step: '0.01', valor: r.capt ? r.lCol : (tarde ? r.sCol : '') }],
+      guardar: async (v) => {
+        const num = (x) => (x === '' ? null : +x)
+        const ok = await escribir(() => sb.from('proyecciones').upsert({ fecha: this.fecha, oficina_id: r.id, meta_cobro: num(v.mCob), meta_colocacion: num(v.mCol), logro_cobro: num(v.lCob), logro_colocacion: num(v.lCol), capturado_por: DB.perfil.id, actualizado: new Date().toISOString() }, { onConflict: 'fecha,oficina_id' }))
+        return ok ? 'Proyección guardada.' : ''
+      },
+    })
+  },
+  grafica() {
+    const dd = rangoFechas(addDays(DB.hoy, -29), DB.hoy)
+    const ser = dd.map((d) => { const R = this.datos(d); const mc = sum(R, (x) => x.mCob || 0), ml = sum(R, (x) => x.mCol || 0); return [mc ? pct(sum(R, (x) => x.lCob), mc) : null, ml ? pct(sum(R, (x) => x.lCol), ml) : null] })
+    chart($('#pchart'), {
+      type: 'line',
+      data: { labels: dd.map(fechaCorta), datasets: [
+        { label: '% cobranza', data: ser.map((x) => x[0]), borderColor: COL.teal, backgroundColor: COL.teal + '25', fill: true, tension: 0.3, borderWidth: 2.4, pointRadius: 2, spanGaps: true },
+        { label: '% colocación', data: ser.map((x) => x[1]), borderColor: COL.violet, tension: 0.3, borderWidth: 2.2, pointRadius: 2, spanGaps: true },
+        { label: 'Meta 100 %', data: dd.map(() => 100), borderColor: 'rgba(255,255,255,.4)', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: COL.ink2, usePointStyle: true, boxHeight: 7, font: { weight: 600 } } }, tooltip: { callbacks: { label: (x) => ` ${x.dataset.label}: ${x.raw ?? '—'}%` } } },
+        scales: { x: { grid: { color: COL.grid }, ticks: { color: COL.ink2, maxRotation: 0, autoSkipPadding: 12 } }, y: { grid: { color: COL.grid }, ticks: { color: COL.ink2, callback: (v) => v + '%' }, beginAtZero: true, suggestedMax: 130 } } },
     })
   },
 }
@@ -1010,14 +1611,14 @@ function saldos(hasta) {
   const s = new Map(), add = (k, v) => s.set(k, (s.get(k) || 0) + v)
   DB.movimientos.forEach((m) => { if (m.fecha > hasta) return; if (m.caja_destino !== 'externo') add(m.caja_destino, m.monto); if (m.caja_origen !== 'externo') add(m.caja_origen, -m.monto) })
   DB.recaudo.forEach((r) => { if (r.fecha <= hasta) add('ruta:' + r.ruta_id, r.monto) })
-  DB.cartera.forEach((c) => { if (c.fecha_inicio <= hasta) add('ruta:' + c.ruta_id, -c.monto) })
+  DB.cartera.forEach((c) => { if (c.fecha_inicio <= hasta) add('ruta:' + c.ruta_id, -c.entregado) })
   return s
 }
 VIEWS.tesoreria = {
   periodo: 'mes', tipo: 'todos',
   html() {
     return `${head('Tesorería', 'El dinero de la empresa de punta a punta: socios y bancos, cajas de gerentes, cajas de asesores y cartera en la calle.',
-      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar movimiento</button>' : ''}`)}
+      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn ghost" type="button" id="tinv">Inversión de capital</button>' : ''}${['dueno', 'soporte'].includes(DB.perfil.rol) ? '<button class="btn ghost" type="button" id="tret">Retiro de utilidades</button>' : ''}${esAdmin() || DB.perfil.rol === 'tesoreria' ? '<button class="btn ghost" type="button" id="texc">Excedente de gerente → banco</button>' : ''}${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Otro movimiento</button>' : ''}`)}
       <section class="kpis" id="tk"></section>
       <div class="card panel"><div class="ph"><div><h3>Flujo del dinero</h3><div class="sub" id="tflsub"></div></div></div><div class="flow" id="tflow"></div></div>
       <div class="grid2">
@@ -1027,13 +1628,16 @@ VIEWS.tesoreria = {
       </div>
       <div class="grid2">
         <div class="card panel"><div class="ph"><h3>Cajas</h3><span class="chip" id="tcnt"></span></div><div class="list" id="tcajas"></div></div>
-        <div class="card panel"><div class="ph"><h3>Movimientos</h3><div class="tabs" id="ttipo">${[['todos', 'Todos'], ['traslado', 'Traslados'], ['deposito', 'Depósitos'], ['retiro', 'Retiros'], ['egreso', 'Gastos'], ['fondeo', 'Fondeo']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="tmov"></div></div>
+        <div class="card panel"><div class="ph"><h3>Movimientos</h3><div class="tabs" id="ttipo">${[['todos', 'Todos'], ['traslado', 'Traslados'], ['deposito', 'Depósitos'], ['retiro', 'Retiros'], ['egreso', 'Gastos'], ['ingreso', 'Seguros e ingresos'], ['fondeo', 'Inversiones']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="tmov"></div></div>
       </div>`
   },
   init() {
     $$('#tper button').forEach((b) => b.addEventListener('click', () => { this.periodo = b.dataset.p; $$('#tper button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.pintar() }))
     $$('#ttipo button').forEach((b) => b.addEventListener('click', () => { this.tipo = b.dataset.t; $$('#ttipo button').forEach((x) => x.classList.toggle('on', x === b)); this.movs() }))
     $('#tnuevo')?.addEventListener('click', () => this.nuevo())
+    $('#tinv')?.addEventListener('click', () => this.rapido('inversion'))
+    $('#tret')?.addEventListener('click', () => this.rapido('retiro'))
+    $('#texc')?.addEventListener('click', () => this.rapido('excedente'))
     this.pintar()
   },
   pintar() {
@@ -1054,7 +1658,8 @@ VIEWS.tesoreria = {
     const sumM = (f) => sum(M.filter(f), (m) => m.monto)
     const isIn = (k) => set.has(k)
     const rec = sum(sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= hoy), (r) => r.monto)
-    const prest = sum(sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= hoy), (c) => c.monto)
+    const prest = sum(sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= hoy), (c) => c.entregado)
+    const segP = sumM((m) => m.categoria === 'Seguro' && isIn(m.caja_destino))
     const ing = sumM((m) => m.caja_origen === 'externo' && isIn(m.caja_destino))
     const egr = sumM((m) => m.caja_destino === 'externo' && isIn(m.caja_origen))
     const ent = sumM((m) => m.caja_origen !== 'externo' && !isIn(m.caja_origen) && isIn(m.caja_destino))
@@ -1063,7 +1668,7 @@ VIEWS.tesoreria = {
     const final = inicial + rec - prest + ing - egr + ent - sal
     $('#tbsub').textContent = `${lab[0].toUpperCase() + lab.slice(1)} · ${scopeLabel()}`
     const row = (k, v, cls = '') => `<div class="r"><span class="k ${cls}">${k}</span><span class="v ${cls}">${v}</span></div>`
-    $('#tbal').innerHTML = row('Caja inicial', peso(inicial)) + row('+ Cobrado a clientes', peso(rec)) + row('− Préstamos entregados', peso(prest)) + row('+ Fondeo e ingresos', peso(ing)) + row('− Gastos', peso(egr))
+    $('#tbal').innerHTML = row('Caja inicial', peso(inicial)) + row('+ Cobrado a clientes', peso(rec)) + row('− Préstamos entregados', peso(prest)) + row('+ Seguros cobrados', peso(segP)) + row('+ Inversión y otros ingresos', peso(ing - segP)) + row('− Gastos', peso(egr))
       + (SCOPE === 'emp' ? '' : row('+ Entradas de otras cajas', peso(ent)) + row('− Salidas a otras cajas', peso(sal))) + row('Caja final', peso(final), 'strong')
 
     const act = sc.cartera()
@@ -1092,11 +1697,37 @@ VIEWS.tesoreria = {
   },
   movs() {
     const set = cajasAmbito()
-    const L = DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo)).slice(-60).reverse()
+    const L = DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.id || 0) - (a.id || 0)).slice(0, 80)
     $('#tmov').innerHTML = tabla([
       { t: 'Fecha', k: 'fecha' }, { t: 'Concepto', f: (m) => `<b>${esc(m.concepto || m.categoria || m.tipo)}</b><div class="muted" style="font-size:12px">${esc(m.categoria || '')}</div>` },
       { t: 'De', f: (m) => esc(cajaNombre(m.caja_origen)) }, { t: 'A', f: (m) => esc(cajaNombre(m.caja_destino)) }, { t: 'Monto', num: 1, b: 1, f: P('monto') },
     ], L)
+  },
+  rapido(tipo) {
+    const S = saldos(DB.hoy), bancos = DB.cuentas.map((b) => ['banco:' + b.id, cajaNombre('banco:' + b.id) + ' · ' + peso(S.get('banco:' + b.id) || 0)])
+    const gers = DB.gerencias.filter((g) => sc.rutas().some((r) => r.gerencia_id === g.id)).map((g) => ['gerencia:' + g.id, cajaNombre('gerencia:' + g.id) + ' · en caja ' + peso(S.get('gerencia:' + g.id) || 0)])
+    if (!bancos.length) { toast('Primero da de alta una cuenta bancaria.', 'warn'); return }
+    const C = {
+      inversion: { titulo: 'Inversión de capital', nota: 'Entra dinero de fuera al banco para tener capital para prestar.', campos: [{ id: 'destino', label: 'Entra a', tipo: 'select', req: 1, opciones: bancos }],
+        row: (v) => ({ tipo: 'fondeo', caja_origen: 'externo', caja_destino: v.destino, categoria: 'Inversión' }) },
+      retiro: { titulo: 'Retiro de utilidades', nota: 'Sale dinero del banco para el dueño: utilidades, aguinaldos u otro. Sólo el dueño puede hacerlo.', campos: [{ id: 'origen', label: 'Sale de', tipo: 'select', req: 1, opciones: bancos }, { id: 'categoria', label: 'Para', tipo: 'select', req: 1, opciones: [['Utilidades', 'Utilidades'], ['Aguinaldos', 'Aguinaldos'], ['Otro retiro', 'Otro']] }],
+        row: (v) => ({ tipo: 'retiro', caja_origen: v.origen, caja_destino: 'externo', categoria: v.categoria }) },
+      excedente: { titulo: 'Excedente de gerente → banco', nota: 'Tesorería retira el dinero de más de la caja de un gerente y lo deposita al banco. A los asesores no se les retira.', campos: [{ id: 'origen', label: 'Caja del gerente', tipo: 'select', req: 1, opciones: gers }, { id: 'destino', label: 'Se deposita en', tipo: 'select', req: 1, opciones: bancos }],
+        row: (v) => ({ tipo: 'deposito', caja_origen: v.origen, caja_destino: v.destino, categoria: 'Depósito de excedente' }) },
+    }[tipo]
+    formModal({
+      titulo: C.titulo, nota: C.nota, boton: 'Registrar',
+      campos: [...C.campos, { id: 'concepto', label: 'Concepto', req: 1, valor: C.titulo }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 }, { id: 'fecha', label: 'Fecha', tipo: 'date', req: 1, valor: DB.hoy }],
+      guardar: async (v) => {
+        const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
+        if (!(+v.monto > 0)) err('El monto debe ser mayor a cero.')
+        const row = C.row(v)
+        if (row.caja_origen !== 'externo' && +v.monto > (S.get(row.caja_origen) || 0) + 0.01) err(`En esa caja sólo hay ${peso(S.get(row.caja_origen) || 0)}.`)
+        const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ ...row, fecha: v.fecha, concepto: v.concepto, monto: +v.monto, creado_por: DB.perfil.id }))
+        return ok ? 'Movimiento registrado.' : ''
+      },
+    })
   },
   nuevo() {
     const cajas = [['externo', 'Externo (fuera de la empresa)'], ...DB.cuentas.map((b) => ['banco:' + b.id, cajaNombre('banco:' + b.id)]),
@@ -1104,7 +1735,7 @@ VIEWS.tesoreria = {
     formModal({
       titulo: 'Registrar movimiento', nota: 'Queda en la bitácora con tu usuario, fecha y hora.',
       campos: [
-        { id: 'tipo', label: 'Tipo', tipo: 'select', req: 1, opciones: [['deposito', 'Depósito a banco'], ['retiro', 'Retiro de banco'], ['traslado', 'Traslado entre cajas'], ['egreso', 'Gasto'], ['ingreso', 'Ingreso'], ['fondeo', 'Fondeo de socios']] },
+        { id: 'tipo', label: 'Tipo', tipo: 'select', req: 1, opciones: [['deposito', 'Depósito a banco'], ['retiro', 'Retiro de banco'], ['traslado', 'Traslado entre cajas'], ['egreso', 'Gasto'], ['ingreso', 'Ingreso'], ['fondeo', 'Inversión de capital']] },
         { id: 'origen', label: 'Sale de', tipo: 'select', req: 1, opciones: cajas }, { id: 'destino', label: 'Entra a', tipo: 'select', req: 1, opciones: cajas, valor: cajas[1]?.[0] },
         { id: 'concepto', label: 'Concepto', req: 1 }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 },
         { id: 'fecha', label: 'Fecha', tipo: 'date', req: 1, valor: DB.hoy }, { id: 'obs', label: 'Observación' },
@@ -1112,10 +1743,11 @@ VIEWS.tesoreria = {
       guardar: async (v) => {
         const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
         if (v.origen === v.destino) err('El origen y el destino no pueden ser la misma caja.')
-        if (['ingreso', 'fondeo'].includes(v.tipo) && v.origen !== 'externo') err('Un ingreso o fondeo debe salir de «Externo».')
+        if (['ingreso', 'fondeo'].includes(v.tipo) && v.origen !== 'externo') err('Un ingreso o inversión debe salir de «Externo».')
+        if (v.origen.startsWith('banco:') && v.destino === 'externo' && !['dueno', 'soporte'].includes(DB.perfil.rol)) err('Sólo el dueño puede sacar dinero del banco hacia fuera.')
         if (v.tipo === 'egreso' && v.destino !== 'externo') err('Un gasto debe ir a «Externo».')
         if (!(+v.monto > 0)) err('El monto debe ser mayor a cero.')
-        const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ fecha: v.fecha, tipo: v.tipo, caja_origen: v.origen, caja_destino: v.destino, concepto: v.concepto, categoria: { deposito: 'Depósito', retiro: 'Retiro', traslado: 'Traslado', egreso: 'Gasto', ingreso: 'Ingreso', fondeo: 'Fondeo' }[v.tipo], monto: +v.monto, observacion: v.obs || null, creado_por: DB.perfil.id }))
+        const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ fecha: v.fecha, tipo: v.tipo, caja_origen: v.origen, caja_destino: v.destino, concepto: v.concepto, categoria: { deposito: 'Depósito', retiro: 'Retiro', traslado: 'Traslado', egreso: 'Gasto', ingreso: 'Ingreso', fondeo: 'Inversión' }[v.tipo], monto: +v.monto, observacion: v.obs || null, creado_por: DB.perfil.id }))
         return ok ? 'Movimiento registrado.' : ''
       },
     })

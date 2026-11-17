@@ -198,11 +198,11 @@ join public.clientes cl on cl.id = c.cliente_id
 where p.fecha >= current_date - 400 and p.tipo = 'cuota'
 group by p.fecha, cl.ruta_id;
 
--- Pagos por crédito para la historia de normalidad y el expediente
+-- Pagos por crédito para la historia de normalidad (comparar año contra año) y el expediente
 create or replace view public.v_pagos with (security_invoker = true) as
 select p.id, p.credito_id, p.fecha, p.monto, p.tipo
 from public.pagos p
-where p.fecha >= current_date - 400;
+where p.fecha >= current_date - 800;
 
 grant select on public.v_cartera, public.v_recaudo_diario, public.v_pagos to authenticated;
 revoke all on public.v_cartera, public.v_recaudo_diario, public.v_pagos from anon;
