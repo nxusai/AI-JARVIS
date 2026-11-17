@@ -1406,7 +1406,7 @@ const PERM_DESC = {
   registrar_gastos: 'Gasolina, papelería y otros gastos de su caja', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
   capturar_proyecciones: 'Subir la meta de la mañana y el logro de la tarde', subir_documentos: 'INE, comprobantes y fotos del expediente', descargar_excel: 'Bajar los reportes a Excel',
 }
-let permCargo = 'asesor'
+let permCargo = (() => { try { const v = localStorage.getItem('permCargo'); return CARGOS_PERM.includes(v) ? v : 'asesor' } catch { return 'asesor' } })()
 function matrizPermisos() {
   const dueno = ['dueno', 'soporte'].includes(DB.perfil.rol), r = permCargo
   const fila = ([k, t]) => `<label class="perm inset${dueno ? '' : ' ro'}"><span><b>${t}</b><small>${PERM_DESC[k] || ''}</small></span>
@@ -1419,7 +1419,7 @@ function matrizPermisos() {
 function pintarPermisos() {
   const el = document.getElementById('permisos'); if (!el) return
   el.outerHTML = matrizPermisos()
-  document.getElementById('pcargo').addEventListener('change', (e) => { permCargo = e.target.value; pintarPermisos() })
+  document.getElementById('pcargo').addEventListener('change', (e) => { permCargo = e.target.value; try { localStorage.setItem('permCargo', permCargo) } catch {} pintarPermisos() })
   document.querySelectorAll('[data-perm]').forEach((c) => c.addEventListener('change', () => cambiarPermiso(c)))
 }
 async function cambiarPermiso(c) {
