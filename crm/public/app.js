@@ -364,7 +364,7 @@ async function empezar() {
         // Con su creador, Ultron habla de lo que sea; con los demás, del trabajo (con modales).
         reglas_tema: S.yo.dueno
           ? 'Él es tu creador: con él no hay límite de temas. Platica, opina, explica o ayuda con lo que te pida (negocios, ideas, dudas generales, lo que sea), como un asistente personal brillante y de confianza. Si es del Centro de trabajo, usa tus herramientas.'
-          : 'Tu trabajo es el Centro de trabajo: tareas, archivos de la Biblioteca, catálogos y mandar archivos al correo. Saludos y plática breve sí, con amabilidad. Si te piden algo ajeno al trabajo, contesta con simpatía en una frase que en eso no puedes ayudar y ofrece algo del Centro de trabajo, sin sonar cortante.',
+          : 'Tu trabajo es el Centro de trabajo: todo lo que hay en él (tareas, parrilla, Biblioteca, catálogos, leads, la fiesta de empleados y lo demás que veas en el menú). Saludos y plática breve sí, con amabilidad. Si te piden algo ajeno al trabajo, contesta con simpatía en una frase que en eso no puedes ayudar y ofrece algo del Centro de trabajo, sin sonar cortante.',
         resumen: resumenParaUltron(),
       }),
       avisar,
@@ -771,6 +771,22 @@ function resumenParaUltron() {
     'NÚMEROS:',
     h.resumen_centro(),
     '',
+    'LO QUE VES EN EL MENÚ (pregúntale a tu herramienta de cada sección para el detalle):',
+    ...vistasPermitidas().map((v) => {
+      const n = {
+        tareas: `${S.tareas.length} tareas`,
+        parrilla: `${(S.contenidos ?? []).filter((c) => String(c.fecha).startsWith(new Date().toLocaleDateString('en-CA').slice(0, 7))).length} contenidos este mes`,
+        biblioteca: `${S.biblioteca.filter((x) => x.vigente !== false).length} archivos en ${S.carpetas.length} carpetas`,
+        catalogos: `${S.catalogos.filter((x) => x.vigente !== false).length} catálogos`,
+        leads: `${(S.leads ?? []).length} leads de WhatsApp`,
+        web: `${(S.web ?? []).length} solicitudes de misemago.com`,
+        fiesta: S.fiesta === null ? 'sin datos' : `${(S.fiesta ?? []).length} confirmados a la fiesta del 4 de diciembre`,
+        usuarios: `${(S.usuarios ?? []).filter((u) => !u.eliminado).length} usuarios`,
+        bitacora: 'historial de cambios',
+      }[v]
+      return `- ${v === 'web' ? 'Website leads' : NOMBRES_VISTA[v]}: ${n ?? ''}`
+    }),
+    '',
     'TAREAS MÁS RECIENTES (de la más nueva a la más vieja):',
     ...(recientes.length ? recientes.map((t) => `- ${h.__linea(t)} · pedida ${fecha(t.pedida)}`) : ['- ninguna']),
   ]
@@ -868,6 +884,55 @@ function herramientasUltron() {
       } catch (err) {
         return `No se pudo mandar: ${err.message}`
       }
+    },
+    // -- Lo demás del Centro de trabajo (lo que esta persona ve en su menú) --
+    fiesta: ({ empresa: emp = '' } = {}) => {
+      if (S.fiesta === null) return 'La sección Fiesta no está lista todavía.'
+      let l = S.fiesta ?? []
+      if (String(emp).trim()) l = l.filter((x) => sinAcentos(x.empresa).includes(sinAcentos(emp)))
+      const por = FIESTA_EMPRESAS.map((e) => `${e}: ${l.filter((x) => x.empresa === e).length}`).join(', ')
+      return [
+        'Fiesta de empleados: viernes 4 de diciembre de 2026, 7 PM a 1 AM, Milan Banquets (Garfield, NJ). La confirmación cerró el 16 de noviembre.',
+        `Confirmados: ${l.length} (${por}). La lista solo guarda nombre, teléfono y empresa; no guarda si es hombre o mujer (si te lo piden, estímalo por el nombre y dilo como estimado).`,
+        `Nombres:\n${l.map((x) => `- ${x.nombre} · ${x.empresa}`).join('\n') || '- nadie todavía'}`,
+      ].join('\n')
+    },
+    leads: ({ etapa = '', texto = '' } = {}) => {
+      if (!veoLeads()) return 'Esta persona no tiene acceso a Leads.'
+      let l = S.leads ?? []
+      if (String(etapa).trim()) l = l.filter((x) => sinAcentos(`${x.etapa} ${ETAPAS_LEAD[x.etapa]?.t ?? ''}`).includes(sinAcentos(etapa)))
+      if (String(texto).trim()) l = l.filter((x) => coincide(`${x.nombre} ${x.negocio} ${x.ciudad} ${x.fuente}`, String(texto)))
+      const por = Object.entries(ETAPAS_LEAD).map(([k, v]) => `${v.t}: ${(S.leads ?? []).filter((x) => x.etapa === k).length}`).join(', ')
+      return [
+        `Leads de Mi Semago (WhatsApp; Ana Sofi les llama): ${(S.leads ?? []).length} en total (${por}).`,
+        `${l.length} con ese filtro:`,
+        ...l.slice(0, 12).map((x) => `- ${x.negocio || x.nombre || 'Sin nombre'}${x.negocio && x.nombre ? ` (${x.nombre})` : ''} · ${x.ciudad || 'sin ciudad'} · ${ETAPAS_LEAD[x.etapa]?.t ?? x.etapa}${x.calificacion ? ` · ${CALIFICACION[x.calificacion]}` : ''}${x.meet_inicio ? ` · Meet ${horaEn(x.meet_inicio)}` : ''}${x.fuente ? ` · llegó de ${x.fuente}` : ''}${x.libras ? ` · ${/lb|libra/i.test(String(x.libras)) ? x.libras : `${x.libras} lb`}` : ''}`),
+      ].join('\n')
+    },
+    website_leads: ({ estatus = '', texto = '' } = {}) => {
+      if (!veoLeads()) return 'Esta persona no tiene acceso a Website leads.'
+      let l = S.web ?? []
+      if (String(estatus).trim()) l = l.filter((x) => sinAcentos(`${x.estatus} ${ESTATUS_WEB[x.estatus] ?? ''}`).includes(sinAcentos(estatus)))
+      if (String(texto).trim()) l = l.filter((x) => coincide(`${x.nombre} ${x.empresa} ${x.tipo} ${(x.intereses ?? []).join(' ')}`, String(texto)))
+      return [
+        `Website leads (formulario de misemago.com): ${(S.web ?? []).length} en total (${Object.entries(ESTATUS_WEB).map(([k, v]) => `${v}: ${(S.web ?? []).filter((x) => x.estatus === k).length}`).join(', ')}).`,
+        ...l.slice(0, 12).map((x) => `- ${x.empresa || x.nombre} (${x.nombre}) · ${x.tipo || '-'} · ${(x.intereses ?? []).join(', ') || '-'} · ${ESTATUS_WEB[x.estatus] ?? x.estatus} · ${fecha(x.creada)}`),
+      ].join('\n')
+    },
+    parrilla: ({ marca = '', mes = '' } = {}) => {
+      const hoy = new Date()
+      const [a, m] = /^\d{4}-\d{2}/.test(String(mes)) ? String(mes).split('-').map(Number) : [hoy.getFullYear(), hoy.getMonth() + 1]
+      const prefijo = `${a}-${String(m).padStart(2, '0')}`
+      let l = (S.contenidos ?? []).filter((c) => String(c.fecha).startsWith(prefijo))
+      if (String(marca).trim()) l = l.filter((c) => sinAcentos(`${empresa(c.empresa_id).nombre} ${empresa(c.empresa_id).marca ?? ''}`).includes(sinAcentos(marca)))
+      return [
+        `Parrilla de contenidos de ${prefijo} (lo que se publica y se manda): ${l.length} contenidos (${Object.entries(ESTADO_CONTENIDO).map(([k, v]) => `${v}: ${l.filter((c) => c.estado === k).length}`).join(', ')}).`,
+        ...l.slice(0, 15).map((c) => `- ${c.fecha}${c.hora ? ` ${String(c.hora).slice(0, 5)}` : ''} · ${empresa(c.empresa_id).nombre} · ${CANALES[c.canal] ?? c.canal} · ${c.titulo || 'sin título'} · ${ESTADO_CONTENIDO[c.estado] ?? c.estado}`),
+      ].join('\n')
+    },
+    usuarios: () => {
+      if (!esAdmin()) return 'Solo el administrador ve la lista de usuarios.'
+      return (S.usuarios ?? []).filter((u) => !u.eliminado).map((u) => `- ${u.nombre || u.usuario || 'Sin nombre'} · ${ROLES[u.rol] ?? u.rol}${u.activo === false ? ' · apagado' : ''}${u.ultron ? ' · tiene a Ultron' : ''}`).join('\n') || 'Sin usuarios.'
     },
     pedir_tarea: async ({ empresa: nombreEmp = '', titulo = '', detalles = '', urgente = false } = {}) => {
       if (!esCliente()) return 'Las tareas nuevas las pide el cliente; el equipo las registra con el botón +.'
@@ -2984,7 +3049,7 @@ export async function iniciar(datos, { muestra = false } = {}) {
   D = datos
   MUESTRA = muestra
   // En la muestra, para revisar lo que lee Ultron: window.__ultron()
-  if (MUESTRA) window.__ultron = () => resumenParaUltron()
+  if (MUESTRA) Object.assign(window, { __ultron: () => resumenParaUltron(), __ultronH: () => herramientasUltron() })
   document.addEventListener('click', alClic)
   document.addEventListener('change', alCambiar)
   document.addEventListener('input', (e) => {
