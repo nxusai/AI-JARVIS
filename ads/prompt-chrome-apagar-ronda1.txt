@@ -1,0 +1,24 @@
+Eres mi asistente de Meta Ads. Soy Eduardo (NXUS AI). Trabaja en mi Chrome, en Ads Manager
+(https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563). Yo te veo.
+Objetivo: apagar (pausar) las campañas viejas de la ronda 1 ahora que la ronda 2 ya está aprobada.
+
+REGLAS (obligatorias)
+- Solo PAUSA (interruptor en Off). NUNCA borres (Delete) ni archives nada: los números deben quedar guardados.
+- NO toques la campaña "NXUS | MX | R2 | Mensajes" ni ninguna otra campaña que no esté en la lista de abajo.
+- No cambies presupuestos, públicos, anuncios ni pagos.
+- Si algo pide contraseña, código o confirmación de seguridad, detente: lo hago yo.
+
+PASO 1. Antes de apagar nada, revisa (solo mirar) que en "NXUS | MX | R2 | Mensajes" los 6 anuncios
+(MX | A … MX | F) digan "Active" o "Activo". Si alguno dice "In review", "Rejected" / "Rechazado" o tiene un
+error, DETENTE y dime cuál y qué dice. No apagues nada todavía.
+
+PASO 2. Si los 6 están activos, pon en Off SOLO estas 2 campañas (el interruptor de la campaña completa):
+  - NXUS | MX | Mensajes | Diagnóstico v2
+  - NXUS | NY | Mensajes | Diagnóstico
+Si el nombre no coincide exacto o hay otra parecida, DETENTE y pregúntame.
+
+PASO 3. Informe corto con ✅ / ⚠️ / ❌:
+1. Estado de los 6 anuncios de la ronda 2.
+2. Las 2 campañas de la ronda 1: si quedaron en Off y a qué hora.
+3. Lo que gastó cada campaña de la ronda 1 en total (columna "Amount spent").
+4. Confirmación de que no borraste ni tocaste nada más.
