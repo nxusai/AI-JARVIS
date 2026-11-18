@@ -57,3 +57,13 @@ equipo en la calle), video corto con la pregunta grande desde el segundo 0 (34 %
 ## Revisión de reglas de Meta
 - Ninguna promesa de resultados ("más ventas", "garantizado"). Las preguntas son sobre el negocio, no sobre la persona.
 - "Diagnóstico sin costo" solo si de verdad es gratis. Plazo de entrega ("en X días") solo cuando Eduardo dé el número.
+
+## Piezas hechas (18 nov 2026)
+- Decidido: "Se lo dejamos funcionando en 7 días" (Eduardo lo hace en 2) y "Diagnóstico gratis" (confirmado).
+- Videos (en `ads/ronda2/`, armados con `armar.py`; tomas Kling 3.0, voz Mark, NEX con voz Marisol filtrada como teléfono, música sintetizada):
+  - NXUS-R2-A.mp4 · Sucursales · 16 s · collage.
+  - NXUS-R2-B.mp4 · Equipo en la calle · 18 s · collage.
+  - NXUS-R2-C.mp4 · Pruébelo en vivo · 18.4 s · dueño real + pantalla del chat + llamada entrante + llamada en curso.
+- Imágenes (`imagenes.cjs`): NXUS-R2-D/E/F en feed 4:5 (1080×1350) e historia 9:16 (1080×1920).
+- ManyChat: NO se cambia el flujo; solo se copian las automatizaciones de entrada (una por anuncio) con la fuente "Anuncio MX R2 · Video A…F".
+- Costo Higgsfield aprox.: 70 créditos (8 clips) + ~3 (imágenes y voces).
