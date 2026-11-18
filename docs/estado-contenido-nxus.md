@@ -39,6 +39,7 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 - Primer video hecho y aprobado: **"El cliente de las 3 de la mañana"** (31 s, 9:16). Código para rehacer o hacer otros: `ads/maquina-video/` (`escena.html` con `window.render(t)`, `tomar.cjs` para cuadros a 30 fps, `musica.py` para la música original, y en `LEEME.md` cómo se mezcla).
 - Habilidades generales de edición: `docs/habilidad-editor-video.md` y `docs/receta-edicion.md` (la receta de Eduardo).
 - Segundo video (16 nov, pendiente de que Eduardo lo apruebe): **"Punto de venta para come todo"** (43.6 s, 9:16, 2.1 créditos). Código en `ads/pos-come-todo/`.
+- Tercer video (18 nov, pendiente de que Eduardo lo apruebe): **"Mi mejor empleado no duerme"** (32.3 s, cámara que sigue a la IA, 1.65 créditos). Código en `ads/empleado-no-duerme/`.
 - Ideas pendientes:
   2. "Cuánto dinero pierdes por no contestar".
   3. "Mi empleado que no duerme" (un día corrido con el reloj).

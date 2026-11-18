@@ -1,0 +1,281 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#05070d}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Inter,sans-serif;color:#fff;overflow:hidden}
+.abs{position:absolute}
+.g{background:linear-gradient(100deg,#00e5ff,#0a6cff 55%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{position:absolute;border-radius:44px;background:rgba(12,17,32,.95);border:2px solid rgba(255,255,255,.11);box-shadow:0 50px 140px rgba(0,0,0,.65),0 0 0 1px rgba(0,229,255,.1),0 0 90px rgba(10,108,255,.18);overflow:hidden}
+.barra{height:88px;display:flex;align-items:center;gap:14px;padding:0 34px;background:rgba(255,255,255,.045);border-bottom:1px solid rgba(255,255,255,.07);font:600 30px Inter;color:#dbe6ff}
+.sticker{position:absolute;padding:18px 34px;border-radius:18px;font:800 54px Sora;letter-spacing:.02em;color:#04121c;background:linear-gradient(100deg,#00e5ff,#36a2ff);box-shadow:0 14px 0 rgba(0,0,0,.35),0 20px 60px rgba(0,229,255,.4);white-space:nowrap}
+.sub{position:absolute;left:0;right:0;top:1316px;text-align:center}
+.pill{display:inline-block;padding:14px 30px;border-radius:22px;background:rgba(5,8,16,.8);font:800 64px Sora;letter-spacing:.02em;text-transform:uppercase;border:1px solid rgba(255,255,255,.07)}
+.burb{max-width:82%;padding:20px 26px;border-radius:28px;font:500 32px/1.3 Inter;margin:14px 0}
+.cli{background:#1f2a44;border-bottom-left-radius:8px}
+.ia{background:linear-gradient(135deg,#0a6cff,#7b2bff);margin-left:auto;border-bottom-right-radius:8px}
+.fila{display:flex;align-items:center;justify-content:space-between}
+</style></head>
+<body><div id="st"></div>
+<script>
+const LOGO = (id) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const W = window.PALABRAS, F = window.FRASES, T_FIN = window.T_FIN
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const io = (k) => k * k * (3 - 2 * k)
+const io4 = (k) => (k < .5 ? 8 * k * k * k * k : 1 - Math.pow(-2 * k + 2, 4) / 2)
+const back = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const lerp = (a, b, k) => a + (b - a) * k
+const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x) }
+const entra = (t, a, d = .4, dy = 60) => { const k = sal(t, a, d); return `opacity:${cl(k * 3)};transform:translateY(${(1 - ease(k)) * dy}px) scale(${.94 + .06 * back(k)});` }
+const pop = (t, a, d = .32) => { const k = sal(t, a, d); return `opacity:${cl(k * 4)};transform:scale(${k <= 0 ? 0 : back(k)});` }
+const golpe = (t, a, rot = -4) => { const k = sal(t, a, .28); return `opacity:${cl(k * 4)};transform:rotate(${rot}deg) scale(${k < 1 ? 1.7 - .7 * back(k) : 1});` }
+const tipea = (txt, t, a, cps = 34) => txt.slice(0, Math.max(0, Math.floor((t - a) * cps)))
+const C = (re, desde = 0, n = 0) => { const m = W.filter((w) => w[0] >= desde - .01 && re.test(w[2])); return (m[n] ?? m.at(-1) ?? [desde])[0] }
+const S = F.map((f) => f[0])
+const FIN_VOZ = F.at(-1)[1]
+
+/* ---------- el mundo: estaciones del día ---------- */
+const P = [{ x: 0, y: 0 }, { x: 2100, y: -760 }, { x: 4200, y: 320 }, { x: 6300, y: -700 }, { x: 8400, y: 340 }, { x: 10500, y: -420 }, { x: 10500, y: 1180 }]
+const ANCLA = [[-300, -470], [-390, -500], [390, -500], [0, -520], [-400, -490], [0, -120], [0, -120]]
+// Viajes: [de, a, inicio, duración]
+const VIAJES = [[0, 1, S[1] - .42, .78], [1, 2, S[2] - .34, .78], [2, 3, S[3] - .4, .78], [3, 4, S[4] - .4, .78], [4, 5, S[5] - .4, .8], [5, 6, S[7] - .3, .7]]
+const VUELTA = T_FIN - .62
+function camara(t) {
+  // Dónde está mirando: se queda en cada estación con un empuje lento y viaja con latigazo.
+  if (t >= VUELTA) { const k = io4(sal(t, VUELTA, .62)); return { x: lerp(P[6].x, 40, k), y: lerp(P[6].y, -90, k), z: lerp(1.04, 1.28, k) - .35 * Math.sin(Math.PI * k), r: lerp(0, -3, k) - 6 * Math.sin(Math.PI * k) } }
+  let i = 0, k = 0, v = null
+  for (const [a, b, t0, d] of VIAJES) { if (t >= t0 + d) i = b; else if (t >= t0) { v = [a, b]; k = io4((t - t0) / d) } }
+  if (v) {
+    const [a, b] = v, dir = P[b].x >= P[a].x ? 1 : -1, vert = P[b].x === P[a].x
+    return { x: lerp(P[a].x, P[b].x, k), y: lerp(P[a].y, P[b].y, k) - (vert ? 0 : 120 * Math.sin(Math.PI * k)), z: 1.06 - (vert ? .1 : .3) * Math.sin(Math.PI * k), r: (vert ? 0 : 5 * dir) * Math.sin(Math.PI * k) * (b % 2 ? -1 : 1) }
+  }
+  // en la estación: desde que llegó hasta que se va
+  const llego = i === 0 ? 0 : VIAJES[i - 1][2] + VIAJES[i - 1][3], sale = VIAJES[i]?.[2] ?? VUELTA, u = (t - llego) / (sale - llego)
+  let z = 1 + .06 * u, x = P[i].x + (i % 2 ? -1 : 1) * 26 * (u - .5), y = P[i].y - 14 * u, r = Math.sin(t * .7 + i) * .5
+  if (i === 0) { const a = ease(sal(t, 0, 1.6)); z = lerp(1.28, 1, a) + .05 * u; x = lerp(40, x, a); y = lerp(-90, y, a); r = lerp(-3, r, a) }
+  if (i === 5) { const g = C(/inteligencia/i, S[5]); z = 1 + .05 * u + .22 * Math.exp(-Math.max(0, t - g) * 3.2) * (t >= g ? 1 : 0); const sh = t >= g ? Math.exp(-(t - g) * 5) : 0; x += Math.sin(t * 70) * 14 * sh; y += Math.cos(t * 63) * 14 * sh }
+  return { x, y, z, r }
+}
+const velocidad = (t) => { const a = camara(t - .012), b = camara(t + .012); return Math.hypot(b.x - a.x, b.y - a.y) / .024 }
+const capa = (c, p, html, extra = '') => `<div class="abs" style="left:540px;top:880px;width:0;height:0;transform:scale(${1 + (c.z - 1) * Math.min(1, p + .25)}) rotate(${c.r * Math.min(1, p)}deg) translate(${-c.x * p}px,${-c.y * p}px);${extra}">${html}</div>`
+const en = (i, html) => `<div class="abs" style="left:${P[i].x}px;top:${P[i].y}px;width:0;height:0">${html}</div>`
+const cerca = (c, i, d = 2400) => Math.abs(c.x - P[i].x) < d && Math.abs(c.y - P[i].y) < d
+
+/* ---------- la IA: un núcleo de luz que la cámara sigue ---------- */
+function orbe(t) {
+  if (t >= VUELTA) { const k = io4(sal(t, VUELTA - .08, .62)); return { x: lerp(P[6].x, P[0].x + ANCLA[0][0], k), y: lerp(P[6].y - 900, P[0].y + ANCLA[0][1], k) - 300 * Math.sin(Math.PI * k), s: Math.sin(Math.PI * k) } }
+  let i = 0, v = null, k = 0
+  for (const [a, b, t0, d] of VIAJES) { const tt = t0 - .14; if (t >= tt + d) i = b; else if (t >= tt) { v = [a, b]; k = io((t - tt) / d) } }
+  const pos = (j) => ({ x: P[j].x + ANCLA[j][0], y: P[j].y + ANCLA[j][1] })
+  if (v) { const a = pos(v[0]), b = pos(v[1]); return { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k) - 330 * Math.sin(Math.PI * k), s: 1 + .25 * Math.sin(Math.PI * k) } }
+  const p = pos(i); let s = 1
+  if (i === 0) s = back(sal(t, C(/duerme/i) - .25, .4)) * (t >= C(/duerme/i) - .25 ? 1 : 0)
+  if (i === 5) { const g = C(/inteligencia/i, S[5]); s = 1 + 2.3 * ease(sal(t, g - .1, .45)); const m = sal(t, S[6] + .1, .5); s *= 1 - m }
+  if (i === 6) s = 0
+  return { x: p.x + Math.sin(t * 2.3) * 16, y: p.y + Math.cos(t * 1.9) * 14, s }
+}
+function dibujaOrbe(t) {
+  const o = orbe(t); if (o.s <= 0.01) return ''
+  let h = ''
+  for (let j = 22; j >= 1; j--) { const q = orbe(t - j * .02); if (q.s <= .01) continue; const d = Math.hypot(q.x - o.x, q.y - o.y); if (d < 6) continue; const f = 1 - j / 23; h += `<div class="abs" style="left:${q.x - 34 * f}px;top:${q.y - 34 * f}px;width:${68 * f}px;height:${68 * f}px;border-radius:50%;background:radial-gradient(circle,rgba(127,243,255,${.75 * f}),rgba(10,108,255,${.4 * f}) 55%,transparent 72%)"></div>` }
+  const R = 62 * o.s
+  h += `<div class="abs" style="left:${o.x - R * 2.6}px;top:${o.y - R * 2.6}px;width:${R * 5.2}px;height:${R * 5.2}px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,.38),rgba(160,28,255,.16) 45%,transparent 68%)"></div>
+    <div class="abs" style="left:${o.x - R}px;top:${o.y - R}px;width:${R * 2}px;height:${R * 2}px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff 0%,#7ff3ff 18%,#0a6cff 55%,#a01cff 88%);box-shadow:0 0 ${R * 1.3}px rgba(0,229,255,.9),0 0 ${R * 3}px rgba(10,108,255,.55)"></div>
+    <div class="abs" style="left:${o.x - R * 1.55}px;top:${o.y - R * 1.55}px;width:${R * 3.1}px;height:${R * 3.1}px;border-radius:50%;border:${3 + o.s}px solid rgba(127,243,255,.75);transform:rotate(${t * 140}deg) scaleY(.34)"></div>
+    <div class="abs" style="left:${o.x - R * 1.55}px;top:${o.y - R * 1.55}px;width:${R * 3.1}px;height:${R * 3.1}px;border-radius:50%;border:${3 + o.s}px solid rgba(190,120,255,.7);transform:rotate(${-t * 110 + 60}deg) scaleY(.34)"></div>`
+  return h
+}
+const onda = (x, y, t, a, color = '0,229,255') => { const k = (t - a) / .6; return k > 0 && k < 1 ? `<div class="abs" style="left:${x - 220}px;top:${y - 220}px;width:440px;height:440px;border-radius:50%;border:8px solid rgba(${color},${1 - k});transform:scale(${.2 + k * 1.2})"></div>` : '' }
+
+/* ---------- piezas ---------- */
+const cab = (ico, tit, der = '') => `<div class="barra"><span style="font-size:36px">${ico}</span><span>${tit}</span><span style="margin-left:auto;font:600 24px Inter;color:#00e5ff">${der}</span></div>`
+const logoMini = (id) => `<span style="display:inline-block;width:54px;height:36px;vertical-align:middle">${LOGO(id)}</span>`
+const puntos = (t) => [0, 1, 2].map((i) => `<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#fff;margin:0 5px;opacity:${.35 + .65 * Math.abs(Math.sin(t * 6 - i * .7))};transform:translateY(${-6 * Math.abs(Math.sin(t * 6 - i * .7))}px)"></span>`).join('')
+
+/* 0 · gancho: él descansa, su empleado no */
+function e0(t) {
+  const tD = C(/duerme/i), tV = C(/vacaciones/i), tN = C(/nunca/i), tVi = C(/visto/i)
+  const resp = Math.sin(t * 2.1) * 5
+  return `<div class="abs" style="left:-470px;top:-560px;width:940px;text-align:center;font:800 92px/1.04 Sora;letter-spacing:-.01em">Mi mejor<br><span class="g" style="font-style:italic;padding:0 12px">empleado</span></div>
+    <div class="abs" style="left:-450px;top:150px;width:900px;height:150px;border-radius:60px;background:linear-gradient(#1b2748,#0f1730);box-shadow:0 40px 90px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.08)"></div>
+    <div class="abs" style="left:-420px;top:262px;width:840px;height:26px;border-radius:13px;background:linear-gradient(90deg,#00e5ff,#0a6cff,#a01cff);opacity:.85;box-shadow:0 0 50px rgba(10,108,255,.7)"></div>
+    <img src="pj_acostado.png" class="abs" style="left:-400px;top:${-178 + resp}px;width:800px">
+    ${[0, 1, 2].map((i) => { const k = (t * .5 + i / 3) % 1; return t < tD + .3 ? `<div class="abs" style="left:${-330 + k * 90}px;top:${-170 - k * 190}px;font:800 ${44 + i * 16}px Sora;color:#9fd8ff;opacity:${Math.sin(k * Math.PI) * cl(1 - (t - tD) * 4)}">Z</div>` : '' }).join('')}
+    ${onda(ANCLA[0][0], ANCLA[0][1], t, tD - .25)}
+    ${t > tD ? `<div class="sticker" style="left:20px;top:-335px;${golpe(t, tD, 5)}">NO DUERME</div>` : ''}
+    ${t > tV ? `<div class="sticker" style="left:-455px;top:-252px;background:linear-gradient(100deg,#c08bff,#a01cff);color:#fff;${golpe(t, tV, -5)}">SIN VACACIONES</div>` : ''}
+    ${t > tN + .2 ? `<div class="sticker" style="left:-245px;top:308px;background:#fff;${golpe(t, tN + .2, 3)}">NUNCA EN VISTO <span style="color:#0a8cff">✓✓</span></div>` : ''}`
+}
+
+/* 1 · 3 AM: llega un cliente y contesta en segundos */
+function e1(t) {
+  const a = S[1], tL = C(/llega/i, a), tC = C(/contesta/i, a), tS = C(/segundos/i, a)
+  const r = '¡Hola! Claro que sí. ¿Qué necesitas para tu negocio?'
+  const vib = t > tL && t < tL + .35 ? Math.sin(t * 90) * 7 : 0
+  return `<div class="card" style="left:${-330 + vib}px;top:-520px;width:660px;height:900px;border-radius:64px;border:10px solid #262c3d">
+      ${cab(logoMini('l1'), 'WhatsApp del negocio', '● en línea')}
+      <div style="padding:22px 28px">
+        <div style="text-align:center;font:600 24px Inter;color:#7f8db0;margin:6px 0 10px">Hoy · 3:00 AM</div>
+        ${t > tL ? `<div class="burb cli" style="${entra(t, tL, .3, 40)}">Hola, ¿me dan informes? 🙋</div>` : ''}
+        ${t > tL + .45 && t < tC ? `<div class="burb ia" style="width:150px;text-align:center;${entra(t, tL + .45, .25, 30)}">${puntos(t)}</div>` : ''}
+        ${t >= tC ? `<div class="burb ia" style="${entra(t, tC, .25, 30)}">${tipea(r, t, tC, 60)}</div>` : ''}
+        ${t > tS ? `<div style="margin-top:22px;padding:22px;border-radius:26px;text-align:center;background:rgba(46,230,140,.14);border:2px solid #2ee68c;font:800 40px Sora;color:#2ee68c;${pop(t, tS)}">⚡ Contestó al instante</div>` : ''}
+      </div></div>
+    <div class="abs" style="left:300px;top:-600px;font-size:150px;filter:drop-shadow(0 0 60px rgba(180,200,255,.6));transform:rotate(${Math.sin(t) * 6}deg)">🌙</div>
+    ${onda(ANCLA[1][0], ANCLA[1][1], t, tC)}
+    ${t > tS + .1 ? `<div class="sticker" style="left:60px;top:300px;${golpe(t, tS + .1, -5)}">EN SEGUNDOS</div>` : ''}`
+}
+
+/* 2 · 9 AM: llama, pregunta y agenda */
+function e2(t) {
+  const a = S[2], tL = C(/llama/i, a), tP = C(/hace/i, a), tA = C(/agenda/i, a), tCi = C(/cita/i, a)
+  const pregs = ['¿Qué negocio tienes?', '¿Qué quieres resolver?', '¿Cuándo te marcamos?']
+  const camina = ease(sal(t, a - .1, 1.6)), paso = camina < 1 ? Math.abs(Math.sin((t - a) * 9)) * 16 : Math.sin(t * 2.4) * 4
+  const barras = Array.from({ length: 26 }, (_, i) => `<div style="width:11px;border-radius:6px;background:linear-gradient(#00e5ff,#a01cff);height:${14 + Math.abs(Math.sin(t * 10 + i * .8)) * 70 * (t > tL ? 1 : .12)}px"></div>`).join('')
+  return `<div class="card" style="left:-250px;top:-520px;width:700px;height:900px">
+      ${cab(logoMini('l2'), 'Llamada · 9:00 AM', t > tL ? '● en llamada' : 'marcando…')}
+      <div style="padding:26px 36px">
+        <div style="display:flex;align-items:center;gap:26px">
+          <div style="width:130px;height:130px;border-radius:50%;background:linear-gradient(135deg,#0a6cff,#a01cff);display:grid;place-items:center;font:800 50px Sora;box-shadow:0 0 0 ${10 + 12 * Math.abs(Math.sin(t * 4))}px rgba(10,108,255,.22)">IA</div>
+          <div style="display:flex;align-items:center;gap:6px;height:100px">${barras}</div></div>
+        <div style="margin-top:24px">${pregs.map((p, i) => { const on = t > tP + i * .42; return `<div style="display:flex;align-items:center;gap:20px;font:600 34px Inter;margin:18px 0;opacity:${t > tP - .2 ? 1 : .25}"><div style="width:50px;height:50px;border-radius:14px;border:3px solid ${on ? '#00e5ff' : '#33415f'};background:${on ? '#00e5ff' : 'transparent'};display:grid;place-items:center;font:800 34px Inter;color:#04121c;transform:scale(${on ? back(sal(t, tP + i * .42, .25)) : 1})">${on ? '✓' : ''}</div>${p}</div>` }).join('')}</div>
+        <div style="margin-top:22px;border-radius:26px;border:2px solid rgba(255,255,255,.09);overflow:hidden;${t > tA - .1 ? entra(t, tA - .1, .3, 40) : 'opacity:0'}">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);font:600 22px Inter;color:#7f8db0;text-align:center;padding:12px 0;background:rgba(255,255,255,.04)"><div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div></div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px;height:150px">${[0, 1, 2, 3, 4].map((d) => `<div style="border-radius:14px;background:${d === 1 && t > tCi - .15 ? 'linear-gradient(135deg,#0a6cff,#a01cff)' : 'rgba(255,255,255,.04)'};${d === 1 ? `transform:scale(${t > tCi - .15 ? back(sal(t, tCi - .15, .35)) : 1})` : ''};display:grid;place-items:center;font:700 24px Inter;text-align:center">${d === 1 && t > tCi - .15 ? 'Cita<br>11:00' : ''}</div>`).join('')}</div></div>
+      </div></div>
+    <div class="abs" style="left:-610px;top:-640px;font-size:150px;filter:drop-shadow(0 0 70px rgba(255,200,90,.8));transform:rotate(${t * 20}deg)">☀️</div>
+    <img src="pj_caminando.png" class="abs" style="left:${lerp(-1150, -560, camina)}px;top:${-250 - paso}px;width:360px">
+    ${t > tCi ? `<div class="sticker" style="left:-250px;top:-622px;${golpe(t, tCi, -3)}">CITA AGENDADA ✓</div>` : ''}`
+}
+
+/* 3 · mediodía: varios clientes al mismo tiempo */
+function e3(t) {
+  const a = S[3], tAt = C(/atiende/i, a), tV = C(/varios/i, a), tM = C(/mismo/i, a)
+  const msgs = ['¿Tienen precios?', '¿Hacen envíos?', 'Quiero una cita', '¿Abren hoy?', 'Necesito info', '¿Cuánto tarda?']
+  const cel = (i) => [-440 + (i % 2) * 450, -480 + Math.floor(i / 2) * 290]
+  return msgs.map((m, i) => {
+    const [x, y] = cel(i), ta = tAt + i * .11, ok = t > tV + .25 + i * .13
+    return `<div class="card" style="left:${x}px;top:${y}px;width:430px;height:268px;border-radius:34px;border-color:${ok ? 'rgba(46,230,140,.7)' : 'rgba(255,255,255,.11)'};${pop(t, a - .25 + i * .06, .3)}">
+      <div class="fila" style="padding:16px 22px 0;font:700 26px Inter;color:#8fa0c6"><span>Cliente ${i + 1}</span><span style="color:${ok ? '#2ee68c' : '#7f8db0'};font-size:30px">${ok ? '✓✓' : '●'}</span></div>
+      <div style="padding:4px 20px"><div class="burb cli" style="font-size:27px;padding:13px 20px;margin:9px 0">${m}</div>
+      ${t > ta ? `<div class="burb ia" style="font-size:27px;padding:13px 20px;margin:9px 0;${ok ? '' : 'width:120px;text-align:center'}">${ok ? '¡Claro! Te ayudo 👇' : puntos(t + i)}</div>` : ''}</div></div>` +
+      // un rayo del núcleo a cada conversación
+      (() => { const k = sal(t, ta - .1, .3); if (k <= 0 || t > ta + .6) return ''; const ox = ANCLA[3][0], oy = ANCLA[3][1], dx = x + 215 - ox, dy = y + 30 - oy, L = Math.hypot(dx, dy); return `<div class="abs" style="left:${ox}px;top:${oy - 3}px;width:${L * ease(k)}px;height:6px;border-radius:3px;transform-origin:0 50%;transform:rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg);background:linear-gradient(90deg,rgba(0,229,255,.9),rgba(160,28,255,.9));opacity:${cl((ta + .6 - t) * 3)};box-shadow:0 0 20px #00e5ff"></div>` })()
+  }).join('') + (t > tM ? `<div class="sticker" style="left:-330px;top:-70px;font-size:66px;${golpe(t, tM, -4)}">AL MISMO TIEMPO</div>` : '')
+}
+
+/* 4 · 10 PM: todo guardado, sin mover un dedo */
+function e4(t) {
+  const a = S[4], tT = C(/todo/i, a), tG = C(/guardado/i, a), tS = C(/sin/i, a), tD = C(/dedo/i, a)
+  const filas = [['Cliente 1', 'Pidió precios', 'Cita mar 11:00'], ['Cliente 2', 'Pidió informes', 'En seguimiento'], ['Cliente 3', 'Quiere cita', 'Cita jue 4:00'], ['Cliente 4', 'Preguntó horario', 'Resuelto']]
+  return `<div class="card" style="left:-450px;top:-520px;width:900px;height:560px">
+      ${cab(logoMini('l4'), 'Tu sistema · hoy', t > tG ? '✓ guardado' : 'guardando…')}
+      <div style="padding:10px 34px">
+        <div style="display:grid;grid-template-columns:1fr 1.3fr 1.2fr;font:700 22px Inter;color:#7f8db0;padding:12px 0"><div>QUIÉN</div><div>QUÉ PIDIÓ</div><div>CÓMO VA</div></div>
+        ${filas.map((f, i) => `<div style="display:grid;grid-template-columns:1fr 1.3fr 1.2fr;align-items:center;padding:19px 0;border-top:1px solid rgba(255,255,255,.07);font:600 29px Inter;${entra(t, tT - .1 + i * .2, .26, 34)}"><div>${f[0]}</div><div style="color:#c7d3ee">${f[1]}</div><div><span style="padding:8px 14px;border-radius:12px;font-size:23px;background:${/Cita/.test(f[2]) ? 'rgba(46,230,140,.16)' : /Resuelto/.test(f[2]) ? 'rgba(0,229,255,.14)' : 'rgba(255,210,63,.14)'};color:${/Cita/.test(f[2]) ? '#2ee68c' : /Resuelto/.test(f[2]) ? '#7fe9ff' : '#ffd23f'}">${f[2]}</span></div></div>`).join('')}
+        <div style="font:500 22px Inter;color:#5f6d8f;margin-top:10px">Datos de ejemplo</div>
+      </div></div>
+    <div class="abs" style="left:330px;top:-640px;font-size:130px;filter:drop-shadow(0 0 60px rgba(180,200,255,.6))">🌙</div>
+    <img src="pj_acostado.png" class="abs" style="left:-330px;top:${68 + Math.sin(t * 2.1) * 4}px;width:660px;${entra(t, tS - .25, .4, 120)}">
+    ${t > tG ? `<div class="sticker" style="left:30px;top:-612px;background:linear-gradient(100deg,#7dffb8,#2ee68c);${golpe(t, tG, 5)}">GUARDADO ✓</div>` : ''}`
+}
+
+/* 5 · no es una persona: es mi inteligencia artificial → NXUS */
+function e5(t) {
+  const a = S[5], tP = C(/persona/i, a), tI = C(/inteligencia/i, a), b = S[6], tN = C(/nexus/i, b), tTu = C(/tuya/i, b), tM = C(/medida/i, b)
+  const k = ease(sal(t, tI - .05, .5)), m = io(sal(t, b + .1, .5))
+  const rayos = t > tI ? Array.from({ length: 16 }, (_, i) => `<div class="abs" style="left:0;top:${-120 - 5}px;width:${(420 + 260 * rnd(i)) * k}px;height:10px;transform-origin:0 50%;transform:rotate(${i * 22.5 + t * 14}deg);background:linear-gradient(90deg,transparent 22%,rgba(0,229,255,${.5 * (1 - m)}),transparent)"></div>`).join('') : ''
+  return rayos + onda(0, -120, t, tI, '127,243,255') + onda(0, -120, t, tI + .14, '160,28,255') +
+    (t < tI ? `<div class="abs" style="left:-470px;top:-440px;width:940px;text-align:center;font:800 92px/1.1 Sora;opacity:${cl(1 - (t - tI + .15) / .15)};${entra(t, a - .05, .35)}">No es una <span style="position:relative;display:inline-block">persona<span class="abs" style="left:-8px;top:54%;height:9px;border-radius:5px;background:#ff5468;width:${sal(t, tP + .1, .3) * 104}%"></span></span></div>` : '') +
+    (t >= tI - .05 && t < b + .5 ? `<div class="abs" style="left:-520px;top:180px;width:1040px;text-align:center;font:800 100px/1.02 Sora;letter-spacing:-.01em;opacity:${1 - m};${golpe(t, tI, 0)}">INTELIGENCIA<br><span class="g">ARTIFICIAL</span></div>` : '') +
+    (t >= b ? `<div class="abs" style="left:-250px;top:${-290}px;width:500px;height:330px;opacity:${m};transform:scale(${.5 + .5 * back(m)});filter:drop-shadow(0 0 60px rgba(10,108,255,.9))">${LOGO('l5')}</div>
+      <div class="abs" style="left:-520px;top:110px;width:1040px;text-align:center;font:800 84px Sora;${entra(t, tN + .4, .4)}">Construimos <span class="g">la tuya</span></div>
+      <div class="abs" style="left:-520px;top:226px;width:1040px;text-align:center;font:800 70px Sora;font-style:italic;color:#dbe6ff;${entra(t, tM - .3, .4)}">a la medida de tu negocio</div>` : '')
+}
+
+/* 6 · cierre */
+function e6(t) {
+  const a = S[7], tG = C(/gratis/i, a), tT = C(/treinta/i, a)
+  const salto = Math.abs(Math.sin((t - a) * 5.4)) * 50 * cl(1.5 - (t - a) * .3)
+  const confeti = Array.from({ length: 50 }, (_, i) => { const q = (t - a - .2) * (0.55 + (i % 5) * .13); return q < 0 ? '' : `<div class="abs" style="left:${-520 + ((i * 131) % 1040)}px;top:${-900 + q * 800 + ((i * 37) % 260)}px;width:18px;height:28px;border-radius:4px;background:${['#00e5ff', '#0a6cff', '#a01cff', '#ffffff'][i % 4]};transform:rotate(${q * 300 + i * 20}deg)"></div>` }).join('')
+  return confeti + `<div class="abs" style="left:-430px;top:-560px;width:860px;padding:44px 30px;border-radius:44px;background:rgba(12,17,32,.94);border:3px solid rgba(0,229,255,.55);text-align:center;box-shadow:0 0 ${130 + 60 * Math.sin(t * 5)}px rgba(0,229,255,.3);${entra(t, a - .05, .4)}">
+      <div style="font:800 84px/1.04 Sora" class="g">DIAGNÓSTICO<br>GRATIS</div>
+      <div style="font:800 56px Sora;margin-top:18px;transform:scale(${1 + .1 * Math.sin(Math.PI * sal(t, tT, .4))})">30 minutos</div>
+      <div style="font:500 32px Inter;color:#9fb0d0;margin-top:12px">Cupos limitados este mes</div></div>
+    <img src="pj_brazos-arriba.png" class="abs" style="left:-170px;top:${-70 - salto + (1 - ease(sal(t, a, .45))) * 700}px;width:340px">`
+}
+
+/* ---------- fondo con profundidad ---------- */
+const HORA = [[5, 7, 13], [6, 9, 22], [38, 22, 30], [8, 26, 46], [20, 10, 40], [6, 6, 16], [6, 8, 18]]
+function cielo(c) {
+  // el color del fondo cambia con la hora de la estación más cercana
+  let u = 0; for (let i = 0; i < 5; i++) if (c.x >= P[i].x) u = i + cl((c.x - P[i].x) / (P[i + 1].x - P[i].x))
+  const i = Math.min(5, Math.floor(u)), k = u - i, col = HORA[i].map((v, j) => Math.round(lerp(v, HORA[i + 1][j], k)))
+  return `<div class="abs" style="inset:0;background:radial-gradient(120% 80% at 50% 100%,rgb(${col.map((v) => v * 2.2 | 0)}) 0%,rgb(${col}) 45%,#04050b 100%)"></div>`
+}
+function estrellas(c, t) { return capa(c, .06, Array.from({ length: 70 }, (_, i) => `<div class="abs" style="left:${-700 + rnd(i) * 2400}px;top:${-1100 + rnd(i + 99) * 2300}px;width:${3 + rnd(i + 7) * 4}px;height:${3 + rnd(i + 7) * 4}px;border-radius:50%;background:#fff;opacity:${.15 + .5 * Math.abs(Math.sin(t * 1.5 + i))}"></div>`).join('')) }
+const RELOJES = ['', '03:00', '09:00', '12:00', '22:00']
+function lejos(c, t) {
+  let h = ''
+  for (let i = 1; i <= 4; i++) h += `<div class="abs" style="left:${P[i].x * .5 - 700}px;top:${P[i].y * .5 - 330}px;width:1400px;text-align:center;font:800 430px Sora;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:4px rgba(160,190,255,.10)">${RELOJES[i]}</div>`
+  for (let i = 0; i < 40; i++) { const x = -600 + rnd(i + 300) * 6400, y = -900 + rnd(i + 400) * 1900, s = 26 + rnd(i + 500) * 60; h += `<div class="abs" style="left:${x}px;top:${y}px;width:${s}px;height:${s}px;border-radius:${i % 3 ? 10 : 50}%;border:3px solid rgba(${i % 2 ? '0,229,255' : '160,28,255'},.16);transform:rotate(${t * 18 + i * 40}deg)"></div>` }
+  return capa(c, .5, h)
+}
+function ruta() {
+  // la línea del día que une las estaciones
+  const pts = P.slice(0, 6).map((p, i) => [p.x + ANCLA[i][0], p.y + ANCLA[i][1]])
+  let d = `M${pts[0]}`; for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; d += ` Q${(x0 + x1) / 2},${Math.min(y0, y1) - 520} ${x1},${y1}` }
+  return `<svg class="abs" style="left:-1000px;top:-2200px;overflow:visible" width="12600" height="4400" viewBox="-1000 -2200 12600 4400"><path d="${d}" fill="none" stroke="rgba(120,170,255,.16)" stroke-width="5" stroke-dasharray="4 26" stroke-linecap="round"/></svg>`
+}
+function cerca_(c, t) { return capa(c, 1.7, Array.from({ length: 26 }, (_, i) => { const s = 90 + rnd(i + 20) * 160; return `<div class="abs" style="left:${-900 + rnd(i + 40) * 20000}px;top:${-1700 + rnd(i + 60) * 3600}px;width:${s}px;height:${s}px;border-radius:50%;background:radial-gradient(circle,rgba(${i % 2 ? '0,229,255' : '160,28,255'},.22),transparent 70%)"></div>` }).join('')) }
+
+/* ---------- reloj del día (pantalla) ---------- */
+function reloj(t) {
+  const paradas = [[0, 2 * 60 + 52], [S[1] - .2, 3 * 60], [S[2] - .2, 9 * 60], [S[3] - .2, 12 * 60], [S[4] - .2, 22 * 60]]
+  if (t > S[5] - .15 && t < VUELTA + .2) return ''
+  const vuelve = t >= VUELTA + .2
+  let m = paradas[0][1]
+  for (let i = 0; i < paradas.length && !vuelve; i++) { const [ta, ma] = paradas[i]; const prev = i ? paradas[i - 1][1] : ma; if (t >= ta - .45) m = lerp(prev + (i ? 3 : 0), ma, io(sal(t, ta - .45, .6))) + (t > ta + .15 ? Math.min(i ? 3 : 8, (t - ta) * (i ? .9 : 1.6)) : 0) }
+  m = Math.floor(m); const hh = Math.floor(m / 60) % 24, mm = m % 60, pm = hh >= 12, h12 = hh % 12 || 12
+  const dia = hh >= 6 && hh < 19
+  return `<div class="abs" style="left:0;right:0;top:150px;text-align:center;opacity:${vuelve ? sal(t, VUELTA + .2, .35) : cl((S[5] - .15 - t) * 5)}"><span style="display:inline-flex;align-items:center;gap:18px;padding:12px 30px;border-radius:26px;background:rgba(5,8,16,.62);border:1px solid rgba(255,255,255,.09);font:800 62px Sora;letter-spacing:.02em"><span style="font-size:46px">${dia ? '☀️' : '🌙'}</span>${h12}:${String(mm).padStart(2, '0')}<span style="font:700 30px Sora;color:#7fe9ff">${pm ? 'PM' : 'AM'}</span></span></div>`
+}
+
+/* ---------- subtítulos ---------- */
+const CLAVE = /^ai$|empleado|duerme|vacaciones|visto|mañana|segundos|punto|preguntas|cita|mediodía|clientes|tiempo|noche|guardado|sistema|dedo|persona|inteligencia|artificial|nexus|tuya|medida|negocio|diagnóstico|gratis|treinta|minutos/i
+const GRUPOS = []
+{ let g = []; for (const w of W) { g.push(w); if (g.length === 3 || /[.,?!:]$/.test(w[2])) { GRUPOS.push(g); g = [] } } if (g.length) GRUPOS.push(g) }
+function subtitulos(t) {
+  if (t > FIN_VOZ + .25) return ''
+  const i = GRUPOS.findIndex((x, j) => t < (GRUPOS[j + 1]?.[0][0] ?? 9e9) - .04); if (i < 0) return ''
+  const g = GRUPOS[i], k = sal(t, g[0][0] - .04, .12)
+  return `<div class="sub"><span class="pill" style="transform:scale(${.9 + .1 * back(k)})">${g.map((w) => {
+    const txt = w[2].replace(/^Nexus$/i, 'NXUS').replace(/^treinta$/i, '30').replace(/[¿?¡!.,:]/g, '')
+    return `<span style="display:inline-block;margin:0 9px;${t >= w[0] - .03 ? '' : 'opacity:.35;'}color:${CLAVE.test(txt.replace(/^NXUS$/, 'nexus').replace(/^30$/, 'treinta')) ? '#00e5ff' : '#fff'}">${txt}</span>`
+  }).join('')}</span></div>`
+}
+
+/* ---------- armado ---------- */
+const ESC = [e0, e1, e2, e3, e4, e5, e6]
+window.render = (t) => {
+  const c = camara(t), v = velocidad(t), bl = Math.min(16, v / 420)
+  let h = cielo(c) + estrellas(c, t) + lejos(c, t)
+  let mundo = ruta()
+  ESC.forEach((fn, i) => { if (cerca(c, i)) mundo += en(i, fn(i === 0 && t > VUELTA - .3 ? t - T_FIN : t)) })
+  mundo += dibujaOrbe(t)
+  h += capa(c, 1, mundo, bl > .6 ? `filter:blur(${bl}px)` : '')
+  h += cerca_(c, t)
+  // líneas de velocidad y viñeta en los latigazos
+  if (v > 1500) { const f = cl((v - 1500) / 5000); h += Array.from({ length: 16 }, (_, i) => `<div class="abs" style="left:${-200 + ((rnd(i) * 1500 + t * 3800 * (1 + rnd(i + 9))) % 1500)}px;top:${rnd(i + 50) * 1920}px;width:${260 + rnd(i + 3) * 420}px;height:${3 + rnd(i + 5) * 5}px;border-radius:4px;background:linear-gradient(90deg,transparent,rgba(190,235,255,${.55 * f}),transparent);transform:rotate(${c.r * 2 - 8}deg)"></div>`).join('') }
+  h += `<div class="abs" style="inset:0;background:radial-gradient(ellipse at 50% 46%,transparent 52%,rgba(2,3,8,.62) 100%)"></div>`
+  // destello al llegar a cada estación
+  for (const [, , t0, d] of VIAJES) { const k = (t - (t0 + d * .62)) / .3; if (k > 0 && k < 1) h += `<div class="abs" style="inset:0;background:#bff6ff;opacity:${(1 - k) * .16}"></div>` }
+  h += reloj(t) + subtitulos(t)
+  h += `<div class="abs" style="left:54px;top:74px;display:flex;align-items:center;gap:14px;font:700 30px Sora;letter-spacing:.1em;color:#dbe6ff;opacity:.92"><span style="width:62px;height:41px">${LOGO('lm')}</span>NXUS AI</div>`
+  h += `<div class="abs" style="left:0;top:0;height:8px;width:${cl(t / T_FIN) * 1080}px;background:linear-gradient(90deg,#00e5ff,#0a6cff,#a01cff)"></div>`
+  document.getElementById('st').innerHTML = h
+}
+</script></body></html>
