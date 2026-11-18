@@ -52,11 +52,13 @@ const ICONOS = {
 }
 ICONOS.leads = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'
 ICONOS.fiesta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 9 9-14 5z"/><path d="M13 6c1-2 3-2 4-3M17 11c2-1 3 0 4-1M15 3l1 1M20 7l1 1M19 3l.5.5"/></svg>'
+ICONOS.anuncios = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
 ICONOS.web = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>'
 const CARPETAS_SUGERIDAS = ['Labels', 'Logotipos', 'Diseños', 'Estructuras de label', 'Documentos']
 
 import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
 import { fraseDelDia } from './frases.js'
+import { guardarObjetivo, vistaAnuncios } from './anuncios.js'
 import { desmontarUltron, montarUltron } from './ultron.js'
 
 let D // los datos
@@ -73,6 +75,10 @@ const S = {
   fiesta: [],
   leads: [],
   leadsBusca: '',
+  // Anuncios de Mi Semago (solo el creador del sistema): lo que contesta la función "anuncios".
+  anuncios: null,
+  anunciosError: '',
+  an: { camp: 'todo', periodo: 'todo', vista: 'activos' },
   leadAbierto: null,
   fiestaBusca: '',
   web: [],
@@ -411,6 +417,8 @@ function vistasPermitidas() {
   if (veoLeads()) v.push('leads')
   // Website leads: las solicitudes del formulario de misemago.com. Los ve quien ve Leads.
   if (veoLeads()) v.push('web')
+  // Anuncios de Mi Semago (Meta + leads + lo aprendido): SOLO el creador del sistema.
+  if (veoAnuncios()) v.push('anuncios')
   // La fiesta de empleados: todos los usuarios del centro ven quién confirmó.
   v.push('fiesta')
   if (esAdmin()) v.push('usuarios', 'bitacora')
@@ -419,7 +427,7 @@ function vistasPermitidas() {
 
 // -- marco -------------------------------------------------------------------
 
-const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', web: 'WEBSITE LEADS', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
+const NOMBRES_VISTA = { tareas: 'Tareas', parrilla: 'Parrilla', biblioteca: 'Biblioteca', catalogos: 'Catálogos', leads: 'Leads', web: 'WEBSITE LEADS', anuncios: 'Anuncios', fiesta: 'Fiesta', usuarios: 'Usuarios', bitacora: 'Bitácora' }
 const ROLES = { admin: 'Administrador', equipo: 'Equipo', cliente: 'Cliente' }
 
 function pintar() {
@@ -470,7 +478,7 @@ const tieneUltron = () => Boolean(D.ultron && (S.yo.ultron || esAdmin()))
 /** Las 3 secciones que van en la barra de abajo; las demás, en "Más". */
 function pestanasMovil() {
   const v = vistasPermitidas()
-  return ['tareas', 'parrilla', 'leads', 'biblioteca', 'catalogos', 'web', 'fiesta', 'usuarios'].filter((x) => v.includes(x)).slice(0, 3)
+  return ['tareas', 'parrilla', 'leads', 'biblioteca', 'catalogos', 'web', 'anuncios', 'fiesta', 'usuarios'].filter((x) => v.includes(x)).slice(0, 3)
 }
 
 function cabezaMovil() {
@@ -495,7 +503,7 @@ function barraMovil() {
 /** "Más": lo que se usa poco, ordenado como Ajustes del iPhone. */
 function vistaMas() {
   const enMas = vistasPermitidas().filter((v) => !pestanasMovil().includes(v))
-  const ICO = { biblioteca: ['📁', '#e8eefc'], catalogos: ['📘', '#fbf1e0'], web: ['🌐', '#e7f4ec'], fiesta: ['🎉', '#fbe9e1'], leads: ['📞', '#e8eefc'], parrilla: ['📅', '#efe9fb'], tareas: ['✅', '#e7f4ec'], usuarios: ['👥', '#efefec'], bitacora: ['📜', '#efefec'] }
+  const ICO = { biblioteca: ['📁', '#e8eefc'], catalogos: ['📘', '#fbf1e0'], web: ['🌐', '#e7f4ec'], fiesta: ['🎉', '#fbe9e1'], leads: ['📞', '#e8eefc'], anuncios: ['📈', '#efe9fb'], parrilla: ['📅', '#efe9fb'], tareas: ['✅', '#e7f4ec'], usuarios: ['👥', '#efefec'], bitacora: ['📜', '#efefec'] }
   const fila = (attrs, ico, fondo, texto, extra = '') => `<button class="m-fila-l" ${attrs}><span class="m-ic" style="background:${fondo}">${ico}</span><span class="m-txt">${texto}</span>${extra}<span class="m-flecha">›</span></button>`
   return `
     <div class="m-perfil"><span class="m-av grande">${h(primerNombre(S.yo.nombre).slice(0, 1).toUpperCase())}</span><div><b>${h(S.yo.nombre)}</b><span>${ROLES[S.yo.rol]} · Mi Semago · Abuelito</span></div></div>
@@ -543,12 +551,40 @@ function pintarVista() {
     web: vistaWeb,
     fiesta: vistaFiesta,
     leads: vistaLeads,
+    anuncios: pantallaAnuncios,
     usuarios: vistaUsuarios,
     bitacora: vistaBitacora,
     mas: vistaMas,
   }[S.vista]
   el.innerHTML = v ? v() : ''
   if (S.vista === 'bitacora') cargarBitacora()
+  if (S.vista === 'anuncios') {
+    if (!S.anuncios && !S.anunciosError) cargarAnuncios()
+    const obj = $('#an-obj')
+    if (obj) obj.onchange = () => { guardarObjetivo(Math.max(1, Number(obj.value) || 100)); pintarVista() }
+  }
+}
+
+// -- anuncios de Mi Semago ------------------------------------------------------
+// Meta (solo lectura) + los leads + lo aprendido. Solo lo ve el creador del sistema
+// (la función "anuncios" y las tablas también lo exigen). Ver public/anuncios.js.
+const veoAnuncios = () => Boolean(S.yo?.dueno && D.anuncios)
+let cargandoAnuncios = false
+async function cargarAnuncios() {
+  if (cargandoAnuncios || !veoAnuncios()) return
+  cargandoAnuncios = true
+  try {
+    S.anuncios = await D.anuncios()
+    S.anunciosError = ''
+  } catch (err) {
+    S.anunciosError = err.message || 'No se pudo'
+  }
+  cargandoAnuncios = false
+  if (S.vista === 'anuncios') pintarVista()
+}
+function pantallaAnuncios() {
+  if (!veoAnuncios()) return ''
+  return vistaAnuncios({ leads: S.leads || [], datos: S.anuncios, estado: S.an, h, error: S.anunciosError })
 }
 
 // -- website leads ------------------------------------------------------------
@@ -2616,6 +2652,19 @@ async function alClic(e) {
       pintar()
       if (otra) scrollTo(0, 0)
       if (otra) verFondo()
+      return
+    }
+    if (d.anCamp || d.anVista || d.anPer) {
+      if (d.anCamp) S.an.camp = d.anCamp
+      if (d.anVista) S.an.vista = d.anVista
+      if (d.anPer) S.an.periodo = d.anPer
+      pintarVista()
+      return
+    }
+    if (d.accion === 'an-recargar') {
+      S.anuncios = null
+      S.anunciosError = ''
+      pintarVista()
       return
     }
     if (d.parrillaMes !== undefined) {

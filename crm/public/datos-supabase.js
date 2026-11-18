@@ -261,6 +261,10 @@ export function crearSupabase({ url, anon }) {
     async borrarInvitado(id) {
       ok(await sb.from('fiesta_asistentes').delete().eq('id', id))
     },
+    // Anuncios de Mi Semago: Meta (solo lectura) + fotos semanales + lo aprendido. Solo el creador del sistema.
+    async anuncios() {
+      return funcion('anuncios', {})
+    },
     // Website leads: llegan del formulario de misemago.com (función de Netlify "leads").
     async webLeads() {
       return ok(await sb.from('website_leads').select('*').order('creada', { ascending: false }).limit(5000))

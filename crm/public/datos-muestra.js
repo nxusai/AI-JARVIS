@@ -101,6 +101,9 @@ export function crearMuestra() {
     l({ nombre: 'Jorge Peña', negocio: 'Mercado Latino JP', ciudad: 'Charlotte, NC', zona: 'America/New_York', telefono: '+1 704 555 0123', correo: 'jorge@mercadolatinojp.com', etapa: 'hablo', intentos: 1, ultima_llamada: en(-1, 11), llamada_estado: 'termino', calificacion: 'medio', tipo_negocio: 'Supermercado latino', quesos: 'Queso fresco, quesillo', libras: '200 lb', frecuencia: 'Cada 2 semanas', marca_propia: 'Todavía no; lo está pensando', precios: 'Queso fresco $3.90/lb, quesillo $4.60/lb (más de 150 lb)', resumen: 'Le interesan queso fresco y quesillo para su mercado. Compra hoy a otro proveedor. Quiere comparar precios y lo va a hablar con su socio; pidió que le marquen la próxima semana.', hace: -2 })
     l({ nombre: 'María López', negocio: 'Distribuidora El Sol', ciudad: 'Atlanta, GA', zona: 'America/New_York', telefono: '+1 404 555 0199', correo: 'maria@distribuidoraelsol.com', etapa: 'meet', intentos: 1, ultima_llamada: en(-1, 12), llamada_estado: 'termino', calificacion: 'caliente', tipo_negocio: 'Distribuidora a tiendas latinas', quesos: 'Queso fresco, cuajada, crema', libras: '800 lb', frecuencia: 'Semanal', marca_propia: 'Sí, con la marca El Sol', precios: 'Queso fresco $3.70/lb, cuajada $3.95/lb, crema $2.80/lb (más de 500 lb)', resumen: 'Distribuidora con 40 tiendas. Quiere quesos con su propia marca. Le parecieron bien los precios y pidió hablar con Eduardo para ver etiquetas, tiempos de entrega y crédito.', meet_inicio: en(1, 11), meet_link: 'https://meet.google.com/abc-defg-hij', meet_evento: 'ejemplo', hace: -3 })
     l({ nombre: 'Pedro Gil', negocio: 'Taquería Gil', ciudad: 'Phoenix, AZ', zona: 'America/Phoenix', telefono: '+1 602 555 0111', etapa: 'no_califica', intentos: 1, ultima_llamada: en(-4, 13), llamada_estado: 'termino', calificacion: 'frio', tipo_negocio: 'Taquería', libras: '20 lb', resumen: 'Compra muy poco (20 lb al mes) y en tienda. No le conviene el mínimo de pedido.', hace: -5 })
+    // De qué anuncio llegó cada uno (lo marca ManyChat); el último queda como orgánico.
+    const FUENTES = ['Anuncio OESTE R2 · Video A', 'Anuncio OESTE R2 · Imagen B', 'Anuncio OESTE R2 · Video C', 'Anuncio · Tu marca', 'Anuncio · Capacidad', 'Anuncio OESTE R2 · Video A', 'Orgánico · INFO']
+    db.leads.forEach((x, i) => (x.fuente = FUENTES[i % FUENTES.length]))
     db.leads_notas.push({ id: uid(), lead_id: db.leads[4].id, texto: 'La conozco: le vende a varias tiendas de mi zona. Buen cliente.', autor: 'u-senen', autor_nombre: 'Senen', creada: en(-1, 16) })
   }
   // Lo que se espera cada mes, por marca (igual que en esquema.sql).
@@ -590,6 +593,37 @@ export function crearMuestra() {
       if (!admin()) no('Solo el admin borra')
       db.fiesta = db.fiesta.filter((x) => x.id !== id)
       anota('borró', 'fiesta_asistentes', id)
+    },
+    // Anuncios de Mi Semago (solo el creador del sistema). Números de EJEMPLO: no son de Meta.
+    async anuncios() {
+      if (!dueno()) no('sin permiso')
+      const dia = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10)
+      const R1 = 'Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días'
+      const R2 = 'MI SEMAGO | OESTE | R2 | WhatsApp'
+      const f = (anuncio, campana, gasto, impresiones, conversaciones, vistas3s = 0, thruplays = 0) => ({ anuncio, campana, gasto, impresiones, alcance: Math.round(impresiones * 0.7), frecuencia: 1.4, cpm: (gasto / impresiones) * 1000, clics: conversaciones * 2, conversaciones, vistas3s, thruplays, dia: '' })
+      const total = [
+        f('OESTE | A | Tu marca en 30 días', R2, 61.2, 5210, 9, 1410, 380), f('OESTE | B | Planta FDA', R2, 48.9, 4380, 6), f('OESTE | C | Envío a 40 °F', R2, 39.4, 3920, 4, 760, 150),
+        f('Capacidad 500k lb', R1, 44.1, 3890, 5), f('Tu marca', R1, 52.3, 4410, 8), f('Logística 40°F', R1, 38.2, 3120, 3), f('Carrusel planta real', R1, 40.4, 3555, 4),
+      ]
+      const est = (anuncio, campana, estado, hace) => ({ anuncio, campana, estado, creado: new Date(Date.now() - hace * 864e5).toISOString(), actualizado: new Date(Date.now() - (estado === 'ACTIVE' ? 0 : 9) * 864e5).toISOString() })
+      const sem = (semana, hasta, anuncio, nombre, campana, estado, n) => ({ semana, hasta, camp: 'OESTE', anuncio, nombre, campana, estado, moneda: 'USD', gasto: n[0], impresiones: n[1], alcance: 0, vistas3s: 0, thruplays: 0, clics: 0, conversaciones: n[2], frecuencia: 1.3, leads: n[3], reales: n[4], hablo: n[5], buenos: n[6], agendo: n[7], cliente: n[8] })
+      return copia({
+        ok: true, conectado: true, moneda: 'USD', faltanTablas: false, al: ahora(),
+        total, semana: total.slice(0, 3).map((x) => ({ ...x, gasto: x.gasto * 0.6, impresiones: Math.round(x.impresiones * 0.6), conversaciones: Math.round(x.conversaciones * 0.6) })),
+        dias: [...Array(30)].flatMap((_, i) => (i < 9 ? [{ campana: R2, gasto: 14 + ((i * 7) % 9), dia: dia(i) }] : i > 10 && i < 19 ? [{ campana: R1, gasto: 21 + ((i * 5) % 6), dia: dia(i) }] : [])),
+        estados: [...total.slice(0, 3).map((x) => est(x.anuncio, R2, 'ACTIVE', 9)), ...total.slice(3).map((x) => est(x.anuncio, R1, 'PAUSED', 19))],
+        semanas: [
+          sem(dia(15), dia(9), 'R1-A', 'Capacidad 500k lb', R1, 'PAUSED', [44.1, 3890, 5, 2, 2, 1, 1, 0, 0]), sem(dia(15), dia(9), 'R1-B', 'Tu marca', R1, 'PAUSED', [52.3, 4410, 8, 4, 3, 3, 2, 1, 0]),
+          sem(dia(15), dia(9), 'R1-C', 'Logística 40°F', R1, 'PAUSED', [38.2, 3120, 3, 1, 1, 0, 0, 0, 0]), sem(dia(15), dia(9), 'R1-D', 'Carrusel planta real', R1, 'PAUSED', [40.4, 3555, 4, 2, 1, 1, 0, 0, 0]),
+        ],
+        aprendizajes: [
+          { fecha: dia(2), tipo: 'semana', estado: 'recomendacion', titulo: 'EJEMPLO · Semana 2: "Tu marca" trae los leads buenos', texto: 'Texto de ejemplo. Aquí el reporte de cada lunes escribe qué pasó en la semana y qué recomienda. Nunca cambia campañas.', fuente: 'muestra' },
+          { fecha: dia(9), tipo: 'ronda', estado: 'confirmado', titulo: 'EJEMPLO · Cierre de la ronda 1', texto: 'Texto de ejemplo. Al cerrar cada ronda se anota qué anuncio ganó, por qué y qué se prueba después.', fuente: 'muestra' },
+          { fecha: dia(12), tipo: 'regla', estado: 'confirmado', titulo: 'EJEMPLO · ManyChat con frase exacta, nunca "contiene"', texto: 'Texto de ejemplo. Las reglas confirmadas con datos propios se quedan aquí para siempre.', fuente: 'muestra' },
+          { fecha: dia(5), tipo: 'hipotesis', estado: 'pendiente', titulo: 'EJEMPLO · ¿Un video de la planta baja el costo por Meet?', texto: 'Texto de ejemplo. Lo que falta probar, con cómo se va a medir.', fuente: 'muestra' },
+          { fecha: dia(1), tipo: 'competencia', estado: 'confirmado', titulo: 'EJEMPLO · Qué anuncia la competencia', texto: 'Texto de ejemplo. Aquí queda el informe de la Biblioteca de Anuncios de cada ronda.', fuente: 'muestra' },
+        ],
+      })
     },
     async webLeads() {
       const p = perfil()

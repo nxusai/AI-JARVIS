@@ -120,3 +120,22 @@ El zip y el comando para actualizar NEX están en `CLAUDE.md` (darlos completos 
 - WhatsApp de los anuncios: +1 484-969-8507 (ManyChat, página Mi Semago). Número de Ana Sofi: +1 973-750-4108.
 - Campaña de prueba: "Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días" ($25/día, tope $175, 9 al 16 de nov de 2026; 4 anuncios). Lecciones: campaña manual, presupuesto en el conjunto, público con límites fijos (30–65, sin intereses, códigos postales de bodegas y mayoreo del oeste + Chicago), ubicaciones manuales, mejoras de IA apagadas.
 - Pedido mínimo: 1,500 lb. Precios de lista: en las instrucciones del agente de Ana Sofi en ElevenLabs (texto fuente `SALIDA_PROMPT` en `bridge/ventas.mjs`, que se aplica con `node scripts/ana-sofi.mjs instrucciones`).
+
+## 10. El panel "Anuncios" (18 nov 2026): Meta + leads + lo aprendido
+Copia del sistema de aprendizaje de anuncios de NXUS HQ (`docs/sistema-aprendizaje-anuncios.md`), adaptado a Mi Semago. **Solo lo ve el creador del sistema** (`perfiles.dueno`): ni Senen ni los administradores. El candado está en tres lugares: la pestaña (`veoAnuncios()` en `app.js`), la función `anuncios` (403 si no es el dueño) y las tablas (política `es_dueno()`).
+
+| Pieza | Archivo |
+|---|---|
+| Cómo se reconoce cada anuncio (ronda + mercado + letra) y el embudo (`pasoDe`) | `crm/public/anuncios-claves.js` |
+| El panel: Activos / Historial por mes / Aprendizajes | `crm/public/anuncios.js` (estilos `.an-*` al final de `estilo.css`; muestra en `datos-muestra.js`) |
+| Leer Meta (solo lectura, solo campañas con "Mi Semago" en el nombre) | `crm/netlify/lib/meta.mjs`, `crm/netlify/functions/anuncios.mjs` |
+| Foto semanal (lunes 11:00 UTC) | `crm/netlify/lib/semana.mjs`, `crm/netlify/functions/anuncios-semana.mjs` |
+| Acceso del reporte de los lunes (encabezado `X-Reporte-Key`) | `crm/netlify/functions/anuncios-reporte.mjs` |
+| Tablas `anuncios_semanas` y `anuncios_aprendizajes` | `crm/supabase/esquema.sql` (último bloque) |
+| Memoria en el repo | `docs/aprendizajes-anuncios-mi-semago.md` |
+| Prompt de competencia para la extensión | `docs/ads/mi-semago-competencia/PROMPT-claude-in-chrome.md` |
+
+- Variables de Netlify que faltan (las pega Eduardo; nunca en el chat): `META_TOKEN` (ads_read), `META_AD_ACCOUNT_ID`, `REPORTE_CLAVE` (24 caracteres o más). Sin ellas el panel funciona con los leads y avisa qué falta.
+- Embudo: entró al Centro de trabajo → dio permiso de llamada → Ana Sofi habló (hay calificación o etapa hablo/meet/cerrado) → lead bueno (caliente o medio) → Meet (`meet_inicio` o etapa meet) → cliente (etapa cerrado). No hay "asistió al Meet" todavía.
+- Si cambian las etapas o columnas de `leads`, ajustar `pasoDe` en `anuncios-claves.js` (lo usan el panel y la foto semanal).
+- Ultron no lee nada de anuncios (el cliente habla con Ultron).

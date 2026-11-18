@@ -1452,3 +1452,71 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.personas() from public, anon;
 grant execute on function public.personas() to authenticated;
+
+-- ============================================================================
+-- Anuncios de Mi Semago (18 nov 2026): la foto semanal de cada anuncio y lo
+-- aprendido. Las escriben las funciones de Netlify anuncios-semana y
+-- anuncios-reporte (llave de servicio). SOLO las lee el creador del sistema
+-- (es_dueno): ni los administradores ni el cliente. Se ven en "Anuncios".
+-- Se puede correr varias veces sin romper nada.
+-- ============================================================================
+create table if not exists public.anuncios_semanas (
+  semana date not null,                -- primer día de la semana (lunes)
+  hasta date not null,
+  camp text not null check (camp ~ '^[A-Z]{2,12}$'),          -- mercado: "OESTE"
+  anuncio text not null check (char_length(anuncio) <= 20),   -- "R1-A", "R2-B"
+  nombre text not null default '' check (char_length(nombre) <= 200),
+  campana text not null default '' check (char_length(campana) <= 200),
+  estado text not null default '' check (char_length(estado) <= 40),
+  moneda text not null default 'USD' check (char_length(moneda) <= 5),
+  gasto numeric(12, 2) not null default 0,
+  impresiones int not null default 0,
+  alcance int not null default 0,
+  vistas3s int not null default 0,
+  thruplays int not null default 0,
+  clics int not null default 0,
+  conversaciones int not null default 0,
+  frecuencia numeric(8, 2) not null default 0,
+  leads int not null default 0,        -- entraron al Centro de trabajo
+  reales int not null default 0,       -- dieron permiso de llamada
+  hablo int not null default 0,        -- Ana Sofi habló con ellos
+  buenos int not null default 0,       -- calificados caliente o medio
+  agendo int not null default 0,       -- Meet agendado
+  cliente int not null default 0,      -- cerrados
+  creado timestamptz not null default now(),
+  primary key (semana, camp, anuncio)
+);
+alter table public.anuncios_semanas enable row level security;
+drop policy if exists an_sem_ver on public.anuncios_semanas;
+create policy an_sem_ver on public.anuncios_semanas for select to authenticated using (es_dueno());
+
+create table if not exists public.anuncios_aprendizajes (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null default current_date,
+  tipo text not null default 'semana' check (tipo in ('regla', 'ronda', 'semana', 'hipotesis', 'competencia')),
+  estado text not null default 'confirmado' check (estado in ('confirmado', 'pendiente', 'descartado', 'recomendacion')),
+  titulo text not null check (char_length(titulo) between 1 and 200),
+  texto text not null default '' check (char_length(texto) <= 6000),
+  fuente text not null default '' check (char_length(fuente) <= 200),
+  creado timestamptz not null default now(),
+  unique (titulo)
+);
+alter table public.anuncios_aprendizajes enable row level security;
+drop policy if exists an_apr_ver on public.anuncios_aprendizajes;
+create policy an_apr_ver on public.anuncios_aprendizajes for select to authenticated using (es_dueno());
+
+-- Lo que ya se sabe al arrancar (no se repite si ya está).
+insert into public.anuncios_aprendizajes (fecha, tipo, estado, titulo, texto, fuente) values
+  ('2026-11-06', 'regla', 'confirmado', 'Público con límites fijos, sin Advantage+',
+   'Campaña manual, presupuesto en el conjunto con tope total, edad fija (30–65) sin "Use as a suggestion", sin intereses, zonas por código postal, ubicaciones manuales (Facebook e Instagram: Feed, Stories y Reels) y todas las mejoras de Advantage+ creative apagadas. Con público abierto y mejoras prendidas llegaron solo respuestas automáticas de otros negocios.',
+   'Lección de los anuncios de NXUS (6 nov 2026): $210 USD y 0 personas reales'),
+  ('2026-11-06', 'regla', 'confirmado', 'ManyChat con frase exacta, nunca "contiene"',
+   'Cada anuncio lleva su mensaje prellenado distinto y ManyChat arranca solo con "Message is" (frase exacta, con variantes sin punto y sin acentos). Con "contains" el bot les contestaba a robots de otros negocios.',
+   'Lección de los anuncios de NXUS (6 nov 2026)'),
+  ('2026-11-09', 'regla', 'confirmado', 'Se juzga por leads buenos y Meets, no por costo por mensaje',
+   'Un anuncio se mide por cuántos leads calificó Ana Sofi como caliente o medio y cuántos agendaron Meet. 7 días sin tocar nada aunque diga "Learning limited".',
+   'docs/estado-ana-sofi.md'),
+  ('2026-11-09', 'ronda', 'pendiente', 'Ronda 1 · Distribuidores Oeste (9–16 nov 2026): faltan los números',
+   'Campaña "Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días": $25 al día, tope $175, Click-to-WhatsApp, 30–65 sin intereses, códigos postales de bodegas y mayoreo del oeste + Chicago. 4 anuncios: A Capacidad 500k lb, B Tu marca, C Logística 40°F, D Carrusel planta real. Falta escribir el cierre con los números reales de Meta y del Centro de trabajo (se hace al conectar la llave de Meta).',
+   'docs/ads/mi-semago-distribuidores-oeste/')
+on conflict (titulo) do nothing;

@@ -83,3 +83,4 @@ Eduardo hace siempre lo que se le pide (si no, lo dice). Antes de pedirle que co
 - **No se ve desde aquí:** el agente de ElevenLabs (se prueba preguntándole a Ultron algo de una herramienta nueva, p. ej. "¿cuántos confirmados hay a la fiesta?"), el Apps Script de correo (botón "Mandar todos") y el cerebro (`node scripts/cerebro.mjs estado`).
 
 - Los anuncios de Mi Semago se llevan en su propio chat; lo del CRM que les toca (el área de leads) está explicado en `docs/crm-para-ads-mi-semago.md`.
+- **Anuncios** (18 nov 2026): pestaña solo para el creador del sistema, con Meta en solo lectura, foto semanal y aprendizajes de los anuncios de Mi Semago. Ver `docs/crm-para-ads-mi-semago.md`, sección 10.
