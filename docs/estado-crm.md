@@ -82,4 +82,4 @@ Eduardo hace siempre lo que se le pide (si no, lo dice). Antes de pedirle que co
 - **Funciones de Netlify:** un POST sin sesión debe contestar "Tu sesión se cerró" (existe).
 - **No se ve desde aquí:** el agente de ElevenLabs (se prueba preguntándole a Ultron algo de una herramienta nueva, p. ej. "¿cuántos confirmados hay a la fiesta?"), el Apps Script de correo (botón "Mandar todos") y el cerebro (`node scripts/cerebro.mjs estado`).
 
-- Los anuncios de Mi Semago se llevan en su propio chat; lo del CRM que les toca está en `docs/crm-para-ads-mi-semago.md` (ese chat solo cambia Leads, Website leads, las puertas `manychat.mjs`/`leads.mjs` y la línea de ventas; lo demás del CRM se hace en el chat del CRM).
+- Los anuncios de Mi Semago se llevan en su propio chat; lo del CRM que les toca (el área de leads) está explicado en `docs/crm-para-ads-mi-semago.md`.

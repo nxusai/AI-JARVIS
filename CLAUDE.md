@@ -46,7 +46,7 @@ Para revisar el cerebro: `cd ~/Desktop/nexy && node scripts/cerebro.mjs estado` 
 ## Otros documentos útiles
 - `docs/estado-nxus.md`: estado general de NXUS.
 - `docs/estado-crm.md`: el CRM / Centro de trabajo.
-- `docs/crm-para-ads-mi-semago.md`: todo lo del CRM que toca los anuncios de Mi Semago (lead → ManyChat → CRM → Ana Sofi, "De qué anuncio", qué puede cambiar el chat de anuncios y qué no).
+- `docs/crm-para-ads-mi-semago.md`: todo lo del CRM que toca los anuncios de Mi Semago (lead → ManyChat → CRM → Ana Sofi, "De qué anuncio", dónde está cada pieza del área de leads).
 - `docs/estado-ads-nxus.md`: anuncios de NXUS. Antes de proponer anuncios leer también `docs/aprendizajes-anuncios.md`, `docs/estrategia-ads-nxus-v3.md` y `docs/lecciones-anuncios-mensajes.md`, e investigar si Meta cambió reglas o algoritmo.
 - `docs/estado-contenido-nxus.md`: contenido orgánico de NXUS (videos, imágenes, mandarlos por Telegram).
 - `docs/receta-edicion.md` y `docs/habilidad-editor-video.md`: edición de video.

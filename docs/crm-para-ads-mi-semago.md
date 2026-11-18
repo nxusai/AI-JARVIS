@@ -1,12 +1,9 @@
 # El CRM para el chat de anuncios de Mi Semago
 
-Para el chat que lleva **solo los anuncios de Mi Semago**. Aquí está todo lo del
-Centro de trabajo (el CRM) que tiene que ver con los anuncios: por dónde entra
-un lead, dónde cae, cómo se sabe de qué anuncio vino, quién le llama y cómo se mide.
-**Ese chat solo cambia del CRM lo que sirve a los anuncios** (lo de esta guía). Lo
-demás del CRM (tareas, parrilla, biblioteca, fiesta, usuarios, Ultron, diseño) se
-hace en el chat del CRM. Si un cambio de anuncios necesita tocar algo de eso, se
-anota y se le pide a Eduardo que lo lleve al chat del CRM.
+Todo lo del Centro de trabajo (el CRM) que tiene que ver con los anuncios de Mi
+Semago, para tenerlo presente cuando haya que modificar algo del área de leads:
+por dónde entra un lead, dónde cae, cómo se sabe de qué anuncio vino, quién le
+llama, cómo se mide y dónde está cada pieza en el código.
 
 Leer también, en este orden: `CLAUDE.md` (reglas y qué hacer después de cada
 cambio), `docs/lecciones-anuncios-mensajes.md`, `docs/estado-ana-sofi.md` (sección
@@ -95,15 +92,15 @@ Permisos (RLS): ven Leads el admin y quien tenga **"Ve Leads"** en Usuarios (Sen
 - Desde el chat se puede leer sin pedir nada a Eduardo: la página publicada (`curl` a `https://centro-misemago-abuelito.netlify.app/app.js`) y si una columna o función existe en Supabase (ver "Antes de pedirle algo a Eduardo" en `docs/estado-crm.md`). Los datos de los leads **no** se leen desde aquí (RLS): se le piden a Eduardo (captura de Leads) o los cuenta Ultron en el Centro de trabajo ("Ultron, ¿cuántos leads llegaron del anuncio Tu marca?" usa su herramienta `leads`).
 - Fase 2 pendiente: mandar a Meta la señal de "lead bueno" cuando la persona terminó el filtro (ManyChat → Ads Optimization / Conversions API). Si se hace desde el CRM, sería una función nueva en `crm/netlify/functions/` disparada al pasar a `hablo`/`meet`.
 
-## 7. Qué puede cambiar el chat de anuncios en el CRM, y qué no
+## 7. Al modificar el área de leads: dónde está cada cosa y qué cuidar
 
-**Sí (solo si sirve a los anuncios):** `manychat.mjs`, `leads.mjs`, columnas nuevas de `leads`/`website_leads` (por ejemplo campos de UTM o de campaña), la vista Leads y Website leads (`vistaLeads`, `vistaLeadsMovil`, `abrirLead`, `tarjetaLead`, `vistaWeb`, sus estilos y su muestra en `datos-muestra.js`), y la línea de ventas del cerebro (`bridge/nucleo/ventas.mjs`) si el cambio es por los anuncios.
+**Dónde se toca:** `crm/netlify/functions/manychat.mjs` y `leads.mjs` (las puertas), las tablas `leads`, `leads_notas` y `website_leads` en `crm/supabase/esquema.sql` (por ejemplo, columnas nuevas de UTM o de campaña), la vista Leads y Website leads en `crm/public/app.js` (`vistaLeads`, `vistaLeadsMovil`, `abrirLead`, `tarjetaLead`, `vistaWeb`), sus estilos en `crm/public/estilo.css` y su muestra en `crm/public/datos-muestra.js`, y la línea de ventas del cerebro en `bridge/nucleo/ventas.mjs`. Ultron también lee los leads: su herramienta `leads` está en `herramientasUltron()` de `app.js`; si cambian columnas o etapas, conviene ajustarla.
 
-**No (eso es del chat del CRM):** tareas y hojas, parrilla, biblioteca, catálogos, fiesta, usuarios y accesos, correos (`correo.mjs`, `accesos.gs`), Ultron (`ultron.js`, `ultron-vivo.mjs`, `scripts/ultron-voz.mjs`, sus herramientas en `app.js`), el diseño general (fondo, vidrio, iPhone: barra de abajo, menú) y `acceso.js` (nunca cambiarlo: rompe las contraseñas).
-
-**Cuidado al tocar `app.js` y `estilo.css`:** los comparten los dos chats. Cambios chicos y en las funciones de Leads/Website leads; no reacomodar lo demás. En celular la página es otra experiencia (barra de abajo, `esMovil()`, `vistaLeadsMovil`); cualquier cambio a Leads debe verse bien en los dos (probar con la muestra: `node scripts/crm-muestra.mjs <salida.html>` y Playwright con `devices['iPhone 15 Pro']`).
-
-**Esquema:** cambios con `add column if not exists` / `create or replace`, que se puedan correr de nuevo sin romper nada; a Eduardo se le da **solo el bloque SQL nuevo** para Supabase → SQL Editor → New query → Run (https://supabase.com/dashboard/project/viqvpjhjerihnqzjjppb/sql/new), y además se deja en `crm/supabase/esquema.sql`.
+**Qué cuidar:**
+- `app.js` y `estilo.css` tienen todo el Centro de trabajo (tareas, parrilla, fiesta, Ultron, diseño); otros chats también los cambian, así que hay que traer lo último de la rama antes de editar y no reacomodar lo que no es de leads.
+- En celular la página es otra experiencia (barra de abajo, `esMovil()`, `vistaLeadsMovil`): un cambio a Leads debe verse bien en computadora y en iPhone. Se prueba con la muestra (`node scripts/crm-muestra.mjs <salida.html>`) y Playwright con `devices['iPhone 15 Pro']`.
+- Nunca cambiar `crm/public/acceso.js` (rompe las contraseñas).
+- Esquema: cambios con `add column if not exists` / `create or replace`, que se puedan correr otra vez sin romper nada; a Eduardo se le da el bloque SQL nuevo para Supabase → SQL Editor → New query → Run (https://supabase.com/dashboard/project/viqvpjhjerihnqzjjppb/sql/new), y también se deja en `crm/supabase/esquema.sql`.
 
 ## 8. Después de cada cambio, qué le toca a Eduardo
 
