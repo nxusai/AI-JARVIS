@@ -14,7 +14,36 @@ Este archivo es la memoria de lo que funciona y lo que no en los anuncios de NXU
 - ¿NY (zonas hispanas, idioma español) cuesta más por cita que MX? Comparar en el panel con el filtro de campaña.
 - ¿Un video de Eduardo a cámara baja el costo por cita frente a los videos con voz de IA?
 
+## Ronda 2 · corte del 17 nov 2026 (campañas v2 desde el 8 nov, datos de HQ + Meta)
+Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la semana 9–15 nov guardada en `anuncios_semanas`.
+
+| Anuncio | Gastado | Impresiones | CPM aprox. | Gancho 3 s | Lo terminan* | Chats | Leads HQ | Reales | Citas | Meet |
+|---|---|---|---|---|---|---|---|---|---|---|
+| MX A · 11:48 | $65.11 | 7,957 | $8 | 15.2% | 14.4% | 4 | 0 | 0 | 0 | 0 |
+| MX B · Empleado | $82.56 | 6,592 | $13 | 17.9% | 19.8% | 1 | 0 | 0 | 0 | 0 |
+| MX C · Sucursales | $51.75 | 4,097 | $13 | 14.3% | 15.1% | 2 | 1 | 1 | 1 | 1 |
+| NY A · 11:48 | $60.74 | 766 | $79 | 23.0% | 33.0% | 2 | 1 | 0 | 0 | 0 |
+| NY B · Empleado | $87.02 | 978 | $89 | 26.9% | 27.8% | 3 | 0 | 0 | 0 | 0 |
+| NY C · Sucursales | $68.96 | 1,081 | $64 | 17.8% | 25.5% | 1 | 0 | 0 | 0 | 0 |
+*Lo terminan = thruplays / vistas de 3 s.
+
+- **MX: $199.42 → 1 cita que llegó al Meet (propuesta enviada).** Única cita de la ronda; vino de MX C (Sucursales) con el menor gasto de MX. MX B gastó más ($82.56) con 1 chat: el peor.
+- **NY: $216.72 → 0 personas reales.** El gancho de NY es el mejor (23–27 %) pero cada mil impresiones cuesta $64–89 (MX: $8–13). El público de NY (códigos postales + idioma español) es tan chico que Meta casi no encuentra a quién mostrarlo. **Lección: en NY el problema es el público, no el video.**
+- **De chat a HQ se pierde casi todo:** 13 chats en Meta → 2 leads en HQ. 11 conversaciones no tocaron el primer botón (robots o personas que no siguen). Revisar en ManyChat cuántos tienen la etiqueta robot-autorespuesta antes de cambiar el saludo.
+- Hipótesis "Video A tiene mejor gancho": ❌ en MX fue el más bajo (15.2 %); en NY fue el 2.º.
+- Tope de $300 por campaña: MX va en ~$199 y NY en ~$217 → se detienen solas alrededor del 21–23 nov.
+- RECOMENDACIÓN para la ronda 3: (1) concentrar el dinero en MX; (2) NY no repetir igual: público más amplio (área metro NY/NJ completa, sin códigos postales sueltos) o pausar NY hasta tener ganador en MX; (3) mantener la idea "Sucursales" y probar "Pruébelo en vivo" y "Todo en uno"; (4) revisar el primer mensaje de ManyChat (11 de 13 chats no avanzaron).
+
+## Anuncio de octubre que trajo al primer cliente de México (analizado el 17 nov 2026)
+"¿Sabes dónde está tu repartidor AHORA?" · cuenta Eduardo's · campaña "[12/10/2026] Promoción de…" · 12–16 oct · lo hizo una socia de NXUS México.
+- Video vertical de 10 s, animación collage (morado/azul, sin personas), pregunta grande en pantalla desde el segundo 0; texto sobre rastrear repartidores y entregas; botón Send message a Messenger.
+- $120.55 · 67,997 impresiones · CPM $1.77 · 27 conversaciones a $4.46 · gancho 34 % · 16 % lo ve completo · 78 % hombres (35–44 el grupo mayor).
+- Resultado: 2–3 personas reales y 1 cliente: Nexus Capital MX (financiera con asesores de ruta). Contexto del cliente: `docs/cliente-nexus-capital-ads.md`.
+- Lecciones: (1) los clientes grandes llegan por problemas de OPERACIÓN (equipo en la calle, rutas, sucursales, control), no por "chatbot"; (2) video corto con la pregunta grande desde el segundo 0 (34 % de gancho vs 14–27 % en la ronda 1); (3) FB Reels el más barato ($1.45 por conversación), reel in-stream el más caro ($9.16, 38 % del gasto) → ubicaciones manuales sin in-stream; (4) hipótesis: con el filtro de botones se puede abrir el público a CDMX + Edomex completos para bajar el costo.
+- Ojo: ese anuncio tiene "Unpublished edits" (un borrador ligado al flujo "Anuncio NY · Video C · FB"). No publicarlo.
+
 ## Cómo se actualiza
+0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
 2. El asesor compara contra este archivo, decide (apagar, subir presupuesto, cambiar gancho) y anota aquí el resultado con fecha.
 3. Cuando un video se apaga, queda en "Historial" del panel con sus números; aquí se anota por qué se apagó y qué se aprendió.

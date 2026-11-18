@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { readAnaSofi, writeAnaSofi } from '../nucleo/anasofi.mjs'
 import { DATA } from '../nucleo/lugar.mjs'
@@ -148,6 +148,37 @@ function handOver() {
   }
 }
 
+/**
+ * An earlier llaves.mjs, run with sudo, kept the keys in root's own home
+ * (/var/root, or with macOS sudo the administrator's own Library) where the brain never
+ * looks. Bring them to the brain's folder (what is already there wins) and
+ * delete that copy.
+ */
+function rescueStray() {
+  if (typeof process.getuid !== 'function' || process.getuid() !== 0) return
+  // macOS sudo keeps the administrator's HOME, so the copy may be in his folder.
+  const homes = ['/var/root', process.env.HOME, process.env.SUDO_USER ? `/Users/${process.env.SUDO_USER}` : null]
+  let moved = 0
+  for (const home of [...new Set(homes.filter(Boolean))]) {
+    const base = join(home, 'Library', 'Application Support', 'Cerebro')
+    const stray = join(base, 'datos')
+    if (stray === DATA || !existsSync(stray)) continue
+    for (const name of ['llaves.json', 'cerebro.json', 'anasofi.json', 'ultron.json']) {
+      const old = readJson(join(stray, name))
+      if (!Object.keys(old).length) continue
+      const now = readJson(join(DATA, name))
+      writePrivate(join(DATA, name), { ...old, ...now })
+      moved++
+    }
+    rmSync(base, { recursive: true, force: true })
+  }
+  if (moved) {
+    console.log(' 🔧 Pasé las llaves que habían quedado en otra carpeta a la del cerebro.')
+    handOver()
+  }
+}
+
+rescueStray()
 const cmd = process.argv[2]
 const keys = readJson(KEYS_FILE)
 const config = readJson(CONFIG_FILE)

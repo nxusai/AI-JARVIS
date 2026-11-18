@@ -1,0 +1,46 @@
+Eres mi asistente de ManyChat. Soy Eduardo (NXUS AI). Trabaja en mi Chrome con mi sesión de ManyChat abierta
+(https://app.manychat.com). Yo te estoy viendo.
+Objetivo: preparar la entrada de los 6 anuncios nuevos de la "ronda 2" de México, para que cada lead quede marcado
+con el anuncio que lo trajo. NO se cambia el flujo principal: solo se COPIAN automatizaciones de entrada que ya
+existen y se cambia la fuente.
+
+REGLAS (obligatorias)
+- NO toques "Filtro NXUS", "Filtro NXUS · Facebook", las preguntas, la lada, el permiso de llamada, las acciones
+  que mandan a HQ ni ninguna otra automatización. Solo copias nuevas.
+- NO borres ni edites las automatizaciones "Anuncio MX · Video A/B/C · FB" ni "Anuncio NY · …" que ya existen:
+  siguen ligadas a los anuncios que están corriendo.
+- NO publiques nada ("Set Live", "Publish", "Update") sin pedirme permiso aquí y esperar mi "sí".
+- Si algo pide contraseña, código o confirmación de seguridad, detente: lo hago yo.
+- Copia los textos exactamente, con acentos y emojis. Si algo no coincide con lo que digo, DETENTE y pregúntame.
+
+PASO 1. Revisa (solo mirar) la automatización "Anuncio MX · Video C · FB" y dime cómo está: disparador, texto del
+primer mensaje, botones, y qué hace cada botón (campos, etiqueta y a qué automatización manda).
+
+PASO 2. Haz 6 copias de "Anuncio MX · Video C · FB" (menú ⋯ → Duplicate / Clone). Nombres:
+  1) Anuncio MX R2 · Video A · FB   → fuente: Anuncio MX R2 · Video A
+  2) Anuncio MX R2 · Video B · FB   → fuente: Anuncio MX R2 · Video B
+  3) Anuncio MX R2 · Video C · FB   → fuente: Anuncio MX R2 · Video C
+  4) Anuncio MX R2 · Video D · FB   → fuente: Anuncio MX R2 · Video D
+  5) Anuncio MX R2 · Video E · FB   → fuente: Anuncio MX R2 · Video E
+  6) Anuncio MX R2 · Video F · FB   → fuente: Anuncio MX R2 · Video F
+
+En CADA copia:
+  a) Disparador: "Facebook Ads – User clicks a Facebook Ad" (Messenger), igual que el original. Si la copia lo
+     pierde, vuelve a ponerlo.
+  b) En los 3 botones (1 · 2 a 5 · 6 o más), cambia SOLO el valor de "Set User Field fuente" al de esa copia
+     (por ejemplo "Anuncio MX R2 · Video A"). Todo lo demás igual: sucursales = texto del botón, canal = facebook,
+     etiqueta anuncio-mx y Start Automation → "Filtro NXUS · Facebook".
+  c) Cambia el texto del primer mensaje a esta versión de "usted" (mismos 3 botones):
+
+¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar su diagnóstico gratis, ¿cuántas sucursales o ubicaciones tiene su negocio?
+
+  d) No agregues nada más.
+
+PASO 3. Para que Ads Manager las encuentre, las 6 copias deben estar publicadas. Solo tienen disparador de
+anuncio, así que no le contestan a nadie más. PÍDEME PERMISO antes de publicarlas y espera mi "sí".
+
+PASO 4. Informe con ✅ / ⚠️ / ❌:
+1. Cómo estaba "Anuncio MX · Video C · FB" (paso 1).
+2. Las 6 copias: nombre, disparador, texto del primer mensaje, fuente de cada botón, etiqueta, Start Automation.
+3. Cuáles quedaron publicadas con mi permiso.
+4. Confirmación de que no tocaste los Filtros ni las automatizaciones que ya existían.

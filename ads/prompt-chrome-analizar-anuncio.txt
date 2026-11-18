@@ -1,0 +1,63 @@
+Eres mi analista de anuncios. Soy Eduardo (NXUS AI: le dejamos funcionando a negocios agentes de IA que contestan
+mensajes, llaman y agendan citas). Trabaja en mi Chrome; yo te veo.
+Objetivo: analizar A FONDO el anuncio que está en la pestaña que tengo abierta AHORA. Ese anuncio (lo hizo una socia
+de NXUS México) nos trajo nuestro primer cliente de México, una institución financiera. Quiero saber exactamente
+qué tenía para repetir lo que funcionó. SOLO MIRAR Y ANOTAR.
+
+REGLAS (obligatorias)
+- Solo lectura. No edites, no pauses, no dupliques, no publiques nada. No cambies presupuestos, públicos ni pagos.
+- No des clic en "Send message", "Enviar mensaje", "Learn more", "Sign up" ni envíes formularios. Si el anuncio
+  lleva a un formulario o a un chat, describe solo lo que se ve sin enviarlo.
+- No copies nombres, teléfonos, correos ni fotos de personas que comentaron o de leads. Solo los temas.
+- Si algo pide contraseña, código o confirmación de seguridad, detente y avísame.
+- No cierres la pestaña. Si necesitas abrir algo más (detalles, desgloses), hazlo en la misma cuenta y regresa.
+- No inventes: si un dato no se ve, escribe "no se ve".
+
+PASO 1. Identifica qué es la pestaña: Ads Manager, Biblioteca de Anuncios, una publicación de Facebook/Instagram u otra.
+Dime en qué cuenta de anuncios o página está (nombre de la página / cuenta, no datos personales).
+
+PASO 2. Identificación del anuncio
+- Nombre de la campaña, del conjunto y del anuncio (y sus IDs si se ven).
+- Estado (activo, pausado, terminado), fecha de inicio y de fin.
+- Objetivo de la campaña (Leads, Engagement/Mensajes, Traffic, Awareness…) y meta de rendimiento
+  (Maximize conversations, leads, clicks…).
+
+PASO 3. El creativo (lo más importante)
+- Formato: video, imagen, carrusel; medidas (vertical 9:16, cuadrado, 4:5); duración si es video.
+- Si es video, reprodúcelo completo y describe segundo a segundo, sobre todo los primeros 3 segundos:
+  qué se ve, quién sale (persona a cámara, animación, pantalla, voz de IA o persona real), qué dice exactamente
+  (transcribe todo lo que se escucha), qué texto aparece en pantalla, música, ritmo, y cómo cierra (llamado a la acción).
+- Si es imagen o carrusel: describe cada imagen y copia todo el texto que tenga.
+- Colores, logo, si se ve "hecho en casa" o muy producido.
+
+PASO 4. El texto
+- Copia EXACTO: texto principal (completo, con "See more"), título, descripción y el botón (CTA).
+- ¿A quién le habla? (giro, tamaño de negocio, trato de "tú" o "usted"), ¿qué problema nombra?, ¿qué promete?,
+  ¿hay precio, oferta, garantía o plazo?
+
+PASO 5. A dónde lleva
+- Destino: Messenger, WhatsApp, Instagram Direct, formulario de Meta, página web o llamada.
+- Si hay formulario: copia las preguntas (sin llenarlo). Si hay saludo de chat o preguntas frecuentes: cópialos.
+
+PASO 6. Público y presupuesto (si es Ads Manager y se puede ver; abre el conjunto en modo vista, sin editar)
+- Ubicación (países, ciudades, radios), edad, sexo, idiomas, intereses o públicos, Advantage+ prendido o no.
+- Ubicaciones (Feed, Stories, Reels, Audience Network…), automáticas o manuales.
+- Presupuesto diario o total, y si hubo tope de gasto.
+
+PASO 7. Resultados (todo el tiempo que corrió)
+- Gastado, alcance, impresiones, frecuencia, resultados y costo por resultado, clics, CTR, CPM.
+- Si es video: reproducciones de 3 s, ThruPlays, % que lo vio completo.
+- Si se puede: desglose por edad, sexo, ubicación (Feed/Reels/Stories) y región. ¿Dónde salió más barato?
+
+PASO 8. Comentarios y reacciones
+- Cuántos comentarios, compartidos y reacciones. Temas de los comentarios (preguntas, dudas, quejas), sin nombres.
+
+PASO 9. Informe final (con ✅ / ⚠️ / ❌ donde aplique):
+A) Ficha: cuenta/página, campaña, conjunto, anuncio, fechas, objetivo.
+B) Creativo: descripción y transcripción completa; los primeros 3 segundos por separado.
+C) Texto exacto y botón.
+D) Destino y lo que pasa después del clic.
+E) Público, ubicaciones y presupuesto.
+F) Resultados con números.
+G) Lo que más llama la atención de este anuncio frente a un anuncio típico (solo observaciones, sin estrategia).
+H) Datos que no se pudieron ver.

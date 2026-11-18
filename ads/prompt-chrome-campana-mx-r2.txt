@@ -1,0 +1,131 @@
+Eres mi experto en Meta Ads. Soy Eduardo, dueño de NXUS AI. Vas a armar la campaña "ronda 2" de México en mi
+Chrome, en Ads Manager (https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563). Yo te veo.
+Si la interfaz está en inglés o en español, adáptate.
+
+CONTEXTO (lo aprendido; no repetirlo)
+- Mis anuncios viejos (público abierto, saludo de Meta sin botones, mejoras automáticas) trajeron casi puros robots.
+- La ronda 1 (pines de 1 milla) funcionó sin robots, pero cada mil impresiones costó $8–13. Con el filtro de botones
+  de ManyChat los robots ya no pasan, así que esta vez el público es CDMX + Estado de México completos, 30+.
+- El anuncio de octubre que trajo a mi primer cliente mostró que "reel in-stream" se come el dinero: fuera.
+- Cada anuncio va ligado a SU automatización de ManyChat ("Anuncio MX R2 · Video X · FB") para saber qué anuncio
+  trae cada cita. Destino solo Messenger (el anuncio igual se ve en Instagram).
+
+REGLAS (obligatorias)
+- NO publiques: deja todo listo y DETENTE antes de "Publish/Publicar". Yo reviso y publico.
+- La cuenta es compartida. NO toques, pauses, edites ni borres ninguna campaña existente (tampoco las de la ronda 1
+  ni el anuncio viejo de octubre que tiene un borrador sin publicar). Solo crea la nueva.
+- NO cambies métodos de pago, límites de la cuenta, usuarios ni datos de la empresa.
+- NO subas archivos tú: cuando toque, dime cuál archivo subir y espera a que yo lo suba.
+- Presupuesto: exactamente el de aquí.
+- Si Meta pide algo que no está aquí o algo no coincide, DETENTE y pregúntame. No adivines.
+- Copia los textos exactamente, con acentos y emojis.
+- Si algo pide contraseña, código o confirmación de seguridad, detente: lo hago yo.
+
+PASO 1. Campaña
+  - + Create → objetivo: Engagement / Interacción. Configuración manual (no "Advantage+ campaign" ni "recomendada").
+  - Nombre: NXUS | MX | R2 | Mensajes
+  - Sin categoría especial de anuncio.
+  - Advantage campaign budget: APAGADO (el presupuesto va en el conjunto).
+  - Campaign spending limit / Límite de gasto de la campaña: 300 USD. Si no aparece, dímelo.
+
+PASO 2. Conjunto de anuncios
+  - Nombre: MX | CDMX + Edomex | 30+
+  - Conversion location: Messaging apps → SOLO Messenger (Instagram y WhatsApp desmarcados).
+  - Performance goal: Maximize number of conversations. Sin costo objetivo. Puja: Highest volume.
+  - Presupuesto: Daily budget 20 USD. Sin fecha de fin.
+  - "Share up to 20% of your budget with other ad sets": DESMARCADO.
+  - Público: "Switch to original audience options" (público original, no Advantage+ audience).
+  - Ubicación: quita "México" si viene puesto. Agrega SOLO las regiones "Mexico City" / "Ciudad de México" y
+    "State of Mexico" / "Estado de México" (como región completa, no ciudad ni radio). "People living in or recently
+    in this location". Dime el tamaño de público estimado.
+  - Edad: 30 a 65+, con "Use as a suggestion" DESMARCADO (que sea fija). Todos los géneros. Idiomas: ninguno.
+  - Intereses / Detailed targeting: NINGUNO. Sin públicos personalizados ni similares.
+  - Placements: Manual placements. Deja SOLO: Facebook Feed, Facebook Stories, Facebook Reels, Instagram Feed,
+    Instagram Profile feed, Instagram Stories, Instagram Reels. QUITA todo lo demás: Audience Network, Messenger,
+    Threads, Marketplace, Right column, Search, Facebook in-stream (reels in-stream y video in-stream), Overlay ads
+    in reels, Facebook Notifications, Explore, etc. Desmarca "Allow limited spending to excluded placements".
+  - Página: Nxus.AI. Instagram: @nxusai.
+
+PASO 3. Seis anuncios en el mismo conjunto. En CADA uno:
+  - Identidad: Página Nxus.AI e Instagram @nxusai.
+  - Formato: Single image or video.
+  - Archivo: DETENTE y dime "Sube el archivo …" con el nombre exacto de abajo; espera a que yo lo suba.
+    En los anuncios de IMAGEN (D, E, F): primero el archivo "-feed" (4:5). Luego, en la personalización por
+    ubicación ("Customize media per placement" / "Edit placements"), pídeme el archivo "-historia" (9:16) para
+    Stories y Reels. Si no se puede, dímelo.
+  - CTA: Send message / Enviar mensaje.
+  - Advantage+ creative / mejoras: APAGA TODAS una por una (Text improvements, Visual touch-ups, Enhance CTA,
+    Relevant comments, Music, Add overlays, Image animation, Video filters, Expand image, Translate, Site links,
+    etc.) y cualquier "Standard enhancements" / "Test new creative features". Apaga "Multi-advertiser ads".
+    En "Related media" o "Add more media", 0.
+  - Message template: "Partner app" / "Use a partner app" → ManyChat → la automatización de ESE anuncio
+    ("Anuncio MX R2 · Video X · FB"). Si no aparece ManyChat o no aparecen las automatizaciones R2, DETENTE y dime
+    qué ves (puede que yo tenga que publicarlas primero en ManyChat). No uses la plantilla de Meta.
+  - No pidas en el texto que escriban ninguna palabra: el chat empieza con botones.
+
+  Anuncio A
+  - Nombre: MX | A | Sucursales · video
+  - Archivo: NXUS-R2-A.mp4
+  - ManyChat: Anuncio MX R2 · Video A · FB
+  - Texto principal:
+¿Su negocio tiene varias sucursales? 📍
+Cuando cada sucursal contesta como puede, se pierden clientes entre mensajes y llamadas.
+En NXUS AI le dejamos funcionando una inteligencia artificial que contesta, da seguimiento y agenda citas en todas sus sucursales, y usted ve todo en un solo lugar. Se lo dejamos funcionando en 7 días.
+👇 Toque "Enviar mensaje": el diagnóstico es gratis.
+  - Título: Diagnóstico gratis
+  - Descripción: Funcionando en 7 días
+
+  Anuncio B
+  - Nombre: MX | B | Equipo en la calle · video
+  - Archivo: NXUS-R2-B.mp4
+  - ManyChat: Anuncio MX R2 · Video B · FB
+  - Texto principal:
+¿Su equipo trabaja en la calle? 🛵
+Repartidores, vendedores, cobradores o técnicos: si para saber cómo van tiene que llamarles, pierde tiempo y control.
+En NXUS AI le hacemos una plataforma a la medida para ver rutas, visitas y avances del día desde una sola pantalla. Se la dejamos funcionando en 7 días.
+👇 Toque "Enviar mensaje": el diagnóstico es gratis.
+  - Título: Plataforma a la medida
+  - Descripción: Diagnóstico gratis
+
+  Anuncio C
+  - Nombre: MX | C | Pruébelo en vivo · video
+  - Archivo: NXUS-R2-C.mp4
+  - ManyChat: Anuncio MX R2 · Video C · FB
+  - Texto principal:
+¿Quiere ver cómo atiende una IA a sus clientes? 📞
+Escríbanos: en menos de un minuto nuestra asistente de inteligencia artificial le llama, le hace un par de preguntas y le agenda una cita con nosotros.
+Si le convence a usted, le va a convencer a sus clientes. Se lo dejamos funcionando en 7 días.
+👇 Toque "Enviar mensaje" y pruébelo.
+  - Título: Pruébelo usted mismo
+  - Descripción: Diagnóstico gratis
+
+  Anuncio D
+  - Nombre: MX | D | Sucursales · imagen
+  - Archivos: NXUS-R2-D-feed.png (y NXUS-R2-D-historia.png para Stories/Reels)
+  - ManyChat: Anuncio MX R2 · Video D · FB
+  - Texto, título y descripción: los mismos del Anuncio A.
+
+  Anuncio E
+  - Nombre: MX | E | Equipo en la calle · imagen
+  - Archivos: NXUS-R2-E-feed.png (y NXUS-R2-E-historia.png)
+  - ManyChat: Anuncio MX R2 · Video E · FB
+  - Texto, título y descripción: los mismos del Anuncio B.
+
+  Anuncio F
+  - Nombre: MX | F | Pruébelo en vivo · imagen
+  - Archivos: NXUS-R2-F-feed.png (y NXUS-R2-F-historia.png)
+  - ManyChat: Anuncio MX R2 · Video F · FB
+  - Texto, título y descripción: los mismos del Anuncio C.
+
+PASO 4. Revisa la vista previa (Advanced preview) de cada anuncio en Instagram Reels, Instagram Feed, Facebook Feed y
+Stories: que no se corte lo importante y que no aparezca música, texto ni efectos que yo no puse.
+
+PASO 5. Informe final (NO publiques), con ✅ / ⚠️ / ❌:
+1. Campaña: nombre, objetivo, límite de gasto, presupuesto de campaña apagado.
+2. Conjunto: ubicación de la conversión (solo Messenger), meta, puja, presupuesto, "Share up to 20%" desmarcado,
+   público original, ubicaciones (CDMX y Edomex), edad fija 30–65+, idiomas, intereses, tamaño estimado,
+   placements que quedaron y "Allow limited spending" desmarcado.
+3. Anuncios A–F: nombre, archivo(s) subido(s), textos, CTA, mejoras apagadas (sí/no), Multi-advertiser apagado,
+   automatización de ManyChat ligada.
+4. Advertencias o cosas que Meta cambió solo.
+5. Lo que yo tengo que hacer para publicar.

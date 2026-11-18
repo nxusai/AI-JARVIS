@@ -1,0 +1,113 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Special+Elite&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:transparent}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Sora,sans-serif;color:#fff}
+.papel{position:absolute;left:70px;right:70px;padding:34px 40px 38px;background:#f4efe4;color:#14122b;font-family:'Special Elite',monospace;font-size:78px;line-height:1.08;text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);clip-path:polygon(0 4%,3% 0,22% 3%,41% 0,63% 2%,84% 0,100% 3%,99% 52%,100% 97%,80% 100%,58% 97%,37% 100%,15% 97%,0 100%,1% 50%)}
+.papel b{color:#6d28d9;font-family:inherit}
+.cinta{position:absolute;width:190px;height:54px;background:rgba(236,228,200,.82);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.etq{position:absolute;padding:16px 28px;background:#7c3aed;color:#fff;font-family:'Special Elite',monospace;font-size:50px;box-shadow:0 10px 30px rgba(0,0,0,.4);white-space:nowrap}
+.sub{position:absolute;left:80px;right:80px;top:1130px;text-align:center;font-family:Inter;font-weight:800;font-size:62px;line-height:1.15;color:#fff;
+  text-shadow:0 4px 0 rgba(0,0,0,.55),0 0 30px rgba(0,0,0,.6)}
+.sub span{background:rgba(10,8,30,.55);padding:6px 18px;border-radius:14px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.fin{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,#2a1a6e 0%,#120c33 55%,#07051a 100%)}
+.btn{display:inline-flex;align-items:center;gap:18px;padding:30px 56px;border-radius:999px;background:linear-gradient(100deg,#00e5ff,#0a6cff 50%,#a01cff);font-family:Sora;font-weight:800;font-size:60px;color:#fff;box-shadow:0 20px 60px rgba(120,60,255,.55)}
+.chk{display:flex;align-items:center;gap:22px;font-family:Inter;font-weight:700;font-size:54px;margin:18px 0}
+.chk i{width:58px;height:58px;border-radius:50%;background:#22c55e;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:38px}
+/* teléfono (Video C) */
+.pant{position:absolute;inset:0;background:#0d0f17;font-family:Inter;color:#fff}
+.barra{height:150px;padding:66px 40px 0;display:flex;justify-content:space-between;font-weight:600;font-size:36px}
+.cab{display:flex;align-items:center;gap:26px;padding:22px 34px;border-bottom:1px solid #23263a}
+.av{width:96px;height:96px;border-radius:50%;background:#100b2e;display:flex;align-items:center;justify-content:center;padding:16px}
+.msj{padding:30px 34px}
+.b{max-width:84%;padding:28px 34px;border-radius:38px;font-size:47px;line-height:1.28;margin:16px 0}
+.yo{background:#7c3aed;margin-left:auto;border-bottom-right-radius:10px}
+.ellos{background:#23263a;border-bottom-left-radius:10px}
+.op{display:inline-block;padding:22px 44px;margin:10px 12px 10px 0;border-radius:999px;border:3px solid #8b5cf6;color:#c4b5fd;font-weight:700;font-size:46px}
+.op.on{background:#8b5cf6;color:#fff}
+.llam{position:absolute;inset:0;background:linear-gradient(180deg,#1b1145,#0a0820 70%);display:flex;flex-direction:column;align-items:center;font-family:Inter}
+.circ{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:56px}
+</style></head>
+<body><div id="st"></div>
+<script>
+const LOGO = (id) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="url(#${id})"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const back = (k) => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const pega = (t, a, d = .28, rot = 0) => { const k = sal(t, a, d); return `opacity:${k > 0 ? 1 : 0};transform:rotate(${rot}deg) scale(${1.25 - .25 * back(k)})` }
+const CFG = window.CFG
+
+function pregunta(t) {
+  const q = CFG.pregunta; if (t > q.b) return ''
+  const k = sal(t, q.b - .25, .25)
+  return `<div class="papel" style="top:${q.top || 330}px;${pega(t, 0, .22, -1.5)};opacity:${1 - k}">${q.html}</div>
+    <div class="cinta" style="left:120px;top:${(q.top || 330) - 26}px;transform:rotate(-8deg);opacity:${1 - k}"></div>
+    <div class="cinta" style="right:120px;top:${(q.top || 330) - 22}px;transform:rotate(7deg);opacity:${1 - k}"></div>`
+}
+function etiquetas(t) {
+  return (CFG.etiquetas || []).filter((e) => t >= e.a && t < e.b).map((e) => `<div class="etq" style="left:${e.x}px;top:${e.y}px;${pega(t, e.a, .22, e.r || 0)}">${e.txt}</div>`).join('')
+}
+function subt(t) {
+  const f = (CFG.frases || []).find((f) => t >= f.a && t < f.b + .15)
+  return f && !(CFG.finA && t >= CFG.finA) ? `<div class="sub"><span>${f.txt}</span></div>` : ''
+}
+function cierre(t) {
+  const a = CFG.finA; if (a == null || t < a) return ''
+  const k = ease(sal(t, a, .35))
+  const l = (i) => `opacity:${ease(sal(t, a + .3 + i * .35, .3))};transform:translateY(${(1 - ease(sal(t, a + .3 + i * .35, .3))) * 30}px)`
+  return `<div class="fin" style="opacity:${k}">
+    <div style="position:absolute;left:390px;top:330px;width:300px;height:196px;${l(0)}">${LOGO('lg')}</div>
+    <div style="position:absolute;left:0;right:0;top:560px;text-align:center;font-family:Sora;font-weight:800;font-size:76px;letter-spacing:6px;${l(0)}">NXUS AI</div>
+    <div style="position:absolute;left:150px;top:720px;${l(1)}">${CFG.lineas.map((x) => `<div class="chk"><i>✓</i>${x}</div>`).join('')}</div>
+    <div style="position:absolute;left:0;right:0;top:${720 + CFG.lineas.length * 96 + 60}px;text-align:center;${l(2)};transform:scale(${1 + .03 * Math.sin(t * 6)})"><span class="btn">${CFG.boton} →</span></div>
+    <div style="position:absolute;left:0;right:0;top:${720 + CFG.lineas.length * 96 + 230}px;text-align:center;font-family:Inter;font-weight:600;font-size:40px;color:#c4b5fd;${l(3)}">${CFG.nota || ''}</div>
+  </div>`
+}
+// ---- Video C: pantalla del chat y llamada entrante
+function telefono(t) {
+  const P = CFG.tel; if (!P || t < P.a || t >= P.b) return ''
+  const r = t - P.a
+  const hora = '7:42'
+  const tecleo = 'Hola, quiero informes'.slice(0, Math.floor(cl((r - .1) / .9) * 21))
+  const m = []
+  if (r < 1.05) m.push(`<div class="b yo" style="opacity:${r > .1 ? 1 : 0}">${tecleo}<span style="opacity:${Math.sin(r * 18) > 0 ? 1 : 0}">|</span></div>`)
+  else m.push(`<div class="b yo">Hola, quiero informes</div>`)
+  if (r > 1.45) m.push(`<div class="b ellos" style="${pega(t, P.a + 1.45, .22)}">¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar su diagnóstico gratis, ¿cuántas sucursales o ubicaciones tiene su negocio?</div>
+    <div style="margin:6px 0 0"><span class="op">1</span><span class="op ${r > 2.6 ? 'on' : ''}">2 a 5</span><span class="op">6 o más</span></div>`)
+  if (r > 2.85) m.push(`<div class="b yo" style="${pega(t, P.a + 2.85, .2)}">2 a 5</div>`)
+  if (r > 3.25) m.push(`<div class="b ellos" style="${pega(t, P.a + 3.25, .22)}">¡Listo! 📞 Nuestra asistente de IA le llama en un minuto para su diagnóstico.</div>`)
+  const llamando = r > P.llamada
+  const toque = r > 2.45 && r < 2.8 ? `<div style="position:absolute;left:${385}px;top:${1325}px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.35)"></div>` : ''
+  const chat = `<div class="pant"><div class="barra"><span>${hora}</span><span>📶 🔋</span></div>
+    <div class="cab"><div class="av">${LOGO('la')}</div><div><div style="font-weight:700;font-size:44px">NXUS AI</div><div style="font-size:32px;color:#8b8fa8">Activo ahora</div></div></div>
+    <div class="msj">${m.join('')}</div>${toque}</div>`
+  const ll = llamando ? `<div class="llam" style="opacity:${ease(sal(r, P.llamada, .25))}">
+      <div style="margin-top:300px;font-size:40px;color:#c4b5fd">Llamada entrante…</div>
+      <div style="margin-top:60px;width:260px;height:260px;border-radius:50%;background:#100b2e;padding:52px;box-shadow:0 0 0 ${18 + 14 * Math.abs(Math.sin(r * 5))}px rgba(139,92,246,.25)">${LOGO('lc')}</div>
+      <div style="margin-top:50px;font-size:78px;font-weight:800">NXUS AI</div>
+      <div style="margin-top:14px;font-size:40px;color:#a5a8c0">Asistente de IA · usted escribió hace 48 s</div>
+      <div style="position:absolute;bottom:420px;left:0;right:0;display:flex;justify-content:space-around">
+        <div style="text-align:center"><div class="circ" style="background:#ef4444">✕</div><div style="margin-top:16px;font-size:34px">Rechazar</div></div>
+        <div style="text-align:center"><div class="circ" style="background:#22c55e;transform:scale(${1 + .08 * Math.abs(Math.sin(r * 6))})">✆</div><div style="margin-top:16px;font-size:34px">Aceptar</div></div>
+      </div></div>` : ''
+  return chat + ll
+}
+// Llamada en curso (Video C): el cronómetro corre y la onda se mueve mientras habla NEX
+function encurso(t) {
+  const P = CFG.encurso; if (!P || t < P.a || t >= P.b) return ''
+  const s = Math.floor(t - P.desde), seg = `0:${String(s).padStart(2, '0')}`
+  const ondas = [...Array(23)].map((_, i) => `<i style="display:inline-block;width:14px;margin:0 5px;border-radius:7px;background:#a78bfa;height:${30 + 90 * Math.abs(Math.sin(t * 7 + i * .7) * Math.sin(t * 3.1 + i))}px"></i>`).join('')
+  return `<div class="llam" style="opacity:${ease(sal(t, P.a, .2))}">
+    <div style="margin-top:300px;width:220px;height:220px;border-radius:50%;background:#100b2e;padding:44px">${LOGO('le')}</div>
+    <div style="margin-top:40px;font-size:72px;font-weight:800">NXUS AI</div>
+    <div style="margin-top:10px;font-size:44px;color:#22c55e;font-weight:700">● ${seg}</div>
+    <div style="margin-top:60px;height:130px;display:flex;align-items:center">${ondas}</div></div>`
+}
+window.render = (t) => {
+  document.getElementById('st').innerHTML = telefono(t) + encurso(t) + etiquetas(t) + pregunta(t) + subt(t) + cierre(t)
+}
+</script></body></html>

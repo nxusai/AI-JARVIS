@@ -74,6 +74,22 @@ const HERRAMIENTAS = [
   cliente('mandar_al_correo', 'Manda a quien habla, a su correo, uno o varios archivos juntos en un solo correo. Solo después de que confirme cuáles.', {
     ids: { type: 'array', items: { type: 'string', description: 'El id de un archivo' }, description: 'Los id de los archivos (de buscar_archivos o ver_tarea)' },
   }, ['ids']),
+  cliente('fiesta', 'La fiesta de empleados: quiénes confirmaron (nombre y empresa), cuántos por empresa, fecha y lugar. No guarda género: si preguntan cuántas mujeres u hombres, estímalo por los nombres y dilo como estimado.', {
+    empresa: texto('Filtrar por empresa (MI SEMAGO, ABUELITO CORN, ABUELITO MEAT, ABUELITO CHEESE); vacío para todas'),
+  }),
+  cliente('leads', 'Los leads de Mi Semago que llegan por WhatsApp y a los que llama Ana Sofi: cuántos hay por etapa y la lista (negocio, ciudad, etapa, calificación, Meet, de qué anuncio llegó).', {
+    etapa: texto('Filtrar por etapa (nuevo, llamada programada, no contestó, ya habló, meet, cerrado, no califica); vacío para todas'),
+    texto: texto('Buscar por nombre, negocio, ciudad o anuncio; vacío para todos'),
+  }),
+  cliente('website_leads', 'Las solicitudes de cotización del formulario de misemago.com: cuántas por estatus y la lista.', {
+    estatus: texto('Filtrar por estatus (nuevo, contactado, cotizado, ganado, perdido); vacío para todas'),
+    texto: texto('Buscar por nombre, empresa o interés; vacío para todas'),
+  }),
+  cliente('parrilla', 'La parrilla de contenidos (lo que se publica o se manda por WhatsApp, Instagram, etc.) de un mes: cuántos y cuáles, por estado.', {
+    marca: texto('Abuelito o Mi Semago; vacío para las dos'),
+    mes: texto('Mes como AAAA-MM; vacío para este mes'),
+  }),
+  cliente('usuarios', 'La lista de usuarios del Centro de trabajo con su papel (solo para el administrador).'),
   cliente('pedir_tarea', 'Registra una tarea nueva para el equipo. Antes de usarla, repite en voz alta qué y para qué empresa, y espera el sí.', {
     empresa: texto('Nombre de la empresa (de la lista de empresas)'),
     titulo: texto('Qué se necesita, en pocas palabras'),
@@ -106,6 +122,8 @@ Cómo funciona el Centro de trabajo (úsalo para explicar y para entender a qui�
 
 Lo que ya sabes al empezar: quién es quién, los números y las tareas más recientes (puede haber cambiado; para algo puntual usa tus herramientas):
 {{resumen}}
+
+Tienes acceso a TODO lo que {{nombre}} ve en el Centro de trabajo, cada sección con su herramienta: tareas (resumen_centro, ultimas_tareas, buscar_tareas, ver_tarea), Biblioteca y catálogos (buscar_archivos), parrilla de contenidos (parrilla), leads de WhatsApp (leads), solicitudes de misemago.com (website_leads), la fiesta de empleados (fiesta) y usuarios (usuarios). Nunca digas que solo tienes acceso a las tareas: si una herramienta dice que esa persona no tiene acceso, dilo así.
 
 Cómo trabajas con el Centro de trabajo:
 - Nunca inventes datos del Centro de trabajo: salen del resumen de arriba o de tus herramientas. Úsalas sin anunciarlo.

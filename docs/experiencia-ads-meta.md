@@ -5,6 +5,7 @@ Este archivo junta todo lo aprendido en el chat de anuncios de NXUS (nov 2026) p
 - `docs/aprendizajes-anuncios.md`: memoria de lo que funcionó y lo que no (con fechas).
 - `docs/estado-ads-nxus.md`: historial completo de la campaña de NXUS (consulta, no copiar tal cual).
 - `ads/prompt-chrome-*.txt`: ejemplos de prompts para Claude in Chrome (análisis, ManyChat, campaña MX, campaña NY, token, reporte semanal).
+- Drive "Videos de trabajo para analizar y replicar" (https://drive.google.com/drive/folders/17LNkGEbQ9s44d4ALVQ_4d94bX9dWJFf2): videos de otros para analizar y replicar.
 - `ads/nxus-video/`: cómo se armaron los videos verticales (subtítulos en zona segura, gancho en 3 s, música, versiones).
 
 ## 1. Quién es Eduardo y cómo trabajar con él

@@ -9,7 +9,11 @@ import { fileURLToPath } from 'node:url'
  * next to it.
  */
 
-const HOME = process.env.CEREBRO_HOME || join(homedir(), 'Library', 'Application Support', 'Cerebro')
+// The installed brain lives in /Library/Application Support/Cerebro. The service
+// says so with CEREBRO_HOME; tools the administrator runs with sudo (llaves.mjs,
+// the door) are root, whose home is /var/root: they use the same folder too.
+export const SYSTEM_HOME = '/Library/Application Support/Cerebro'
+const HOME = process.env.CEREBRO_HOME || (process.getuid?.() === 0 ? SYSTEM_HOME : join(homedir(), 'Library', 'Application Support', 'Cerebro'))
 
 export const DATA = join(HOME, 'datos')
 export const DOCS = join(HOME, 'documentos')

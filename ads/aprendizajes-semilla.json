@@ -1,0 +1,149 @@
+{
+  "registros": [
+    {
+      "semana": "2026-10-01",
+      "hasta": "2026-11-08",
+      "camp": "MX",
+      "anuncio": "REST",
+      "nombre": "Video Rest MX 1 + Video Rest 2 MX (anuncios viejos)",
+      "campana": "Advantage+ leads campaign · destino DM de Instagram",
+      "gasto": 210.35,
+      "conversaciones": 25,
+      "leads": 0,
+      "reales": 0
+    },
+    {
+      "semana": "2026-10-01",
+      "hasta": "2026-10-31",
+      "camp": "MX",
+      "anuncio": "PROMO-OCT",
+      "nombre": "Promoción de octubre (mensajes)",
+      "campana": "Mensajes / conversaciones",
+      "gasto": 120.55,
+      "conversaciones": 27,
+      "reales": 2
+    }
+  ],
+  "aprendizajes": [
+    {
+      "fecha": "2026-11-06",
+      "tipo": "ronda",
+      "estado": "confirmado",
+      "fuente": "Diagnóstico del 6 nov (extensión)",
+      "titulo": "Anuncios viejos de octubre: $330.90 y casi puros robots",
+      "texto": "Video Rest MX 1 y Video Rest 2 MX: objetivo Leads con Advantage+ leads campaign, destino DM de Instagram, ~$25/día cada uno. $210.35 gastados, 0 leads, 0 personas reales; ~25 conversaciones que eran respuestas automáticas de otros negocios (estéticas, veterinarias, dentistas, florerías).\nPromoción de octubre (mensajes): $120.55, 27 conversaciones a $4.46, solo 2 o 3 personas reales.\nCausas: público Advantage+ abierto desde 18 años (16–19 millones), radios de 10 millas (casi todo el Valle de México), saludo de Meta en inglés sin botones, ManyChat con \"contiene INFO\" (bot contra bot), mejoras automáticas prendidas, video de 59 s. Pausados por Eduardo el 8 nov."
+    },
+    {
+      "fecha": "2026-11-06",
+      "tipo": "regla",
+      "estado": "confirmado",
+      "fuente": "Anuncios viejos de octubre",
+      "titulo": "Contra los robots: público con límites y saludo con botones",
+      "texto": "Campaña manual (sin Advantage+ campaign), público original con edad mínima real (30+) y \"Use as a suggestion\" desmarcado, zonas chicas (pines de 1 milla o códigos postales), sin intereses, placements manuales (Feed, Stories y Reels de FB e IG), todas las mejoras automáticas apagadas, destino solo Messenger, saludo de ManyChat con botones (un robot no los toca). Detalle: docs/lecciones-anuncios-mensajes.md."
+    },
+    {
+      "fecha": "2026-11-06",
+      "tipo": "regla",
+      "estado": "confirmado",
+      "fuente": "ManyChat",
+      "titulo": "ManyChat: palabra exacta, nunca \"contiene\"",
+      "texto": "La regla \"contiene INFO\" disparaba el bot con \"información\" de los robots. Siempre \"Message is\" (palabra exacta) y botones; disparador por intención apagado."
+    },
+    {
+      "fecha": "2026-11-09",
+      "tipo": "regla",
+      "estado": "confirmado",
+      "fuente": "Primer lead real",
+      "titulo": "Gancho por situación del negocio, no por giro",
+      "texto": "El primer lead real llegó de Ronda 1 · México · Video C (8 nov →) (\"¿varias sucursales?\") y no era restaurante: un laboratorio dental con 2 sucursales. Nombrar la situación del negocio atrae varios giros. Agendó Meet en la llamada de NEX."
+    },
+    {
+      "fecha": "2026-11-09",
+      "tipo": "regla",
+      "estado": "confirmado",
+      "fuente": "Llamada de NEX",
+      "titulo": "Llamada de NEX corta y de usted",
+      "texto": "El guion largo (6 preguntas, presupuesto, tuteo) sonaba a formulario. Máximo 3 preguntas, sin presupuesto, \"usted\", saludo corto."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "ronda",
+      "estado": "confirmado",
+      "fuente": "Meta + HQ (anuncios-reporte)",
+      "titulo": "Ronda 1 · corte del 17 nov: MX trae la cita, NY no trae personas",
+      "texto": "Desde el 8 nov, $20/día por mercado.\nMX: $199.42 → 18,646 impresiones, 7 chats, 1 persona real, 1 cita que llegó al Meet (propuesta). La cita vino de Ronda 1 · México · Video C (Sucursales, $51.75). Ronda 1 · México · Video B (Empleado que nunca duerme) gastó $82.56 con 1 chat (el peor).\nNY: $216.72 → 0 personas reales. Mejor gancho (23–27 %) pero cada mil impresiones cuesta $64–89 (MX $8–13): el público de códigos postales + español es demasiado chico.\nDe 13 chats solo 2 entraron a HQ: 11 no tocaron el primer botón.\nTope de $300 por campaña: se detienen solas hacia el 21–23 nov."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "regla",
+      "estado": "confirmado",
+      "fuente": "Ronda 1",
+      "titulo": "NY: el problema es el público, no el video",
+      "texto": "Con códigos postales sueltos y filtro de idioma, Meta casi no encuentra a quién mostrar el anuncio y cobra $64–89 por mil impresiones. Siguiente ronda en NY: área metro NY/NJ completa o pausar NY hasta tener ganador en MX."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "recomendacion",
+      "fuente": "Ronda 1",
+      "titulo": "Revisar el primer mensaje de ManyChat",
+      "texto": "11 de 13 chats no tocaron el primer botón. Antes de cambiarlo: ver en ManyChat cuántos tienen la etiqueta robot-autorespuesta. Si son personas, probar un saludo más invitante (\"Hola, ¿le muestro cómo funciona?\") antes de la pregunta de sucursales."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "descartado",
+      "fuente": "Ronda 1",
+      "titulo": "¿El Video A (11:48, celular de noche) tiene el mejor gancho?",
+      "texto": "No: Ronda 1 · Video A (11:48, celular de noche) fue el gancho más bajo en México (15.2 %) y el segundo en Nueva York (23 %). Datos del 8 al 17 nov."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "pendiente",
+      "fuente": "Estrategia ronda 2",
+      "titulo": "¿\"Pruébelo en vivo\" trae citas más baratas?",
+      "texto": "Idea principal de la ronda 2: \"Escríbanos y en 1 minuto una IA le llama\". Casi ningún competidor deja probar su agente en vivo."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "pendiente",
+      "fuente": "Estrategia ronda 2",
+      "titulo": "¿\"Todo en uno\" (mensajes + llamadas + citas) atrae más que hablar de una sola cosa?",
+      "texto": "Nadie en la competencia junta los tres en un mismo anuncio."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "pendiente",
+      "fuente": "Estrategia ronda 2",
+      "titulo": "¿Un video de Eduardo a cámara baja el costo por cita frente a la voz de IA?",
+      "texto": "En servicios de confianza, el dueño hablando suele funcionar mejor; los anuncios de la competencia que llevan más tiempo usan persona a cámara."
+    },
+    {
+      "fecha": "2026-11-17",
+      "tipo": "hipotesis",
+      "estado": "pendiente",
+      "fuente": "Estrategia ronda 2",
+      "titulo": "¿Imagen fija trae citas tan baratas como el video?",
+      "texto": "La mitad de la competencia que dura más usa imagen. Ronda 2: cada idea en video e imagen."
+    },
+    {
+      "fecha": "2026-11-15",
+      "tipo": "competencia",
+      "estado": "confirmado",
+      "fuente": "Biblioteca de anuncios (extensión)",
+      "titulo": "Competencia: todos dicen \"pierdes ventas por no contestar\"",
+      "texto": "20 anunciantes (Leadsales, Treble, Dapta, Wati, Whaticket, respond.io, Cliengo, etc.). Mensaje saturado: perder ventas por no contestar a tiempo. Huecos: nadie junta mensajes + llamadas + citas; en MX casi nadie habla de llamadas; nadie ofrece \"funcionando en X días\"; casi nadie deja probar el agente en vivo; casi nadie muestra precio. Los que duran más: video sencillo con persona a cámara o pantalla, botón a WhatsApp."
+    },
+    {
+      "fecha": "2026-11-15",
+      "tipo": "competencia",
+      "estado": "confirmado",
+      "fuente": "Reglas de Meta (guías 2026)",
+      "titulo": "Meta: prometer lo que entregamos, nunca resultados",
+      "texto": "Se puede: \"Se lo dejamos funcionando en X días\" (si siempre se cumple), fuera del gancho y del título, sin la palabra \"garantía\". No se puede: \"más ventas\", \"garantizado\", \"100 %\", cifras sin fuente ni decirle cosas personales a quien ve (\"usted está perdiendo dinero\"). Si Meta rechaza: quitar la promesa, no reescribirla."
+    }
+  ]
+}

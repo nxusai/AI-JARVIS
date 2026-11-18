@@ -48,6 +48,9 @@ for n in /opt/homebrew/bin/node /usr/local/bin/node; do [ -x "$n" ] && NODE="$n"
 [ -n "$NODE" ] || fail "Falta Node.js. Instálalo desde https://nodejs.org (botón LTS) y vuelve a correr esto."
 [ "$("$NODE" -p 'process.versions.node.split(".")[0]')" -ge 20 ] || fail "Node.js es muy viejo. Instala el LTS de https://nodejs.org."
 NPM="$(dirname "$NODE")/npm"
+# npm starts with "#!/usr/bin/env node": through the door (sudo over SSH) PATH
+# does not have Node's folder, so it goes first.
+export PATH="$(dirname "$NODE"):$PATH"
 
 [ -f "$HERE/firma.pub" ] && [ -f "$HERE/firma.sig" ] || fail "Este paquete no viene firmado. No se instala."
 print_fingerprint() {
@@ -157,9 +160,11 @@ ADMIN="${SUDO_USER:-}"
 CANAL="/usr/local/libexec/cerebro-canal"
 if [ -f "$PROGRAM/canal.pub" ] && [ -n "$ADMIN" ] && [ "$ADMIN" != "root" ]; then
   mkdir -p /usr/local/libexec
-  cp "$PROGRAM/canal.sh" "$CANAL"
-  chown root:wheel "$CANAL"
-  chmod 755 "$CANAL"
+  # A new file moved into place: the door running this install keeps reading its old copy.
+  cp "$PROGRAM/canal.sh" "$CANAL.nuevo"
+  chown root:wheel "$CANAL.nuevo"
+  chmod 755 "$CANAL.nuevo"
+  mv -f "$CANAL.nuevo" "$CANAL"
   SUDOERS="/etc/sudoers.d/cerebro-canal"
   printf 'Defaults!%s env_keep += "SSH_ORIGINAL_COMMAND"\n%s ALL=(root) NOPASSWD: %s\n' "$CANAL" "$ADMIN" "$CANAL" > "$SUDOERS.nuevo"
   chmod 440 "$SUDOERS.nuevo"

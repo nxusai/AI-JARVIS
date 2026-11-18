@@ -20,6 +20,8 @@ set -uo pipefail
 
 LABEL="org.cerebro.ia"
 HOME_DIR="${CEREBRO_HOME:-/Library/Application Support/Cerebro}"
+export CEREBRO_HOME="$HOME_DIR"
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 PROGRAM="$HOME_DIR/programa"
 DATA="$HOME_DIR/datos"
 PLIST="/Library/LaunchDaemons/$LABEL.plist"
@@ -93,6 +95,7 @@ case "$ORDER" in
   borrar-llaves)
     service bootout "system/$LABEL" 2>/dev/null
     rm -f "$DATA/llaves.json"
+    [ -n "$NODE" ] && [ -f "$DATA/ultron.json" ] && "$NODE" -e 'const f=process.argv[1];const fs=require("fs");const c=JSON.parse(fs.readFileSync(f,"utf8"));delete c.servicio;fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n")' "$DATA/ultron.json"
     [ -n "$NODE" ] && [ -f "$DATA/anasofi.json" ] && "$NODE" -e 'const f=process.argv[1];const fs=require("fs");const c=JSON.parse(fs.readFileSync(f,"utf8"));delete c.token;fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n")' "$DATA/anasofi.json"
     echo "llaves borradas y cerebro apagado"
     ;;

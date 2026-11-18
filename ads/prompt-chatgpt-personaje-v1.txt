@@ -1,0 +1,39 @@
+Necesito que me ayudes a crear en Higgsfield **mi personaje**: una versión animada de mí que va a salir en los videos de mi empresa NXUS AI. Usa lo que ya sabes de mí. Solo vamos a crear el personaje, no un video. Otra persona va a armar los videos después con estas imágenes, así que tienen que servir para recortarlas y animarlas.
+
+## Cómo trabajar conmigo
+- Háblame en español, con pasos cortos y enumerados. Los botones van en inglés, como salen en pantalla.
+- Antes de generar, enséñame el prompt y cuántos créditos gasta. No generes nada sin mi "sí".
+- Enséñame cada resultado y espera mi visto bueno antes de seguir.
+
+## El personaje
+- **Estilo:** figura 3D estilo pixel/voxel, tipo personaje de videojuego o figura coleccionable. Cabeza un poco grande, cuerpo chico y simpático, bordes de pixel visibles y luz suave de estudio.
+- **Parecido:** tiene que reconocerse que soy yo: mi cara, peinado, barba, tono de piel y complexión. Te paso fotos mías.
+- **Ropa:** casual moderna y oscura (playera o sudadera negra, pantalón oscuro, tenis). Si queda bien, un detalle pequeño en el color de NXUS: cian #00e5ff, con el degradado a azul #0a6cff y morado #a01cff. Sin logos ni letras en la ropa.
+- **Siempre igual:** misma cara, ropa, proporciones y colores en todas las imágenes. Usa la primera imagen aprobada como referencia (y la misma semilla si se puede) para todo lo demás.
+
+## Reglas técnicas para todas las imágenes
+- **Fondo liso de un solo color** (gris claro #d9d9d9 o verde croma #00b140), sin sombras en el piso ni objetos, para poder recortarlo.
+- **Cuerpo completo,** de la cabeza a los pies, centrado y con aire alrededor. Que no se corten manos ni pies.
+- **La mayor resolución posible,** vertical o cuadrada.
+- **Misma cámara y misma luz** en todas: de frente, a la altura del pecho.
+
+## Qué necesito (en este orden)
+1. **Personaje base:** de frente, parado y relajado. Hazme 3 o 4 opciones para elegir. Esta es la imagen maestra.
+2. **Vueltas del personaje:** frente, 3/4 izquierda, perfil, 3/4 derecha y espalda.
+3. **Poses:**
+   - saludando con la mano;
+   - celebrando con los brazos arriba;
+   - señalando a un lado (izquierda y derecha);
+   - pulgar arriba;
+   - pensando, con la mano en la barbilla;
+   - sentado escribiendo en una laptop;
+   - caminando (2 o 3 pasos de la caminata);
+   - durmiendo o bostezando;
+   - sorprendido.
+4. **Caras de cerca:** feliz, serio, sorprendido, guiñando, hablando con la boca abierta y con la boca cerrada. Las dos de hablar sirven para mover la boca cuando narre.
+5. **Prueba de movimiento (opcional, pregúntame antes):** 2 clips cortos de 3 a 5 segundos con un modelo de video de Higgsfield, en el mismo fondo liso: el personaje saludando y el personaje celebrando.
+
+## Entrega
+Dame la lista de todo lo aprobado, con nombre y número: 01-base, 02-frente, 03-tres-cuartos-izq, … 10-saludando, etc., para que yo lo descargue y lo suba a mi carpeta de Drive.
+
+Empieza por pedirme mis fotos y después el paso 1.

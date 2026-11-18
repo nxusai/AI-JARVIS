@@ -1,0 +1,72 @@
+Eres mi asistente técnico. Soy Eduardo (NXUS AI). Trabaja en mi Chrome; yo te veo.
+Objetivo: dejar listo el aprendizaje automático de mis anuncios: (A) crear la tabla anuncios_semanas en Supabase,
+(B) crear la variable REPORTE_CLAVE en Netlify (el valor lo pego yo), (C) publicar HQ y (D) comprobar que funciona.
+
+REGLAS (obligatorias)
+- NUNCA leas, copies, escribas, resumas ni muestres el valor de REPORTE_CLAVE. Cuando el campo del valor esté listo,
+  DETENTE y dime: "Pega la clave". Yo la pego y guardo. Tú no la tocas ni la ves.
+- En Supabase solo corre el SQL de abajo, tal cual. No toques otras tablas, usuarios, políticas ni configuraciones.
+- En Netlify solo crea REPORTE_CLAVE en el sitio nxus-hq y haz el deploy. No toques otras variables ni otros sitios.
+- No toques Meta / Ads Manager ni ManyChat.
+- Si algo pide contraseña, código o confirmación de seguridad, detente: lo hago yo.
+- Trabaja en una pestaña nueva y no cierres mis otras pestañas.
+
+PASO A. Supabase
+1. Abre https://supabase.com/dashboard/project/zntjhkauoiodmmpxfucw/sql/new
+2. Pega EXACTAMENTE este SQL (todo junto) en el editor:
+
+create table if not exists public.anuncios_semanas (
+  semana date not null,
+  hasta date not null,
+  camp text not null check (camp in ('MX', 'NY')),
+  anuncio text not null check (char_length(anuncio) <= 20),
+  nombre text not null default '' check (char_length(nombre) <= 200),
+  campana text not null default '' check (char_length(campana) <= 200),
+  estado text not null default '' check (char_length(estado) <= 40),
+  moneda text not null default 'USD' check (char_length(moneda) <= 5),
+  gasto numeric(12, 2) not null default 0,
+  impresiones int not null default 0,
+  alcance int not null default 0,
+  vistas3s int not null default 0,
+  thruplays int not null default 0,
+  clics int not null default 0,
+  conversaciones int not null default 0,
+  frecuencia numeric(8, 2) not null default 0,
+  leads int not null default 0,
+  reales int not null default 0,
+  hablo int not null default 0,
+  agendo int not null default 0,
+  asistio int not null default 0,
+  cliente int not null default 0,
+  creado timestamptz not null default now(),
+  primary key (semana, camp, anuncio)
+);
+alter table public.anuncios_semanas enable row level security;
+drop policy if exists an_sem_ver on public.anuncios_semanas;
+create policy an_sem_ver on public.anuncios_semanas for select to authenticated
+  using (es_admin() or exists (select 1 from public.perfiles p where p.id = auth.uid() and p.activo and p.pros_ver <> 'nada'));
+
+3. Da clic en "Run". Si Supabase avisa que la consulta tiene operaciones destructivas ("destructive operation",
+   por el "drop policy if exists"), ese aviso es normal: solo borra una regla de esta misma tabla nueva si existiera.
+   Dime que salió el aviso y espera a que yo te diga "sí, córrelo".
+4. Debe decir "Success. No rows returned". Dime qué dijo. Si sale un error, cópiame el error y detente.
+
+PASO B. Netlify
+1. Abre https://app.netlify.com → sitio "nxus-hq" → "Site configuration" → "Environment variables".
+2. Si ya existe REPORTE_CLAVE: dime y espera (no la abras).
+   Si no existe: "Add a variable" → "Add a single variable" → Key: REPORTE_CLAVE. Si aparece la opción
+   "Contains secret values", márcala. Deja el valor vacío, deja los scopes como vienen ("All scopes") y
+   DETENTE: dime "Pega la clave". Yo pego el valor y doy clic en "Create variable". Espera a que te diga "listo".
+3. Confirma (sin abrir el valor) que REPORTE_CLAVE aparece en la lista.
+
+PASO C. Publicar
+1. Ve a "Deploys" → "Trigger deploy" → "Deploy site".
+2. Espera a que el deploy de arriba diga "Published". Dime la hora.
+
+PASO D. Comprobar
+1. Abre en una pestaña nueva: https://nxus-hq.netlify.app/.netlify/functions/anuncios-reporte
+2. Dime EXACTAMENTE qué texto sale:
+   - {"ok":false,"error":"sin permiso"}  → ✅ correcto (la clave ya existe; solo falta darla al reporte automático).
+   - {"ok":false,"error":"Falta REPORTE_CLAVE en Netlify"} → ❌ la variable no se guardó o el deploy no terminó.
+
+PASO E. Informe corto con ✅ / ⚠️ / ❌ de A, B, C y D. Sin mostrar la clave.

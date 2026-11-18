@@ -157,6 +157,15 @@ export async function mirror(name) {
 }
 
 /** What NEX sends a brain as data: signed with the same key as the packages. */
+/** Ultron's voice: the one chosen for his live agent (scripts/ultron-voz.mjs), so he sounds the same everywhere. */
+function vozDeUltron() {
+  try {
+    const v = JSON.parse(readFileSync(join(homedir(), '.nexy', 'ultron-voz.json'), 'utf8'))?.voiceId
+    if (/^[A-Za-z0-9]{20}$/.test(v ?? '')) return v
+  } catch {}
+  return readUltron()?.voz ?? null
+}
+
 export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
   let sales = {}
   try {
@@ -171,8 +180,8 @@ export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
     ...(readLabelConfig().canal ? { canal: readLabelConfig().canal } : {}),
     ...(labels ? { etiquetas: Object.fromEntries(listClients().map((c) => [c.id, c])) } : {}),
     // Whether Ultron answers from the brain (moving day or calling it off), with his voice.
-    ...(typeof ultron === 'boolean' || typeof apagado === 'boolean'
-      ? { ultron: { ...(typeof ultron === 'boolean' ? { prendido: ultron } : {}), ...(typeof apagado === 'boolean' ? { apagado } : {}), ...(readUltron()?.voz ? { voz: readUltron().voz } : {}) } }
+    ...(typeof ultron === 'boolean' || typeof apagado === 'boolean' || vozDeUltron()
+      ? { ultron: { ...(typeof ultron === 'boolean' ? { prendido: ultron } : {}), ...(typeof apagado === 'boolean' ? { apagado } : {}), ...(vozDeUltron() ? { voz: vozDeUltron() } : {}) } }
       : {}),
     // Ana Sofi's sales line: whether it calls from the brain, with her agent and number (no keys).
     ...(typeof ventas === 'boolean' ? { ventas: { prendido: ventas, agentId: sales.agentId, phoneId: sales.phoneId, avisos: sales.avisos === 'todo' ? 'todo' : 'meetings' } } : {}),
@@ -185,9 +194,9 @@ export function buildData({ labels = false, ultron, apagado, ventas } = {}) {
 // -- the watch -------------------------------------------------------------------
 
 const WATCH_FILE = join(MIRRORS, 'vigilancia.json')
-const EVERY_MS = 5 * 60_000
-/** Three looks in a row with no answer (15 minutes) before saying it does not answer. */
-const MISSES = 3
+const EVERY_MS = 60_000
+/** Fifteen looks in a row with no answer (15 minutes) before saying it does not answer. */
+const MISSES = 15
 /** A heartbeat older than this means the brain is stuck, though its service is up. */
 const STALE_MS = 6 * 60_000
 
@@ -237,8 +246,19 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
       if (!first) {
         for (const a of notices.slice(-3)) messages.push(`⚠️ Cerebro ${name}: ${a.text}`)
         const fails = fresh.filter(([k]) => k === 'falla')
-        if (fails.length) messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nSi no fuiste tú, alguien está intentando entrar.`)
-        for (const [, l] of fresh.filter(([k]) => k === 'entrada').slice(-3)) messages.push(`🔐 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador: ${l.slice(0, 160)}. Si no fuiste tú, avísame.`)
+        const stop = `Si no fuiste tú, toca 🛑 Cortar todo (o escríbeme "corta todo"): apago el cerebro y borro sus llaves. Desde tu Mac también: node scripts/cerebro.mjs borrar-llaves ${name}. Luego cambia las llaves en Anthropic, ElevenLabs, BotFather y Supabase.`
+        if (fails.length) {
+          m.lastFail = now
+          messages.push(`🚨 En el cerebro ${name} alguien escribió mal la contraseña de administrador (${fails.length} ${fails.length === 1 ? 'vez' : 'veces'}):\n${fails.slice(-3).map(([, l]) => `• ${l.slice(0, 160)}`).join('\n')}\nAlguien está intentando entrar. ${stop}`)
+        }
+        // A login right after wrong passwords is someone getting in; a login alone is almost always the owner.
+        const suspicious = m.lastFail && now - m.lastFail < 30 * 60_000
+        for (const [, l] of fresh.filter(([k]) => k === 'entrada').slice(-3))
+          messages.push(
+            suspicious
+              ? `🚨 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador después de intentos fallidos: ${l.slice(0, 160)}. ${stop}`
+              : `🔐 Alguien entró al Mac mini del cerebro ${name} con la cuenta de administrador: ${l.slice(0, 160)}. Si no fuiste tú, avísame.`,
+          )
       }
     }
     // Problems that start, and problems that are over.
@@ -251,15 +271,31 @@ export async function checkBrains({ now = Date.now(), getState = brainState, mem
   return messages
 }
 
-/** To the owner's own Telegram (NEX's bot), like the ads' alerts. */
+/** The emergency stop: the brain goes off and its keys are wiped (canal.sh borrar-llaves). */
+export async function cutBrain(name) {
+  if (!readBrains()[name]) return `No conozco el cerebro "${name}".`
+  try {
+    const r = await order(name, 'borrar-llaves', null, { timeoutMs: 60_000 })
+    const out = r.out.toString().trim()
+    return r.code === 0 ? `🛑 Cerebro ${name}: ${out || 'llaves borradas y cerebro apagado'}.` : `❌ No pude cortar el cerebro ${name}: ${out || r.err || `respondió ${r.code}`}`
+  } catch (err) {
+    return `❌ No pude hablar con el cerebro ${name}: ${err.message}. Si no contesta, desconéctalo de la luz o del internet en la oficina.`
+  }
+}
+
+/** The button under an alarm: asks once more before cutting. */
+export const cutButton = (name) => ({ inline_keyboard: [[{ text: '🛑 Cortar todo', callback_data: `corte:${name}` }]] })
+
+/** To the owner's own Telegram (NEX's bot), like the ads' alerts. Alarms carry the cut button. */
 async function tellOwner(text) {
   const tg = readTelegram()
   if (!tg?.token || !tg.owner?.id) return false
+  const brain = URGENT.test(text) ? /cerebro (\S+?)[\s:]/.exec(text)?.[1] : null
   try {
     await fetch(`https://api.telegram.org/bot${tg.token}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: tg.owner.id, text: text.slice(0, 4000) }),
+      body: JSON.stringify({ chat_id: tg.owner.id, text: text.slice(0, 4000), ...(brain && readBrains()[brain] ? { reply_markup: cutButton(brain) } : {}) }),
     })
     return true
   } catch {
@@ -267,15 +303,44 @@ async function tellOwner(text) {
   }
 }
 
-/** Every five minutes while NEX is on, when there are brains. */
-export function startBrainWatch() {
+/** What is worth a phone call, not only a message: someone trying the password, or the program touched. */
+export const URGENT = /escribió mal la contraseña de administrador|administrador después de intentos fallidos|El sello del cerebro .* no cuadra/
+
+/** The call's words: short, to be heard. */
+export function spokenAlarm(text) {
+  const brain = /cerebro (\S+)/.exec(text)?.[1] ?? ''
+  const where = brain ? ` del cerebro de ${brain.replace(/-/g, ' ')}` : ''
+  if (/después de intentos fallidos/.test(text)) {
+    return `Boss, urgente: alguien logró entrar al Mac mini${where} con la cuenta de administrador, después de equivocarse con la contraseña. Si no fuiste tú, corta todo ya: en Telegram toca el botón rojo, Cortar todo.`
+  }
+  if (/contraseña/.test(text)) {
+    const times = /\((\d+) ve/.exec(text)?.[1]
+    return `Boss, alguien está intentando entrar al Mac mini${where}. Escribieron mal la contraseña de administrador${times ? ` ${times} ${times === '1' ? 'vez' : 'veces'}` : ''}. Todavía no entran. Los detalles y qué hacer están en Telegram.`
+  }
+  return `Boss, alguien le movió al programa${where}: el sello no cuadra y no prendió ninguna inteligencia artificial. Los detalles y qué hacer están en Telegram.`
+}
+
+/** Every minute while NEX is on, when there are brains. Security alarms also ring the owner. */
+export function startBrainWatch({ callOwner = null } = {}) {
   if (!Object.keys(readBrains()).length) return
   let busy = false
+  let lastCall = 0
   const run = async () => {
     if (busy) return
     busy = true
     try {
-      for (const m of await checkBrains()) await tellOwner(m)
+      for (const m of await checkBrains()) {
+        await tellOwner(m)
+        // One call every 10 minutes at most (the rest of a burst goes to Telegram), except someone getting in.
+        if (callOwner && URGENT.test(m) && (Date.now() - lastCall > 10 * 60_000 || /después de intentos fallidos/.test(m))) {
+          lastCall = Date.now()
+          const failed = await callOwner(spokenAlarm(m))
+          if (failed) {
+            lastCall = 0
+            await tellOwner(`☎️ No pude llamarte por esta alerta: ${failed}.`)
+          }
+        }
+      }
     } catch (err) {
       console.log(`[jarvis] brain watch: ${err.message}`)
     } finally {

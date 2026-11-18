@@ -524,7 +524,7 @@ async function pintarVista() {
         <canvas class="u-mini-onda" id="mini-onda"></canvas>
         <div class="u-campo">
           <button type="button" class="u-mic ${modoVoz ? 'oye' : ''}" id="mic" aria-label="${modoVoz ? 'Apagar el micrófono' : 'Hablar con Ultron'}" aria-pressed="${modoVoz}">${MIC}</button>
-          <input id="orden" autocomplete="off" maxlength="1000" placeholder="¿Qué ejecutamos, ${h(F.yo.nombre.split(' ')[0])}?" aria-label="Orden para Ultron">
+          <input id="orden" autocomplete="off" maxlength="1000" placeholder="Escríbele a Ultron, ${h(F.yo.nombre.split(' ')[0])}" aria-label="Orden para Ultron">
           <button class="u-enviar">Ejecutar</button>
         </div>
       </form>`

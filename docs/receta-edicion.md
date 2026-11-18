@@ -25,6 +25,7 @@
 
 **Carpetas** (dentro de "Videos para editar", `1026SDveh_-ceHYlzRaWD5x0uDo9nOgTx`):
 - **Ejemplos de edicion** (`1EDLEcUQQpTFFwVYyHPH8zqZ_EsT1Hf3W`): videos de referencia para analizar el estilo.
+  - **Ejemplos para editar y aplicar en NXUS** (dentro de la anterior; se encuentra buscando su nombre en Drive): videos con doble uso. Se analiza la edición (para hacer videos así) **y** el contenido (cómo trabajan, qué hacen) para proponer cómo aplicarlo en NXUS.
 - **Mis videos crudos** (`1yIkwpOgswvj9cSXJ7PupZKB8OV2FOQyh`): sus videos en bruto para editar.
 
 ### Ejemplos ya analizados
@@ -33,6 +34,7 @@
 | 11 nov 2026 | `1_fjSPOF_xX11_toCM0Julof44j8UoUP4` | AQOrAGhtsH0cf3f1zhz226CbmdAu_KjTj8iWqspihSfqj7tGz9wBa_hcNiZDYyF 2.MP4 | Agente de bienes raíces (44 s): fondo desenfocado, texto detrás, subtítulos con dos letras, pastillas, logos, ritmo y estructura (ver "La receta") |
 | 11 nov 2026 | `1O9ErBtKWsaDkQiOyBW3IiLWeLL6Mizfk` | US NEVER THEM #fitness #explorepage✨ #gym #couplegoals❤️ #fitnessaddict.mp4 | Pareja entrenando (29 s, 16:9, rap ~89 BPM): de aquí salió la caja de efectos (no copiar el estilo completo) |
 | 11 nov 2026 | `1aO9UHMWjl3Wcfj0f_uPTI6IGV1OSydLD` | A promise isn’t made when it’s easy. It’s kept when things get hard.Built through adversity. Dri.mp4 | Promo de marca de ropa de gym (25 s, 16:9, ~144 BPM): caja de efectos; cierre con logo animado y fecha |
+| 13 nov 2026 | (en "Ejemplos para editar y aplicar en NXUS") | ScreenRecording_11-13-2026 02-05-27_1.MP4 | "La máquina" (58 s, sin cámara): avatar pixel 3D, app animada con cursor, subtítulos palabra a palabra con naranja, stickers, final en loop. Ver docs/estilo-maquina.md |
 
 ### Crudos ya editados
 | Fecha | ID de Drive | Archivo | Resultado | Notas |

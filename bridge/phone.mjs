@@ -140,6 +140,35 @@ const callMeSchema = {
     .describe("Call at this local time, YYYY-MM-DDTHH:MM, in the user's time zone."),
 }
 
+/**
+ * Rings the owner right now with a message, outside any conversation (the
+ * brain watch's security alarms). Resolves null when the call went out, or
+ * why it could not.
+ */
+export async function callOwnerNow(elevenKey, message) {
+  const key = typeof elevenKey === 'function' ? elevenKey() : elevenKey
+  const to = (process.env.NEXY_MY_PHONE ?? '').trim()
+  const agent = (process.env.NEXY_CALL_AGENT_ID ?? '').trim()
+  const from = (process.env.NEXY_CALL_PHONE_ID ?? '').trim()
+  if (!key || !agent || !from || !E164.test(to)) return 'las llamadas no están configuradas en esta Mac'
+  try {
+    const res = await fetch(`${API}/twilio/outbound-call`, {
+      method: 'POST',
+      headers: { 'xi-api-key': key, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent_id: agent,
+        agent_phone_number_id: from,
+        to_number: to,
+        conversation_initiation_client_data: { dynamic_variables: callVariables(message) },
+      }),
+      signal: AbortSignal.timeout(20_000),
+    })
+    return res.ok ? null : `ElevenLabs respondió ${res.status}`
+  } catch (err) {
+    return err?.message ?? String(err)
+  }
+}
+
 export function phoneServer(elevenKey, zone) {
   let lastCall = 0
 
