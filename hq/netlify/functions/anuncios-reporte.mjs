@@ -47,11 +47,13 @@ export default async (req) => {
     let cuenta = null
     if (metaListo() && q.get('estados')) {
       const act = cuentaMeta()
-      const [camps, ads] = await Promise.all([
+      const [camps, ads, sets, gasto] = await Promise.all([
         graph(`${act}/campaigns?fields=name,effective_status,configured_status,updated_time,daily_budget,spend_cap&limit=100`),
         graph(`${act}/ads?fields=name,effective_status,configured_status,updated_time,campaign{name},adset{name,effective_status}&limit=200`),
-      ]).catch((e) => [{ error: e.message }, {}])
-      cuenta = { campanas: camps.data || camps, anuncios: ads.data || [] }
+        graph(`${act}/adsets?fields=name,effective_status,configured_status,updated_time,campaign{name},daily_budget,optimization_goal,destination_type,targeting&limit=100`),
+        graph(`${act}/insights?level=campaign&date_preset=last_7d&fields=campaign_name,spend&limit=200`),
+      ]).catch((e) => [{ error: e.message }, {}, {}, {}])
+      cuenta = { campanas: camps.data || camps, anuncios: ads.data || [], conjuntos: sets.data || [], gasto7: gasto.data || [] }
     }
     return json({ ok: true, foto, rango: enRango, cuenta, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
