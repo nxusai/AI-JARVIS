@@ -42,6 +42,12 @@ Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la sem
 - Lecciones: (1) los clientes grandes llegan por problemas de OPERACIÓN (equipo en la calle, rutas, sucursales, control), no por "chatbot"; (2) video corto con la pregunta grande desde el segundo 0 (34 % de gancho vs 14–27 % en la ronda 1); (3) FB Reels el más barato ($1.45 por conversación), reel in-stream el más caro ($9.16, 38 % del gasto) → ubicaciones manuales sin in-stream; (4) hipótesis: con el filtro de botones se puede abrir el público a CDMX + Edomex completos para bajar el costo.
 - Ojo: ese anuncio tiene "Unpublished edits" (un borrador ligado al flujo "Anuncio NY · Video C · FB"). No publicarlo.
 
+## Ronda 1 · cierre (pausada el 18 nov 2026; datos 8–17 nov, foto en HQ)
+- Total $428.41 · 21,519 impresiones · 13 chats · 2 leads · 1 real · 1 cita (llegó al Meet) · 0 clientes por ahora.
+- MX $205.46: A (11:48) $68.74, 4 chats, 0 reales · B (Empleado) $84.15, 1 chat, 0 reales · C (Sucursales) $52.57, 2 chats, 1 real, 1 cita.
+- NY $222.95: A $61.97 · B $88.16 · C $72.82 · 6 chats · 0 reales (público demasiado chico, CPM $64–89).
+- Ronda 2 (18 nov): `NXUS | MX | R2 | Mensajes`, solo México, CDMX + Edomex 30+, FB Feed/Stories/Reels + IG Stories/Reels (sin IG Feed: los videos 9:16 no entran), 6 anuncios A–F, $20/día, tope $300.
+
 ## Cómo se actualiza
 0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
