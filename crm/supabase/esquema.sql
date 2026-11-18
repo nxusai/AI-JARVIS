@@ -1520,3 +1520,43 @@ insert into public.anuncios_aprendizajes (fecha, tipo, estado, titulo, texto, fu
    'Campaña "Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días": $25 al día, tope $175, Click-to-WhatsApp, 30–65 sin intereses, códigos postales de bodegas y mayoreo del oeste + Chicago. 4 anuncios: A Capacidad 500k lb, B Tu marca, C Logística 40°F, D Carrusel planta real. Falta escribir el cierre con los números reales de Meta y del Centro de trabajo (se hace al conectar la llave de Meta).',
    'docs/ads/mi-semago-distribuidores-oeste/')
 on conflict (titulo) do nothing;
+
+-- Competencia de Mi Semago en la Biblioteca de Anuncios (informe del 18 nov 2026) y las hipótesis que salen de ahí.
+insert into public.anuncios_aprendizajes (fecha, tipo, estado, titulo, texto, fuente) values
+  ('2026-11-18', 'competencia', 'confirmado', 'Competencia · 18 nov 2026: ninguna quesera le anuncia a negocios',
+   $t$De las marcas de queso hispano revisadas, las que anuncian (LALA USA ~70 anuncios, V&V Supremo ~33, Los Altos ~33, El Abuelito 1) le hablan SOLO al consumidor: recetas, influencers, "ya llegó a tu súper", rifas.
+Sin anuncios activos: Cacique, V&V Supremo Food Service, Tropical Cheese, La Vaquita, La Chona, Nuestro Queso, Tío Francisco, Queso Campesino, FUD USA, Karoun. No apareció la página de: El Mexicano, Rizo Bros, Don Francisco, Ochoa, El Viajero, La Ricura, Specialty Cheese Company, Mi Ranchito.
+No se encontró NINGÚN anuncio de marca propia o maquila de queso, ni en EE. UU. ni en México. "private label cheese", "distribuidor de quesos" y "wholesale Hispanic foods" dieron 0 resultados.
+Qué significa: Mi Semago no compite contra otros anuncios de queso para distribuidores. Tampoco hay un anuncio de la categoría que copiar: las ideas se toman de otros fabricantes de comida que sí le venden a negocios.
+Límites del informe: la Biblioteca no muestra gasto ni resultados; ⭐ solo dice que el anuncio lleva mucho tiempo prendido; no se reprodujeron los videos; se revisaron unos 25–30 anuncios por página.$t$,
+   'Biblioteca de Anuncios de Meta, informe de la extensión (18 nov 2026)'),
+  ('2026-11-18', 'competencia', 'confirmado', 'Competencia · 18 nov 2026: cómo anuncian los que le venden comida a negocios',
+   $t$25 anunciantes revisados (EE. UU. y México).
+BOTÓN: el más usado es WhatsApp; luego formulario o cotización (Get quote), web (Shop now / Learn more) y Messenger. Nadie usa "Call now". Ningún fabricante usa "escribe esta palabra".
+FORMATO: video e imagen casi parejo (17 videos y 15 imágenes en las 6 páginas abiertas). Videos de 0:10 a 0:56. Carrusel casi no hay.
+GANCHOS que llevan más de 30 días prendidos: nombran al comprador y lo que vende o busca. "Si vendes carne seca esto te interesa!!!" (El Sabor Mexicano, desde 16 jul) · "¿Buscas proveedor para tu negocio?" (El Molino, desde 30 jun) · "¿Buscas un proveedor confiable que mantenga el sabor y la calidad en cada entrega?" (Tortillerías Campos, desde 18 may) · "Maicitos con tu propia marca" (Botanas Blofis, desde 14 jun) · "Un pedido. Toda tu ruta." (Que Chulada, desde 29 ago) · "Looking for high-demand, high-margin sauces for your US distribution network or restaurant chain?" (MR WINGS, desde 30 sep) · "Ask Your Co-Packer This One Question" (NOBL, desde 15 ago).
+OFERTAS que se repiten: envío (gratis, incluido o "a todo EE. UU."), mínimo bajo para empezar (desde 1 lb, desde 1 rueda), descuento por volumen, "un solo proveedor". Muestra gratis: solo El Sabor Mexicano. Marca propia explicada en pasos: Botanas Blofis ("diseñamos, fabricamos, empacamos y pegamos las etiquetas").
+LO QUE NADIE DICE: certificaciones o planta registrada (FDA, USDA, SQF, Kosher), pedido mínimo en libras, envío refrigerado, capacidad de producción (solo un fabricante de empaques). Casi nadie publica precio. Solo un anuncio va en español e inglés en el mismo texto (Crescent).
+PRIMER PASO: WhatsApp de un toque, o dejar datos "en 20 segundos" (formulario de Que Chulada). Los que mandan a una web piden más pasos.$t$,
+   'Biblioteca de Anuncios de Meta, informe de la extensión (18 nov 2026)'),
+  ('2026-11-18', 'hipotesis', 'pendiente', '¿Un video corto de la planta trae más leads buenos que la imagen?',
+   $t$La ronda 1 fue solo imágenes y un carrusel. Los fabricantes que le venden a negocios usan video e imagen casi por igual, con videos de 10 a 56 segundos, y el carrusel casi no aparece.
+Cómo se prueba: en la ronda 2, cada idea en video corto (10–20 s, pregunta grande desde el segundo 0) y en imagen. Se compara por leads buenos y Meets, no por chats.$t$,
+   'Interpretación del asesor sobre el informe de competencia del 18 nov 2026'),
+  ('2026-11-18', 'hipotesis', 'pendiente', '¿Decir "planta registrada ante la FDA" y la capacidad nos distingue?',
+   $t$Ningún anuncio de alimentos para negocios menciona certificaciones, planta registrada, envío refrigerado ni capacidad. Mi Semago tiene las cuatro cosas. Que nadie lo diga no prueba que funcione: puede ser un hueco o puede ser que al comprador no le importe en el anuncio.
+Cómo se prueba: una idea de la ronda 2 con la planta y la FDA como mensaje principal contra una idea de "tu marca". En la ronda 1 ya hubo "Capacidad 500k lb" y "Logística 40°F": falta ver sus números.$t$,
+   'Interpretación del asesor sobre el informe de competencia del 18 nov 2026'),
+  ('2026-11-18', 'hipotesis', 'pendiente', '¿Un primer paso más fácil (catálogo o muestra) sube los leads buenos?',
+   $t$Los anuncios que llevan más tiempo prendidos bajan la barrera: muestra gratis, "desde 1 lb", catálogo por WhatsApp, datos "en 20 segundos". Mi Semago abre con pedido mínimo de 1,500 lb, que filtra pero también puede espantar a un distribuidor que sí sirve.
+Cómo se prueba: una idea que ofrezca el catálogo y la lista de precios por WhatsApp (el mínimo se dice después, en la llamada de Ana Sofi) contra una que diga el mínimo desde el anuncio. Ofrecer muestras solo si Mi Semago de verdad las manda: decisión pendiente de Eduardo y Senen.$t$,
+   'Interpretación del asesor sobre el informe de competencia del 18 nov 2026'),
+  ('2026-11-18', 'hipotesis', 'pendiente', '¿Explicar la marca propia en pasos convierte mejor que solo "tu marca"?',
+   $t$El único anuncio de marca propia de comida que lleva meses prendido (Botanas Blofis, desde 14 jun) dice qué hace el fabricante: "diseñamos, fabricamos, empacamos y pegamos las etiquetas". No hay ningún anuncio de marca propia de queso.
+Cómo se prueba: versión de "Tu marca" que diga los pasos (receta, etiqueta, producción, envío refrigerado a tu almacén) contra la versión actual.$t$,
+   'Interpretación del asesor sobre el informe de competencia del 18 nov 2026'),
+  ('2026-11-18', 'hipotesis', 'pendiente', '¿Una versión en inglés alcanza distribuidores que hoy no vemos?',
+   $t$Los anuncios para distribuidores y cadenas en EE. UU. están casi todos en inglés (MR WINGS, NOBL, Crescent); los de tiendas y rutas latinas, en español. Los de Mi Semago van solo en español y ManyChat ya tiene rama en inglés.
+Cómo se prueba: el mismo anuncio en inglés como anuncio aparte (con su propia fuente en ManyChat), no mezclado en el mismo texto.$t$,
+   'Interpretación del asesor sobre el informe de competencia del 18 nov 2026')
+on conflict (titulo) do nothing;

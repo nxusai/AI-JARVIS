@@ -15,10 +15,22 @@ Lo mismo se ve en el Centro de trabajo → **Anuncios** → 📚 Aprendizajes (s
 Pendiente: cierre con gasto, chats, leads, leads buenos y Meets por anuncio (al conectar la llave de Meta: foto del 9 al 16 nov).
 
 ## Hipótesis por probar
-(ninguna escrita todavía; salen del cierre de la ronda 1 y del informe de competencia)
+Salen del informe de competencia del 18 nov 2026. Son interpretación del asesor, no datos: se confirman o se descartan con leads buenos y Meets.
+- **¿Un video corto de la planta trae más leads buenos que la imagen?** La ronda 1 fue solo imágenes y carrusel; los que le venden comida a negocios usan video (10–56 s) e imagen casi por igual. Prueba: cada idea de la ronda 2 en video de 10–20 s y en imagen.
+- **¿Decir "planta registrada ante la FDA" y la capacidad nos distingue?** Nadie menciona certificaciones, envío refrigerado ni capacidad. Puede ser un hueco o puede no importarle al comprador. Falta ver los números de "Capacidad" y "Logística" de la ronda 1.
+- **¿Un primer paso más fácil (catálogo o muestra) sube los leads buenos?** Los anuncios más viejos bajan la barrera (muestra gratis, "desde 1 lb", catálogo por WhatsApp). Nosotros abrimos con mínimo de 1,500 lb. Muestras solo si de verdad se mandan: decisión pendiente de Eduardo y Senen.
+- **¿Explicar la marca propia en pasos convierte mejor que solo "tu marca"?** Referencia: Botanas Blofis, "diseñamos, fabricamos, empacamos y pegamos las etiquetas", prendido desde el 14 jun.
+- **¿Una versión en inglés alcanza distribuidores que hoy no vemos?** Los anuncios para distribuidores y cadenas en EE. UU. van casi todos en inglés. Como anuncio aparte, con su propia fuente.
 
 ## Competencia y Meta
-Pendiente: informe de la Biblioteca de Anuncios (`docs/ads/mi-semago-competencia/PROMPT-claude-in-chrome.md`).
+### Biblioteca de Anuncios · 18 nov 2026 (informe completo: `docs/ads/mi-semago-competencia/informe-2026-11-18.md`)
+- **Ninguna quesera le anuncia a negocios.** LALA USA (~70), V&V Supremo (~33), Los Altos (~33) y El Abuelito (1) le hablan solo al consumidor. Sin anuncios activos: Cacique, Tropical, La Vaquita, La Chona, Nuestro Queso, Queso Campesino, FUD USA, Karoun y otras. Ningún anuncio de marca propia o maquila de queso en EE. UU. ni en México.
+- **Botón:** WhatsApp es el más usado entre los que le venden comida a negocios; luego formulario/cotización, web y Messenger. Nadie usa "Call now" ni "escribe esta palabra".
+- **Formato:** video e imagen casi parejo (17 y 15); videos de 0:10 a 0:56; carrusel casi no hay.
+- **Ganchos que llevan más de 30 días:** nombran al comprador y lo que vende o busca ("Si vendes carne seca esto te interesa!!!", "¿Buscas proveedor para tu negocio?", "Maicitos con tu propia marca", "Un pedido. Toda tu ruta.", "Looking for high-demand, high-margin sauces for your US distribution network or restaurant chain?").
+- **Ofertas que se repiten:** envío, mínimo bajo para empezar, descuento por volumen, "un solo proveedor".
+- **Lo que nadie dice:** certificaciones o planta registrada, pedido mínimo en libras, envío refrigerado, capacidad. Casi nadie publica precio.
+- **Límites:** la Biblioteca no muestra gasto ni resultados; ⭐ solo indica tiempo prendido; no se reprodujeron los videos.
 
 ## Nombres desde la ronda 2
 - Campaña: `MI SEMAGO | OESTE | R2 | WhatsApp`. Anuncio: `OESTE | A | Tu marca` (mercado | letra | de qué trata).
