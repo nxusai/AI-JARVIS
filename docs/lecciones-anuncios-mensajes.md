@@ -63,6 +63,10 @@ REGLAS PARA EL BOT (ManyChat)
   la persona terminó el filtro, no al primer mensaje.
 
 REGLAS PARA LA EXTENSIÓN (Claude in Chrome)
+- "Review and publish" en Ads Manager publica TODOS los borradores de la cuenta, no solo los de esa pestaña
+  (18 nov 2026: al pausar la ronda 1 se publicaron a medias la campaña R2 y un borrador viejo). Mientras la
+  extensión arma algo, no pausar ni publicar nada en otra pestaña. Si pasa: poner la campaña nueva en Off,
+  revisar estados (HQ: anuncios-reporte?estados=1) y corregir antes de meter anuncios.
 - Que primero revise y reporte cómo está todo (solo mirar), y luego cree.
 - Que NUNCA publique la campaña ni cambie pagos, límites de la cuenta o campañas existentes; que se detenga antes de
   "Publish" y pida permiso para publicar en ManyChat. El permiso debe ser explícito ("Sí, te autorizo de forma clara a
