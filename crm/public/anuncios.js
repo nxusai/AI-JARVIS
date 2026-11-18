@@ -8,7 +8,7 @@ import { claveDeFuente, claveDeAnuncio, campDe, esDeMiSemago, nombreCorto, llave
 const ETAPAS = { nuevo: 'Nuevo (por llamar)', programada: 'Llamada programada', no_contesto: 'No contestó', hablo: 'Ya habló, sin Meet', meet: 'Meet agendado', cerrado: 'Cerrado (cliente)', no_califica: 'No califica', no_llamar: 'No dio permiso de llamada' }
 const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0)
 const num = (n) => Number(n || 0).toLocaleString('es-MX')
-const mercado = (c) => (c ? c[0] + c.slice(1).toLowerCase() : '')
+const mercado = (c) => (c === 'ANTES' ? 'Anteriores' : c ? c[0] + c.slice(1).toLowerCase() : '')
 export const leerObjetivo = () => { try { return Number(localStorage.getItem('ms-objetivo-meet')) || 100 } catch { return 100 } }
 export const guardarObjetivo = (n) => { try { localStorage.setItem('ms-objetivo-meet', String(n)) } catch {} }
 
@@ -166,9 +166,9 @@ export function vistaAnuncios({ leads = [], datos, estado, h, error = '' }) {
   // ---- Tarjetas por anuncio
   const orden = (a, b) => b.ronda - a.ronda || (a.camp + a.video).localeCompare(b.camp + b.video)
   const fCorta = (iso) => new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-  const queEs = (x) => descripcion(x.anuncio, x) || ''
+  const queEs = (x) => (x.ronda === 0 ? 'campaña anterior a las rondas' : descripcion(x.anuncio, x) || '')
   const fechas = (x, pasado) => (x.desde ? `${fCorta(x.desde)} → ${pasado ? fCorta(x.ultimo) : 'hoy'}` : '')
-  const titulo = (x) => `Ronda ${x.ronda} · ${h(mercado(x.camp))} · ${h(nombreCorto(x.video))}`
+  const titulo = (x) => (x.ronda === 0 ? `Anterior · ${h(x.anuncio || x.video)}` : `Ronda ${x.ronda} · ${h(mercado(x.camp))} · ${h(nombreCorto(x.video))}`)
   const tarjeta = (x, pasado = false) => {
     const [tono, txt] = pasado ? ['gris', `⏹ Apagado${x.est?.actualizado ? ' el ' + new Date(x.est.actualizado).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : ''}${x.costoCita != null ? ` · ${$$(x.costoCita)} por Meet` : ''}`] : consejo(x)
     const m = x.meta
@@ -226,7 +226,7 @@ export function vistaAnuncios({ leads = [], datos, estado, h, error = '' }) {
     const g = t('gasto'), ci = t('agendo')
     const top = xs.filter((r) => r.agendo).sort((a, b) => a.gasto / a.agendo - b.gasto / b.agendo)[0] || [...xs].sort((a, b) => b.buenos - a.buenos || b.reales - a.reales || b.conversaciones - a.conversaciones)[0]
     const c = top && deCodigo(top.anuncio)
-    return `<tr><td>${fSem(k)} – ${fSem(xs[0].hasta)}</td><td>${$$(g)}</td><td>${t('impresiones') ? num(t('impresiones')) : '—'}</td><td>${num(t('conversaciones'))}</td><td>${num(t('leads'))}</td><td>${num(t('reales'))}</td><td>${num(t('buenos'))}</td><td>${num(ci)}</td><td>${num(t('cliente'))}</td><td>${ci && g ? $$(g / ci) : '—'}</td><td>${top ? (top.estado === 'MANUAL' ? `${h(xs.map((r) => r.nombre).join(' + '))} <small>(registro manual)</small>` : `Ronda ${c.ronda} · ${h(mercado(top.camp))} · ${h(nombreCorto(c.video))}${top.nombre ? ` <small>(${h(descripcion(top.nombre, { ...c, camp: top.camp }))})</small>` : ''}`) : '—'}</td></tr>`
+    return `<tr><td>${fSem(k)} – ${fSem(xs[0].hasta)}</td><td>${$$(g)}</td><td>${t('impresiones') ? num(t('impresiones')) : '—'}</td><td>${num(t('conversaciones'))}</td><td>${num(t('leads'))}</td><td>${num(t('reales'))}</td><td>${num(t('buenos'))}</td><td>${num(ci)}</td><td>${num(t('cliente'))}</td><td>${ci && g ? $$(g / ci) : '—'}</td><td>${top ? (top.estado === 'MANUAL' ? `${h(xs.map((r) => r.nombre).join(' + '))} <small>(registro manual)</small>` : `${c.ronda === 0 ? 'Anterior' : 'Ronda ' + c.ronda + ' · ' + h(mercado(top.camp))} · ${h(nombreCorto(c.video))}${top.nombre ? ` <small>(${h(descripcion(top.nombre, { ...c, camp: top.camp }))})</small>` : ''}`) : '—'}</td></tr>`
   }
   const semanasHtml = Object.keys(porSemana).length ? `<section class="an-caja"><h3>Semana por semana <small>foto que se guarda cada lunes</small></h3>
     <div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Semana</th><th>Gastado</th><th>Vistas</th><th>Chats</th><th>Leads</th><th>Permiso</th><th>Buenos</th><th>Meets</th><th>Clientes</th><th>Por Meet</th><th>Mejor anuncio</th></tr></thead><tbody>
@@ -262,7 +262,7 @@ export function vistaAnuncios({ leads = [], datos, estado, h, error = '' }) {
   }).join('')
   const viejos = semanas.filter((r) => r.estado === 'MANUAL' && (estado.camp === 'todo' || r.camp === estado.camp))
   const filasFicha = [...todos].sort(orden).map((x) => `<tr>
-      <td style="white-space:nowrap"><b>Ronda ${x.ronda}</b></td><td>${h(mercado(x.camp))}</td><td><b>${h(nombreCorto(x.video))}</b><br><small>${h(queEs(x))}</small></td>
+      <td style="white-space:nowrap"><b>${x.ronda === 0 ? 'Anteriores' : 'Ronda ' + x.ronda}</b></td><td>${x.ronda === 0 ? '—' : h(mercado(x.camp))}</td><td><b>${h(x.ronda === 0 ? x.anuncio || x.video : nombreCorto(x.video))}</b><br><small>${h(queEs(x))}</small></td>
       <td><small>${h(x.campana || '—')}</small></td><td style="white-space:nowrap">${x.desde ? fechas(x, !x.activo) : '—'}</td><td>${x.activo ? '<span class="chip an-vivo-chip">● Activo</span>' : '<span class="chip">Apagado</span>'}</td>
       <td>${x.meta ? $$(x.meta.gasto) : '—'}</td><td>${x.meta ? num(x.meta.conversaciones) : '—'}</td><td>${num(x.p.leads)}</td><td>${num(x.p.calif)}</td><td>${num(x.p.buenos)}</td><td>${num(x.p.agendo)}</td><td>${num(x.p.cliente)}</td><td>${x.costoCita != null ? $$(x.costoCita) : '—'}</td></tr>`)
   const filasViejos = viejos.map((r) => `<tr><td><b>Viejos</b></td><td>${h(mercado(r.camp))}</td><td><b>${h(r.nombre)}</b><br><small>registro manual</small></td><td><small>${h(r.campana || '—')}</small></td>

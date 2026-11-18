@@ -8,7 +8,8 @@
 // GET ?estados=1 → estado de las campañas, conjuntos y anuncios de la cuenta (campo "cuenta"), solo lectura.
 // PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
 //        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL);
-//        { borrarRegistros: [{ semana, camp, anuncio }] } borra solo registros MANUALES (para corregirlos).
+//        { borrarRegistros: [{ semana, camp, anuncio }] } borra solo registros MANUALES (para corregirlos);
+//        { borrarAprendizajes: ["título exacto"] } borra un aprendizaje para reemplazarlo.
 // Nunca cambia nada en Meta ni en los leads; no devuelve datos personales.
 import { timingSafeEqual } from 'node:crypto'
 import { json, sb } from '../lib/sb.mjs'
@@ -67,7 +68,7 @@ const fecha = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : new Date().toISO
 const txt = (v, n) => String(v ?? '').slice(0, n)
 const ent = (v) => Math.max(0, Math.round(Number(v) || 0))
 
-async function guardar({ aprendizajes = [], registros = [], borrarRegistros = [] }) {
+async function guardar({ aprendizajes = [], registros = [], borrarRegistros = [], borrarAprendizajes = [] }) {
   const apr = (Array.isArray(aprendizajes) ? aprendizajes : []).slice(0, 50).filter((a) => a?.titulo).map((a) => ({
     fecha: fecha(a.fecha),
     tipo: TIPOS.includes(a.tipo) ? a.tipo : 'semana',
@@ -90,8 +91,15 @@ async function guardar({ aprendizajes = [], registros = [], borrarRegistros = []
     await sb(`/rest/v1/anuncios_semanas?semana=eq.${b.semana}&camp=eq.${b.camp}&anuncio=eq.${encodeURIComponent(txt(b.anuncio, 20))}&estado=eq.MANUAL`, { servicio: true, method: 'DELETE' })
     borrados++
   }
+  // Un aprendizaje se borra solo por su título exacto (para reemplazar uno que quedó viejo).
+  let aprBorrados = 0
+  for (const t of (Array.isArray(borrarAprendizajes) ? borrarAprendizajes : []).slice(0, 10)) {
+    if (typeof t !== 'string' || !t.trim()) continue
+    await sb(`/rest/v1/anuncios_aprendizajes?titulo=eq.${encodeURIComponent(txt(t, 200))}`, { servicio: true, method: 'DELETE' })
+    aprBorrados++
+  }
   const op = { servicio: true, method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal' }
   if (apr.length) await sb('/rest/v1/anuncios_aprendizajes?on_conflict=titulo', { ...op, body: apr })
   if (reg.length) await sb('/rest/v1/anuncios_semanas?on_conflict=semana,camp,anuncio', { ...op, body: reg })
-  return { aprendizajes: apr.length, registros: reg.length, borrados }
+  return { aprendizajes: apr.length, registros: reg.length, borrados, aprBorrados }
 }

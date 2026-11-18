@@ -48,8 +48,14 @@ export const filasMiSemago = (r) => (r?.data || []).map(fila).filter((f) => esDe
 
 /** Estado de cada anuncio de Mi Semago (también los apagados). */
 export async function estadosMeta() {
-  const ads = await graph(`${cuentaMeta()}/ads?fields=name,effective_status,created_time,updated_time,campaign{name}&filtering=${FILTRO_ADS}&limit=300`)
+  const ads = await graph(`${cuentaMeta()}/ads?fields=name,effective_status,created_time,updated_time,campaign{name,stop_time},adset{end_time}&filtering=${FILTRO_ADS}&limit=300`)
+  // Meta sigue diciendo ACTIVE cuando el conjunto o la campaña ya llegaron a su fecha de fin: aquí eso es TERMINADO.
+  const fin = (a) => [a.adset?.end_time, a.campaign?.stop_time].filter(Boolean).map((t) => new Date(t).getTime()).filter((t) => t > 0).sort((x, y) => x - y)[0]
   return (ads.data || [])
-    .map((a) => ({ anuncio: a.name, campana: a.campaign?.name || '', estado: a.effective_status, creado: a.created_time, actualizado: a.updated_time }))
+    .map((a) => {
+      const f = fin(a)
+      const termino = a.effective_status === 'ACTIVE' && f && f < Date.now()
+      return { anuncio: a.name, campana: a.campaign?.name || '', estado: termino ? 'TERMINADO' : a.effective_status, creado: a.created_time, actualizado: termino ? new Date(f).toISOString() : a.updated_time }
+    })
     .filter((a) => esDeMiSemago(a.campana))
 }

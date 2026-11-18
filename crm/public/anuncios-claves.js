@@ -25,10 +25,14 @@ export const MERCADO_R1 = 'OESTE'
 /** Solo las campañas de Mi Semago (la cuenta de anuncios puede tener las de otra empresa). */
 export const esDeMiSemago = (campana) => /mi\s*semago/i.test(limpio(campana))
 
-/** Ronda de una campaña: "MI SEMAGO | OESTE | R2 | WhatsApp" → 2; sin "R#" → 1. */
+/**
+ * Ronda de una campaña: "MI SEMAGO | OESTE | R2 | WhatsApp" → 2. La ronda 1 es "Mi Semago · Distribuidores
+ * Oeste · …" (9–16 nov 2026). Las campañas de antes (2025 a marzo 2026, otro método) son la ronda 0: "Anteriores".
+ */
 export function rondaDeCampana(campana) {
   const m = /\|\s*R(\d+)\s*(\||$)/i.exec(campana || '') || /\bRonda\s*(\d+)/i.exec(campana || '')
-  return m ? Number(m[1]) : 1
+  if (m) return Number(m[1])
+  return /distribuidores\s+oeste/i.test(limpio(campana)) ? 1 : 0
 }
 
 /** Mercado de una campaña: el segundo tramo de "MI SEMAGO | OESTE | R2 | …". */
@@ -38,7 +42,7 @@ export function mercadoDeCampana(campana) {
 }
 
 /** Mercado de cualquier campaña de Mi Semago (la de la ronda 1 no llevaba "|": se reconoce por "Oeste"). */
-export const campDe = (campana) => mercadoDeCampana(campana) || (/\boeste\b/i.test(limpio(campana)) ? MERCADO_R1 : 'OTRO')
+export const campDe = (campana) => (rondaDeCampana(campana) === 0 ? 'ANTES' : mercadoDeCampana(campana) || (/\boeste\b/i.test(limpio(campana)) ? MERCADO_R1 : 'OTRO'))
 
 /** Fuente de ManyChat → { camp, video, ronda }. Lo que no viene de un anuncio es orgánico (null). */
 export function claveDeFuente(fuente) {
@@ -55,7 +59,7 @@ export function claveDeAnuncio(nombre, campana) {
   if (!esDeMiSemago(campana)) return null
   const ronda = rondaDeCampana(campana)
   const n = /^\s*([A-Za-z]{2,12})\s*\|\s*([A-Za-z])\s*(\||$)/.exec(limpio(nombre))
-  if (n) return { camp: mercadoDeCampana(campana) || n[1].toUpperCase(), ronda, video: n[2].toUpperCase() }
+  if (n && ronda > 0) return { camp: mercadoDeCampana(campana) || n[1].toUpperCase(), ronda, video: n[2].toUpperCase() }
   const camp = campDe(campana)
   const r1 = ronda === 1 && deRonda1(nombre)
   if (r1) return { camp: camp === 'OTRO' ? MERCADO_R1 : camp, ronda: 1, video: r1[1] }
@@ -65,9 +69,9 @@ export function claveDeAnuncio(nombre, campana) {
 }
 
 /** La llave única de un anuncio: "2-OESTE-A". */
-export const llaveDe = (k) => `${k.ronda || 1}-${k.camp}-${k.video}`
+export const llaveDe = (k) => `${k.ronda ?? 1}-${k.camp}-${k.video}`
 /** Código para guardar en la foto semanal: "R1-A", "R2-A". */
-export const codigoDe = (k) => `R${k.ronda || 1}-${k.video}`
+export const codigoDe = (k) => `R${k.ronda ?? 1}-${k.video}`
 /** Y al revés: "R2-A" → { ronda: 2, video: 'A' }. */
 export const deCodigo = (c) => {
   const m = /^R(\d+)-(.+)$/.exec(c || '')
@@ -81,7 +85,7 @@ export const nombreCorto = (video) => (/^[A-Z]$/.test(video) ? `Anuncio ${video}
 export function descripcion(nombre, k) {
   const partes = String(nombre || '').split('|').map((s) => s.trim())
   if (partes.length >= 3) return partes.slice(2).filter((s) => s && !/^(VID|IMG|CAR)$/i.test(s)).join(' · ')
-  const r1 = k && (k.ronda || 1) === 1 && RONDA1.find(([, letra]) => letra === k.video)
+  const r1 = k && (k.ronda ?? 1) === 1 && RONDA1.find(([, letra]) => letra === k.video)
   return r1 ? r1[2] : String(nombre || '')
 }
 
