@@ -139,3 +139,5 @@ Copia del sistema de aprendizaje de anuncios de NXUS HQ (`docs/sistema-aprendiza
 - Embudo: entró al Centro de trabajo → dio permiso de llamada → Ana Sofi habló (hay calificación o etapa hablo/meet/cerrado) → lead bueno (caliente o medio) → Meet (`meet_inicio` o etapa meet) → cliente (etapa cerrado). No hay "asistió al Meet" todavía.
 - Si cambian las etapas o columnas de `leads`, ajustar `pasoDe` en `anuncios-claves.js` (lo usan el panel y la foto semanal).
 - Ultron no lee nada de anuncios (el cliente habla con Ultron).
+- Estado al 18 nov 2026: Meta conectada (usuario de sistema "Mi Semago lectura", solo `ads_read`, cuenta `act_1159974735432976`, app Nexy Vigilancia) y `REPORTE_CLAVE` puesta. Las campañas sin "R#" que no son la de Distribuidores Oeste salen como "Anteriores" (ronda 0). Meta sigue diciendo ACTIVE cuando la campaña llegó a su fecha de fin: el panel lo muestra como TERMINADO.
+- El acceso del reporte: `https://centro-misemago-abuelito.netlify.app/.netlify/functions/anuncios-reporte` con el encabezado `X-Reporte-Key` (en las sesiones en la nube lo pone solo el ambiente; nunca en el chat).

@@ -10,12 +10,34 @@ Lo mismo se ve en el Centro de trabajo → **Anuncios** → 📚 Aprendizajes (s
 - **9 nov 2026 · Se juzga por leads buenos y Meets**, no por costo por mensaje. 7 días sin tocar.
 
 ## Rondas
-### Ronda 1 · Distribuidores Oeste (9–16 nov 2026) — FALTAN LOS NÚMEROS
-"Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días": $25/día, tope $175. Anuncios (así salen en el panel): **R1-A** Capacidad 500k lb · **R1-B** Tu marca · **R1-C** Logística 40°F · **R1-D** Carrusel planta real. Fuente en ManyChat: "Anuncio · Capacidad", "Anuncio · Tu marca", "Anuncio · Logística", "Anuncio · Carrusel".
-Pendiente: cierre con gasto, chats, leads, leads buenos y Meets por anuncio (al conectar la llave de Meta: foto del 9 al 16 nov).
+### Ronda 1 · cierre (Distribuidores Oeste, 9–16 nov 2026)
+Fuente: Meta (solo lectura) + Centro de trabajo, corte del 18 nov 2026. Foto de la semana 9–15 nov guardada en `anuncios_semanas`.
+"Mi Semago · Distribuidores Oeste · WhatsApp · Prueba 7 días": $25/día, tope $175, Click-to-WhatsApp, 30–65 sin intereses, 38 códigos postales del oeste + Chicago, solo celular, Facebook e Instagram (Feed, Stories, Reels). Del 17 nov en adelante gastó $0.
+
+| Anuncio | Gastado | Vistas | Chats | Por chat | Leads | Con permiso | Habló Ana Sofi | Buenos | Meets |
+|---|---|---|---|---|---|---|---|---|---|
+| R1-B · Tu marca | $124.82 | 10,001 | 45 | $2.77 | 12 | 4 | 1 | 0 | 0 |
+| R1-A · Capacidad 500k lb | $46.08 | 3,110 | 13 | $3.54 | 2 | 2 | 1 | 1 | 1 |
+| R1-D · Carrusel planta real | $2.56 | 176 | 1 | $2.56 | 1 | 1 | 1 | 1 | 0 |
+| R1-C · Logística 40°F | $1.52 | 116 | 0 | — | 0 | 0 | 0 | 0 | 0 |
+| **Total** | **$174.98** | **13,403** | **59** | **$2.97** | **15** | **7** | **3** | **2** | **1** |
+
+Por lead bueno: $87.49. Por Meet: $174.98. Clientes: 0 por ahora.
+
+- **Meta puso el 98 % del dinero en 2 de los 4 anuncios.** Logística y Carrusel casi no se mostraron: NO quedaron probados.
+- **"Tu marca"** trae más chats y más baratos, pero de 12 leads solo 4 dieron permiso y ninguno salió bueno. **"Capacidad"** trajo el único Meet. Es UN Meet: señal, no regla.
+- **De 59 chats solo 15 llegaron al Centro de trabajo (25 %).** 44 se quedaron en WhatsApp sin entrar al flujo.
+- De 15 leads, 8 no dieron permiso de llamada; de los 7 que sí, Ana Sofi habló con 3.
+- El chat salió más barato que en las campañas anteriores ($2.97 contra $8.67 en feb y $4.51 en mar), con público acotado y sin intereses.
+
+### Campañas anteriores (2025 – mar 2026): punto de comparación
+10 anuncios en 9 campañas viejas: $3,340.85 y 164 conversaciones. Público 18–65 con intereses; varias iban a llamada, formulario o visitas al perfil. Las de WhatsApp: feb 2026 $858.43 → 99 chats ($8.67); mar 2026 $171.23 → 38 chats ($4.51). No se sabe cuántos fueron leads buenos o clientes (no se medía por anuncio). En el panel salen como "Anteriores" (ronda 0).
 
 ## Hipótesis por probar
-Salen del informe de competencia del 18 nov 2026. Son interpretación del asesor, no datos: se confirman o se descartan con leads buenos y Meets.
+Salen del cierre de la ronda 1 y del informe de competencia del 18 nov 2026. Son interpretación del asesor, no datos: se confirman o se descartan con leads buenos y Meets.
+- **¿Por qué 44 de 59 chats no llegaron al Centro de trabajo?** (ronda 1) Posibles causas sin confirmar: cambian o borran el mensaje prellenado (ManyChat solo arranca con la frase exacta), abren y no mandan nada, o respuestas automáticas. Revisar en ManyChat → Live Chat con la extensión, solo mirando.
+- **¿"Tu marca" atrae a gente que no es distribuidor?** (ronda 1) 12 leads, 4 con permiso, 0 buenos. Leer las fichas de esos leads en el Centro de trabajo.
+- **¿Cómo lograr que Meta sí pruebe todos los anuncios?** (ronda 1) Con 4 anuncios y $25/día eligió 2. Opciones: 2–3 anuncios por conjunto o 2 conjuntos con presupuesto propio.
 - **¿Un video corto de la planta trae más leads buenos que la imagen?** La ronda 1 fue solo imágenes y carrusel; los que le venden comida a negocios usan video (10–56 s) e imagen casi por igual. Prueba: cada idea de la ronda 2 en video de 10–20 s y en imagen.
 - **¿Decir "planta registrada ante la FDA" y la capacidad nos distingue?** Nadie menciona certificaciones, envío refrigerado ni capacidad. Puede ser un hueco o puede no importarle al comprador. Falta ver los números de "Capacidad" y "Logística" de la ronda 1.
 - **¿Un primer paso más fácil (catálogo o muestra) sube los leads buenos?** Los anuncios más viejos bajan la barrera (muestra gratis, "desde 1 lb", catálogo por WhatsApp). Nosotros abrimos con mínimo de 1,500 lb. **Decidido el 18 nov 2026 (Eduardo): Mi Semago SÍ manda muestras a distribuidores.** Condiciones (Eduardo, 18 nov 2026): la muestra es gratis con el envío incluido, a todo EE. UU., y solo se manda después de que Ana Sofi lo calificó bien y es candidato fuerte a cliente. En el anuncio se dice como "muestra gratis para distribuidores que califiquen", nunca como muestra para cualquiera.
