@@ -62,6 +62,13 @@ REGLAS PARA EL BOT (ManyChat)
 - Mandar la señal de lead bueno a Meta (ManyChat → Settings → canal → Ads Optimization / Conversions API) solo cuando
   la persona terminó el filtro, no al primer mensaje.
 
+FORMATOS (18 nov 2026)
+- Instagram Feed e Instagram Profile feed solo aceptan video de 4:5 a 1.91:1: un video 9:16 marca "Fix error" y no se
+  publica. Con videos 9:16: quitar Instagram Feed y Profile feed del conjunto (en octubre IG Feed fue de lo más caro:
+  $6.60 por conversación vs Reels $1.45–3.06) o exportar también una versión 4:5.
+- Las imágenes verticales por ubicación ("Customize media" → Vertical) solo se suben con "Upload your own" desde la
+  computadora (no desde la biblioteca) y la ventana de archivos se duplica fácil: subirlas desde el inicio o no usarlas.
+
 REGLAS PARA LA EXTENSIÓN (Claude in Chrome)
 - "Review and publish" en Ads Manager publica TODOS los borradores de la cuenta, no solo los de esa pestaña
   (18 nov 2026: al pausar la ronda 1 se publicaron a medias la campaña R2 y un borrador viejo). Mientras la
