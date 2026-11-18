@@ -4,6 +4,7 @@
 // GET  → las semanas guardadas + cómo va todo desde el inicio (Meta, solo lectura).
 // POST → toma la foto de la última semana completa (o de ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD) y devuelve lo mismo.
 // GET ?desde=&hasta= → además calcula ese rango sin guardarlo (campo "rango").
+// GET ?estados=1 → estado de todas las campañas y anuncios de la cuenta (campo "cuenta"), solo lectura.
 // PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
 //        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL);
 //        { borrarRegistros: [{ semana, camp, anuncio }] } borra solo registros MANUALES (para corregirlos).
@@ -42,7 +43,17 @@ export default async (req) => {
       }
     } else motivo = 'Meta sin conectar'
     const aprendizajes = await sb('/rest/v1/anuncios_aprendizajes?select=fecha,tipo,estado,titulo,texto,fuente&order=fecha.desc&limit=200', { servicio: true }).catch(() => [])
-    return json({ ok: true, foto, rango: enRango, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
+    // Estado de TODAS las campañas y anuncios de la cuenta (solo lectura), para revisar qué cambió
+    let cuenta = null
+    if (metaListo() && q.get('estados')) {
+      const act = cuentaMeta()
+      const [camps, ads] = await Promise.all([
+        graph(`${act}/campaigns?fields=name,effective_status,configured_status,updated_time,daily_budget,spend_cap&limit=100`),
+        graph(`${act}/ads?fields=name,effective_status,configured_status,updated_time,campaign{name},adset{name,effective_status}&limit=200`),
+      ]).catch((e) => [{ error: e.message }, {}])
+      cuenta = { campanas: camps.data || camps, anuncios: ads.data || [] }
+    }
+    return json({ ok: true, foto, rango: enRango, cuenta, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
     return json({ ok: false, error: err.message.slice(0, 300) }, 500)
   }
