@@ -67,3 +67,10 @@ equipo en la calle), video corto con la pregunta grande desde el segundo 0 (34 %
 - Imágenes (`imagenes.cjs`): NXUS-R2-D/E/F en feed 4:5 (1080×1350) e historia 9:16 (1080×1920).
 - ManyChat: NO se cambia el flujo; solo se copian las automatizaciones de entrada (una por anuncio) con la fuente "Anuncio MX R2 · Video A…F".
 - Costo Higgsfield aprox.: 70 créditos (8 clips) + ~3 (imágenes y voces).
+
+## ManyChat listo (18 nov 2026)
+- 6 automatizaciones "Anuncio MX R2 · Video A…F · FB" copiadas de "Anuncio MX · Video C · FB" (que sigue LIVE y sin cambios).
+- Disparador "User clicks a Facebook Ad" (Messenger) renombrado "R2 · Video A" … "R2 · Video F" (así aparecen en Ads Manager).
+- Primer mensaje en "usted": "¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar su diagnóstico gratis, ¿cuántas sucursales o ubicaciones tiene su negocio?" · botones 1 / 2 a 5 / 6 o más.
+- Cada botón: sucursales = botón, fuente = "Anuncio MX R2 · Video X", canal = facebook, etiqueta anuncio-mx → Start Automation "Filtro NXUS · Facebook". Revisado botón por botón.
+- Siguiente: campaña con `ads/prompt-chrome-campana-mx-r2.txt` (sin publicar hasta revisar el informe).
