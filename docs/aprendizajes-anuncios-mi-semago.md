@@ -26,8 +26,26 @@ Por lead bueno: $87.49. Por Meet: $174.98. Clientes: 0 por ahora.
 
 - **Meta puso el 98 % del dinero en 2 de los 4 anuncios.** Logística y Carrusel casi no se mostraron: NO quedaron probados.
 - **"Tu marca"** trae más chats y más baratos, pero de 12 leads solo 4 dieron permiso y ninguno salió bueno. **"Capacidad"** trajo el único Meet. Es UN Meet: señal, no regla.
-- **De 59 chats solo 15 llegaron al Centro de trabajo (25 %).** 44 se quedaron en WhatsApp sin entrar al flujo.
-- De 15 leads, 8 no dieron permiso de llamada; de los 7 que sí, Ana Sofi habló con 3.
+- **De 59 chats que contó Meta, ManyChat registró 53 contactos; el bot arrancó en 46 y solo 15 terminaron.** El lead llega al Centro de trabajo hasta el final del chat: la gente se perdió DENTRO del chat, no antes.
+- De los 15 que terminaron, 9 dijeron "Ahora no" a la llamada. Ana Sofi habló con 3.
+
+#### ManyChat en la ronda 1: dónde se cayó la gente (revisión del 18 nov 2026, 53 de 53 conversaciones, solo lectura)
+| Hasta dónde llegó | Cuántos |
+|---|---|
+| El bot nunca contestó (escribieron otra cosa) | 3 |
+| No tocó el botón de idioma (primer paso) | 14 |
+| Eligió idioma y no dio su nombre | 8 |
+| Dio nombre y no pasó de negocio y ciudad | 6 |
+| No contestó si se le puede llamar | 7 |
+| Terminó: "Sí, llámenme" | 6 |
+| Terminó: "Ahora no" | 9 |
+
+- 4 personas cambiaron la frase prellenada (agregaron su ciudad o una pregunta) y el bot no arrancó; 2 la reenviaron bien.
+- Cuando escriben en vez de tocar un botón (9 casos: "Mínimo a comprar", "Si puedes escribirlo mejor"), el bot se queda callado. No hay recordatorios. Dos contestaron 37 y 58 minutos después y el bot ya no siguió.
+- Nadie eligió inglés. 7 escribieron después de terminar y nadie contestó. A los de "Ahora no" nadie les da seguimiento.
+- 1 error "Invalid payload json" al mandar un lead al Centro de trabajo (15 nov).
+- El bot arrancó en: Tu marca 37, Capacidad 8, Carrusel 1, Logística 0. Terminan en proporción parecida: la caída es del chat, no de un anuncio.
+- Robots de otros negocios: 1 de 53. El filtro del público funcionó.
 - El chat salió más barato que en las campañas anteriores ($2.97 contra $8.67 en feb y $4.51 en mar), con público acotado y sin intereses.
 
 ### Campañas anteriores (2025 – mar 2026): punto de comparación
@@ -35,7 +53,7 @@ Por lead bueno: $87.49. Por Meet: $174.98. Clientes: 0 por ahora.
 
 ## Hipótesis por probar
 Salen del cierre de la ronda 1 y del informe de competencia del 18 nov 2026. Son interpretación del asesor, no datos: se confirman o se descartan con leads buenos y Meets.
-- **¿Por qué 44 de 59 chats no llegaron al Centro de trabajo?** (ronda 1) Posibles causas sin confirmar: cambian o borran el mensaje prellenado (ManyChat solo arranca con la frase exacta), abren y no mandan nada, o respuestas automáticas. Revisar en ManyChat → Live Chat con la extensión, solo mirando.
+- **¿Un chat más corto y que conteste preguntas duplica los leads?** (ronda 1: terminó el 28 %, 15 de 53.) Propuesta para la ronda 2: quitar la pregunta de idioma; que el bot arranque aunque cambien la frase ("empieza con"); dar valor antes de pedir datos y pedir menos; contestar cuando escriben en vez de tocar un botón, con recordatorio; a "Ahora no", precios por escrito y seguimiento de una persona; arreglar el error de envío. Se mide por % que termina y % que acepta la llamada (28 % y 40 % en la ronda 1).
 - **¿"Tu marca" atrae a gente que no es distribuidor?** (ronda 1) 12 leads, 4 con permiso, 0 buenos. Leer las fichas de esos leads en el Centro de trabajo.
 - **¿Cómo lograr que Meta sí pruebe todos los anuncios?** (ronda 1) Con 4 anuncios y $25/día eligió 2. Opciones: 2–3 anuncios por conjunto o 2 conjuntos con presupuesto propio.
 - **¿Un video corto de la planta trae más leads buenos que la imagen?** La ronda 1 fue solo imágenes y carrusel; los que le venden comida a negocios usan video (10–56 s) e imagen casi por igual. Prueba: cada idea de la ronda 2 en video de 10–20 s y en imagen.
