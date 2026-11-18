@@ -9,6 +9,7 @@ Este archivo es la memoria de lo que funciona y lo que no en los anuncios de NXU
 - **9 nov 2026 · Llamada de NEX:** el guion largo (6 preguntas, presupuesto, tuteo) sonaba a formulario. → Máx. 3 preguntas, sin presupuesto, "usted", saludo corto.
 
 ## Hipótesis por probar (pendiente de datos)
+- 18 nov 2026 · ¿El ángulo "recuperar su tiempo / llegar a cenar" trae citas? (video de contenido "El jefe que no llega a cenar"). Para la ronda 3: versión de ~15 s con pregunta desde el segundo 0, corregir "Nexus AI" y sin "Cupos limitados" si no es real. "Mi mejor empleado no duerme" = idea que perdió en la ronda 1: solo orgánico.
 - ¿Video A (11:48, celular de noche) tiene mejor gancho que B y C? Ver "Gancho (3 s)" en el panel a los 7 y 14 días.
 - ¿Instagram trae más personas reales que Facebook, aunque el chat abra en Messenger? Ver el desglose por ubicación del reporte semanal.
 - ¿NY (zonas hispanas, idioma español) cuesta más por cita que MX? Comparar en el panel con el filtro de campaña.
