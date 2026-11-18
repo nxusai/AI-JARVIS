@@ -81,3 +81,5 @@ Eduardo hace siempre lo que se le pide (si no, lo dice). Antes de pedirle que co
 - **Esquema en Supabase:** con la llave pública (`/.netlify/functions/config` da `url` y `anon`), pedir por REST lo nuevo. Si una columna o función **no existe**, contesta `42703` / "Could not find the function"; si existe, `42501 permission denied` (o el mensaje nuevo de la función). Ej.: `select=tomada_por` en `tareas`, `rpc/personas`, y `rpc/aprobar` con un id cualquiera debe decir "…(o el administrador) la puede aprobar".
 - **Funciones de Netlify:** un POST sin sesión debe contestar "Tu sesión se cerró" (existe).
 - **No se ve desde aquí:** el agente de ElevenLabs (se prueba preguntándole a Ultron algo de una herramienta nueva, p. ej. "¿cuántos confirmados hay a la fiesta?"), el Apps Script de correo (botón "Mandar todos") y el cerebro (`node scripts/cerebro.mjs estado`).
+
+- Los anuncios de Mi Semago se llevan en su propio chat; lo del CRM que les toca está en `docs/crm-para-ads-mi-semago.md` (ese chat solo cambia Leads, Website leads, las puertas `manychat.mjs`/`leads.mjs` y la línea de ventas; lo demás del CRM se hace en el chat del CRM).
