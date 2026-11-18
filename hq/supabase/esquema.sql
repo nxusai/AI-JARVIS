@@ -1895,3 +1895,37 @@ drop policy if exists hq_port_subir on storage.objects;
 create policy hq_port_subir on storage.objects for insert to authenticated with check (bucket_id = 'portafolio' and puede('portafolio'));
 drop policy if exists hq_port_borrar on storage.objects;
 create policy hq_port_borrar on storage.objects for delete to authenticated using (bucket_id = 'portafolio' and es_admin());
+
+-- Asistencia (18 nov 2026): si a alguien se le olvidó marcar salida y al día siguiente marca entrada,
+-- la jornada vieja (de hace más de 14 horas) se cierra sola en 0 horas con un aviso, para que Eduardo
+-- ponga la hora real con "Corregir". Así el día nuevo sí queda registrado.
+create or replace function public.antes_jornada() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' and new.persona is null then new.persona := auth.uid(); end if;
+  -- Cierre automático de un olvido (lo hace este mismo trigger, no la persona).
+  if tg_op = 'UPDATE' and current_setting('hq.cierre_olvido', true) = '1' then return new; end if;
+  if tg_op = 'INSERT' and new.salida is null then
+    perform set_config('hq.cierre_olvido', '1', true);
+    update public.jornadas
+      set salida = entrada + interval '1 second',
+          nota = left(trim('⚠ Olvidó marcar salida: corrige la hora. ' || nota), 500)
+      where persona = coalesce(new.persona, auth.uid()) and salida is null and entrada < now() - interval '14 hours';
+    perform set_config('hq.cierre_olvido', '', true);
+  end if;
+  if es_sistema() or puede('asistencia_corregir') then return new; end if;
+  if tg_op = 'INSERT' then
+    new.persona := auth.uid();
+    new.entrada := now();
+    new.salida := null;
+    new.dia_completo := false;
+  else
+    if old.salida is not null then raise exception 'Esa jornada ya está cerrada'; end if;
+    new.persona := old.persona;
+    new.entrada := old.entrada;
+    new.dia_completo := old.dia_completo;
+    new.nota := old.nota;
+    new.salida := case when new.salida is null then null else now() end;
+  end if;
+  return new;
+end $$;

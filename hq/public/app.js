@@ -70,7 +70,11 @@ const horas = (ms) => {
   const m = Math.max(0, Math.round(ms / 60000))
   return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`
 }
-const duracion = (j) => (j.salida ? new Date(j.salida) - new Date(j.entrada) : Date.now() - new Date(j.entrada))
+const OLVIDO_MS = 14 * 3600000 // sin salida por más de 14 h = se le olvidó marcar salida
+const olvidada = (j) => !j.salida && Date.now() - new Date(j.entrada) > OLVIDO_MS
+const cerradaSola = (j) => String(j.nota || '').startsWith('⚠ Olvidó marcar salida')
+// Lo que dura una jornada. Si se le olvidó la salida, no suma horas hasta que Eduardo la corrija.
+const duracion = (j) => (j.salida ? new Date(j.salida) - new Date(j.entrada) : olvidada(j) ? 0 : Date.now() - new Date(j.entrada))
 const iniciales = (n) =>
   String(n || '?')
     .split(/\s+/)
@@ -348,14 +352,17 @@ export function iniciar(D, { muestra = false } = {}) {
   function pintarReloj() {
     const el = $('#reloj-top')
     if (!el) return
-    el.innerHTML = abierta
+    el.innerHTML = abierta && olvidada(abierta)
+      ? `<span class="punto rojo-p"></span><span title="Marcaste entrada el ${h(fechaCorta(abierta.entrada))} a las ${hora(abierta.entrada)} y no marcaste salida">No marcaste salida (${h(fechaCorta(abierta.entrada))})</span><button class="btn chico primario" id="r-entrar">Marcar entrada de hoy</button>`
+      : abierta
       ? `<span class="punto vivo"></span><span>Trabajando · ${horas(duracion(abierta))}</span><button class="btn chico" id="r-salir">Marcar salida</button>`
       : `<span class="punto"></span><span>Fuera</span><button class="btn chico primario" id="r-entrar">Marcar entrada</button>`
     $('#r-entrar', el)?.addEventListener('click', marcarEntrada)
     $('#r-salir', el)?.addEventListener('click', marcarSalida)
   }
   async function marcarEntrada() {
-    const j = await intenta(() => D.marcarEntrada(yo.id), 'Entrada registrada')
+    const olvido = abierta && olvidada(abierta)
+    const j = await intenta(() => D.marcarEntrada(yo.id), olvido ? 'Entrada registrada. Tu salida olvidada quedó para que Eduardo la corrija' : 'Entrada registrada')
     if (j) abierta = j
     pintarReloj()
     if (location.hash === '#reloj' || location.hash === '#inicio' || !location.hash) mostrar()
@@ -1462,7 +1469,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const verTodos = puede('asistencia_ver')
     const pintar = async () => {
       if (location.hash !== '#reloj' || !$('#rl-vivos', v)) return clearInterval(relojVivo)
-      const abiertas = (await D.abiertas().catch(() => [])).filter((j) => verTodos || j.persona === yo.id)
+      const abiertas = (await D.abiertas().catch(() => [])).filter((j) => (verTodos || j.persona === yo.id) && !olvidada(j))
       abiertas.sort((a, b) => String(a.entrada).localeCompare(String(b.entrada)))
       const tarjetas = await Promise.all(
         abiertas.map(async (j) => {
@@ -1637,6 +1644,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const q = quincena(), qa = quincena(new Date(), -1)
     return (
       {
+        ult30: { desde: mas(hoy, -29), hasta: mas(hoy, 1) },
         hoy: { desde: hoy, hasta: mas(hoy, 1) },
         ayer: { desde: mas(hoy, -1), hasta: hoy },
         semana: { desde: lunes, hasta: mas(hoy, 1) },
@@ -1649,12 +1657,12 @@ export function iniciar(D, { muestra = false } = {}) {
       }[clave] ?? null
     )
   }
-  const PERIODOS = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', 'semana-pasada': 'Semana pasada', quincena: 'Esta quincena', 'quincena-pasada': 'Quincena pasada', mes: 'Este mes', 'mes-pasado': 'Mes pasado', anio: 'Este año', rango: 'Elegir fechas…' }
+  const PERIODOS = { ult30: 'Últimos 30 días', hoy: 'Hoy', ayer: 'Ayer', semana: 'Esta semana', 'semana-pasada': 'Semana pasada', quincena: 'Esta quincena', 'quincena-pasada': 'Quincena pasada', mes: 'Este mes', 'mes-pasado': 'Mes pasado', anio: 'Este año', rango: 'Elegir fechas…' }
 
   async function vistaAsistencia(v) {
     let filtro = {}
     try { filtro = JSON.parse(sessionStorage.getItem('hq-asis') || '{}') } catch {}
-    const per = PERIODOS[filtro.per] ? filtro.per : 'quincena'
+    const per = PERIODOS[filtro.per] ? filtro.per : 'ult30'
     let rango = periodoAsistencia(per)
     if (per === 'rango') {
       const d = /^\d{4}-\d{2}-\d{2}$/.test(filtro.desde) ? deFecha(filtro.desde) : periodoAsistencia('mes').desde
@@ -1686,7 +1694,7 @@ export function iniciar(D, { muestra = false } = {}) {
     const totalMs = resumen.reduce((s, r) => s + r.ms, 0)
     const diasTot = resumen.reduce((s, r) => s + r.dias.size, 0)
     const abiertasTot = lista.filter((j) => !j.salida).length
-    const olvidos = lista.filter((j) => !j.salida && diaJor(j.entrada) < aFecha(new Date())).length
+    const olvidos = lista.filter((j) => (!j.salida && diaJor(j.entrada) < aFecha(new Date())) || cerradaSola(j)).length
     const promedioEntrada = (arr) => {
       if (!arr.length) return '—'
       const m = Math.round(arr.reduce((s, x) => s + x, 0) / arr.length)
@@ -1698,6 +1706,27 @@ export function iniciar(D, { muestra = false } = {}) {
       .map((p) => `<option value="${p.id}" ${p.id === quien ? 'selected' : ''}>${h(p.nombre)}${p.activo ? '' : ' (ya no está)'}</option>`)
       .join('')}`
 
+    // Día por día: cada persona y cada día, para ver de un vistazo quién no marcó.
+    function diaPorDia() {
+      const dias = []
+      for (let d = new Date(rango.desde); d < rango.hasta && dias.length < 62; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) dias.push(aFecha(d))
+      if (dias.length < 2) return ''
+      const hoyF = aFecha(new Date())
+      const gente = todas.filter((p) => (p.activo || porPersona.has(p.id)) && (!quien || p.id === quien)).sort((a, b) => a.nombre.localeCompare(b.nombre))
+      if (!gente.length) return ''
+      const celda = (pid, f) => {
+        const js = lista.filter((j) => j.persona === pid && diaJor(j.entrada) === f)
+        const finde = [0, 6].includes(deFecha(f).getDay())
+        if (f > hoyF) return '<td class="dd-futuro"></td>'
+        if (!js.length) return `<td class="${finde ? 'dd-finde' : f === hoyF ? 'dd-hoy' : 'dd-falta'}" title="${h(nombreDe(pid))} · ${diaLargo(f)} · no marcó entrada">${finde || f === hoyF ? '' : '✕'}</td>`
+        const olv = js.some((j) => cerradaSola(j) || olvidada(j))
+        const ms = js.reduce((s, j) => s + duracion(j), 0)
+        const det = js.map((j) => `${hora(j.entrada)}–${cerradaSola(j) || olvidada(j) ? '¿?' : j.salida ? hora(j.salida) : 'ahora'}`).join(', ')
+        return `<td class="${olv ? 'dd-olvido' : 'dd-ok'}" title="${h(nombreDe(pid))} · ${diaLargo(f)} · ${det}">${olv ? '⚠' : `${Math.floor(ms / 3600000)}:${String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0')}`}</td>`
+      }
+      return `<div class="tarjeta"><h3>Día por día <small>✕ no marcó · ⚠ olvidó la salida · pasa el mouse para ver horas</small></h3><div class="tabla-scroll"><table class="tabla dia-x-dia"><tr><th>Persona</th>${dias.map((f) => { const d = deFecha(f); return `<th class="${[0, 6].includes(d.getDay()) ? 'dd-finde' : ''}">${d.toLocaleDateString('es-MX', { weekday: 'narrow' })}<br>${d.getDate()}</th>` }).join('')}</tr>${gente.map((p) => `<tr><td><b>${h(p.nombre)}</b></td>${dias.map((f) => celda(p.id, f)).join('')}</tr>`).join('')}</table></div></div>`
+    }
+
     // Detalle agrupado por día
     const porDia = new Map()
     for (const j of lista) porDia.set(diaJor(j.entrada), [...(porDia.get(diaJor(j.entrada)) ?? []), j])
@@ -1708,7 +1737,7 @@ export function iniciar(D, { muestra = false } = {}) {
             (j) => `<tr>
               <td>${h(nombreDe(j.persona))}</td>
               <td>${hora(j.entrada)}</td>
-              <td>${j.salida ? `${hora(j.salida)}${diaJor(j.salida) !== dia ? ` <small>(${fechaCorta(j.salida)})</small>` : ''}` : diaJor(j.entrada) < aFecha(new Date()) ? '<span class="chip rojo-chip">sin salida</span>' : '<span class="chip en-curso">trabajando</span>'}</td>
+              <td>${cerradaSola(j) ? '<span class="chip rojo-chip">olvidó salida</span>' : j.salida ? `${hora(j.salida)}${diaJor(j.salida) !== dia ? ` <small>(${fechaCorta(j.salida)})</small>` : ''}` : diaJor(j.entrada) < aFecha(new Date()) ? '<span class="chip rojo-chip">sin salida</span>' : '<span class="chip en-curso">trabajando</span>'}</td>
               <td><b>${horas(duracion(j))}</b></td>
               <td><input type="checkbox" data-dc="${j.id}" ${j.dia_completo ? 'checked' : ''} ${corrige ? '' : 'disabled'} title="Le pediste quedarse el día completo"></td>
               <td class="nota-asis">${h(j.nota || '')}</td>
@@ -1733,6 +1762,7 @@ export function iniciar(D, { muestra = false } = {}) {
         <div class="kpi"><span>Registros</span><b>${lista.length}</b><small>entradas y salidas</small></div>
         <div class="kpi"><span>Sin salida</span><b>${olvidos}</b><small class="${olvidos ? 'rojo' : ''}">${olvidos ? 'se les olvidó marcar salida' : abiertasTot ? `${abiertasTot} trabajando ahora` : 'todo en orden'}</small></div>
       </div>
+      ${diaPorDia()}
       <div class="tarjeta"><h3>Resumen por persona</h3>${
         resumen.length
           ? `<div class="tabla-scroll"><table class="tabla"><tr><th>Persona</th><th>Días</th><th>Horas</th><th>Promedio al día</th><th>Llega en promedio</th><th>Días completos</th><th>Sin salida</th></tr>${resumen

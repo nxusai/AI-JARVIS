@@ -420,6 +420,11 @@ export function crearMuestra() {
       espera(db.jornadas.filter((j) => (tiene('asistencia_ver') || j.persona === yo?.id) && new Date(j.entrada) >= desde && new Date(j.entrada) < hasta).sort((a, b) => b.entrada.localeCompare(a.entrada))),
     abiertas: () => espera(db.jornadas.filter((j) => !j.salida && (tiene('asistencia_ver') || j.persona === yo?.id))),
     async marcarEntrada() {
+      // Como la base de datos: una entrada olvidada (más de 14 h) se cierra sola en 0 horas con aviso.
+      for (const v of db.jornadas.filter((j) => j.persona === yo.id && !j.salida && Date.now() - new Date(j.entrada) > 14 * 3600000)) {
+        v.salida = new Date(new Date(v.entrada).getTime() + 1000).toISOString()
+        v.nota = `⚠ Olvidó marcar salida: corrige la hora. ${v.nota || ''}`.trim()
+      }
       if (db.jornadas.some((j) => j.persona === yo.id && !j.salida)) throw new Error('Ya tienes una entrada abierta')
       const j = { id: id(), persona: yo.id, entrada: new Date().toISOString(), salida: null, dia_completo: false, nota: '' }
       db.jornadas.push(j)

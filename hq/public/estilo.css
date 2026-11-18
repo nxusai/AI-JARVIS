@@ -1173,3 +1173,15 @@ body.vista-ny .nex-orbe, body.vista-ny .nex-panel { opacity: 1; }
   .port-mover { flex-direction: row; }
   .port-galeria img { height: 160px; }
 }
+
+/* Asistencia: día por día */
+.dia-x-dia th, .dia-x-dia td { text-align: center; padding: 6px 4px; min-width: 38px; font-size: 12px; white-space: nowrap; }
+.dia-x-dia th:first-child, .dia-x-dia td:first-child { text-align: left; min-width: 130px; position: sticky; left: 0; background: rgba(10,16,36,.96); z-index: 1; }
+.dia-x-dia th small { font-weight: 500; }
+.dia-x-dia .dd-ok { color: #7ee2a8; font-weight: 650; }
+.dia-x-dia .dd-falta { color: #ff8f8f; background: rgba(255,92,122,.08); }
+.dia-x-dia .dd-olvido { color: #f5c451; background: rgba(245,196,81,.1); font-weight: 700; }
+.dia-x-dia .dd-finde { opacity: .45; }
+.dia-x-dia .dd-hoy, .dia-x-dia .dd-futuro { opacity: .5; }
+.tarjeta h3 small { font-weight: 500; font-size: 12px; color: var(--suave); margin-left: 6px; }
+.punto.rojo-p { background: #ff6b6b; box-shadow: 0 0 10px #ff6b6b; }
