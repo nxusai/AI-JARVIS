@@ -12,3 +12,6 @@ Saldo de Higgsfield al empezar (15 nov 2026): 1,134.14 créditos, plan Ultimate.
 |---|---|---|---|---|
 | 16 nov | Voz del video "Punto de venta para come todo" (43 s, Mark) | Higgsfield | 2.1 | 2.1 |
 | 18 nov | Voz del video "Mi mejor empleado no duerme" (32 s, Mark) | Higgsfield | 1.65 | 3.75 |
+| 18 nov | Voz del video "El jefe que no llega a cenar" (28 s, Mark) más el cierre regrabado | Higgsfield | aprox. 1.8 (no se pidió el costo antes) | aprox. 5.55 |
+
+**Aviso (18 nov):** el saldo de la cuenta de Higgsfield bajó de 1,134.14 (15 nov) a 277.58 (18 nov). El contenido de este chat solo gastó unos 5.5; el resto se gastó en otro lado. Avisado a Eduardo.

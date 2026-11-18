@@ -40,6 +40,7 @@ Hacer el contenido orgánico de NXUS AI: **videos** estilo "La máquina" con el 
 - Habilidades generales de edición: `docs/habilidad-editor-video.md` y `docs/receta-edicion.md` (la receta de Eduardo).
 - Segundo video (16 nov, pendiente de que Eduardo lo apruebe): **"Punto de venta para come todo"** (43.6 s, 9:16, 2.1 créditos). Código en `ads/pos-come-todo/`.
 - Tercer video (18 nov, pendiente de que Eduardo lo apruebe): **"Mi mejor empleado no duerme"** (32.3 s, cámara que sigue a la IA, 1.65 créditos). Código en `ads/empleado-no-duerme/`.
+- Cuarto video (18 nov, pendiente de que Eduardo lo apruebe): **"El jefe que no llega a cenar"** (28.5 s, escenas dibujadas de colores distintos, una transición diferente en cada cambio). Código en `ads/jefe-estresado/`.
 - Ideas pendientes:
   2. "Cuánto dinero pierdes por no contestar".
   3. "Mi empleado que no duerme" (un día corrido con el reloj).

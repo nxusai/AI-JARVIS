@@ -1,0 +1,266 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#111}
+*{box-sizing:border-box}
+#st{position:absolute;inset:0;font-family:Inter,sans-serif;color:#fff;overflow:hidden}
+.abs{position:absolute}
+.full{position:absolute;inset:0;overflow:hidden}
+.g{background:linear-gradient(100deg,#00c8e6,#0a6cff 55%,#a01cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{position:absolute;left:0;right:0;top:1330px;text-align:center}
+.pill{display:inline-block;padding:14px 30px;border-radius:22px;background:rgba(12,14,22,.86);font:800 64px Sora;letter-spacing:.02em;text-transform:uppercase;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.sticker{position:absolute;padding:16px 32px;border-radius:16px;font:800 54px Sora;letter-spacing:.02em;white-space:nowrap;box-shadow:0 12px 0 rgba(0,0,0,.28)}
+.vin{position:absolute;border:10px solid #1b1b22;border-radius:26px;overflow:hidden;box-shadow:14px 14px 0 rgba(0,0,0,.28)}
+.fila{display:flex;align-items:center;justify-content:space-between}
+</style></head>
+<body><div id="st"></div>
+<script>
+const LOGO = (id, mono) => `<svg viewBox="160 310 950 620" width="100%" height="100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="177" y1="0" x2="1090" y2="0"><stop offset="0" stop-color="#00e5ff"/><stop offset=".5" stop-color="#0a6cff"/><stop offset="1" stop-color="#a01cff"/></linearGradient></defs><g fill="${mono ?? `url(#${id})`}"><polygon points="177,326 305,326 645,717 558,816 294,497 294,916 177,916"/><polygon points="496,394 663,394 1080,916 928,916"/><polygon points="943,394 1090,394 642,916 484,916"/></g></svg>`
+const W = window.PALABRAS, F = window.FRASES, T_FIN = window.T_FIN
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const sal = (t, a, d) => cl((t - a) / d)
+const ease = (k) => 1 - Math.pow(1 - k, 3)
+const io = (k) => k * k * (3 - 2 * k)
+const back = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const lerp = (a, b, k) => a + (b - a) * k
+const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x) }
+const entra = (t, a, d = .4, dy = 60) => { const k = sal(t, a, d); return `opacity:${cl(k * 3)};transform:translateY(${(1 - ease(k)) * dy}px) scale(${.94 + .06 * back(k)});` }
+const pop = (t, a, d = .32) => { const k = sal(t, a, d); return `opacity:${cl(k * 4)};transform:scale(${k <= 0 ? 0 : back(k)});` }
+const golpe = (t, a, rot = -4) => { const k = sal(t, a, .28); return `opacity:${cl(k * 4)};transform:rotate(${rot}deg) scale(${k < 1 ? 1.7 - .7 * back(k) : 1});` }
+const C = (re, desde = 0, n = 0) => { const m = W.filter((w) => w[0] >= desde - .01 && re.test(w[2])); return (m[n] ?? m.at(-1) ?? [desde])[0] }
+const S = F.map((f) => f[0]), FIN_VOZ = F.at(-1)[1]
+
+/* ================= piezas de la oficina ================= */
+function relojPared(x, y, d, hora, min, c = '#2b2230', cara = '#fffaf0') {
+  const ah = (hora % 12 + min / 60) * 30, am = min * 6
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:${d}px;height:${d}px;border-radius:50%;background:${cara};border:${d * .07}px solid ${c};box-shadow:0 10px 0 rgba(0,0,0,.15)">
+    ${[0, 3, 6, 9].map((i) => `<div class="abs" style="left:${d * .43 - d * .07}px;top:${d * .03}px;width:${d * .04}px;height:${d * .1}px;background:${c};transform-origin:50% ${d * .40}px;transform:rotate(${i * 30}deg)"></div>`).join('')}
+    <div class="abs" style="left:${d * .43 - d * .07 - d * .005}px;top:${d * .2}px;width:${d * .05}px;height:${d * .24}px;border-radius:${d}px;background:${c};transform-origin:50% 100%;transform:rotate(${ah}deg)"></div>
+    <div class="abs" style="left:${d * .43 - d * .07 + d * .005}px;top:${d * .09}px;width:${d * .03}px;height:${d * .35}px;border-radius:${d}px;background:#e2553f;transform-origin:50% 100%;transform:rotate(${am}deg)"></div></div>`
+}
+function ventana(x, y, w, h, modo, t) {
+  const cielo = { dia: 'linear-gradient(#8fd0f5,#e3f4ff)', noche: 'linear-gradient(#070b22,#1a2350)', tarde: 'linear-gradient(#ff9a5a,#ffd08a 60%,#ffe9c2)' }[modo]
+  const marco = { dia: '#6b4a34', noche: '#0e1226', tarde: '#7a4a2e' }[modo]
+  const astro = modo === 'noche'
+    ? `<div class="abs" style="left:${w * .52}px;top:${h * .14}px;width:110px;height:110px;border-radius:50%;background:#f2f4ff;box-shadow:0 0 80px 20px rgba(190,205,255,.45)"></div><div class="abs" style="left:${w * .52 + 34}px;top:${h * .14 - 16}px;width:110px;height:110px;border-radius:50%;background:#0d1330"></div>` + Array.from({ length: 12 }, (_, i) => `<div class="abs" style="left:${rnd(i) * w}px;top:${rnd(i + 9) * h * .7}px;width:6px;height:6px;border-radius:50%;background:#fff;opacity:${.3 + .7 * Math.abs(Math.sin(t * 2 + i))}"></div>`).join('')
+    : `<div class="abs" style="left:${modo === 'tarde' ? w * .3 : w * .55}px;top:${modo === 'tarde' ? h * .52 : h * .12}px;width:120px;height:120px;border-radius:50%;background:${modo === 'tarde' ? '#fff0c0' : '#fff6c9'};box-shadow:0 0 90px 30px ${modo === 'tarde' ? 'rgba(255,190,110,.7)' : 'rgba(255,240,170,.75)'}"></div>`
+  const edif = Array.from({ length: 6 }, (_, i) => `<div class="abs" style="left:${i * w / 6 - 6}px;bottom:0;width:${w / 6 + 8}px;height:${h * (.22 + rnd(i + 3) * .26)}px;background:${{ dia: '#b9cfe0', noche: '#151b3d', tarde: '#c9764d' }[modo]}">${modo === 'noche' ? Array.from({ length: 4 }, (_, j) => `<div class="abs" style="left:${12 + (j % 2) * 26}px;top:${14 + Math.floor(j / 2) * 34}px;width:14px;height:18px;background:${rnd(i * 7 + j) > .45 ? '#ffd76a' : '#222a55'}"></div>`).join('') : ''}</div>`).join('')
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border:18px solid ${marco};border-radius:14px;background:${cielo};overflow:hidden;box-shadow:0 14px 0 rgba(0,0,0,.14)">${astro}${edif}
+    <div class="abs" style="left:0;right:0;top:${h / 2 - 26}px;height:14px;background:${marco}"></div><div class="abs" style="top:0;bottom:0;left:${w / 2 - 25}px;width:14px;background:${marco}"></div></div>`
+}
+const BLOQ = ['Junta', 'Proveedor', 'Cotizar', 'Nómina', 'Banco', 'Llamar', 'Entrega', 'Pagos', 'Cliente', 'Urgente', 'Revisar', 'Factura', 'Visita', 'Pedido', 'Junta', 'Correo', 'Urgente', 'Llamar']
+function agenda(w, h, estado, t, a = -9, n = 18, fs = 20) {
+  // semana de 5 días: 'lleno' = bloques encimados que siguen cayendo; 'orden' = pocos y acomodados
+  const col = w / 5, top = h * .13
+  let b = ''
+  if (estado === 'lleno') for (let i = 0; i < n; i++) {
+    const k = sal(t, a + i * .1, .22); if (k <= 0) continue
+    const c = i % 5, y = top + 6 + rnd(i + 2) * (h - top - h * .2), hh = h * (.1 + rnd(i + 5) * .1)
+    b += `<div class="abs" style="left:${c * col + 5 + (rnd(i + 8) - .5) * 12}px;top:${y - (1 - ease(k)) * 60}px;width:${col - 10}px;height:${hh}px;border-radius:${fs * .4}px;background:${['#e2553f', '#f08a2c', '#e2553f', '#f2b632', '#d9363e'][i % 5]};opacity:${cl(k * 3)};transform:rotate(${(rnd(i + 11) - .5) * 9}deg);font:700 ${fs}px Inter;color:#fff;padding:${fs * .25}px ${fs * .35}px;overflow:hidden;box-shadow:0 4px 0 rgba(0,0,0,.18)">${BLOQ[i % BLOQ.length]}</div>`
+  }
+  else [[0, .0, 'Junta'], [1, .22, 'Cita'], [2, .08, 'Visita'], [3, .3, 'Cita'], [4, .12, 'Equipo'], [1, .55, 'Cita'], [3, .62, 'Revisar']].forEach(([c, y, txt], i) => {
+    const k = sal(t, a + i * .09, .3)
+    b += `<div class="abs" style="left:${c * col + 6}px;top:${top + 8 + y * (h - top - 20)}px;width:${col - 12}px;height:${h * .13}px;border-radius:${fs * .4}px;background:${i % 2 ? '#2bb673' : '#27a3a8'};font:700 ${fs}px Inter;color:#fff;padding:${fs * .25}px ${fs * .35}px;${pop(t, a + i * .09, .3)}">${txt} ✓</div>`
+  })
+  return `<div class="abs" style="inset:0;background:#fffdf8;color:#2b2230">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);height:${top}px;align-items:center;text-align:center;font:800 ${fs * 1.05}px Sora;background:${estado === 'lleno' ? '#2b2230' : '#1f6f6b'};color:#fff"><div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div></div>
+    ${[1, 2, 3, 4].map((i) => `<div class="abs" style="left:${i * col}px;top:${top}px;bottom:0;width:2px;background:#e9e1d2"></div>`).join('')}${b}</div>`
+}
+function oficina(t, modo, o = {}) {
+  const pared = { dia: '#f0e2cb', noche: '#1b2242', tarde: '#f7d3a6' }[modo], zoc = { dia: '#d9c6a7', noche: '#141a35', tarde: '#e2b27f' }[modo]
+  const piso = { dia: 'linear-gradient(#b88a5f,#9a6f48)', noche: 'linear-gradient(#141932,#0b0e20)', tarde: 'linear-gradient(#b8744a,#8f5533)' }[modo]
+  const mesa = { dia: ['#8a5a3a', '#734a2e'], noche: ['#2a2f52', '#1d2140'], tarde: ['#9a5f3a', '#7d4a2b'] }[modo]
+  const papeles = o.papeles ?? 0
+  let h = `<div class="abs" style="inset:0;background:${pared}"></div>
+    <div class="abs" style="left:0;right:0;top:1180px;height:26px;background:${zoc}"></div><div class="abs" style="left:0;right:0;top:1206px;bottom:0;background:${piso}"></div>`
+  h += ventana(60, 330, 410, 470, modo, t)
+  // pizarra con la agenda
+  h += `<div class="abs" style="left:560px;top:330px;width:460px;height:430px;border:16px solid ${modo === 'noche' ? '#0e1226' : '#3a2f3b'};border-radius:16px;overflow:hidden;box-shadow:0 14px 0 rgba(0,0,0,.14);${modo === 'noche' ? 'filter:brightness(.55) saturate(.8)' : ''}">${agenda(428, 398, o.agenda ?? 'lleno', t, o.agendaT ?? -9)}</div>`
+  h += relojPared(455, 150, 170, o.hora ?? 8, o.min ?? 0, modo === 'noche' ? '#0e1226' : '#2b2230', modo === 'noche' ? '#c9cfe6' : '#fffaf0')
+  // planta
+  h += `<div class="abs" style="left:900px;top:1010px;width:120px;height:150px;border-radius:14px 14px 30px 30px;background:${modo === 'noche' ? '#2a2540' : '#c9623f'}"></div>` + [-38, -14, 12, 36].map((r, i) => `<div class="abs" style="left:${930 + i * 8}px;top:${800 + Math.abs(r) * 1.2}px;width:56px;height:230px;border-radius:60% 60% 20% 20%;background:${modo === 'noche' ? '#1d4a3c' : i % 2 ? '#3f9a5c' : '#2f7d4a'};transform-origin:50% 100%;transform:rotate(${r + Math.sin(t * 1.6 + i) * 2}deg)"></div>`).join('')
+  // él, detrás del escritorio
+  if (o.jefe) h += o.jefe
+  // escritorio
+  h += `<div class="abs" style="left:30px;right:30px;top:1245px;height:44px;border-radius:14px;background:${mesa[0]};box-shadow:0 10px 0 rgba(0,0,0,.2)"></div><div class="abs" style="left:70px;right:70px;top:1289px;height:420px;background:${mesa[1]}"></div>` + [110, 700].map((x) => `<div class="abs" style="left:${x}px;top:1560px;width:270px;height:118px;border-radius:14px;border:5px solid rgba(0,0,0,.16)"><div class="abs" style="left:95px;top:46px;width:70px;height:14px;border-radius:7px;background:rgba(0,0,0,.22)"></div></div>`).join('')
+  // laptop (se ve por detrás), taza, teléfono, papeles
+  h += `<div class="abs" style="left:150px;top:1040px;width:330px;height:212px;border-radius:18px 18px 6px 6px;background:${modo === 'noche' ? '#39405f' : '#c9ccd4'};box-shadow:${modo === 'noche' ? '0 0 80px 10px rgba(140,180,255,.35)' : 'none'}"><div class="abs" style="left:145px;top:86px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)"></div></div>`
+  h += `<div class="abs" style="left:560px;top:1168px;width:76px;height:80px;border-radius:8px 8px 20px 20px;background:${modo === 'noche' ? '#59618c' : '#fff'}"></div><div class="abs" style="left:630px;top:1184px;width:30px;height:40px;border-radius:0 20px 20px 0;border:9px solid ${modo === 'noche' ? '#59618c' : '#fff'};border-left:none"></div>`
+  if (modo !== 'tarde') h += [0, 1].map((i) => { const k = (t * .6 + i * .5) % 1; return `<div class="abs" style="left:${578 + i * 22 + Math.sin(k * 6) * 8}px;top:${1150 - k * 80}px;width:14px;height:34px;border-radius:10px;background:rgba(255,255,255,${.55 * Math.sin(k * Math.PI)})"></div>` }).join('')
+  for (let i = 0; i < papeles; i++) h += `<div class="abs" style="left:${700 + (rnd(i) - .5) * 26}px;top:${1228 - i * 13}px;width:210px;height:16px;border-radius:3px;background:${i % 3 ? '#fffdf5' : '#f4e7c4'};transform:rotate(${(rnd(i + 4) - .5) * 9}deg);box-shadow:0 2px 0 rgba(0,0,0,.14);${modo === 'noche' ? 'filter:brightness(.6)' : ''}"></div>`
+  if (modo === 'noche') h += `<div class="abs" style="left:0;top:0;right:0;bottom:0;background:radial-gradient(ellipse 520px 620px at 50% 54%,rgba(255,214,130,.26),transparent 70%)"></div>
+    <div class="abs" style="left:770px;top:880px;width:14px;height:370px;background:#0e1226"></div><div class="abs" style="left:690px;top:850px;width:180px;height:70px;border-radius:70px 70px 10px 10px;background:#f2b632;box-shadow:0 30px 120px 30px rgba(255,214,130,.55)"></div>`
+  return h
+}
+function jefe(t, o = {}) {
+  // el busto, con temblor, sudor y marcas de estrés
+  const tiem = o.estres ? Math.sin(t * 46) * 3 * o.estres : 0, w = o.w ?? 470, x = o.x ?? 305, y = o.y ?? 610
+  const img = o.grita && Math.sin(t * 26) > -.3 ? 'pj_cara-boca-abierta.png' : 'pj_cara-boca-cerrada.png'
+  let h = `<img src="${img}" class="abs" style="left:${x + tiem}px;top:${y + Math.sin(t * 2) * 3}px;width:${w}px;transform:rotate(${o.rot ?? 0}deg);transform-origin:50% 90%;${o.filtro ? `filter:${o.filtro}` : ''}">`
+  if (o.estres) {
+    h += [0, 1, 2].map((i) => { const k = (t * .9 + i * .37) % 1; return `<div class="abs" style="left:${x + w * (.16 + i * .33)}px;top:${y + w * .2 + k * w * .5}px;width:${w * .05}px;height:${w * .08}px;border-radius:50% 50% 50% 50%/65% 65% 35% 35%;background:#7fd2ff;opacity:${Math.sin(k * Math.PI) * o.estres}"></div>` }).join('')
+    h += `<div class="abs" style="left:${x + w * .72}px;top:${y - w * .02}px;font-size:${w * .2}px;transform:scale(${.8 + .3 * Math.abs(Math.sin(t * 7))});opacity:${o.estres}">💢</div>`
+  }
+  return h
+}
+const papelesVolando = (t, a, n = 9) => Array.from({ length: n }, (_, i) => { const k = (t - a - i * .12) * (0.45 + rnd(i) * .3); return k < 0 || k > 1.3 ? '' : `<div class="abs" style="left:${760 - k * (500 + rnd(i + 2) * 500)}px;top:${1180 - Math.sin(k * 2.4) * (460 + rnd(i + 5) * 300)}px;width:88px;height:112px;border-radius:5px;background:#fffdf5;box-shadow:0 5px 0 rgba(0,0,0,.14);transform:rotate(${k * 420 + i * 40}deg)"><div style="margin:14px 12px;height:6px;background:#d8cdb8"></div><div style="margin:8px 12px;height:6px;background:#d8cdb8"></div><div style="margin:8px 12px;height:6px;width:40px;background:#d8cdb8"></div></div>` }).join('')
+
+/* ================= escenas ================= */
+// A · 8:00 AM: el día ya se salió de control
+function eA(t) {
+  const tD = C(/día/i), tS = C(/salió/i), tC = C(/control/i)
+  const est = cl(sal(t, tD - .2, .8)), zoom = 1 + .07 * sal(t, 0, S[1])
+  const avisos = [['📞', 250, 560], ['✉️', 720, 590], ['💬', 215, 760], ['⏰', 770, 800], ['📞', 480, 520]].map(([e, x, y], i) => { const ta = tS - .1 + i * .16; return t > ta ? `<div class="abs" style="left:${x}px;top:${y + Math.sin(t * 5 + i) * 8}px;width:104px;height:104px;border-radius:30px;background:#fff;display:grid;place-items:center;font-size:58px;box-shadow:0 10px 0 rgba(0,0,0,.18);${pop(t, ta, .28)}">${e}<div class="abs" style="right:-14px;top:-14px;min-width:48px;height:48px;border-radius:24px;background:#e2553f;color:#fff;font:800 28px Sora;display:grid;place-items:center;padding:0 10px">${[3, 12, 7, '!', 5][i]}</div></div>` : '' }).join('')
+  return `<div class="full" style="transform:scale(${zoom});transform-origin:50% 55%">${oficina(t, 'dia', { hora: 8, min: Math.floor(t * 2), papeles: 3 + Math.floor(est * 9), agenda: 'lleno', agendaT: -9 + 0, jefe: jefe(t, { estres: est }) })}${papelesVolando(t, tS)}${avisos}
+    ${t > tC ? `<div class="sticker" style="left:150px;top:1462px;background:#e2553f;color:#fff;font-size:62px;${golpe(t, tC, -4)}">FUERA DE CONTROL</div>` : ''}</div>`
+}
+// B · viñetas: agenda llena, teléfono que no para, mensajes que se acumulan
+function eB(t) {
+  const a = S[1], tA = a, tT = C(/teléfono/i, a) - .12, tM = C(/mensajes/i, a) - .12, tAc = C(/acumulan/i, a)
+  const puntos = `background-image:radial-gradient(rgba(0,0,0,.13) 2.5px,transparent 3px);background-size:22px 22px`
+  const cuenta = Math.min(99, 4 + Math.floor(Math.max(0, t - tM) * 46))
+  const burb = ['¿Precios?', '¿Me contestan?', 'Sigo esperando…', '¿Hay alguien?', '¿Hola?', 'Urge 🙏'].map((m, i) => { const ta = tM + .18 + i * .2; return t > ta ? `<div style="align-self:${i % 2 ? 'flex-end' : 'flex-start'};background:${i % 2 ? '#dcf8c6' : '#fff'};color:#1b1b22;padding:12px 18px;border-radius:20px;font:600 28px Inter;margin:5px 0;${entra(t, ta, .2, 26)}">${m}</div>` : '' }).join('')
+  return `<div class="full" style="background:#f2b632;${puntos}"></div>
+    <div class="vin" style="left:50px;top:215px;width:980px;height:500px;background:#fffdf8;transform:rotate(-1.4deg) translateX(${(1 - ease(sal(t, tA - .12, .4))) * -1150}px)">
+      <div class="abs" style="inset:0">${agenda(960, 480, 'lleno', t, tA, 18, 30)}</div>
+      <div class="sticker" style="left:500px;top:372px;background:#1b1b22;color:#ffd23f;font-size:48px;${golpe(t, tA + .55, 4)}">AGENDA LLENA</div></div>
+    <div class="vin" style="left:50px;top:750px;width:470px;height:540px;background:#e2553f;transform:rotate(1.6deg) translateX(${(1 - ease(sal(t, tT, .38))) * -700}px)">
+      ${[0, 1, 2].map((i) => { const k = (t * 1.6 + i / 3) % 1; return `<div class="abs" style="left:${235 - 90 - k * 170}px;top:${250 - 90 - k * 170}px;width:${180 + k * 340}px;height:${180 + k * 340}px;border-radius:50%;border:8px solid rgba(255,255,255,${.75 * (1 - k)})"></div>` }).join('')}
+      <div class="abs" style="left:0;right:0;top:140px;text-align:center;font-size:210px;line-height:1;transform:rotate(${Math.sin(t * 44) * 13}deg)">📞</div>
+      <div class="abs" style="left:0;right:0;bottom:26px;text-align:center;font:800 46px Sora;color:#fff">¡RING! ¡RING!</div></div>
+    <div class="vin" style="left:560px;top:750px;width:470px;height:540px;background:#25a36b;transform:rotate(-1.8deg) translateY(${(1 - ease(sal(t, tM, .38))) * 1300}px)">
+      <div style="display:flex;flex-direction:column;padding:16px 20px">${burb}</div>
+      <div class="abs" style="right:14px;top:14px;min-width:130px;height:110px;border-radius:55px;background:#e2553f;border:8px solid #1b1b22;color:#fff;font:800 64px Sora;display:grid;place-items:center;padding:0 18px;transform:scale(${1 + .14 * Math.abs(Math.sin(t * 16))})">${cuenta >= 99 ? '99+' : cuenta}</div></div>`
+}
+// C · 10 PM: y sigues en la oficina
+function eC(t) {
+  const a = S[2], tSi = C(/sigues/i, a), tO = C(/oficina/i, a)
+  return `<div class="full" style="transform:scale(${1.04 + .08 * sal(t, a, S[3] - a)});transform-origin:50% 60%">${oficina(t, 'noche', { hora: 10, min: Math.floor((t - a) * 2), papeles: 13, agenda: 'lleno', jefe: jefe(t, { rot: -5 + Math.sin(t * 1.3) * 2, filtro: 'brightness(.72) saturate(.85)', y: 628 }) })}
+    ${[0, 1, 2].map((i) => { const k = (t * .45 + i / 3) % 1; return `<div class="abs" style="left:${760 + k * 80}px;top:${650 - k * 170}px;font:800 ${40 + i * 14}px Sora;color:#aeb9ff;opacity:${Math.sin(k * Math.PI) * .9}">z</div>` }).join('')}
+    ${t > tO ? `<div class="sticker" style="left:210px;top:1462px;background:#f2b632;color:#1b1b22;font-size:62px;${golpe(t, tO, 4)}">OTRA VEZ TARDE</div>` : ''}</div>`
+}
+// D · así no se puede crecer
+function eD(t) {
+  const a = S[3], k = t - a, sh = Math.exp(-k * 4) * 26
+  const rayos = Array.from({ length: 22 }, (_, i) => `<div class="abs" style="left:540px;top:700px;width:1500px;height:${26 + rnd(i) * 44}px;transform-origin:0 50%;transform:rotate(${i * 16.4 + t * 9}deg);background:linear-gradient(90deg,transparent 22%,rgba(255,255,255,.2))"></div>`).join('')
+  return `<div class="full" style="background:radial-gradient(circle at 50% 38%,#ff7a4a,#c8232c 70%)">${rayos}
+    <div class="abs" style="left:${90 + Math.sin(t * 61) * sh}px;top:${250 + Math.cos(t * 53) * sh}px;transform:scale(${1.5 - .5 * ease(sal(t, a, .22))})">${jefe(t, { x: 0, y: 0, w: 900, grita: true, estres: 1 })}</div>
+    <div class="abs" style="left:0;right:0;top:1050px;text-align:center;font:800 112px/1 Sora;letter-spacing:-.02em;color:#ffd23f;-webkit-text-stroke:5px #1b1b22;text-shadow:10px 10px 0 #1b1b22;transform:rotate(-4deg) scale(${k < .3 ? 1.6 - .6 * back(sal(t, a + .05, .25)) : 1})">ASÍ NO<br>SE PUEDE</div></div>`
+}
+// E+F · ahora imagina esto: una IA que contesta, agenda y guarda
+function eF(t) {
+  const a = S[4], b = S[5], tCo = C(/contesta/i, b) - .1, tAg = C(/agenda/i, b) - .1, tGu = C(/guarda/i, b) - .1, tSi = C(/sistema/i, b)
+  const intro = cl(1 - sal(t, b - .05, .3))
+  const tarj = (y, ta, lado, ico, tit, sub, vis) => `<div class="abs" style="left:60px;top:${y}px;width:960px;height:286px;border-radius:40px;background:#fff;box-shadow:0 26px 60px rgba(40,60,110,.16),0 2px 0 rgba(40,60,110,.06);opacity:${cl(sal(t, ta, .3) * 3)};transform:translateX(${(1 - ease(sal(t, ta, .42))) * 1100 * lado}px)">
+      <div class="abs" style="left:34px;top:34px;width:118px;height:118px;border-radius:32px;background:linear-gradient(135deg,#00c8e6,#0a6cff 55%,#a01cff);display:grid;place-items:center;font-size:62px">${ico}</div>
+      <div class="abs" style="left:34px;top:174px;font:800 39px Sora;color:#141a33">${tit}</div><div class="abs" style="left:34px;top:228px;font:500 27px Inter;color:#6b7694">${sub}</div>
+      <div class="abs" style="left:440px;top:26px;width:490px;height:234px;border-radius:26px;background:#f3f6fb;overflow:hidden">${vis}</div></div>`
+  const chat = `<div style="padding:16px 20px;color:#141a33"><div style="display:inline-block;background:#e3e8f2;padding:11px 18px;border-radius:20px;font:600 26px Inter">¿Me dan informes?</div>
+    ${t > tCo + .5 ? `<div style="margin:12px 0 0 auto;width:fit-content;background:linear-gradient(135deg,#0a6cff,#7b2bff);color:#fff;padding:11px 18px;border-radius:20px;font:600 26px Inter;${entra(t, tCo + .5, .25, 24)}">¡Claro! Te ayudo 👇</div>` : ''}
+    ${t > tCo + .85 ? `<div style="text-align:right;font:700 22px Inter;color:#1f9d6b;margin-top:10px;${entra(t, tCo + .85, .2, 16)}">✓ Respondido al momento</div>` : ''}</div>`
+  const cal = `<div class="abs" style="inset:0">${agenda(490, 234, t < tAg + .55 ? 'lleno' : 'orden', t, t < tAg + .55 ? -9 : tAg + .55, 12, 17)}</div>`
+  const lista = `<div style="padding:10px 22px;color:#141a33">${['Cliente 1 · Cita agendada', 'Cliente 2 · En seguimiento', 'Cliente 3 · Cita agendada'].map((x, i) => `<div class="fila" style="padding:14px 0;border-bottom:2px solid #e3e8f2;font:600 26px Inter;${entra(t, tGu + .4 + i * .18, .22, 24)}"><span>${x}</span><span style="color:#1f9d6b;font-weight:800">✓</span></div>`).join('')}</div>`
+  const yL = 330 + 143, hL = 2 * 318
+  return `<div class="full" style="background:linear-gradient(170deg,#f6f9fd,#e7eef9)">
+      <div class="abs" style="left:-200px;top:-200px;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,230,.16),transparent 65%);transform:translate(${Math.sin(t * .4) * 60}px,${Math.cos(t * .3) * 40}px)"></div>
+      <div class="abs" style="left:400px;top:1000px;width:1000px;height:1000px;border-radius:50%;background:radial-gradient(circle,rgba(160,28,255,.12),transparent 65%)"></div>
+      <div class="abs" style="left:0;right:0;top:${lerp(640, 600, sal(t, a, 1))}px;text-align:center;opacity:${intro}"><div style="font-size:170px;line-height:1;${pop(t, a + .05, .35)}">💡</div><div style="font:800 96px/1.05 Sora;color:#141a33;margin-top:26px;${entra(t, a + .12, .35)}">Ahora<br>imagina <span class="g">esto</span></div></div>
+      <div class="abs" style="left:0;right:0;top:196px;text-align:center;font:800 54px Sora;color:#141a33;${entra(t, b, .35, 40)}">Tu <span class="g">inteligencia artificial</span></div>
+      ${tarj(300, tCo, -1, '💬', 'Contesta por ti', 'a cualquier hora', chat)}${tarj(618, tAg, 1, '📅', 'Agenda tus citas', 'sin que marques', cal)}${tarj(936, tGu, -1, '🗂️', 'Guarda cada cliente', 'en tu sistema', lista)}
+    </div>`
+}
+// G1 · tú, a lo que importa: dirigir tu negocio
+function eG(t) {
+  const a = S[6], tD = C(/dirigir/i, a), k = ease(sal(t, a + .1, 2.6)), paso = Math.abs(Math.sin((t - a) * 8)) * 16
+  return `<div class="full">${oficina(t, 'tarde', { hora: 6, min: 0, papeles: 1, agenda: 'orden', agendaT: a + .2 })}
+    <div class="abs" style="left:150px;top:1040px;width:330px;height:212px;border-radius:18px 18px 6px 6px;background:#e9e2d6"></div>
+    <img src="pj_caminando.png" class="abs" style="left:${lerp(120, 690, k)}px;top:${640 - paso}px;width:420px">
+    <div class="abs" style="left:0;right:0;top:0;bottom:0;background:linear-gradient(180deg,rgba(255,170,90,.18),transparent 60%)"></div>
+    ${t > tD ? `<div class="sticker" style="left:130px;top:1462px;background:#1f6f6b;color:#fff;font-size:60px;${golpe(t, tD, -4)}">A LO QUE IMPORTA</div>` : ''}</div>`
+}
+// G2 · y llegar a cenar a tu casa
+function eH(t) {
+  const a = C(/llegar/i, S[6]) - .25, tC = C(/cenar/i, a), tCa = C(/casa/i, a)
+  const salto = Math.abs(Math.sin((t - a) * 5)) * 26 * cl(1.4 - (t - a) * .5)
+  return `<div class="full" style="background:linear-gradient(#3a2742,#5a3350 62%,#2b1c30)">
+    ${ventana(90, 300, 380, 420, 'tarde', t)}
+    <div class="abs" style="left:600px;top:300px;width:330px;height:250px;border:14px solid #2a1a24;border-radius:10px;background:linear-gradient(135deg,#f08a2c,#e2553f);display:grid;place-items:center;font-size:120px">🏡</div>
+    <div class="abs" style="left:532px;top:0;width:16px;height:520px;background:#2a1a24"></div><div class="abs" style="left:400px;top:500px;width:280px;height:130px;border-radius:140px 140px 16px 16px;background:#f2b632;box-shadow:0 60px 220px 90px rgba(255,205,120,.55)"></div>
+    <div class="abs" style="left:0;top:0;right:0;bottom:0;background:radial-gradient(ellipse 620px 760px at 50% 58%,rgba(255,205,120,.34),transparent 72%)"></div>
+    <div class="abs" style="left:0;right:0;top:1230px;bottom:0;background:linear-gradient(#6b4031,#472a22)"></div>
+    <img src="pj_brazos-arriba.png" class="abs" style="left:90px;top:${470 - salto}px;width:380px">
+    <div class="abs" style="left:430px;right:50px;top:1100px;height:40px;border-radius:14px;background:#c98a52;box-shadow:0 10px 0 rgba(0,0,0,.25)"></div><div class="abs" style="left:500px;top:1140px;width:26px;height:330px;background:#9c6539"></div><div class="abs" style="left:930px;top:1140px;width:26px;height:330px;background:#9c6539"></div>
+    ${[['🍝', 470, 0], ['🥗', 640, .12], ['🍷', 800, .24], ['🕯️', 905, .3]].map(([e, x, d]) => `<div class="abs" style="left:${x}px;top:970px;font-size:120px;line-height:1;${pop(t, tC - .1 + d, .3)}">${e}</div>`).join('')}
+    ${relojPared(790, 620, 150, 7, 30, '#2a1a24', '#ffe9c9')}
+    ${t > tCa - .1 ? `<div class="sticker" style="left:210px;top:156px;background:#ffd23f;color:#2a1a24;font-size:60px;${golpe(t, tCa - .1, 4)}">A CENAR EN CASA</div>` : ''}</div>`
+}
+// I · NXUS lo hace realidad + cierre
+function eI(t) {
+  const a = S[7], b = S[8], tR = C(/realidad/i, a), tG = C(/gratis/i, b), k = sal(t, a, .5), sube = ease(sal(t, b - .15, .5))
+  return `<div class="full" style="background:linear-gradient(165deg,#10162c,#0a0d1c 60%,#141026)">
+    <div class="abs" style="left:-250px;top:1150px;width:1100px;height:1100px;border-radius:50%;background:radial-gradient(circle,rgba(242,182,50,.16),transparent 65%)"></div>
+    <div class="abs" style="left:560px;top:-200px;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(10,108,255,.22),transparent 65%)"></div>
+    <div class="abs" style="left:320px;top:${lerp(500, 250, sube)}px;width:440px;height:290px;opacity:${k};transform:scale(${(.6 + .4 * back(k)) * lerp(1, .7, sube)})">${LOGO('lI')}</div>
+    <div class="abs" style="left:0;right:0;top:${lerp(840, 510, sube)}px;text-align:center;font:800 ${lerp(84, 60, sube)}px Sora;${entra(t, tR - .45, .4)}">Lo hacemos <span style="color:#ffd23f;font-style:italic">realidad</span></div>
+    <div class="abs" style="left:110px;right:110px;top:650px;padding:46px 30px;border-radius:44px;background:#fffdf8;color:#141a33;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.5);${entra(t, b - .1, .45, 120)}">
+      <div style="font:800 82px/1.04 Sora">DIAGNÓSTICO<br><span class="g">GRATIS</span></div>
+      <div style="display:inline-block;margin-top:22px;padding:12px 34px;border-radius:40px;background:#141a33;color:#fff;font:800 50px Sora;transform:scale(${1 + .1 * Math.sin(Math.PI * sal(t, tG + .3, .4))})">30 minutos</div>
+      <div style="font:600 30px Inter;color:#6b7694;margin-top:18px">Cupos limitados este mes</div></div>
+    <div class="abs" style="left:0;right:0;top:1190px;text-align:center;font:700 38px Sora;letter-spacing:.16em;color:#dbe6ff;${entra(t, b + .5, .4)}">NXUS AI</div></div>`
+}
+
+/* ================= transiciones (cada una distinta) ================= */
+const TG = C(/llegar/i, S[6]) - .25
+const ESC = [
+  { fn: eA, a: -1, tr: () => '' },
+  { fn: eB, a: S[1] - .14, tr: (k) => `opacity:${cl(k * 2.5)}` },                                                                                   // A se acerca a la pizarra y entran las viñetas
+  { fn: eC, a: S[2] - .3, d: .6, tr: (k) => `-webkit-mask-image:conic-gradient(from 0deg at 50% 46%,#000 ${k * 360}deg,transparent ${k * 360 + .5}deg)` }, // manecilla de reloj
+  { fn: eD, a: S[3] - .04, d: .1, tr: () => '' },                                                                                                    // corte seco con golpe
+  { fn: eF, a: S[4] - .12, d: .55, tr: (k) => `clip-path:circle(${io(k) * 1300}px at 50% 38%)` },                                                    // iris de luz
+  { fn: eG, a: S[6] - .3, d: .6, tr: (k) => `-webkit-mask-image:repeating-linear-gradient(180deg,#000 0,#000 ${k * 122}px,transparent ${k * 122}px,transparent 120px)` }, // persianas
+  { fn: eH, a: TG, d: .5, tr: (k) => { const x = lerp(-700, 1900, io(k)); return `clip-path:polygon(0 0,${x}px 0,${x - 620}px 100%,0 100%)` } },      // diagonal
+  { fn: eI, a: S[7] - .3, d: .55, tr: (k) => `transform:translateY(${(1 - io(k)) * 1920}px)` },                                                      // empuje hacia arriba
+]
+const VUELTA = T_FIN - .5
+
+/* ================= subtítulos ================= */
+const CLAVE = /^ai$|mañana|control|agenda|teléfono|mensajes|noche|oficina|crecer|imagina|inteligencia|artificial|contesta|citas|cliente|sistema|importa|negocio|cenar|casa|nexus|realidad|diagnóstico|gratis|treinta|minutos/i
+const GRUPOS = []
+{ let g = []; for (const w of W) { g.push(w); if (g.length === 3 || /[.,?!:]$/.test(w[2])) { GRUPOS.push(g); g = [] } } if (g.length) GRUPOS.push(g) }
+function subtitulos(t) {
+  if (t > FIN_VOZ + .2) return ''
+  const i = GRUPOS.findIndex((x, j) => t < (GRUPOS[j + 1]?.[0][0] ?? 9e9) - .04); if (i < 0) return ''
+  const g = GRUPOS[i], k = sal(t, g[0][0] - .04, .12), col = t < S[4] - .1 ? '#ffd23f' : '#4fe3ff'
+  return `<div class="sub"><span class="pill" style="transform:scale(${.9 + .1 * back(k)})">${g.map((w) => {
+    const txt = w[2].replace(/^Nexus$/i, 'NXUS').replace(/^treinta$/i, '30').replace(/[¿?¡!.,:]/g, '')
+    return `<span style="display:inline-block;margin:0 9px;${t >= w[0] - .03 ? '' : 'opacity:.35;'}color:${CLAVE.test(txt.replace(/^NXUS$/, 'nexus').replace(/^30$/, 'treinta')) ? col : '#fff'}">${txt}</span>`
+  }).join('')}</span></div>`
+}
+
+window.render = (t) => {
+  let h = ''
+  ESC.forEach((e, i) => {
+    const sig = ESC[i + 1], fin = sig ? sig.a + (sig.d ?? .4) : 9e9
+    if (t < e.a || t > fin) return
+    const k = sal(t, e.a, e.d ?? .4)
+    let extra = e.tr(k)
+    // A se mete a la pizarra cuando entran las viñetas
+    if (i === 0 && t > ESC[1].a) { const q = io(sal(t, ESC[1].a, .4)); extra = `transform:scale(${1 + q * 2.2});transform-origin:73% 29%;filter:blur(${q * 10}px)` }
+    // el empuje hacia arriba se lleva la escena anterior
+    if (i === 6 && t > ESC[7].a) extra = `transform:translateY(${-io(sal(t, ESC[7].a, .55)) * 1920}px)`
+    h += `<div class="full" style="${extra}">${e.fn(t)}</div>`
+  })
+  // destello en el iris y golpe rojo en el corte seco
+  { const k = (t - ESC[4].a) / .5; if (k > 0 && k < 1) h += `<div class="full" style="background:#fff;opacity:${(1 - k) * .55}"></div>` }
+  { const k = (t - ESC[3].a) / .22; if (k > 0 && k < 1) h += `<div class="full" style="background:#fff;opacity:${(1 - k) * .7}"></div>` }
+  // regreso al inicio: el iris se cierra sobre la oficina de la mañana
+  if (t > VUELTA) { const k = io(sal(t, VUELTA, .5)); h += `<div class="full" style="clip-path:circle(${k * 1300}px at 50% 46%)">${eA(t - T_FIN)}</div>` }
+  h += subtitulos(t)
+  const claro = (t >= ESC[4].a + .25 && t < ESC[5].a + .3)
+  const oscuro = t >= ESC[2].a + .3 && t < ESC[3].a || t >= TG + .25 && t < VUELTA + .25
+  h += `<div class="abs" style="left:48px;top:70px;display:flex;align-items:center;gap:12px;padding:10px 20px 10px 14px;border-radius:20px;background:${oscuro ? 'rgba(10,12,24,.55)' : 'rgba(255,255,255,.82)'};font:700 28px Sora;letter-spacing:.1em;color:${oscuro ? '#fff' : '#141a33'}"><span style="width:56px;height:37px">${LOGO('lm')}</span>NXUS AI</div>`
+  h += `<div class="abs" style="left:0;top:0;height:8px;width:${cl(t / T_FIN) * 1080}px;background:linear-gradient(90deg,#f2b632,#e2553f 40%,#0a6cff 75%,#a01cff)"></div>`
+  document.getElementById('st').innerHTML = h
+}
+</script></body></html>
