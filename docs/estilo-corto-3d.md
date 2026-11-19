@@ -75,3 +75,9 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
   - Los subtítulos van con el texto del guion y no con lo que transcribe whisper (salían "LEGUÉ" y "FRACACÉ").
   - En la tarjeta del logo, el subtítulo va más abajo (y=1450) para no taparlo.
 - **Siguiente paso si le gusta:** animar las tomas clave con Kling 3.0 (8.75 créditos cada 5 s) y agregar 2 o 3 segundos de video real suyo al final.
+
+## Corrección de Eduardo al primer corte (19 nov 2026): "para nada me gustó"
+- **Sin narración.** Como en el de togi, **los personajes hablan en la escena** (él y los demás), con la boca sincronizada. La narración en off no va.
+- **Movimiento fluido de verdad:** cada toma es video animado, no imágenes fijas con acercamiento.
+- **Cómo se hace:** cada toma se genera como video con diálogo y boca sincronizada (Kling 3.0 con sonido, 8.75 créditos por 5 s; Seedance 2.0 cuesta 22.5). Después se cambia la voz del personaje por la de Eduardo (su clon de ElevenLabs, voz a voz), que respeta los tiempos, así que la boca sigue coincidiendo. Antes de hacer el video completo, probar una sola toma.
+- **Presupuesto:** con unos 160 créditos alcanzan unas 15 tomas de 5 s en Kling 3.0. No hay margen para repetir muchas.
