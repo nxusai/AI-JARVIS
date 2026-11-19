@@ -93,3 +93,31 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Su clon es "Dueño (voz propia) · Nexy", ID `pZyxpOKXKkSeNV6q2OnW`** (categoría `cloned`). Esta es la que se usa para que hable él.
 - **`ztLK2033y26Zrda40AkH` ("NEX New voice") NO es su voz:** es una voz generada. Se usó por error en la prueba y Eduardo notó que no era él. Los cursos de `reels/` (rama `claude/bold-hypatia-xnev0f`, `config.json` → `vozCurso`) también usan esa voz generada; avisarle si quiere rehacerlos con su clon.
 - Voz a voz con su clon: `similarity_boost` 0.9 y `style` 0.15. El texto salió perfecto en la transcripción.
+
+## Video 1 terminado: "¿Cuántos van ya?" (19 nov 2026)
+- **48 s, 10 tomas animadas con Kling 3.0** (49 s de animación, unos 86 créditos), 4 imágenes nuevas (8 créditos), el montaje de 2 escenas fijas con el rótulo "~ UN NEGOCIO TRAS OTRO ~" y la tarjeta del logo de NXUS con destello. Guion en `docs/guion-corto-1.md`.
+- **Jobs de las tomas:**
+
+  | Toma | Job |
+  |---|---|
+  | t01 | `46555ee1` |
+  | t02 | `f8d5e8a4` |
+  | t03 | `f327f7c7` |
+  | t04 | `7e32c3ad` |
+  | t05 | `aa2df1b7` |
+  | t06 | `51c9cfe3` |
+  | t07 | `5304ee8b` |
+  | t08 | `9422086b` |
+  | t09 | `4611600f` |
+  | t10 | `75a1eb00` |
+
+- **Personajes:** el amigo (corte de pelo al ras, barba corta, camisa de franela roja) y don Ramón (bigote, camisa blanca, mandil café). Se describen igual en cada prompt para que salgan siempre iguales.
+- **Voces:**
+  - Las frases de Eduardo se pasan a su clon voz a voz (`edicion/voz_a_voz.sh`).
+  - **Las frases cortas o susurradas se deforman en el voz a voz** ("Último curso" salió "Última corcha", "Deme un mes" salió "Deve haber un mes"). Esas se dicen con su clon (texto a voz) y se ponen pedazo por pedazo donde mueve la boca, con `edicion/ajustar_voz.py` (estira entre x0.85 y x1.25, no más).
+  - "Deme un mes" sola, ElevenLabs la pronuncia mal; "Usted deme un mes" sí sale bien.
+  - Kling dice "treche" en vez de "trece", así que los números se rehacen con ajustar_voz.
+  - En las tomas de dos personajes se corta el audio donde cambia de quien habla, y solo la parte de Eduardo se pasa a su voz.
+- **Armado:** `edicion/corto_dialogo.py <carpeta>`, en unos 2.5 minutos. Recorta cada toma a lo que se habla (0.3 s antes y 0.45 s después), escala de 720p a 1080×1920, pone subtítulos con el texto del guion, lluvia en las tomas de lluvia, música tensa hasta el logo, synthwave después y whoosh en cada corte.
+- **Créditos:** quedaron **60.39** en Higgsfield (19 nov 2026).
+- **Pendiente:** don Ramón dice "artijar" en lugar de "artificial" (voz de Kling). Si Eduardo lo pide, se rehace con una voz de la biblioteca de ElevenLabs.
