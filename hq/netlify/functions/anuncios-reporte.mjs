@@ -74,7 +74,18 @@ export default async (req) => {
         if (l.estado === 'agendado' || l.prospecto_id) x.agendo++
       }
     }
-    return json({ ok: true, foto, rango: enRango, cuenta, fuentes, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
+    // ¿Funciona la llave de la API de ManyChat? (solo dice sí/no y el nombre de la página)
+    let manychat = null
+    if (q.get('manychat')) {
+      const llave = (process.env.MANYCHAT_API_KEY || '').trim()
+      if (!llave) manychat = { ok: false, motivo: 'Falta MANYCHAT_API_KEY en Netlify' }
+      else {
+        const r = await fetch('https://api.manychat.com/fb/page/getInfo', { headers: { authorization: `Bearer ${llave}` }, signal: AbortSignal.timeout(8000) }).catch((e) => ({ ok: false, statusText: e.message }))
+        const o = r.json ? await r.json().catch(() => ({})) : {}
+        manychat = o.status === 'success' ? { ok: true, pagina: o.data?.name || '' } : { ok: false, motivo: o.message || r.statusText || 'error' }
+      }
+    }
+    return json({ ok: true, foto, rango: enRango, cuenta, fuentes, manychat, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
     return json({ ok: false, error: err.message.slice(0, 300) }, 500)
   }

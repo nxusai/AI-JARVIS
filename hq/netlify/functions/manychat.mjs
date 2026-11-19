@@ -139,12 +139,43 @@ export function estado(viejo, f, completo, permiso) {
   return permiso || viejo?.permiso_llamada ? { estado: 'nuevo' } : { estado: 'cartera', motivo: 'sin_permiso' }
 }
 
+
+// ManyChat pega el texto de la persona tal cual dentro del JSON del aviso: una comilla doble (") o un salto de línea
+// lo rompe y ManyChat ni lo envía (19 nov 2026, "Invalid payload json"). Por eso el aviso puede mandar SOLO
+// { manychat_id, completo } y HQ trae los datos directo de la API de ManyChat (MANYCHAT_API_KEY en Netlify).
+// Lo que venga en el cuerpo manda sobre lo de la API; lo que falte se completa con la API.
+const sinAcento = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+const CAMPOS_MC = ['canal', 'fuente', 'idioma', 'nombre', 'empresa', 'direccion', 'ciudad', 'pais', 'telefono', 'correo', 'servicio', 'permiso', 'sucursales', 'lada']
+export async function deManyChat(id) {
+  const llave = (process.env.MANYCHAT_API_KEY || '').trim()
+  if (!llave || !/^\d{1,60}$/.test(String(id ?? ''))) return null
+  const res = await fetch(`https://api.manychat.com/fb/subscriber/getInfo?subscriber_id=${id}`, {
+    headers: { authorization: `Bearer ${llave}`, accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  })
+  const out = await res.json().catch(() => ({}))
+  if (!res.ok || out.status !== 'success' || !out.data) throw new Error(out.message || `ManyChat respondió ${res.status}`)
+  const d = out.data
+  const r = {}
+  for (const c of d.custom_fields || []) {
+    const k = sinAcento(c.name).replace(/\s+/g, '_')
+    if (CAMPOS_MC.includes(k) && c.value !== null && c.value !== undefined && String(c.value).trim() !== '') r[k] = String(c.value)
+  }
+  if (!r.nombre && d.name) r.nombre = d.name
+  if (!r.telefono && d.phone) r.telefono = d.phone
+  if (!r.correo && d.email) r.correo = d.email
+  return r
+}
+
 export default async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'POST' }, 405)
   if (!autorizado(req)) return json({ ok: false, error: 'sin permiso' }, 401)
   if (!process.env.SUPABASE_SERVICE_KEY) return json({ ok: false, error: 'Falta SUPABASE_SERVICE_KEY en Netlify' }, 503)
-  const b = await req.json().catch(() => null)
+  let b = await req.json().catch(() => null)
   if (!b || typeof b !== 'object') return json({ ok: false, error: 'El cuerpo no es JSON' }, 400)
+  // Completa con lo que tiene ManyChat (lo del cuerpo manda). Si la API falla, sigue con lo que trajo el cuerpo.
+  const mc = await deManyChat(b.manychat_id).catch((err) => (console.log('ManyChat API:', err.message), null))
+  if (mc) b = { ...mc, ...Object.fromEntries(Object.entries(b).filter(([, v]) => v !== '' && v !== null && v !== undefined)) }
   const f = fila(b)
   // Flujo viejo (sin botón de lada): +1 y dijo México puede ser el +1 que ponía ManyChat. Decide la IA ahora.
   if (f.telefono && !ladaDe(texto(b.lada, 40)) && normalizar(texto(b.telefono, 40), f.pais, '', f.ciudad, f.direccion).duda) {
