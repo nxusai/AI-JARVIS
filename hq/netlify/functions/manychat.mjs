@@ -19,7 +19,14 @@ const texto = (v, max) => {
   const t = String(v ?? '').trim()
   return /^(null|undefined|none)$/i.test(t) || /^\{\{.*\}\}$/.test(t) ? '' : t.slice(0, max)
 }
-const si = (v) => v === true || /^(s[ií]|yes|true|1|acepto|i agree|autorizo)/i.test(texto(v, 40))
+// Sí al permiso: tolera emojis, espacios o signos antes ("✅ Sí, autorizo", "👍 si"), y "autorizo"/"acepto" en cualquier
+// parte; pero nunca cuenta como sí algo que empieza con "no".
+const si = (v) => {
+  if (v === true) return true
+  const t = texto(v, 60).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^[^a-z0-9]+/, '')
+  if (!t || /^no\b/.test(t)) return false
+  return /^(si|yes|true|1|ok)\b/.test(t) || /(autorizo|acepto|i agree|de acuerdo)/.test(t)
+}
 
 function autorizado(req) {
   // Sin espacios ni saltos de línea: al pegarla a veces se cuela uno.
