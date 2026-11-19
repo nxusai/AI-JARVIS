@@ -5,6 +5,7 @@
 // GET  → las semanas guardadas + lo aprendido + cómo va todo desde el inicio (Meta, solo lectura).
 // POST → toma la foto de la última semana completa (o de ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD) y devuelve lo mismo.
 // GET ?desde=&hasta= → además calcula ese rango sin guardarlo (campo "rango").
+// GET ?leads=1 → en qué va cada lead de anuncio, sin datos personales (campo "leads").
 // GET ?estados=1 → estado de las campañas, conjuntos y anuncios de la cuenta (campo "cuenta"), solo lectura.
 // PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
 //        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL);
@@ -55,7 +56,15 @@ export default async (req) => {
       ]).catch((e) => [{ error: e.message }, {}, {}, {}])
       cuenta = { campanas: camps.data || camps, anuncios: ads.data || [], conjuntos: sets.data || [], gasto7: gasto.data || [] }
     }
-    return json({ ok: true, foto, rango: enRango, cuenta, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
+    // Con ?leads=1: en qué va cada lead que llegó de un anuncio, SIN datos personales (ni nombre, ni negocio,
+    // ni teléfono, ni correo, ni la conversación): solo de qué anuncio, etapa, calificación y lo que Ana Sofi
+    // anotó del tipo de negocio y el volumen. Para entender qué clase de comprador trae cada anuncio.
+    let leads = null
+    if (q.get('leads')) {
+      const filas = await sb('/rest/v1/leads?select=fuente,etapa,calificacion,permiso_llamada,tipo_negocio,libras,frecuencia,marca_propia,ciudad,idioma,intentos,meet_inicio,creado&fuente=like.Anuncio*&order=creado.asc&limit=2000', { servicio: true })
+      leads = filas.map((l) => ({ ...l, creado: String(l.creado || '').slice(0, 10), meet_inicio: Boolean(l.meet_inicio), ciudad: String(l.ciudad || '').slice(0, 60) }))
+    }
+    return json({ ok: true, foto, rango: enRango, cuenta, leads, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
     return json({ ok: false, error: err.message.slice(0, 300) }, 500)
   }
