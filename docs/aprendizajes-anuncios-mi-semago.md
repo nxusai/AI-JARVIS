@@ -72,6 +72,15 @@ Salen del cierre de la ronda 1 y del informe de competencia del 18 nov 2026. Son
 - **Lo que nadie dice:** certificaciones o planta registrada, pedido mínimo en libras, envío refrigerado, capacidad. Casi nadie publica precio.
 - **Límites:** la Biblioteca no muestra gasto ni resultados; ⭐ solo indica tiempo prendido; no se reprodujeron los videos.
 
+### Meta · revisión antes de la ronda 2 (19 nov 2026)
+Fuentes: blogs de agencias y Jon Loomer; casi nada viene de Meta directo. Orientación, no regla.
+- **Que un anuncio se lleve todo el dinero es normal en Meta**, sobre todo con menos de ~$100/día (el que recibe las primeras reacciones se queda con el reparto; no siempre es el mejor).
+- **Para que se prueben todos:** (1) la herramienta de prueba de creativos de Ads Manager (aparta presupuesto para cada anuncio en prueba; mínimo 2 anuncios; confirmar si la cuenta la tiene); (2) "Push delivery to this ad" (Ad setup → Multi-advertiser ads → Show more settings; % del presupuesto por 1–30 días; en prueba, no todas las cuentas; no junto con la prueba de creativos); (3) un conjunto por anuncio (parejo, pero divide el aprendizaje); (4) 3–5 anuncios por conjunto.
+- **Estructura 2026:** pocos conjuntos y creativos realmente distintos (otra idea, gancho o formato). Para la ronda 2: UN conjunto con pocos anuncios + prueba de creativos, en vez de dos conjuntos.
+- **Políticas:** más revisión automática de urgencia no comprobable y de atributos personales implícitos. Preguntar por el negocio es lo seguro. La muestra se dice con su condición real y sin urgencia.
+- **WhatsApp:** varias fuentes dicen que la ventana gratis tras el clic en un anuncio subió a 7 días (antes 72 h). Sin confirmar con Meta.
+- Links: https://www.jonloomer.com/one-ad-gets-all-the-budget/ · https://www.jonloomer.com/hands-on-push-delivery-to-this-ad/ · https://admanage.ai/blog/meta-ads-update · https://adsuploader.com/blog/meta-ads-updates · https://segwise.ai/blog/meta-andromeda-update-creative-strategy-2026 · https://www.auditsocials.com/blog/meta-ad-misleading-claims-personal-attributes-prohibited-content-policy-2026
+
 ## Nombres desde la ronda 2
 - Campaña: `MI SEMAGO | OESTE | R2 | WhatsApp`. Anuncio: `OESTE | A | Tu marca` (mercado | letra | de qué trata).
 - Fuente en ManyChat (campo MS Fuente): `Anuncio OESTE R2 · Video A` (también "Imagen A" o "Carrusel A").
