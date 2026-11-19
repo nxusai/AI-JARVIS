@@ -69,6 +69,14 @@ FORMATOS (18 nov 2026)
 - Las imágenes verticales por ubicación ("Customize media" → Vertical) solo se suben con "Upload your own" desde la
   computadora (no desde la biblioteca) y la ventana de archivos se duplica fácil: subirlas desde el inicio o no usarlas.
 
+LIGAR ANUNCIOS A MANYCHAT (19 nov 2026)
+- Ligar el anuncio a la automatización de ManyChat SOLO cuando ya esté LIVE con su disparador "User clicks a Facebook
+  Ad" encendido. En la ronda 2 se ligó con las copias en borrador: Meta mostraba el saludo correcto, pero al tocar un
+  botón ManyChat no reconocía el anuncio (0 ejecuciones, leads sin fuente, todos a "Respuesta por defecto").
+  Arreglo: volver a elegir la automatización en cada anuncio y publicar.
+- La "Respuesta por defecto" debe hacer directo la pregunta con botones y arrancar el filtro; un botón intermedio
+  ("Quiero información") hizo que 3 de 4 personas se fueran.
+
 REGLAS PARA LA EXTENSIÓN (Claude in Chrome)
 - "Review and publish" en Ads Manager publica TODOS los borradores de la cuenta, no solo los de esa pestaña
   (18 nov 2026: al pausar la ronda 1 se publicaron a medias la campaña R2 y un borrador viejo). Mientras la
