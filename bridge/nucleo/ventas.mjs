@@ -240,6 +240,59 @@ export function horarioElegido(texto, ofrecidos) {
   return ganadores.length === 1 ? ganadores[0] : null
 }
 
+// ── la fecha dicha con palabras, sin depender de nadie ──────────────────
+// "viernes veinte de noviembre a la una de la tarde", "el martes a las 10", "tomorrow at 2 pm".
+// Es la red de seguridad de la videollamada: si esto la entiende, se agenda aunque Claude no conteste.
+
+const NUMEROS = { un: 1, uno: 1, una: 1, primero: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30 }
+const MESES = { enero: 1, january: 1, febrero: 2, february: 2, marzo: 3, march: 3, abril: 4, april: 4, mayo: 5, may: 5, junio: 6, june: 6, julio: 7, july: 7, agosto: 8, august: 8, septiembre: 9, setiembre: 9, september: 9, octubre: 10, october: 10, noviembre: 11, november: 11, diciembre: 12, december: 12 }
+const SEMANA = { domingo: 0, sunday: 0, lunes: 1, monday: 1, martes: 2, tuesday: 2, miercoles: 3, wednesday: 3, jueves: 4, thursday: 4, viernes: 5, friday: 5, sabado: 6, saturday: 6 }
+const NUM_DIA = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+
+/** The day and hour someone said, as UTC ms; null when either one is missing or it is already past. */
+export function fechaSimple(texto, zona, ahora = Date.now()) {
+  let t = ` ${doblar(texto)} `.replace(/treinta y un[oa]?/g, '31')
+  t = t.replace(/[a-z]+/g, (w) => (NUMEROS[w] ? String(NUMEROS[w]) : w))
+  // la hora
+  let h = null
+  let mi = 0
+  const m = /(?:\ba las?|\bat)\s+(\d{1,2})(?:[:.](\d{2}))?(\s+y media)?\s*(a\.?\s?m\b|p\.?\s?m\b|de la manana|en la manana|por la manana|de la tarde|en la tarde|por la tarde|de la noche|in the morning|in the afternoon|in the evening)?/.exec(t) || /(?:^|\D)(\d{1,2})(?:[:.](\d{2}))?()\s*(a\.?\s?m\b|p\.?\s?m\b)/.exec(t)
+  if (m) {
+    h = Number(m[1])
+    mi = m[2] ? Number(m[2]) : m[3] ? 30 : 0
+    const pista = (m[4] || '').replace(/[.\s]/g, '')
+    if (/^pm$|tarde|noche|afternoon|evening/.test(pista)) h = h < 12 ? h + 12 : h
+    else if (/^am$|manana|morning/.test(pista)) h = h === 12 ? 0 : h
+    else if (h >= 1 && h <= 7) h += 12 // sin pista, "a las 3" es de la tarde
+  } else if (/mediodia|medio dia|\bnoon\b/.test(t)) h = 12
+  if (h == null || h > 23 || mi > 59) return null
+  // el día
+  const hoy = partes(ahora, zona)
+  const mas = (n) => {
+    const x = new Date(Date.UTC(hoy.y, hoy.mo - 1, hoy.d + n))
+    return { y: x.getUTCFullYear(), mo: x.getUTCMonth() + 1, d: x.getUTCDate() }
+  }
+  let dia = null
+  const nombres = Object.keys(MESES).join('|')
+  const conMes = new RegExp(`(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:de\\s+|of\\s+)?(${nombres})\\b`).exec(t) || new RegExp(`\\b(${nombres})\\s+(\\d{1,2})\\b`).exec(t)
+  if (conMes) {
+    const d = Number(/^\d/.test(conMes[1]) ? conMes[1] : conMes[2])
+    const mo = MESES[/^\d/.test(conMes[1]) ? conMes[2] : conMes[1]]
+    if (d >= 1 && d <= 31) dia = { y: mo < hoy.mo || (mo === hoy.mo && d < hoy.d) ? hoy.y + 1 : hoy.y, mo, d }
+  }
+  if (!dia) {
+    const sinHora = t.replace(/(de|en|por) la manana/g, ' ')
+    const wd = new RegExp(`\\b(${Object.keys(SEMANA).join('|')})\\b`).exec(t)
+    if (/pasado manana|day after tomorrow/.test(sinHora)) dia = mas(2)
+    else if (/\bmanana\b|\btomorrow\b/.test(sinHora)) dia = mas(1)
+    else if (/\bhoy\b|\btoday\b/.test(t)) dia = mas(0)
+    else if (wd) dia = mas((SEMANA[wd[1]] - NUM_DIA[hoy.wd] + 7) % 7 || 7)
+  }
+  if (!dia) return null
+  const ms = horaEn(dia.y, dia.mo, dia.d, h, zona, mi)
+  return Number.isFinite(ms) && ms > ahora && ms < ahora + 180 * 86_400_000 ? ms : null
+}
+
 // ── Claude, para lo que no es exacto ─────────────────────────────────────
 
 /** One short question to Claude that must come back as a date-time in a zone (or null). */
@@ -563,6 +616,7 @@ async function despues(lead, s, r, o) {
   if (r.resultado === 'videollamada_agendada' && r.videollamada) {
     s.stage = 'reunion'
     let inicio = horarioElegido(r.videollamada, s.ofrecidos)
+    if (!inicio) inicio = fechaSimple(r.videollamada, ZONA_MEET, ahora)
     if (!inicio) inicio = await fechaDeTexto({ claveClaude: o.claude, texto: r.videollamada, zona: ZONA_MEET, ahora, ofrecidos: s.ofrecidos ?? [], fetchImpl: o.fetchImpl })
     if (!inicio || !esCorreo(lead.correo)) {
       const falta = !inicio ? `no entendí la hora que eligió ("${r.videollamada}")` : 'falta su correo para invitarlo'
@@ -583,7 +637,7 @@ async function despues(lead, s, r, o) {
   }
 
   if (r.resultado === 'llamar_despues' && r.llamarDespues) {
-    const at = await fechaDeTexto({ claveClaude: o.claude, texto: r.llamarDespues, zona: s.zona, ahora, fetchImpl: o.fetchImpl })
+    const at = fechaSimple(r.llamarDespues, s.zona, ahora) ?? (await fechaDeTexto({ claveClaude: o.claude, texto: r.llamarDespues, zona: s.zona, ahora, fetchImpl: o.fetchImpl }))
     const phone = usPhone(lead.telefono)
     const valida = at && at > ahora + 5 * 60_000 && at < ahora + 14 * 86_400_000 && enHorario(at, s.zona)
     const b = valida && phone && (await programarLlamada({ key, cfg, lead, phone, at, zona: s.zona, horarios: horariosTexto((s.ofrecidos = horariosMeet(at)), lead.idioma), intento: 2, fetchImpl: o.fetchImpl }))

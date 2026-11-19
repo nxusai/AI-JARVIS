@@ -2026,11 +2026,18 @@ function horaLead(iso, l) {
   return l.zona && l.zona !== ZONA_ESTE ? `${este} · ${horaEn(iso, l.zona, false)} en ${h(l.ciudad || 'su ciudad')}` : este
 }
 
+/** Pidió videollamada en la llamada pero no quedó agendada: hay que agendarla a mano. */
+function faltaAgendarMeet(l) {
+  if (l.meet_inicio || ['meet', 'cerrado', 'no_califica', 'no_llamar'].includes(l.etapa)) return false
+  return (l.leads_notas ?? []).some((n) => /^Quiere videollamada/i.test(n.texto || '') && /No la agend|No se pudo agendar/i.test(n.texto || ''))
+}
 function tarjetaLead(l) {
   const notas = l.leads_notas?.length ?? 0
   const proximo =
     l.etapa === 'meet' && l.meet_inicio
       ? `🎥 ${horaEn(l.meet_inicio)}`
+      : faltaAgendarMeet(l)
+        ? '⚠️ Pidió Meet: falta agendarlo'
       : ['programada', 'no_contesto'].includes(l.etapa) && l.llamada_programada
         ? `📞 ${horaEn(l.llamada_programada)}`
         : ''
@@ -2075,6 +2082,8 @@ function vistaLeadsMovil() {
         ? '<span class="m-temp vivo">● En llamada</span>'
         : l.etapa === 'meet' && l.meet_inicio
           ? `<span class="m-temp meet">🎥 ${h(horaEn(l.meet_inicio))}</span>`
+          : faltaAgendarMeet(l)
+            ? '<span class="m-temp vivo">⚠️ Falta agendar Meet</span>'
           : l.calificacion
             ? `<span class="m-temp cal-${l.calificacion}">${CALIFICACION[l.calificacion]}</span>`
             : `<span class="m-temp">${ETAPAS_LEAD[l.etapa]?.t ?? ''}</span>`
@@ -2104,6 +2113,7 @@ function vistaLeads() {
   return `
     <p class="ayuda" style="margin-top:0">Los que escriben a Mi Semago por WhatsApp. Ana Sofi les llama a la hora que pidieron, les da precios, pide sus datos y, si quieren, agenda el Google Meet con Eduardo.</p>
     ${meetsHoy.length ? `<div class="aviso-meet">${meetsHoy.map((l) => `<div>🎥 <b>Hoy ${h(horaEn(l.meet_inicio, ZONA_ESTE, false))}</b> · ${h(l.negocio || l.nombre)}</div><a class="btn principal chico" href="${h(l.meet_link)}" target="_blank" rel="noopener">Unirse al meeting</a>`).join('')}</div>` : ''}
+    ${S.leads.filter(faltaAgendarMeet).length ? `<div class="aviso-meet">${S.leads.filter(faltaAgendarMeet).map((l) => `<div>⚠️ <b>Pidió videollamada y no quedó agendada</b> · ${h(l.negocio || l.nombre || 'Sin nombre')}</div><button class="btn principal chico" data-lead="${l.id}">Ver y agendar</button>`).join('')}</div>` : ''}
     <div class="resumen-leads">
       ${['nuevo', 'programada', 'hablo', 'meet', 'cerrado'].map((e) => `<div><b>${cuenta(e)}</b><span>${ETAPAS_LEAD[e].t}</span></div>`).join('')}
     </div>
