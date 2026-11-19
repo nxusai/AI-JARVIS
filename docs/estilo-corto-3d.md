@@ -54,3 +54,11 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Cuidado con la marca del juego:** en el video no van el nombre "GTA", su logo, sus letras ni personajes del juego. Se pide el estilo con palabras ("ilustración pintada de pantalla de carga de videojuego, colores saturados de atardecer, Florida, neón").
 - **Para que se parezca:** usar como referencia las imágenes que él ya generó y le gustaron, más fotos nuevas de frente con buena luz.
 - **Sus fotos en Higgsfield (19 nov):** las que sirven son 6 de cerca (con sudadera azul y suéter negro), 1 de cuerpo completo de espaldas y el selfie del elemento "Eduardo". Otras 6 subidas el 18 nov dan "Access Denied". El personaje entrenado "Serene Radiance" falló.
+
+## Su personaje: "Eduardo-GTA" (aprobado el 19 nov 2026)
+- **Elemento de Higgsfield:** `Eduardo-GTA`, ID `2949c505-55bc-43ae-b9f3-db08c90fc7ac`, hecho de la generación `2f71dde7-6650-4368-8a3a-9e3188fafc55` (la "A" que eligió).
+- **Uso:** poner `<<<2949c505-55bc-43ae-b9f3-db08c90fc7ac>>>` dentro del prompt de `generate_image` o `generate_video` (Nano Banana Pro/2, Seedance 2.0, Cinema Studio; Kling 3.0 solo con imagen de inicio).
+- **Cómo es:** ilustración de pantalla de carga de videojuego, contornos negros, sombras planas y atardecer magenta, naranja y morado. Pelo oscuro despeinado cayendo en la frente, lentes de sol negros rectangulares, barba ligera, sudadera negra holgada, pantalón negro, reloj plateado en la muñeca izquierda y tenis altos gris con blanco.
+- **De dónde salió:** las imágenes estilo GTA VI que él mismo generó. Su favorita (con dos chicas en la playa) es la que más se le parece "de físico y de cara, sobre todo con lentes". Se recortó solo a él y se usaron también la de cara (Vice City) y la del Rolls. Las referencias quedaron subidas a Higgsfield: `b9f1d2ec-…`, `e0a851ef-…` y `e43bcf21-…`.
+- **Cuidado:** se coló la palomita de Nike en los tenis. En cada toma pedir "no logos" y revisarla.
+- **Las fotos mandadas por el chat sí llegan como archivo** (a la carpeta `images/` de la sesión) y se pueden subir directo a Higgsfield: no hace falta Drive.
