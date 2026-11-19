@@ -54,6 +54,10 @@ Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la sem
 - El filtro (12 preguntas + IA) tarda 8–12 min; quien se va, se va antes de 4 min. Traban: texto en lugar de botón (lada, país), dirección repetida en ciudad, "te responderá pronto" a la mitad.
 - Propuesta (pendiente de Eduardo): 5 pasos — sucursales (botones), nombre, negocio y a qué se dedica, lada + teléfono, permiso. Lo demás lo pide NEX en la llamada. En HQ quitar "correo" de los obligatorios (`hq/netlify/functions/manychat.mjs`, FALTA).
 
+## 19 nov 2026 · Causa de leads atorados y revisión de la mañana
+- Causa confirmada en los Logs de ManyChat ("Invalid payload json"): la persona escribió comillas dobles (") y ManyChat pega el texto tal cual en el JSON del aviso a HQ; el aviso 2 ni se envía. Afecta a todos los filtros. Arreglo: HQ trae los datos de la API de ManyChat (`deManyChat` en `hq/netlify/functions/manychat.mjs`, llave MANYCHAT_API_KEY) y los avisos mandan solo manychat_id + completo. Pendiente que Eduardo ponga la llave.
+- Revisión 09:49 UTC: los 6 anuncios R2 de vuelta en ACTIVE; gasto R2 $25.81; sin leads nuevos desde Jovas, así que aún no se confirma si re-ligar arregló la entrada por anuncio.
+
 ## Cómo se actualiza
 0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
