@@ -1,4 +1,38 @@
-(Ver el texto completo en el chat del 19 nov 2026: descartar borrador del anuncio E, volver a ligar ManyChat en los 6
-anuncios R2 ya LIVE y publicar solo esos 6, y cambiar el primer mensaje de "Respuesta por defecto · Facebook" para que
-pregunte directo las sucursales con botones y arranque "Filtro NXUS · Facebook · Corto" con fuente
-"Respuesta por defecto · MX".)
+Eres mi experto en Meta Ads y ManyChat. Soy Eduardo (NXUS AI). Trabaja en mi Chrome (Ads Manager:
+https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563 y ManyChat: https://app.manychat.com).
+Yo te veo. Objetivo: que los clics en los anuncios R2 entren por sus automatizaciones R2, y que quien escriba texto no
+se pierda en la Respuesta por defecto.
+
+REGLAS (obligatorias)
+- No toques ninguna otra campaña ni automatización que no esté aquí. No cambies textos de los anuncios, públicos,
+  ubicaciones ni presupuesto.
+- Si algo pide contraseña o código, detente. Textos exactos, con acentos y emojis.
+
+PARTE 1. Ads Manager: descartar el borrador del anuncio E
+- En "Review and publish", si el único cambio es el borrador del anuncio "MX | E | Equipo en la calle · imagen"
+  (sin cambios reales), te autorizo a descartarlo ("Discard" / "Discard drafts") SOLO para ese anuncio.
+  Si aparece cualquier otro cambio, NO descartes nada y dime cuál es.
+
+PARTE 2. Ads Manager: volver a ligar ManyChat en los 6 anuncios (ahora que las R2 ya están LIVE)
+En cada anuncio A–F de "NXUS | MX | R2 | Mensajes":
+- Edit → sección Message template / Partner app (ManyChat).
+- Cambia temporalmente a otra automatización R2 cualquiera y luego vuelve a elegir la correcta, para que Meta tome la
+  plantilla actual: A→"Anuncio MX R2 · Video A · FB", B→"…Video B…", hasta F→"…Video F…". Si hay botón de
+  "Refresh" / "Sync" / "Reload templates", úsalo antes.
+- Revisa que la vista previa del chat siga mostrando el saludo de "usted" con [1] [2 a 5] [6 o más].
+- No cambies nada más del anuncio.
+Al terminar los 6: abre "Review and publish", revisa que la lista sean SOLO esos 6 anuncios de "NXUS | MX | R2 |
+Mensajes" y te autorizo de forma clara a publicar. Si aparece otra cosa, no publiques y dime qué.
+
+PARTE 3. ManyChat: red de seguridad en "Respuesta por defecto · Facebook"
+- Ábrela y dime cómo está (primer mensaje, botón "Quiero información", acciones y a qué automatización manda).
+- Cambia SOLO su primer mensaje para que pregunte directo, con 3 botones (respuestas rápidas si se puede):
+  "¡Hola! 👋 Gracias por escribir a NXUS AI. Para preparar su diagnóstico gratis, ¿cuántas sucursales o ubicaciones tiene su negocio?"
+  [1] [2 a 5] [6 o más]
+- Cada botón: Set User Field sucursales = texto del botón, fuente = "Respuesta por defecto · MX", canal = facebook,
+  y Start Automation → "Filtro NXUS · Facebook · Corto".
+- Mantén su regla de una vez cada 24 h y todo lo demás como está.
+- Pídeme permiso antes de publicarla y espera mi "sí".
+
+PARTE 4. Informe con ✅ / ⚠️ / ❌: borrador de E descartado, los 6 anuncios re-ligados y publicados, cómo estaba y
+cómo quedó la Respuesta por defecto.
