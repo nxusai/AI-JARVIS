@@ -35,6 +35,7 @@
 | 11 nov 2026 | `1O9ErBtKWsaDkQiOyBW3IiLWeLL6Mizfk` | US NEVER THEM #fitness #explorepage✨ #gym #couplegoals❤️ #fitnessaddict.mp4 | Pareja entrenando (29 s, 16:9, rap ~89 BPM): de aquí salió la caja de efectos (no copiar el estilo completo) |
 | 11 nov 2026 | `1aO9UHMWjl3Wcfj0f_uPTI6IGV1OSydLD` | A promise isn’t made when it’s easy. It’s kept when things get hard.Built through adversity. Dri.mp4 | Promo de marca de ropa de gym (25 s, 16:9, ~144 BPM): caja de efectos; cierre con logo animado y fecha |
 | 13 nov 2026 | (en "Ejemplos para editar y aplicar en NXUS") | ScreenRecording_11-13-2026 02-05-27_1.MP4 | "La máquina" (58 s, sin cámara): avatar pixel 3D, app animada con cursor, subtítulos palabra a palabra con naranja, stickers, final en loop. Ver docs/estilo-maquina.md |
+| 19 nov 2026 | `13GJaGcfN0SENRE5uyO-Q-hlZ3u2Hxwfn` | ScreenRecording_11-18-2026 19-43-05_1.MP4 | "Corto animado 3D" de togi/togi3d (52 s, 347 mil likes): personajes reales hechos animación 3D con IA, historia completa (conflicto → bajón → clímax → recompensa), corte en cada línea (~2 s), subtítulos blancos al centro, video real al final y loop. Ver docs/estilo-corto-3d.md |
 
 ### Crudos ya editados
 | Fecha | ID de Drive | Archivo | Resultado | Notas |
