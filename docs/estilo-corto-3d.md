@@ -47,3 +47,10 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
   5. Edición aquí: cortes en cada línea, subtítulos blancos al centro, rótulos de lugar, música en el montaje, loop al inicio y la etiqueta de "AI content" (Instagram la pide).
 - **Créditos:** el 19 nov 2026 tenía **192.89 créditos** en Higgsfield, que alcanzan para un video de este tipo, no más.
 - **Estilo propio:** que se vea como animación 3D cálida, sin copiar personajes, logos ni el look de un estudio o película en particular.
+
+## Decisiones de Eduardo (19 nov 2026)
+- **No le gustó la caricatura 3D estilo película familiar:** dos pruebas con Nano Banana Pro y 6 fotos suyas (4 créditos) no se le parecían; la cara salió más delgada y alargada.
+- **Cambio de estilo: su personaje va estilo "videojuego de mundo abierto"** (como el arte de GTA VI que él generó y le gustó). La historia, el ritmo y la edición del corto se mantienen; solo cambia el look.
+- **Cuidado con la marca del juego:** en el video no van el nombre "GTA", su logo, sus letras ni personajes del juego. Se pide el estilo con palabras ("ilustración pintada de pantalla de carga de videojuego, colores saturados de atardecer, Florida, neón").
+- **Para que se parezca:** usar como referencia las imágenes que él ya generó y le gustaron, más fotos nuevas de frente con buena luz.
+- **Sus fotos en Higgsfield (19 nov):** las que sirven son 6 de cerca (con sudadera azul y suéter negro), 1 de cuerpo completo de espaldas y el selfie del elemento "Eduardo". Otras 6 subidas el 18 nov dan "Access Denied". El personaje entrenado "Serene Radiance" falló.
