@@ -49,6 +49,11 @@ Fuente: `anuncios-reporte` (Meta del 1 al 17 nov + embudo de HQ). Foto de la sem
 - NY $222.95: A $61.97 · B $88.16 · C $72.82 · 6 chats · 0 reales (público demasiado chico, CPM $64–89).
 - Ronda 2 (18 nov): `NXUS | MX | R2 | Mensajes`, solo México, CDMX + Edomex 30+, FB Feed/Stories/Reels + IG Stories/Reels (sin IG Feed: los videos 9:16 no entran), 6 anuncios A–F, $20/día, tope $300.
 
+## 19 nov 2026 · Análisis del filtro de ManyChat (conversación de Pablo y otros leads)
+- ⚠️ Las 6 entradas "Anuncio MX R2 · Video A–F · FB" tienen 0 ejecuciones: quien contesta la pregunta del anuncio cae en "Respuesta por defecto" y debe tocar [Quiero información]; 1 de 6 siguió. Leads sin fuente → el panel no los atribuye. Diagnóstico en curso.
+- El filtro (12 preguntas + IA) tarda 8–12 min; quien se va, se va antes de 4 min. Traban: texto en lugar de botón (lada, país), dirección repetida en ciudad, "te responderá pronto" a la mitad.
+- Propuesta (pendiente de Eduardo): 5 pasos — sucursales (botones), nombre, negocio y a qué se dedica, lada + teléfono, permiso. Lo demás lo pide NEX en la llamada. En HQ quitar "correo" de los obligatorios (`hq/netlify/functions/manychat.mjs`, FALTA).
+
 ## Cómo se actualiza
 0. Antes de proponer anuncios leer también `docs/estrategia-ads-nxus-v3.md` (reglas de Meta para prometer, competencia, plan vigente). Cada ronda: volver a investigar cambios de Meta (algoritmo y políticas) y a la competencia (`ads/prompt-chrome-competencia.txt`) y anotar aquí lo nuevo con fecha.
 1. Cada lunes: reporte de la extensión (`ads/prompt-chrome-reporte-semanal.txt`) + foto del panel.
