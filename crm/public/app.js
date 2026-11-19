@@ -60,6 +60,7 @@ import { CLAVE_MINIMA, normalizarUsuario } from './acceso.js'
 import { fraseDelDia } from './frases.js'
 import { guardarObjetivo, vistaAnuncios } from './anuncios.js'
 import { desmontarUltron, montarUltron } from './ultron.js'
+import { descargar, excel } from './excel.js'
 
 let D // los datos
 let MUESTRA = false
@@ -224,6 +225,7 @@ async function cargarTodo() {
   ])
   Object.assign(S, { empresas, tareas, carpetas, biblioteca, catalogos, clientes, contenidos, plan })
   S.fiesta = D.fiesta ? await D.fiesta().catch(() => null) : []
+  S.fiestaEmpresas = D.fiestaEmpresas ? await D.fiestaEmpresas().catch(() => null) : null
   S.web = D.webLeads && veoLeads() ? await D.webLeads().catch(() => null) : []
   S.leads = D.leads && veoLeads() ? await D.leads() : []
   if (esAdmin()) S.usuarios = await D.usuarios()
@@ -706,10 +708,16 @@ const FIESTA_EMPRESAS = ['MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELIT
 const FIESTA_URL = () => `${location.origin}/fiesta/`
 const telBonito = (t) => (t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : t)
 
+/** Las empresas de la fiesta: las de la tabla (se agregan a mano) y cualquiera que traiga un invitado. */
+function empresasFiesta() {
+  const base = S.fiestaEmpresas?.length ? S.fiestaEmpresas : FIESTA_EMPRESAS
+  return [...new Set([...base, ...(S.fiesta || []).map((x) => x.empresa).filter(Boolean)])]
+}
+
 function invitadosFiltrados() {
   const q = S.fiestaBusca.trim().toLowerCase()
   return (S.fiesta || []).filter(
-    (x) => (!S.fiestaEmpresa || x.empresa === S.fiestaEmpresa) && (!q || x.nombre.toLowerCase().includes(q) || x.telefono.includes(q.replace(/\D/g, '') || '~')),
+    (x) => (!S.fiestaEmpresa || x.empresa === S.fiestaEmpresa) && (!q || x.nombre.toLowerCase().includes(q) || String(x.telefono || '').includes(q.replace(/\D/g, '') || '~')),
   )
 }
 
@@ -717,7 +725,7 @@ function vistaFiesta() {
   if (S.fiesta === null) return '<div class="vacio-msg">Falta actualizar la base de datos para ver la fiesta: corre el esquema en Supabase (SQL Editor → Run).</div>'
   const todos = S.fiesta
   const lista = invitadosFiltrados()
-  const porEmpresa = FIESTA_EMPRESAS.map((e) => [e, todos.filter((x) => x.empresa === e).length])
+  const porEmpresa = empresasFiesta().map((e) => [e, todos.filter((x) => x.empresa === e).length])
   const cerrado = Date.now() >= Date.parse('2026-11-17T05:00:00Z')
   return `
     <div class="fiesta-cabeza">
@@ -725,7 +733,8 @@ function vistaFiesta() {
       <div class="fiesta-botones">
         <a class="btn chico" href="/fiesta/" target="_blank" rel="noopener">Ver invitación ↗</a>
         <button class="btn chico" data-accion="copiar-fiesta">🔗 Copiar enlace</button>
-        <button class="btn chico" data-accion="csv-fiesta" ${todos.length ? '' : 'disabled'}>⬇️ Descargar lista</button>
+        <button class="btn chico" data-accion="excel-fiesta" ${todos.length ? '' : 'disabled'} title="Un Excel con una hoja de todos y una hoja por empresa">⬇️ Exportar Excel</button>
+        ${esAdmin() ? `<button class="btn chico principal" data-accion="agregar-invitado">+ Agregar invitado</button><button class="btn chico" data-accion="agregar-empresa-fiesta">+ Agregar empresa</button>` : ''}
       </div>
     </div>
     <div class="fiesta-cuentas">
@@ -745,7 +754,7 @@ function vistaFiesta() {
       <thead><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Empresa</th><th>Confirmó</th>${esAdmin() ? '<th></th>' : ''}</tr></thead>
       <tbody>${lista
         .map(
-          (x, i) => `<tr><td>${lista.length - i}</td><td><b>${h(x.nombre)}</b></td><td><a href="tel:${h(x.telefono)}">${h(telBonito(x.telefono))}</a></td><td><span class="chip">${h(x.empresa)}</span></td><td>${fecha(x.actualizada || x.creada, true)}</td>${
+          (x, i) => `<tr><td>${lista.length - i}</td><td><b>${h(x.nombre)}</b>${x.origen === 'crm' ? ' <span class="chip" title="Lo agregó el administrador">agregado a mano</span>' : ''}</td><td>${x.telefono ? `<a href="tel:${h(x.telefono)}">${h(telBonito(x.telefono))}</a>` : '<span class="ayuda">—</span>'}</td><td><span class="chip">${h(x.empresa)}</span></td><td>${fecha(x.actualizada || x.creada, true)}</td>${
             esAdmin() ? `<td><button class="btn chico peligro" data-borrar-invitado="${x.id}" title="Borrar">✕</button></td>` : ''
           }</tr>`,
         )
@@ -753,15 +762,74 @@ function vistaFiesta() {
     }`
 }
 
-function csvFiesta() {
-  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const filas = [['Nombre', 'Teléfono', 'Empresa', 'Confirmó'], ...invitadosFiltrados().map((x) => [x.nombre, telBonito(x.telefono), x.empresa, fecha(x.actualizada || x.creada, true)])]
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob(['﻿' + filas.map((f) => f.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }))
-  a.download = 'fiesta-confirmados.csv'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+/** Excel de la fiesta: la primera hoja con todos juntos y después una hoja por empresa. */
+function excelFiesta() {
+  // "Todos": juntos, sin clasificar (por nombre); en cada hoja de empresa, también por nombre.
+  const todos = [...(S.fiesta || [])].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  const fila = (x, i, conEmpresa = true) => [i + 1, x.nombre, x.telefono ? telBonito(x.telefono) : '', ...(conEmpresa ? [x.empresa] : []), x.origen === 'crm' ? 'Agregado a mano' : 'Confirmó en la invitación', fecha(x.actualizada || x.creada, true)]
+  const hojas = [
+    { nombre: 'Todos', filas: [['#', 'Nombre', 'Teléfono', 'Empresa', 'Cómo llegó', 'Fecha'], ...todos.map((x, i) => fila(x, i))] },
+    { nombre: 'Resumen', filas: [['Empresa', 'Invitados'], ...empresasFiesta().map((e) => [e, todos.filter((x) => x.empresa === e).length]), ['TOTAL', todos.length]] },
+    ...empresasFiesta()
+      .map((e) => ({ e, l: todos.filter((x) => x.empresa === e) }))
+      .filter(({ l }) => l.length)
+      .map(({ e, l }) => ({ nombre: e, filas: [['#', 'Nombre', 'Teléfono', 'Cómo llegó', 'Fecha'], ...l.map((x, i) => fila(x, i, false))] })),
+  ]
+  descargar(excel(hojas), `fiesta-invitados-${new Date().toLocaleDateString('en-CA')}.xlsx`)
+}
+
+function formInvitado() {
+  const emps = empresasFiesta()
+  abrirVentana(
+    'Agregar invitado',
+    `<form id="form-invitado">
+      <div class="campo"><label for="fi-nombre">Nombre completo</label><input id="fi-nombre" type="text" maxlength="80" required autocomplete="off"></div>
+      <div class="campo"><label for="fi-tel">Teléfono (opcional)</label><input id="fi-tel" type="tel" inputmode="tel" maxlength="20" placeholder="10 dígitos"></div>
+      <div class="campo"><label for="fi-empresa">Empresa</label><select id="fi-empresa" required>${emps.map((e) => `<option ${S.fiestaEmpresa === e ? 'selected' : ''}>${h(e)}</option>`).join('')}</select>
+        <span class="ayuda">¿No está la empresa? Ciérralo y toca “+ Agregar empresa”.</span></div>
+      <label class="casilla"><input id="fi-otro" type="checkbox" checked> Seguir agregando (no cerrar al guardar)</label>
+      <button class="btn principal grande" style="width:100%" data-ocupado="Guardando…">Agregar a la lista</button>
+    </form>`,
+    { chica: true },
+  )
+  $('#fi-nombre').focus()
+  $('#form-invitado').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const nombre = $('#fi-nombre').value.replace(/\s+/g, ' ').trim()
+    let tel = $('#fi-tel').value.replace(/\D/g, '')
+    if (tel.length === 11 && tel.startsWith('1')) tel = tel.slice(1)
+    if (nombre.length < 2) return avisar('Escribe el nombre completo', true)
+    if (tel && (tel.length < 10 || tel.length > 15)) return avisar('El teléfono va a 10 dígitos (o déjalo vacío)', true)
+    const empresa = $('#fi-empresa').value
+    const otro = $('#fi-otro').checked
+    await ocupado(e.submitter, async () => {
+      try {
+        await D.agregarInvitado({ nombre, telefono: tel || null, empresa })
+        avisar(`${nombre} agregado a ${empresa}`)
+        S.fiestaEmpresa = S.fiestaEmpresa && S.fiestaEmpresa !== empresa ? empresa : S.fiestaEmpresa
+        await recargar()
+        if (otro) {
+          formInvitado()
+          $('#fi-empresa').value = empresa
+        } else cerrarVentana()
+      } catch (err) {
+        falla(/duplicate|unique|ya está/i.test(err.message) ? new Error('Ese teléfono ya está en la lista') : /fiesta_asistentes|relation|column|origen/i.test(err.message) ? new Error('Falta actualizar la base de datos: corre el bloque nuevo del esquema en Supabase.') : err)
+      }
+    })
+  })
+}
+
+async function formEmpresaFiesta() {
+  const nombre = (await pedirTexto('Agregar empresa', 'Nombre de la empresa'))?.replace(/\s+/g, ' ').trim()
+  if (!nombre) return
+  if (empresasFiesta().some((e) => e.toLowerCase() === nombre.toLowerCase())) return avisar('Esa empresa ya está en la lista', true)
+  try {
+    await D.agregarEmpresaFiesta(nombre)
+    avisar(`Empresa agregada: ${nombre.toUpperCase()}`)
+    await recargar()
+  } catch (err) {
+    falla(/fiesta_empresas|relation/i.test(err.message) ? new Error('Falta actualizar la base de datos: corre el bloque nuevo del esquema en Supabase.') : err)
+  }
 }
 
 // -- tareas ------------------------------------------------------------------
@@ -926,7 +994,7 @@ function herramientasUltron() {
       if (S.fiesta === null) return 'La sección Fiesta no está lista todavía.'
       let l = S.fiesta ?? []
       if (String(emp).trim()) l = l.filter((x) => sinAcentos(x.empresa).includes(sinAcentos(emp)))
-      const por = FIESTA_EMPRESAS.map((e) => `${e}: ${l.filter((x) => x.empresa === e).length}`).join(', ')
+      const por = empresasFiesta().map((e) => `${e}: ${l.filter((x) => x.empresa === e).length}`).join(', ')
       return [
         'Fiesta de empleados: viernes 4 de diciembre de 2026, 7 PM a 1 AM, Milan Banquets (Garfield, NJ). La confirmación cerró el 16 de noviembre.',
         `Confirmados: ${l.length} (${por}). La lista solo guarda nombre, teléfono y empresa; no guarda si es hombre o mujer (si te lo piden, estímalo por el nombre y dilo como estimado).`,
@@ -2951,8 +3019,12 @@ async function alClic(e) {
         await recargar()
         avisar('Website leads al día')
         return
-      case 'csv-fiesta':
-        return csvFiesta()
+      case 'excel-fiesta':
+        return excelFiesta()
+      case 'agregar-invitado':
+        return formInvitado()
+      case 'agregar-empresa-fiesta':
+        return formEmpresaFiesta()
       case 'nueva-tarea':
         return formNuevaTarea()
       case 'abrir-nota':

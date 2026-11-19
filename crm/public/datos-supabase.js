@@ -264,6 +264,17 @@ export function crearSupabase({ url, anon }) {
     async fiesta() {
       return ok(await sb.from('fiesta_asistentes').select('*').order('actualizada', { ascending: false }).limit(5000))
     },
+    // Las empresas de la fiesta (se agregan a mano). Sin el esquema nuevo: null.
+    async fiestaEmpresas() {
+      const r = await sb.from('fiesta_empresas').select('nombre, orden').order('orden').order('nombre')
+      return r.error ? null : r.data.map((x) => x.nombre)
+    },
+    async agregarEmpresaFiesta(nombre) {
+      ok(await sb.from('fiesta_empresas').insert({ nombre }))
+    },
+    async agregarInvitado({ nombre, telefono, empresa }) {
+      ok(await sb.from('fiesta_asistentes').insert({ nombre, telefono: telefono || null, empresa }))
+    },
     async borrarInvitado(id) {
       ok(await sb.from('fiesta_asistentes').delete().eq('id', id))
     },

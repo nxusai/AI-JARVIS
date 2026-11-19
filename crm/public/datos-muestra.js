@@ -595,6 +595,27 @@ export function crearMuestra() {
       if (!perfil()) return []
       return copia(db.fiesta)
     },
+    async fiestaEmpresas() {
+      if (!perfil()) return []
+      db.fiestaEmpresas ??= ['MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE']
+      return copia(db.fiestaEmpresas)
+    },
+    async agregarEmpresaFiesta(nombre) {
+      await espera()
+      if (!admin()) no('Solo el admin agrega empresas')
+      const n = String(nombre).trim().replace(/\s+/g, ' ').toUpperCase()
+      if (n.length < 2) no('Escribe el nombre de la empresa')
+      db.fiestaEmpresas ??= ['MI SEMAGO', 'ABUELITO CORN', 'ABUELITO MEAT', 'ABUELITO CHEESE']
+      if (db.fiestaEmpresas.includes(n)) no('Esa empresa ya está')
+      db.fiestaEmpresas.push(n)
+    },
+    async agregarInvitado({ nombre, telefono, empresa }) {
+      await espera()
+      if (!admin()) no('Solo el admin agrega invitados')
+      if (telefono && db.fiesta.some((x) => x.telefono === telefono)) no('Ese teléfono ya está en la lista')
+      db.fiesta.unshift({ id: uid(), nombre: String(nombre).trim(), telefono: telefono || null, empresa, origen: 'crm', agregado_por: yo, creada: ahora(), actualizada: ahora() })
+      anota('creó', 'fiesta_asistentes', db.fiesta[0].id)
+    },
     async borrarInvitado(id) {
       if (!admin()) no('Solo el admin borra')
       db.fiesta = db.fiesta.filter((x) => x.id !== id)

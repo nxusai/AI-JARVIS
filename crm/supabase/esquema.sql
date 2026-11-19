@@ -1560,3 +1560,76 @@ Cómo se prueba: versión de "Tu marca" que diga los pasos (receta, etiqueta, pr
 Cómo se prueba: el mismo anuncio en inglés como anuncio aparte (con su propia fuente en ManyChat), no mezclado en el mismo texto.$t$,
    'Interpretación del asesor sobre el informe de competencia del 18 nov 2026')
 on conflict (titulo) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Fiesta: empresas que se agregan a mano e invitados agregados desde el CRM
+-- (19 nov 2026). Las empresas viven en su tabla; los invitados que agrega el
+-- admin no necesitan teléfono y quedan marcados como "agregado en el CRM".
+-- ---------------------------------------------------------------------------
+create table if not exists public.fiesta_empresas (
+  nombre text primary key check (length(btrim(nombre)) between 2 and 60),
+  orden int not null default 100,
+  creada timestamptz not null default now()
+);
+insert into public.fiesta_empresas (nombre, orden) values
+  ('MI SEMAGO', 1), ('ABUELITO CORN', 2), ('ABUELITO MEAT', 3), ('ABUELITO CHEESE', 4)
+on conflict (nombre) do nothing;
+-- Por si alguien confirmó con una empresa que no está en la lista.
+insert into public.fiesta_empresas (nombre)
+  select distinct empresa from public.fiesta_asistentes where empresa is not null
+on conflict (nombre) do nothing;
+
+create or replace function public.antes_fiesta_empresa() returns trigger
+language plpgsql as $$
+begin
+  new.nombre := upper(regexp_replace(btrim(new.nombre), '\s+', ' ', 'g'));
+  return new;
+end $$;
+drop trigger if exists crm_antes_fiesta_empresa on public.fiesta_empresas;
+create trigger crm_antes_fiesta_empresa before insert or update on public.fiesta_empresas
+  for each row execute function public.antes_fiesta_empresa();
+
+alter table public.fiesta_empresas enable row level security;
+drop policy if exists fiesta_empresas_ver on public.fiesta_empresas;
+create policy fiesta_empresas_ver on public.fiesta_empresas for select to authenticated using (yo_rol() is not null);
+drop policy if exists fiesta_empresas_admin on public.fiesta_empresas;
+create policy fiesta_empresas_admin on public.fiesta_empresas for all to authenticated using (es_admin()) with check (es_admin());
+drop trigger if exists crm_bitacora on public.fiesta_empresas;
+create trigger crm_bitacora after insert or update or delete on public.fiesta_empresas
+  for each row execute function public.anotar_cambio();
+
+-- La empresa del invitado ya no es una lista fija: tiene que existir en fiesta_empresas.
+alter table public.fiesta_asistentes drop constraint if exists fiesta_asistentes_empresa_check;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'fiesta_asistentes_empresa_existe') then
+    alter table public.fiesta_asistentes add constraint fiesta_asistentes_empresa_existe
+      foreign key (empresa) references public.fiesta_empresas (nombre) on update cascade;
+  end if;
+end $$;
+-- Los que agrega el admin pueden ir sin teléfono.
+alter table public.fiesta_asistentes alter column telefono drop not null;
+alter table public.fiesta_asistentes add column if not exists origen text not null default 'invitacion' check (origen in ('invitacion', 'crm'));
+alter table public.fiesta_asistentes add column if not exists agregado_por uuid references public.perfiles (id);
+
+create or replace function public.antes_fiesta_asistente() returns trigger
+language plpgsql as $$
+begin
+  new.nombre := regexp_replace(btrim(new.nombre), '\s+', ' ', 'g');
+  new.empresa := upper(regexp_replace(btrim(new.empresa), '\s+', ' ', 'g'));
+  new.telefono := nullif(btrim(coalesce(new.telefono, '')), '');
+  if tg_op = 'INSERT' and auth.uid() is not null then
+    new.origen := 'crm';
+    new.agregado_por := auth.uid();
+  end if;
+  new.actualizada := now();
+  return new;
+end $$;
+drop trigger if exists crm_antes_fiesta_asistente on public.fiesta_asistentes;
+create trigger crm_antes_fiesta_asistente before insert or update on public.fiesta_asistentes
+  for each row execute function public.antes_fiesta_asistente();
+
+drop policy if exists fiesta_agregar on public.fiesta_asistentes;
+create policy fiesta_agregar on public.fiesta_asistentes for insert to authenticated with check (es_admin());
+drop policy if exists fiesta_editar on public.fiesta_asistentes;
+create policy fiesta_editar on public.fiesta_asistentes for update to authenticated using (es_admin()) with check (es_admin());
