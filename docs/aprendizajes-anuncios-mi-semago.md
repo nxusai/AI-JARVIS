@@ -2,7 +2,7 @@
 
 La memoria de lo que funciona y lo que no en los anuncios de Mi Semago (quesos hispanos, marca propia y volumen para distribuidores; Click-to-WhatsApp → ManyChat → Centro de trabajo → Ana Sofi → Meet). Se lee ANTES de proponer un anuncio, un gancho o un cambio de campaña, y se actualiza DESPUÉS de cada revisión semanal. Cada aprendizaje lleva fecha y de dónde salió. Lo que falla también se anota. Sin datos personales de leads. Sin números inventados: si un dato falta, se dice.
 
-Material real para anuncios (Google Drive de NXUS): videos de producción en la carpeta "Queso fresco Produccion" (21 tomas de GoPro, sep 2025 y jun 2026), dos videos editados ("Produccion Queso Oaxaca.mp4" y "MISEMAGO (Creacion de queso).mp4") y 48 fotos en "MI SEMAGO / Quesos Fresco".
+**Carpeta fija del material para anuncios:** "Mi Semago · Contenido para anuncios" (https://drive.google.com/drive/folders/1TqDwOapGvzjLxsXg_hsS2GNP01a8ikQG). Ahí se pone lo que se va a usar: clips de máximo 30 s y fotos. De dónde sale el material (Google Drive de NXUS): videos de producción en la carpeta "Queso fresco Produccion" (21 tomas de GoPro, sep 2025 y jun 2026), dos videos editados ("Produccion Queso Oaxaca.mp4" y "MISEMAGO (Creacion de queso).mp4") y 48 fotos en "MI SEMAGO / Quesos Fresco".
 
 Lo mismo se ve en el Centro de trabajo → **Anuncios** → 📚 Aprendizajes (solo el creador del sistema; tabla `anuncios_aprendizajes`). Cómo está armado el sistema: `docs/crm-para-ads-mi-semago.md` (sección 10) y `docs/sistema-aprendizaje-anuncios.md`.
 
