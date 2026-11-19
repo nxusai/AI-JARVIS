@@ -121,3 +121,27 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Armado:** `edicion/corto_dialogo.py <carpeta>`, en unos 2.5 minutos. Recorta cada toma a lo que se habla (0.3 s antes y 0.45 s después), escala de 720p a 1080×1920, pone subtítulos con el texto del guion, lluvia en las tomas de lluvia, música tensa hasta el logo, synthwave después y whoosh en cada corte.
 - **Créditos:** quedaron **60.39** en Higgsfield (19 nov 2026).
 - **Pendiente:** don Ramón dice "artijar" en lugar de "artificial" (voz de Kling). Si Eduardo lo pide, se rehace con una voz de la biblioteca de ElevenLabs.
+
+## Versión 2 del video 1 (19 nov 2026): correcciones de Eduardo
+- **"Mi voz no; ponle otra que quede con el video."** Voces de la biblioteca de ElevenLabs con el modelo **`eleven_v3` y etiquetas de emoción** ([sighs], [sad], [whispers], [shouting], [laughs], [cheeky]…):
+  - **Eduardo:** "El Nero" `ljWLDJb7OMkYo3VM9z8g`.
+  - **El amigo:** "Juan - Friendly & Effortless" `VvYiNBPylZtUh8Bf6u8l`.
+  - **Don Ramón:** "Abel Quiñonez" `z365btkMkbqu8wJGFTrh`.
+  - Las tres pronuncian bien "inteligencia artificial".
+- **Cómo se hacen las voces:** `edicion/voces_v3.py` dice cada turno con la voz de su personaje y lo pone donde ese personaje mueve la boca (whisper sobre el audio de Kling), con ajuste de x0.8 a x1.3. Si la voz dura más que la toma, el armado congela el último cuadro.
+- **Lo que se aprendió de volver a ver el de togi:**
+  - Chiste visual: el amigo se burla mientras pescan.
+  - Bajón en plano y contraplano: "no puedo, fallé" / "no te rindas, ya casi".
+  - Acción: tormenta, "¡agárrate!" y el atún saltando.
+  - Remate con broma: "¿mañana otra vez?" / "ya lo reservé".
+  - La música cambia con la historia y los efectos marcan cada acción.
+- **Lo que se agregó:**
+  - **Emoción:** el amigo lo anima en el carro ("No te rindas, bro. Ya casi… lo presiento").
+  - **Acción:** el restaurante con un tornado de comandas; don Ramón grita "¿Bueno? ¿¡Otro pedido!? ¡Sí, sí, sí!" con dings y caja registradora, bajo el rótulo "~ UN MES DESPUÉS ~".
+  - **Gags:** el rótulo "~ NO ERA EL ÚLTIMO ~" con rayón de disco justo después de "Último curso… lo prometo", y el remate "¿Nuestro? ¿O sea que ya me pagas?" / "Empiezas el lunes".
+- **El carro:** antes se veía sin puerta y avanzando. Ahora es una toma nueva desde afuera, por el parabrisas, con las puertas cerradas y el carro estacionado (en el prompt: "the car is parked and completely still, the doors stay closed").
+- **Efectos de sonido:** 17, generados con ElevenLabs `/v1/sound-generation`: cortina, lluvia, trueno, lluvia en el carro, golpe, cuarto, chispa, impacto del logo, restaurante, caos, caja, ding, carro de lujo, oficina, rayón, llaves y whoosh. Hay que pedirlos de uno en uno, porque varios a la vez da error 429, y cada petición con su propio archivo JSON.
+- **Música:** ElevenLabs `/v1/music`, compuesta por partes a la medida de cada tramo: tensa hasta el carro, piano emotivo en el bajón, subida hacia la IA y synthwave de éxito desde el logo.
+- **Ritmo:** se quitan las pausas largas dentro de cada toma (corte en cada línea; la pausa antes del remate se deja más larga). Dura 63 s.
+- **Armado:** `edicion/corto_dialogo2.py <carpeta> <carpeta_sfx>`, en unos 4.5 minutos.
+- **Créditos:** se gastaron unos 39 en 2 imágenes y 4 tomas nuevas. Quedan **21.39** en Higgsfield.
