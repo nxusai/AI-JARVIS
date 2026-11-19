@@ -62,3 +62,16 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **De dónde salió:** las imágenes estilo GTA VI que él mismo generó. Su favorita (con dos chicas en la playa) es la que más se le parece "de físico y de cara, sobre todo con lentes". Se recortó solo a él y se usaron también la de cara (Vice City) y la del Rolls. Las referencias quedaron subidas a Higgsfield: `b9f1d2ec-…`, `e0a851ef-…` y `e43bcf21-…`.
 - **Cuidado:** se coló la palomita de Nike en los tenis. En cada toma pedir "no logos" y revisarla.
 - **Las fotos mandadas por el chat sí llegan como archivo** (a la carpeta `images/` de la sesión) y se pueden subir directo a Higgsfield: no hace falta Drive.
+
+## Video 1: "De fracaso en fracaso a NXUS AI" (primer corte, 19 nov 2026)
+- **Historia real que dio Eduardo:** en USA intentó negocio tras negocio, fracasó en todos y no le gustaban, y se sentía fracasado. Compró muchos cursos de cómo hacer dinero en internet, uno le enseñó inteligencia artificial y nació NXUS AI. **Llegó a hacer 13,500 USD al mes; hoy hace unos 7,500 USD al mes.** Tiene empleados y siguen creciendo, "primero Dios". En el video solo va la cifra de 13,500 dicha como "llegué a", que es cierta. No inventar otras cifras ni nombres de negocios.
+- **Primer corte (45 s):** 11 escenas fijas con movimiento de cámara (Nano Banana Pro con el elemento Eduardo-GTA, unos 22 créditos) y su voz de ElevenLabs en 10 frases.
+  - Letreros propios: "MISIÓN FALLIDA" (rojo, al inicio), "NUEVA MISIÓN" sobre el logo de NXUS, contador "$13,500 /MES" (verde) y "MISIÓN EN CURSO" (amarillo, al final).
+  - Subtítulos blancos de 1 a 3 palabras a la altura del pecho, con el texto exacto del guion.
+  - Música original: lluvia y latido en la parte del fracaso, subida hacia el logo y synthwave a 100 BPM en la parte del éxito. Whoosh en cada corte y golpe en los dos letreros.
+- **Código:** `edicion/corto_gta.py <carpeta>`. Escenas en `esc/`, voz en `voz/` (`lN.wav`, `palabras.json`, `texto.txt`) y `logo.png`. Tarda unos 2 minutos.
+- **Lecciones:**
+  - ElevenLabs dice mal "NXUS AI": escribirlo como "Nexus ei ai".
+  - Los subtítulos van con el texto del guion y no con lo que transcribe whisper (salían "LEGUÉ" y "FRACACÉ").
+  - En la tarjeta del logo, el subtítulo va más abajo (y=1450) para no taparlo.
+- **Siguiente paso si le gusta:** animar las tomas clave con Kling 3.0 (8.75 créditos cada 5 s) y agregar 2 o 3 segundos de video real suyo al final.
