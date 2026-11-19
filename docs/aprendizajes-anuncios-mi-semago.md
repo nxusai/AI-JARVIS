@@ -2,6 +2,8 @@
 
 La memoria de lo que funciona y lo que no en los anuncios de Mi Semago (quesos hispanos, marca propia y volumen para distribuidores; Click-to-WhatsApp → ManyChat → Centro de trabajo → Ana Sofi → Meet). Se lee ANTES de proponer un anuncio, un gancho o un cambio de campaña, y se actualiza DESPUÉS de cada revisión semanal. Cada aprendizaje lleva fecha y de dónde salió. Lo que falla también se anota. Sin datos personales de leads. Sin números inventados: si un dato falta, se dice.
 
+Material real para anuncios (Google Drive de NXUS): videos de producción en la carpeta "Queso fresco Produccion" (21 tomas de GoPro, sep 2025 y jun 2026), dos videos editados ("Produccion Queso Oaxaca.mp4" y "MISEMAGO (Creacion de queso).mp4") y 48 fotos en "MI SEMAGO / Quesos Fresco".
+
 Lo mismo se ve en el Centro de trabajo → **Anuncios** → 📚 Aprendizajes (solo el creador del sistema; tabla `anuncios_aprendizajes`). Cómo está armado el sistema: `docs/crm-para-ads-mi-semago.md` (sección 10) y `docs/sistema-aprendizaje-anuncios.md`.
 
 ## Reglas confirmadas
@@ -29,6 +31,12 @@ Por lead bueno: $87.49. Por Meet: $174.98. Clientes: 0 por ahora.
 - **De 59 chats que contó Meta, ManyChat registró 53 contactos; el bot arrancó en 46 y solo 15 terminaron.** El lead llega al Centro de trabajo hasta el final del chat: la gente se perdió DENTRO del chat, no antes.
 - De los 15 que terminaron, 9 dijeron "Ahora no" a la llamada. Ana Sofi habló con 3.
 
+#### Quiénes eran los 15 leads (Centro de trabajo, 19 nov 2026, sin datos personales)
+- 8 dijeron "Ahora no" (los 8 de Tu marca): nadie habló con ellos.
+- 7 dieron permiso: 4 no contestaron la llamada (1–2 intentos) y Ana Sofi habló con 3.
+- Capacidad → distribuidora de lácteos, 2,000–4,000 lb cada dos semanas, con su marca: caliente, Meet. Carrusel planta real → distribuidora, 1,500 lb por pedido: caliente, sin Meet. Tu marca → tienda, 50 lb: frío.
+- Los dos distribuidores llegaron por los anuncios de planta y capacidad ($48.64 entre los dos). Señal, no regla.
+
 #### ManyChat en la ronda 1: dónde se cayó la gente (revisión del 18 nov 2026, 53 de 53 conversaciones, solo lectura)
 | Hasta dónde llegó | Cuántos |
 |---|---|
@@ -54,7 +62,8 @@ Por lead bueno: $87.49. Por Meet: $174.98. Clientes: 0 por ahora.
 ## Hipótesis por probar
 Salen del cierre de la ronda 1 y del informe de competencia del 18 nov 2026. Son interpretación del asesor, no datos: se confirman o se descartan con leads buenos y Meets.
 - **¿Un chat más corto y que conteste preguntas duplica los leads?** (ronda 1: terminó el 28 %, 15 de 53.) Propuesta para la ronda 2: quitar la pregunta de idioma; que el bot arranque aunque cambien la frase ("empieza con"); dar valor antes de pedir datos y pedir menos; contestar cuando escriben en vez de tocar un botón, con recordatorio; a "Ahora no", precios por escrito y seguimiento de una persona; arreglar el error de envío. Se mide por % que termina y % que acepta la llamada (28 % y 40 % en la ronda 1).
-- **¿"Tu marca" atrae a gente que no es distribuidor?** (ronda 1) 12 leads, 4 con permiso, 0 buenos. Leer las fichas de esos leads en el Centro de trabajo.
+- **¿Los anuncios de planta y capacidad traen distribuidores y "Tu marca" trae tiendas?** (ronda 1: 3 conversaciones.) Ronda 2: planta y capacidad como idea principal en video; "Tu marca" reescrito para distribuidores con el mínimo a la vista.
+- **¿Por qué 4 de 7 no contestaron la llamada de Ana Sofi?** Revisar hora del lead contra hora de la llamada; ideas: aviso por WhatsApp justo antes de marcar y un tercer intento.
 - **¿Cómo lograr que Meta sí pruebe todos los anuncios?** (ronda 1) Con 4 anuncios y $25/día eligió 2. Opciones: 2–3 anuncios por conjunto o 2 conjuntos con presupuesto propio.
 - **¿Un video corto de la planta trae más leads buenos que la imagen?** La ronda 1 fue solo imágenes y carrusel; los que le venden comida a negocios usan video (10–56 s) e imagen casi por igual. Prueba: cada idea de la ronda 2 en video de 10–20 s y en imagen.
 - **¿Decir "planta registrada ante la FDA" y la capacidad nos distingue?** Nadie menciona certificaciones, envío refrigerado ni capacidad. Puede ser un hueco o puede no importarle al comprador. Falta ver los números de "Capacidad" y "Logística" de la ronda 1.
