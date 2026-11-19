@@ -4,6 +4,7 @@
 // GET  → las semanas guardadas + cómo va todo desde el inicio (Meta, solo lectura).
 // POST → toma la foto de la última semana completa (o de ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD) y devuelve lo mismo.
 // GET ?desde=&hasta= → además calcula ese rango sin guardarlo (campo "rango").
+// GET ?fuentes=48 → leads por fuente de las últimas N horas (sin datos personales).
 // GET ?estados=1 → estado de todas las campañas y anuncios de la cuenta (campo "cuenta"), solo lectura.
 // PUT  → guarda lo aprendido { aprendizajes: [{ fecha, tipo, estado, titulo, texto, fuente }] } y registros
 //        manuales de anuncios viejos { registros: [filas de anuncios_semanas] } (quedan con estado MANUAL);
@@ -55,7 +56,23 @@ export default async (req) => {
       ]).catch((e) => [{ error: e.message }, {}, {}, {}])
       cuenta = { campanas: camps.data || camps, anuncios: ads.data || [], conjuntos: sets.data || [], gasto7: gasto.data || [] }
     }
-    return json({ ok: true, foto, rango: enRango, cuenta, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
+    // Cuántos leads llegaron por fuente en las últimas horas (sin datos personales), para revisar que cada anuncio entre bien.
+    let fuentes = null
+    if (q.get('fuentes')) {
+      const horas = Math.min(24 * 14, Math.max(1, Number(q.get('fuentes')) || 48))
+      const desde = new Date(Date.now() - horas * 36e5).toISOString()
+      const ls = await sb(`/rest/v1/leads?select=fuente,estado,llamada_seg,prospecto_id,creado&creado=gte.${desde}&order=creado.desc`, { servicio: true }).catch(() => [])
+      fuentes = { horas, total: ls.length, por_fuente: {} }
+      for (const l of ls) {
+        const k = l.fuente || '(sin fuente)'
+        const x = (fuentes.por_fuente[k] ??= { leads: 0, reales: 0, hablo: 0, agendo: 0, ultimo: l.creado })
+        x.leads++
+        if (l.estado !== 'incompleto') x.reales++
+        if ((l.llamada_seg ?? 0) >= 20) x.hablo++
+        if (l.estado === 'agendado' || l.prospecto_id) x.agendo++
+      }
+    }
+    return json({ ok: true, foto, rango: enRango, cuenta, fuentes, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
     return json({ ok: false, error: err.message.slice(0, 300) }, 500)
   }
