@@ -1,0 +1,122 @@
+[
+ {
+  "out": "img-B-planta.png",
+  "foto": "stretch.jpg",
+  "pos": "center 60%",
+  "h1": "500,000 libras de queso por semana.",
+  "h2": "Para distribuidores y cadenas de todo EE. UU.",
+  "p": "Planta registrada ante la FDA · Paterson, NJ",
+  "t": 76
+ },
+ {
+  "out": "img-D-tu-marca.png",
+  "foto": "fr-caja.jpg",
+  "pos": "70% center",
+  "h1": "Tu marca de queso, lista para vender.",
+  "h2": "Receta, etiqueta, producción y envío refrigerado.",
+  "p": "Para distribuidores · desde 1,500 lb por pedido",
+  "t": 76
+ },
+ {
+  "out": "img-F-muestra.png",
+  "foto": "team.jpg",
+  "pos": "center 82%",
+  "h1": "Pruébalo antes de comprar.",
+  "h2": "Muestra gratis para distribuidores que califiquen.",
+  "p": "Con envío incluido · a todo Estados Unidos",
+  "cta": "Pide tu muestra por WhatsApp",
+  "t": 80,
+  "zoom": "135%"
+ },
+ {
+  "out": "vA-1.png",
+  "h1": "¿Distribuyes queso hispano?",
+  "h2": "Mira dónde se hace.",
+  "t": 94,
+  "s": 50
+ },
+ {
+  "out": "vA-2.png",
+  "h1": "500,000 libras por semana.",
+  "h2": "Oaxaca, fresco, panela, canastón y más.",
+  "t": 90,
+  "s": 46
+ },
+ {
+  "out": "vA-3.png",
+  "h1": "Planta registrada ante la FDA.",
+  "h2": "Paterson, NJ · envío refrigerado a todo EE. UU.",
+  "t": 84,
+  "s": 44
+ },
+ {
+  "out": "vA-4.png",
+  "h1": "Con tu marca o con la nuestra.",
+  "h2": "Desde 1,500 lb por pedido.",
+  "p": "Pide precios hoy.",
+  "t": 86,
+  "s": 48
+ },
+ {
+  "out": "vC-1.png",
+  "h1": "¿Quieres tu propia marca de queso?",
+  "h2": "Para distribuidores y cadenas.",
+  "t": 84,
+  "s": 48
+ },
+ {
+  "out": "vC-2.png",
+  "h1": "Nosotros la producimos.",
+  "h2": "Receta · etiqueta · empaque.",
+  "t": 92,
+  "s": 50
+ },
+ {
+  "out": "vC-3.png",
+  "h1": "Y te la mandamos refrigerada.",
+  "h2": "A tu almacén, en todo Estados Unidos.",
+  "t": 86,
+  "s": 46
+ },
+ {
+  "out": "vC-4.png",
+  "h1": "Desde 1,500 lb por pedido.",
+  "h2": "Planta registrada ante la FDA · Paterson, NJ",
+  "p": "Pide precios hoy.",
+  "t": 88,
+  "s": 42
+ },
+ {
+  "out": "vE-1.png",
+  "h1": "¿Distribuyes queso? Pruébalo primero.",
+  "h2": "Hecho en nuestra planta de Paterson, NJ.",
+  "t": 82,
+  "s": 44,
+  "cta": "Pide tu muestra por WhatsApp"
+ },
+ {
+  "out": "vE-2.png",
+  "h1": "Muestra gratis.",
+  "h2": "Para distribuidores que califiquen.",
+  "t": 104,
+  "s": 50,
+  "cta": "Pide tu muestra por WhatsApp"
+ },
+ {
+  "out": "vE-3.png",
+  "h1": "Con envío incluido.",
+  "h2": "A todo Estados Unidos.",
+  "t": 100,
+  "s": 52,
+  "cta": "Pide tu muestra por WhatsApp"
+ },
+ {
+  "out": "vE-4.png",
+  "h1": "Oaxaca, fresco, panela y más.",
+  "h2": "Con tu marca o con la nuestra.",
+  "p": "Escríbenos y cuéntanos de tu negocio.",
+  "t": 82,
+  "s": 46,
+  "cta": "Pide tu muestra por WhatsApp"
+ }
+]
