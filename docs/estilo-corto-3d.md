@@ -163,3 +163,9 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
   | Seedance 2.0 a 1080p | 4 s | 48 |
 
   Un video tipo togi (unas 20 tomas de 3 s con Kling `pro`, más las imágenes) cuesta unos 160 créditos.
+
+## Su personaje animado 3D (19 nov 2026, segundo intento)
+- **Fotos reales que mandó por el chat:** frente `827a6113`, 3/4 `4c3fa00d`, perfil derecho `5ce84af6`, cuerpo completo `b783f1e2` y perfil izquierdo `a9e390d2` (subidas a Higgsfield).
+- **Corrección de Eduardo: "hazme ver más guapo; tengo la cara afilada y me la haces redonda, me ves feo y gordo; I gotta look sharp".**
+  - **Nunca pedir "cara redonda", "llena" ni "mandíbula ancha".** Pedir rostro **afilado y anguloso**: mandíbula marcada en V, barbilla definida, pómulos altos, mejillas delgadas, sin papada; complexión atlética, tipo galán protagonista.
+  - De las primeras dos (`45c26839` redonda y `ed9b040f` más realista), la más parecida fue la realista (`ed9b040f`). Se rehízo desde ella.
