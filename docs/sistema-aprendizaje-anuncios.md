@@ -69,6 +69,8 @@ lo aprendido en un lugar fijo, y antes de cada ronda nueva se lee todo eso para 
      los primeros 4 minutos. El correo se pide ESCRITO, no por voz (la IA de voz lo capta mal); el sistema lo limpia
      y corrige errores de dedo comunes (ver `hq/netlify/functions/manychat.mjs`, función correo).
    - "Respuesta por defecto": preguntar directo con botones y arrancar el filtro, sin un botón intermedio.
+   - Probar el filtro de punta a punta (contacto de prueba → el CRM con todos los campos y permiso → llamada)
+     ANTES de prender los anuncios y después de cada cambio. Tener "Reenviar a HQ" para rescatar leads atorados.
 7. 7 días sin tocar. Medir por costo por cita y por cliente. Cerrar la ronda con foto y aprendizaje escrito; pausar
    (nunca borrar) lo viejo cuando lo nuevo esté aprobado.
 

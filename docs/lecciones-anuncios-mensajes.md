@@ -77,6 +77,13 @@ LIGAR ANUNCIOS A MANYCHAT (19 nov 2026)
 - La "Respuesta por defecto" debe hacer directo la pregunta con botones y arrancar el filtro; un botón intermedio
   ("Quiero información") hizo que 3 de 4 personas se fueran.
 
+PROBAR ANTES DE PRENDER (19 nov 2026)
+- Al copiar o recortar un filtro de ManyChat, el aviso final a HQ (External Request con completo = true) puede quedar
+  desconectado: el lead llega solo con el primer aviso (nombre), sin teléfono, correo ni permiso, y NEX no llama.
+  REGLA: antes de prender anuncios (y después de cualquier cambio al filtro), probar de punta a punta con un contacto
+  de prueba y revisar en HQ (`anuncios-reporte?fuentes=24`) que el lead quede con todos los campos, permiso y estado
+  "nuevo"/"agendado". Tener una automatización "Reenviar a HQ" (solo el aviso 2) para rescatar leads atorados.
+
 REGLAS PARA LA EXTENSIÓN (Claude in Chrome)
 - "Review and publish" en Ads Manager publica TODOS los borradores de la cuenta, no solo los de esa pestaña
   (18 nov 2026: al pausar la ronda 1 se publicaron a medias la campaña R2 y un borrador viejo). Mientras la
