@@ -81,3 +81,10 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Movimiento fluido de verdad:** cada toma es video animado, no imágenes fijas con acercamiento.
 - **Cómo se hace:** cada toma se genera como video con diálogo y boca sincronizada (Kling 3.0 con sonido, 8.75 créditos por 5 s; Seedance 2.0 cuesta 22.5). Después se cambia la voz del personaje por la de Eduardo (su clon de ElevenLabs, voz a voz), que respeta los tiempos, así que la boca sigue coincidiendo. Antes de hacer el video completo, probar una sola toma.
 - **Presupuesto:** con unos 160 créditos alcanzan unas 15 tomas de 5 s en Kling 3.0. No hay margen para repetir muchas.
+
+## Prueba de una toma con diálogo (19 nov 2026)
+- **Toma:** Kling 3.0, 5 s, `std`, `sound: on`, 8.75 créditos. Imagen de inicio: la escena de la oficina recortada más de cerca (media `8b45bb28-…`). Job `dd42d1e8-356f-4f11-872c-eb2b785d47f6`.
+- **Diálogo en el prompt:** `He says in Mexican Spanish: "..."`. Kling generó la voz en español con la boca sincronizada, y el personaje se movió fluido: descruzó los brazos, gesticuló y ladeó la cabeza.
+- **Su voz:** el audio de la toma se pasó por ElevenLabs voz a voz con su clon (`POST /v1/speech-to-speech/ztLK2033y26Zrda40AkH`, `model_id=eleven_multilingual_sts_v2`, `remove_background_noise=true`, con curl por el proxy). Respeta los tiempos, así que la boca sigue coincidiendo.
+- **Ojos:** a 720p la cara se vuelve un poco más caricatura durante el movimiento. Kling entrega 720×1280 en `std` y se escala a 1080×1920.
+- **Si la boca falla:** Higgsfield tiene `sync_so` (lipsync) para pegar un audio a un video ya hecho.
