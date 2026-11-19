@@ -61,8 +61,13 @@ export default async (req) => {
     // anotó del tipo de negocio y el volumen. Para entender qué clase de comprador trae cada anuncio.
     let leads = null
     if (q.get('leads')) {
-      const filas = await sb('/rest/v1/leads?select=fuente,etapa,calificacion,permiso_llamada,tipo_negocio,libras,frecuencia,marca_propia,ciudad,idioma,intentos,meet_inicio,creado&fuente=like.Anuncio*&order=creado.asc&limit=2000', { servicio: true })
-      leads = filas.map((l) => ({ ...l, creado: String(l.creado || '').slice(0, 10), meet_inicio: Boolean(l.meet_inicio), ciudad: String(l.ciudad || '').slice(0, 60) }))
+      const filas = await sb('/rest/v1/leads?select=id,fuente,etapa,calificacion,permiso_llamada,tipo_negocio,libras,frecuencia,marca_propia,ciudad,idioma,intentos,meet_inicio,ultima_llamada,creado&fuente=like.Anuncio*&order=creado.asc&limit=2000', { servicio: true })
+      // Notas del sistema sobre la videollamada ("Quiere videollamada… No la agendé: …" / "Videollamada agendada: …"):
+      // solo el motivo, cortado antes de cualquier correo. Sirve para ver por qué un Meet no quedó registrado.
+      const notas = await sb('/rest/v1/leads_notas?select=lead_id,texto,creada&or=(texto.ilike.Quiere videollamada*,texto.ilike.Videollamada agendada*)&order=creada.asc&limit=2000', { servicio: true }).catch(() => [])
+      const porLead = {}
+      for (const n of notas) (porLead[n.lead_id] ??= []).push(String(n.texto || '').replace(/\S+@\S+/g, '[correo]').slice(0, 300))
+      leads = filas.map(({ id, ...l }) => ({ ...l, creado: String(l.creado || '').slice(0, 10), meet_inicio: Boolean(l.meet_inicio), ciudad: String(l.ciudad || '').slice(0, 60), notas_meet: porLead[id] || [] }))
     }
     return json({ ok: true, foto, rango: enRango, cuenta, leads, semanas: await semanasGuardadas(), aprendizajes, total, motivo, al: new Date().toISOString() })
   } catch (err) {
