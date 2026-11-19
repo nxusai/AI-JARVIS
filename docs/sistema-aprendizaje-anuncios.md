@@ -59,6 +59,16 @@ lo aprendido en un lugar fijo, y antes de cada ronda nueva se lee todo eso para 
    campaña en borrador. "Review and publish" publica TODOS los borradores de la cuenta: no pausar ni publicar en otra
    pestaña mientras la extensión arma algo. Revisar la lista antes de publicar. Verificar en Meta (lectura) antes de
    prender. Prueba de punta a punta con el celular (anuncio → chat → CRM → llamada/cita).
+6b. ManyChat (aprendido en la ronda 2 de NXUS, 18–19 nov 2026):
+   - Ligar cada anuncio a su automatización SOLO cuando ya está LIVE con el disparador "User clicks a Facebook Ad"
+     encendido; si se liga en borrador, Meta muestra el saludo pero ManyChat no reconoce el anuncio (0 ejecuciones,
+     leads sin fuente). Arreglo: volver a elegir la automatización en cada anuncio y publicar.
+   - Filtro CORTO (5 pasos, ~2 min): sucursales con botones → nombre → negocio y a qué se dedica → teléfono a 10
+     dígitos (el país lo pone la entrada del anuncio) → correo escrito (tipo Email) con confirmación "¿Está bien
+     escrito?" → permiso de llamada. El filtro largo (12 preguntas + IA, 8–12 min) hacía que la gente se fuera en
+     los primeros 4 minutos. El correo se pide ESCRITO, no por voz (la IA de voz lo capta mal); el sistema lo limpia
+     y corrige errores de dedo comunes (ver `hq/netlify/functions/manychat.mjs`, función correo).
+   - "Respuesta por defecto": preguntar directo con botones y arrancar el filtro, sin un botón intermedio.
 7. 7 días sin tocar. Medir por costo por cita y por cliente. Cerrar la ronda con foto y aprendizaje escrito; pausar
    (nunca borrar) lo viejo cuando lo nuevo esté aprobado.
 
