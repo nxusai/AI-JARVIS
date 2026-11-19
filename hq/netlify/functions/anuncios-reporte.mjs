@@ -61,8 +61,10 @@ export default async (req) => {
     if (q.get('fuentes')) {
       const horas = Math.min(24 * 14, Math.max(1, Number(q.get('fuentes')) || 48))
       const desde = new Date(Date.now() - horas * 36e5).toISOString()
-      const ls = await sb(`/rest/v1/leads?select=fuente,estado,llamada_seg,prospecto_id,creado&creado=gte.${desde}&order=creado.desc`, { servicio: true }).catch(() => [])
-      fuentes = { horas, total: ls.length, por_fuente: {} }
+      const ls = await sb(`/rest/v1/leads?select=fuente,estado,motivo,permiso_llamada,llamada_seg,prospecto_id,creado,actualizado,nombre,empresa,telefono,correo,servicio,pais,idioma&creado=gte.${desde}&order=creado.desc`, { servicio: true }).catch(() => [])
+      // Detalle sin datos personales: solo si cada campo llegó lleno o vacío.
+      const lleno = (l) => Object.fromEntries(['nombre', 'empresa', 'telefono', 'correo', 'servicio', 'pais', 'idioma'].map((k) => [k, Boolean(l[k])]))
+      fuentes = { horas, total: ls.length, por_fuente: {}, detalle: ls.slice(0, 20).map((l) => ({ fuente: l.fuente, estado: l.estado, motivo: l.motivo, permiso: l.permiso_llamada, llamada_seg: l.llamada_seg, creado: l.creado, actualizado: l.actualizado, campos: lleno(l) })) }
       for (const l of ls) {
         const k = l.fuente || '(sin fuente)'
         const x = (fuentes.por_fuente[k] ??= { leads: 0, reales: 0, hablo: 0, agendo: 0, ultimo: l.creado })
