@@ -145,3 +145,21 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Ritmo:** se quitan las pausas largas dentro de cada toma (corte en cada línea; la pausa antes del remate se deja más larga). Dura 63 s.
 - **Armado:** `edicion/corto_dialogo2.py <carpeta> <carpeta_sfx>`, en unos 4.5 minutos.
 - **Créditos:** se gastaron unos 39 en 2 imágenes y 4 tomas nuevas. Quedan **21.39** en Higgsfield.
+
+## La versión 2 tampoco le gustó (19 nov 2026): "no me gustó, lo haremos animado como el de togi"
+**Lo que no se analizó bien del de togi (revisado cuadro por cuadro):**
+- **Un personaje por toma, de pecho para arriba**, a tres cuartos, con la boca grande en pantalla. Plano y contraplano por encima del hombro. Nosotros hicimos planos abiertos de dos personas, con las caras chicas.
+- **Tomas de 1.8 s de mediana** (casi todas entre 1 y 2.7 s), una por frase. Las nuestras duraban de 4 a 6 s.
+- **La boca y la voz salen juntas del mismo modelo:** la voz es la del video, no se cambia después. Cambiar la voz (voz a voz o texto a voz) rompe la sincronía.
+- **Actuación exagerada que cambia en cada palabra:** cejas, ojos muy abiertos, manos y hombros.
+- **Calidad de película 3D:** alta resolución, luz cinematográfica, fondo desenfocado y piel suave. Kling `std` entrega 720p, y el dibujo plano tipo GTA se deforma al moverse.
+- **Costos medidos en Higgsfield (19 nov):**
+
+  | Modelo | Toma | Créditos |
+  |---|---|---|
+  | Kling 3.0 `pro` con sonido | 3 s | 6 |
+  | Kling 3.0 `std` con sonido | 5 s | 8.75 |
+  | Veo 3.1 | 4 s | 16 |
+  | Seedance 2.0 a 1080p | 4 s | 48 |
+
+  Un video tipo togi (unas 20 tomas de 3 s con Kling `pro`, más las imágenes) cuesta unos 160 créditos.
