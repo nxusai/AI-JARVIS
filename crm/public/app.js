@@ -2019,6 +2019,19 @@ function horaEn(iso, zona = ZONA_ESTE, conDia = true) {
     return new Date(iso).toLocaleString('es-MX')
   }
 }
+/** "2026-11-20" + "13:00" en hora del Este → la fecha en ISO (UTC). */
+function horaDelEsteAISO(dia, hora) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia || '')
+  const t = /^(\d{2}):(\d{2})/.exec(hora || '')
+  if (!m || !t) return ''
+  const quiero = Date.UTC(+m[1], +m[2] - 1, +m[3], +t[1], +t[2])
+  let ms = quiero
+  for (let i = 0; i < 3; i++) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: ZONA_ESTE, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]))
+    ms -= Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - quiero
+  }
+  return new Date(ms).toISOString()
+}
 /** La hora del Este y, si el lead vive en otra zona, también la suya. */
 function horaLead(iso, l) {
   if (!iso) return ''
@@ -2142,7 +2155,12 @@ function abrirLead(id) {
     ${
       l.meet_inicio
         ? `<div class="meet-caja"><div><span>Google Meet con Eduardo</span><b>${horaLead(l.meet_inicio, l)}</b></div>${l.meet_link ? `<a class="btn principal" href="${h(l.meet_link)}" target="_blank" rel="noopener">🎥 Unirse al meeting</a>` : ''}</div>`
-        : ''
+        : S.yo.dueno && D.meetLead
+          ? `<details class="meet-mano" ${faltaAgendarMeet(l) ? 'open' : ''}><summary>${faltaAgendarMeet(l) ? '⚠️ Pidió videollamada y no quedó agendada: regístrala aquí' : '📅 Registrar un Meet a mano'}</summary>
+              <p class="ayuda">Primero crea el evento en tu Google Calendar (con Google Meet e invitando al correo del lead). Luego ponlo aquí para que quede en "Meet agendado".</p>
+              <div class="meet-mano-campos"><label>Día<input type="date" id="l-meet-dia"></label><label>Hora (del Este)<input type="time" id="l-meet-hora" step="900"></label><label class="ancho">Link de Google Meet<input type="url" id="l-meet-link" placeholder="https://meet.google.com/…"></label></div>
+              <button class="btn principal chico" id="l-meet-guardar">Registrar Meet</button></details>`
+          : ''
     }
     <h3 class="sub">Datos</h3>
     <div class="datos">
@@ -2194,6 +2212,22 @@ function abrirLead(id) {
         falla(err)
       }
     })
+  })
+  $('#l-meet-guardar')?.addEventListener('click', async () => {
+    try {
+      const dia = $('#l-meet-dia').value
+      const hora = $('#l-meet-hora').value
+      const link = $('#l-meet-link').value.trim()
+      if (!dia || !hora) throw new Error('Pon el día y la hora del Meet')
+      if (link && !/^https:\/\//.test(link)) throw new Error('El link debe empezar con https://')
+      const inicio = horaDelEsteAISO(dia, hora)
+      if (!inicio) throw new Error('No entendí esa fecha')
+      await D.meetLead(l.id, inicio, link)
+      avisar(`Meet registrado: ${horaEn(inicio)} (hora del Este)`)
+      await recargar()
+    } catch (err) {
+      falla(err)
+    }
   })
   $('#l-etapa')?.addEventListener('change', async (e) => {
     try {

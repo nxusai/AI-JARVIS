@@ -1249,3 +1249,11 @@ body.ver-fondo { cursor: zoom-out; }
   .an-paso .an-barra { min-width: 0; width: max(var(--w), 100%); }
   .an-videos { grid-template-columns: 1fr; }
 }
+
+/* Registrar un Meet a mano en la ficha del lead (solo el creador del sistema) */
+.meet-mano { border: 1px solid var(--linea-2); border-radius: 14px; padding: 10px 14px; margin: 10px 0; background: var(--aviso-fondo); }
+.meet-mano summary { cursor: pointer; font-weight: 600; }
+.meet-mano-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 8px 0 12px; }
+.meet-mano-campos label { display: grid; gap: 4px; font-size: 12.5px; color: var(--suave); }
+.meet-mano-campos .ancho { grid-column: 1 / -1; }
+.meet-mano-campos input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--linea-2); background: var(--panel); color: var(--texto); font: inherit; }

@@ -521,6 +521,12 @@ export function crearMuestra() {
       anota('cambió', 'leads', id, { nombre: x.nombre, etapa: [x.etapa, etapa] })
       x.etapa = etapa
     },
+    async meetLead(id, inicio, link) {
+      if (!dueno()) no('Solo el administrador principal registra el Meet')
+      const x = db.leads.find((v) => v.id === id)
+      Object.assign(x, { etapa: 'meet', meet_inicio: inicio, meet_link: link || '' })
+      db.leads_notas.push({ id: uid(), lead_id: id, texto: 'Videollamada registrada a mano.', autor: yo, autor_nombre: perfil().nombre, creada: ahora() })
+    },
     async borrarLead(id) {
       if (!dueno()) no('Solo el administrador principal borra leads')
       const x = db.leads.find((v) => v.id === id)

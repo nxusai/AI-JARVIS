@@ -227,6 +227,12 @@ export function crearSupabase({ url, anon }) {
       const filas = ok(await sb.from('leads').update({ etapa }).eq('id', id).select('id'))
       if (!filas.length) throw new Error('Solo el administrador principal cambia la etapa')
     },
+    // El dueño registra a mano un Meet que ya creó en su calendario.
+    async meetLead(id, inicio, link) {
+      const filas = ok(await sb.from('leads').update({ etapa: 'meet', meet_inicio: inicio, meet_link: link || '' }).eq('id', id).select('id'))
+      if (!filas.length) throw new Error('Solo el administrador principal registra el Meet')
+      await sb.from('leads_notas').insert({ lead_id: id, texto: `Videollamada registrada a mano para el ${new Date(inicio).toLocaleString('es-MX', { timeZone: 'America/New_York', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })} (hora del Este).` })
+    },
     async borrarLead(id) {
       const filas = ok(await sb.from('leads').delete().eq('id', id).select('id'))
       if (!filas.length) throw new Error('Solo el administrador principal borra leads')
