@@ -1,0 +1,32 @@
+Eres mi analista de ManyChat y Meta Ads. Soy Eduardo (NXUS AI). Trabaja en mi Chrome (ManyChat:
+https://app.manychat.com y Ads Manager: https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=736971049130563).
+Yo te veo. Objetivo: revisar que TODO lo de la ronda 2 esté bien conectado y probar el flujo. No cambies nada salvo
+lo que diga la parte C. No publiques nada. No copies datos personales de leads.
+
+PARTE A. ManyChat (solo mirar)
+A1. Las 6 "Anuncio MX R2 · Video A–F · FB": estado (LIVE), disparador "User clicks a Facebook Ad" encendido, nombre del
+    disparador, Start Automation → "Filtro NXUS · Facebook · Corto", y cuántas ejecuciones lleva cada una hoy.
+A2. Página de disparadores de anuncios (Automation → Triggers, o Growth Tools / Facebook Ads): ¿aparecen los 6 "R2 ·
+    Video X" como activos? ¿Muestran algún anuncio de Meta conectado?
+A3. Compara el disparador de "Anuncio MX · Video C · FB" (ronda 1, sí funcionó el 9 nov) con el de "Anuncio MX R2 · Video C
+    · FB": ¿hay alguna diferencia de configuración?
+A4. "Filtro NXUS · Facebook · Corto": lista de pasos en orden, con los 2 avisos a HQ (sin mostrar la clave) y lo que guarda
+    de la respuesta (hq_estado, hq_faltan). Confirma que sus disparadores propios (INFO e intención de IA) siguen Off.
+A5. Live Chat: ¿llegó alguien por los anuncios desde ayer? Para cada uno (sin datos personales): qué automatización se
+    disparó primero y en qué pregunta va.
+
+PARTE B. Ads Manager (solo mirar)
+B1. En la campaña "NXUS | MX | R2 | Mensajes": estado de entrega de los 6 anuncios y lo gastado hoy y desde que empezó.
+B2. Abre (sin editar) los 6 anuncios y dime qué automatización de ManyChat tiene ligada cada uno en Message template /
+    Partner app, y qué saludo y botones muestra la vista previa del chat. Deben ser A→"Anuncio MX R2 · Video A · FB",
+    B→"…Video B…", y así hasta F.
+
+PARTE C. Prueba con la vista previa de ManyChat (esto sí lo puedes hacer)
+C1. Abre "Anuncio MX R2 · Video C · FB" y presiona "Preview" (vista previa) para mandármela a MI Messenger. Si te pide
+    elegir a quién, elige mi cuenta de administrador (Eduardo). Si pide contraseña o código, detente.
+C2. Dime "Listo, contesta en messenger.com" y espera. Yo contesto la prueba desde la computadora.
+C3. Cuando te diga "terminé", revisa en Live Chat mi contacto de prueba y dime: qué fuente quedó guardada, qué preguntas
+    salieron, qué guardó en correo, y qué respondió HQ (hq_estado y hq_faltan).
+
+PARTE D. Informe con ✅ / ⚠️ / ❌ de A, B y C, y tu explicación de por qué antes había 0 ejecuciones (si ya lo
+encontraste).
