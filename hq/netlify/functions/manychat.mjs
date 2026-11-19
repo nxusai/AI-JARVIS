@@ -55,9 +55,37 @@ export function telefono(v, p, lada, ...lugar) {
   return (n.duda ? n.original : n.telefono) || (t.startsWith('+') ? `+${t.replace(/\D/g, '')}` : t.replace(/[^\d]/g, '')).slice(0, 30)
 }
 
-const correo = (v) => {
-  const t = texto(v, 120).toLowerCase()
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) ? t : ''
+// Correo: se limpia y se corrigen SOLO los errores de dedo de los dominios más comunes (gmial.com, hotmail.con…).
+// Si aun así no es un correo válido, se deja vacío y HQ responde faltan: correo para que ManyChat lo vuelva a pedir.
+const DOMINIOS = {
+  gmail: ['gmial', 'gamil', 'gmai', 'gmal', 'gnail', 'gmaill', 'gmil', 'gimail', 'gmaul'],
+  hotmail: ['hotmial', 'hotmal', 'hotmai', 'hotmil', 'homail', 'hotamil', 'hotmaill', 'jotmail'],
+  outlook: ['outlok', 'outllok', 'otlook', 'outloo', 'outlook'],
+  yahoo: ['yaho', 'yahooo', 'yhoo', 'yahho'],
+  icloud: ['iclod', 'icloud', 'iclould'],
+  live: ['liv'],
+}
+const FIN = { con: 'com', cmo: 'com', ocm: 'com', vom: 'com', xom: 'com', comm: 'com', co: 'com', 'com.mxx': 'com.mx', 'com.m': 'com.mx' }
+export const correo = (v) => {
+  let t = texto(v, 120).toLowerCase().normalize('NFKC').replace(/\s+/g, '').replace(/^mailto:/, '').replace(/[.,;]+$/, '')
+  t = t.replace(/\(arroba\)|\[arroba\]|arroba/g, '@').replace(/@+/g, '@')
+  const m = /^([^@]+)@([^@]+)$/.exec(t)
+  if (!m) return ''
+  let [, usuario, dom] = m
+  const partes = dom.split('.')
+  const base = partes[0]
+  for (const [bien, malos] of Object.entries(DOMINIOS)) if (malos.includes(base)) partes[0] = bien
+  // .con → .com solo en los dominios conocidos (en otros puede ser real)
+  if (Object.keys(DOMINIOS).includes(partes[0])) {
+    const fin = partes.slice(1).join('.')
+    if (FIN[fin]) partes.splice(1, partes.length - 1, ...FIN[fin].split('.'))
+    if (partes.length === 1) partes.push('com')
+  }
+  dom = partes.join('.')
+  t = `${usuario}@${dom}`
+  // Terminaciones que no existen (".con", ".cmo"…) en un dominio desconocido: mejor volver a pedirlo que adivinar.
+  if (FIN[dom.split('.').pop()] && dom.split('.').pop() !== 'co') return ''
+  return /^[^\s@]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(t) ? t : ''
 }
 
 /** Lo que trae ManyChat, como fila de leads (solo lo que viene lleno). */
