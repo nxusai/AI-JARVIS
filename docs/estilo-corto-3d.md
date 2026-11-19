@@ -88,3 +88,8 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Su voz:** el audio de la toma se pasó por ElevenLabs voz a voz con su clon (`POST /v1/speech-to-speech/ztLK2033y26Zrda40AkH`, `model_id=eleven_multilingual_sts_v2`, `remove_background_noise=true`, con curl por el proxy). Respeta los tiempos, así que la boca sigue coincidiendo.
 - **Ojos:** a 720p la cara se vuelve un poco más caricatura durante el movimiento. Kling entrega 720×1280 en `std` y se escala a 1080×1920.
 - **Si la boca falla:** Higgsfield tiene `sync_so` (lipsync) para pegar un audio a un video ya hecho.
+
+## Su voz real en ElevenLabs (19 nov 2026)
+- **Su clon es "Dueño (voz propia) · Nexy", ID `pZyxpOKXKkSeNV6q2OnW`** (categoría `cloned`). Esta es la que se usa para que hable él.
+- **`ztLK2033y26Zrda40AkH` ("NEX New voice") NO es su voz:** es una voz generada. Se usó por error en la prueba y Eduardo notó que no era él. Los cursos de `reels/` (rama `claude/bold-hypatia-xnev0f`, `config.json` → `vozCurso`) también usan esa voz generada; avisarle si quiere rehacerlos con su clon.
+- Voz a voz con su clon: `similarity_boost` 0.9 y `style` 0.15. El texto salió perfecto en la transcripción.
