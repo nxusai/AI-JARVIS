@@ -169,3 +169,8 @@ Una historia corta con personajes reales (el creador, su amigo y una mujer) **co
 - **Corrección de Eduardo: "hazme ver más guapo; tengo la cara afilada y me la haces redonda, me ves feo y gordo; I gotta look sharp".**
   - **Nunca pedir "cara redonda", "llena" ni "mandíbula ancha".** Pedir rostro **afilado y anguloso**: mandíbula marcada en V, barbilla definida, pómulos altos, mejillas delgadas, sin papada; complexión atlética, tipo galán protagonista.
   - De las primeras dos (`45c26839` redonda y `ed9b040f` más realista), la más parecida fue la realista (`ed9b040f`). Se rehízo desde ella.
+- **Segunda corrección (cuerpo completo de la "C" `35cc07b3`): "para nada soy yo".**
+  - **Sin barba:** casi no tiene; a lo mucho una sombra muy ligera en la barbilla y el bigote.
+  - **Sudadera NEGRA cerrada, sin cierre**, holgada y con bolsa al frente.
+  - **Cuerpo grande y ancho** como en su foto del espejo: hombros anchos, pecho y brazos gruesos, complexión sólida, no delgado.
+  - **Cara afilada pero llena:** mandíbula y barbilla definidas, con mejillas; ni flaca ni redonda.
