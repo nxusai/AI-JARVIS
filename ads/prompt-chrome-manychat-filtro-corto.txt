@@ -1,0 +1,51 @@
+Eres mi asistente de ManyChat. Soy Eduardo (NXUS AI). Trabaja en mi Chrome (https://app.manychat.com). Yo te veo.
+Objetivo: crear una versión CORTA del filtro para los anuncios de México, sin tocar el filtro actual.
+
+REGLAS (obligatorias)
+- NO edites "Filtro NXUS", "Filtro NXUS · Facebook", "Respuesta por defecto" ni ninguna otra automatización existente,
+  salvo lo que diga el PASO 6.
+- En las acciones que mandan datos a HQ ("External Request" / avisos a HQ): NO cambies la URL, los encabezados
+  (headers) ni la clave. Solo puedes moverlas de lugar como digo abajo.
+- NO publiques nada sin mi permiso explícito. Si algo pide contraseña o código, detente.
+- Textos exactos, con acentos y emojis, en "usted". Si algo no coincide con lo que digo, DETENTE y pregúntame.
+
+PASO 1. Duplica "Filtro NXUS · Facebook" y nombra la copia: "Filtro NXUS · Facebook · Corto". Trabaja solo en la copia.
+Antes de cambiar nada, dime qué campos manda cada aviso a HQ (los nombres de los campos del body, sin la clave) y qué
+guarda de la respuesta (por ejemplo hq_estado, hq_faltan).
+
+PASO 2. Al inicio de la copia, agrega una acción (Actions) que ponga: idioma = es, pais = mexico, canal = facebook.
+Quita de la copia la pregunta de idioma y toda la rama en inglés (en la copia no se usa).
+
+PASO 3. Quita de la copia: el paso de IA (la plática), el mensaje "Gracias por tu mensaje. Un miembro de nuestro
+equipo te responderá pronto.", y las preguntas de dirección, ciudad, país y lada ("¿Tu número es de México o de
+Estados Unidos?"). Si el primer aviso a HQ estaba justo después del paso de IA, déjalo justo después de la pregunta 1
+(nombre), sin cambiarlo.
+
+PASO 4. Deja estas preguntas, en este orden, con estos textos (tipo de respuesta entre corchetes):
+  1) "¿Cuál es su nombre?"  [Texto] → guarda en nombre
+  2) "¿Cómo se llama su negocio y a qué se dedica? (por ejemplo: Taller García, refacciones)"  [Texto] → guarda en empresa
+  3) "¿A qué número de WhatsApp o celular le podemos llamar? Escríbalo a 10 dígitos, por favor."  [Texto] → guarda en
+     telefono (igual que hoy)
+  4) "¿Cuál es su correo? Ahí le llega la invitación de la reunión."  [Email] → guarda en correo (el campo que hoy se
+     manda a HQ)
+     Justo después, un mensaje de confirmación:
+     "Revisemos su correo: {{correo}} ¿Está bien escrito?"  con 2 botones:
+       [Sí, es correcto] → sigue a la pregunta 5
+       [Corregir] → regresa a la pregunta 4
+  5) El aviso de llamada con IA y sus botones [Sí, autorizo / No, gracias], EXACTAMENTE como está hoy (no cambies el
+     texto legal).
+  Después: el aviso final a HQ y los mensajes de cierre según hq_estado, igual que hoy.
+  Si en la respuesta de HQ, hq_faltan contiene "correo": manda "Parece que el correo no quedó bien. ¿Me lo escribe
+  otra vez, por favor?" y regresa a la pregunta 4. Si contiene "teléfono": "¿Me confirma su número a 10 dígitos?" y
+  regresa a la pregunta 3.
+
+PASO 5. Si una respuesta de texto llega vacía o ManyChat pide reintento, el mensaje de reintento debe ser amable y en
+"usted" (por ejemplo "¿Me lo puede escribir de nuevo, por favor?"), nunca "Toca una opción" en preguntas de texto.
+
+PASO 6. En las 6 automatizaciones "Anuncio MX R2 · Video A–F · FB", cambia SOLO el "Start Automation" final:
+de "Filtro NXUS · Facebook" a "Filtro NXUS · Facebook · Corto". Nada más.
+
+PASO 7. Pídeme permiso para publicar "Filtro NXUS · Facebook · Corto" y las 6 automatizaciones R2. Espera mi "sí".
+
+PASO 8. Informe con ✅ / ⚠️ / ❌: lista final de preguntas de la copia en orden, dónde quedaron los avisos a HQ, qué
+campos manda, la confirmación del correo, los reintentos, y qué cambiaste en las 6 R2.
