@@ -37,10 +37,14 @@ const PERMISOS = [
     ['ver_cobranza', 'Cobranza'], ['ver_normalidad', 'Normalidad'], ['ver_proyecciones', 'Proyecciones'], ['ver_cajas', 'Cajas'], ['ver_tesoreria', 'Tesorería'], ['ver_reportes', 'Reportes']]],
   ['Puede hacer', [['registrar_pagos', 'Registrar pagos'], ['crear_solicitudes', 'Crear y renovar créditos (solicitudes)'], ['resolver_solicitudes', 'Mesa de control: aprobar o rechazar'],
     ['registrar_gastos', 'Registrar gastos de su caja'], ['tesoreria_excedente', 'Pasar excedente de gerente al banco'], ['capturar_proyecciones', 'Capturar proyecciones'],
+    ['desembolsar', 'Desembolsar créditos autorizados (con video)'], ['autorizar_excepciones', 'Autorizar renovaciones con excepción'],
+    ['ordenar_ruta', 'Ordenar su ruta de cobro'], ['reasignar_cartera', 'Reasignar clientes a otra ruta'],
     ['subir_documentos', 'Subir documentos y fotos'], ['descargar_excel', 'Descargar reportes en Excel']]],
 ]
 const CARGOS_PERM = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'tesoreria', 'consulta']
 const V = (...k) => k.map((x) => 'ver_' + x)
+const PERM_EXTRA = { direccion: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], regional: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'],
+  zonal: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], gerente: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], asesor: ['desembolsar', 'ordenar_ruta'] }
 const PERM_BASE = {
   direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'resolver_solicitudes', 'registrar_gastos', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   regional: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
@@ -54,13 +58,16 @@ const PERM_BASE = {
 function permitido(rol, k) {
   if (['dueno', 'soporte'].includes(rol)) return true
   const x = DB.permisos.find((q) => q.rol === rol && q.permiso === k)
-  return x ? !!x.permitido : (PERM_BASE[rol] || []).includes(k)
+  return x ? !!x.permitido : (PERM_BASE[rol] || []).includes(k) || (PERM_EXTRA[rol] || []).includes(k)
 }
 const puede = (k) => permitido(DB.perfil.rol, k)
 const TIPO = { nuevo: 'Nuevo', renovacion: 'Renovación', recompra: 'Recompra' }
 const tipoChip = (t) => `<span class="chip ${t === 'renovacion' ? 'g' : t === 'recompra' ? 'a' : ''}">${TIPO[t] || 'Nuevo'}</span>`
 const ADMIN_ROLES = ['dueno', 'direccion', 'soporte']
-const PER = { semanal: 7, quincenal: 15, mensual: 30 }
+const PER = { diario: 1, semanal: 7, quincenal: 15, mensual: 30 }
+const FRECUENCIAS = [['diario', 'Diario'], ['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['mensual', 'Mensual']]
+// «Gastos administrativos» (antes «Seguro»: lo cambió el abogado). Se aceptan los dos nombres de los registros anteriores.
+const esGA = (m) => m.categoria === 'Gastos administrativos' || m.categoria === 'Seguro'
 const ICON = {
   tablero: '<path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/>',
   clientes: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
@@ -85,6 +92,7 @@ const NAV = [
 let sb = null
 let DB = null
 let SCOPE = 'emp'
+let SIM = null // «Ver como…»: el dueño ve el sistema como otro cargo, sin poder guardar
 let VIEW = 'tablero'
 let charts = []
 
@@ -167,7 +175,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -180,8 +188,9 @@ async function loadRaw(perfil) {
     opt('v_pagos', (q) => q.order('fecha').order('id')), opt('parametros', (q) => q), opt('proyecciones', (q) => q.gte('fecha', addDays(iso(new Date()), -120)).order('fecha')),
     opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
     opt('documentos', (q) => q.order('creado', { ascending: false })), opt('permisos', (q) => q),
+    opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -214,7 +223,8 @@ function prep(raw) {
   const cartera = (raw.cartera || []).map((c) => ({ ...c, monto: +c.monto, saldo: +c.saldo, cuota: +c.cuota, total_pagar: +c.total_pagar,
     tipo: c.tipo || 'nuevo', entregado: c.entregado != null ? +c.entregado : +c.monto - (+c.descuento_renovacion || 0), seguro: +c.seguro || 0, descuento_renovacion: +c.descuento_renovacion || 0 }))
   const recaudo = (raw.recaudo || []).map((p) => ({ ...p, monto: +p.monto, ...(R[p.ruta_id] || {}) }))
-  const solicitudes = (raw.solicitudes || []).map((s) => ({ ...s, monto: +s.monto, ...(R[s.ruta_id] || {}) }))
+  const solicitudes = (raw.solicitudes || []).map((s) => ({ ...s, monto: +s.monto, monto_autorizado: s.monto_autorizado == null ? null : +s.monto_autorizado,
+    estado: s.estado === 'aprobada' ? 'desembolsada' : s.estado, ...(R[s.ruta_id] || {}) }))
   const uniq = (key, name, extra = () => ({})) => {
     const m = new Map(); rutas.forEach((r) => { if (!m.has(r[key])) m.set(r[key], { id: r[key], nombre: r[name], ...extra(r) }) }); return [...m.values()]
   }
@@ -225,6 +235,7 @@ function prep(raw) {
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
     personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
+    condiciones: (raw.condiciones || []).map((x) => ({ ...x, interes_pct: +x.interes_pct, num_cuotas: +x.num_cuotas })), mensajes: raw.mensajes || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
     demo: cartera.some((c) => c.es_demo) || solicitudes.some((s) => s.es_demo),
@@ -242,10 +253,11 @@ function raiz() {
   return p.ambito
 }
 const nivelDe = (sc) => NIVEL.indexOf(sc.split(':')[0])
-function inScope(row) {
-  if (SCOPE === 'emp') return true
-  const [nivel, id] = SCOPE.split(':')
-  return String(row[nivel + '_id']) === id
+function inScope(row) { return inScopeDe(SCOPE)(row) }
+function inScopeDe(scope) {
+  if (scope === 'emp') return () => true
+  const [nivel, id] = scope.split(':')
+  return (row) => String(row[nivel + '_id']) === id
 }
 const sc = {
   cartera: () => DB.cartera.filter(inScope),
@@ -342,8 +354,12 @@ function showApp() {
   if (!scopeValido(SCOPE)) SCOPE = raiz()
   const ok = vistasPermitidas()
   if (!ok.includes(VIEW)) VIEW = 'tablero'
-  const nRev = DB.solicitudes.filter((s) => s.estado === 'revision').length
-  const tag = (k) => k === 'solicitudes' && nRev ? `<span class="tag">${nRev}</span>` : ''
+  const S0 = DB.solicitudes.filter(inScopeDe(raiz()))
+  const nRev = (esMesa() ? S0.filter((s) => s.estado === 'revision').length : 0) + (puede('autorizar_excepciones') ? S0.filter((s) => s.estado === 'excepcion').length : 0)
+  const nOri = puede('crear_solicitudes') ? S0.filter((s) => s.estado === 'observada' || (s.estado === 'autorizada' && puedeDesembolsar(s))).length : 0
+  const tag = (k) => k === 'solicitudes' && nRev ? `<span class="tag">${nRev}</span>` : k === 'originacion' && nOri ? `<span class="tag">${nOri}</span>` : ''
+  const nAut = S0.filter((s) => s.estado === 'autorizada' && puedeDesembolsar(s)).length
+  if (nAut && ['asesor', 'gerente'].includes(p.rol) && !showApp.avisado) { showApp.avisado = true; setTimeout(() => toast(`Mesa autorizó ${nAut === 1 ? '1 solicitud' : nAut + ' solicitudes'}: ve a «Crear crédito» para desembolsar.`), 900) }
   // Encabezados de sección sólo si debajo queda alguna opción visible
   const nav = NAV.filter(([k], i) => {
     if (k !== 'h') return ok.includes(k)
@@ -358,12 +374,26 @@ function showApp() {
     b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Enviar petición'
     b.addEventListener('click', () => { cerrarMenu(); enviarPeticion() }); $('.side-foot').prepend(b)
   }
+  const rolReal = SIM ? SIM.real.rol : p.rol
+  let bvc = $('#btnVerComo')
+  if (['dueno', 'soporte'].includes(rolReal) && !bvc) {
+    bvc = document.createElement('button'); bvc.id = 'btnVerComo'; bvc.type = 'button'; bvc.className = 'btn ghost peticion'
+    bvc.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>Ver como…'
+    bvc.addEventListener('click', () => { cerrarMenu(); verComo() }); $('.side-foot').prepend(bvc)
+  }
+  let bar = $('#simBar')
+  if (SIM) {
+    if (!bar) { bar = document.createElement('div'); bar.id = 'simBar'; document.body.appendChild(bar) }
+    bar.innerHTML = `<span>👁 Viendo como <b>${esc(ROLES[SIM.rol] || SIM.rol)}</b>${SIM.nombre && SIM.nombre !== ROLES[SIM.rol] ? ' · ' + esc(SIM.nombre) : ''} · ${esc(ambitoNombre(SIM.ambito || 'empresa'))} · sólo lectura</span><button type="button" class="btn sm" id="simOtro">Otro cargo</button><button type="button" class="btn sm" id="simSalir">Salir</button>`
+    $('#simSalir').addEventListener('click', salirVerComo); $('#simOtro').addEventListener('click', verComo)
+    document.body.classList.add('simulando')
+  } else { bar?.remove(); document.body.classList.remove('simulando') }
   // Celular: 4 secciones principales abajo + «Más» (guías de iOS y Android: 3 a 5 destinos)
   const tabs = ({ asesor: ['tablero', 'cobranza', 'originacion', 'cajas'], mesa: ['tablero', 'solicitudes', 'clientes', 'reportes'], tesoreria: ['tablero', 'tesoreria', 'cajas', 'reportes'] }[DB.perfil.rol]
     || ['tablero', 'cobranza', 'normalidad', 'reportes']).filter((k) => ok.includes(k))
   const corto = { tablero: 'Inicio', cobranza: 'Cobranza', clientes: 'Clientes', cajas: 'Mi caja', normalidad: 'Normalidad', reportes: 'Reportes', originacion: 'Crédito', solicitudes: 'Mesa', tesoreria: 'Tesorería' }
   $('#tabbar').innerHTML = tabs.map((k) => `<button type="button" data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><span>${corto[k]}</span></button>`).join('')
-    + `<button type="button" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Más</span>${nRev ? '<i class="dot"></i>' : ''}</button>`
+    + `<button type="button" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Más</span>${nRev || nOri ? '<i class="dot"></i>' : ''}</button>`
   $$('#tabbar button').forEach((b) => b.addEventListener('click', () => b.dataset.tab === 'mas' ? abrirMenu() : go(b.dataset.tab)))
   go(VIEW, false)
 }
@@ -473,13 +503,13 @@ VIEWS.tablero = {
         <div class="card panel">
           <div class="ph"><div><h3>Cartera por estado</h3><div class="sub">Saldo pendiente en pesos · ${esc(scopeLabel())}</div></div><span class="chip" id="cliDeuda"></span></div>
           <div class="donut-wrap"><div class="chart-box" style="height:190px;width:190px"><canvas id="donut"></canvas><div class="donut-center"><div><b id="donutTot"></b><span>cartera activa</span></div></div></div><div class="legend" id="legend"></div></div>
-          <div class="note">Estados provisionales: al día · 1–7 días · 8–30 días · más de 30 días. Se ajustan cuando el cliente confirme sus rangos.</div>
+          <div class="note"><b>Toca un color</b> para ver quiénes son esos clientes, exportarlos o pasárselos a otro asesor. Rangos: al día · 1–7 días · 8–30 días · más de 30 días.</div>
         </div>
         <div class="card panel"><div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado hoy vs promedio diario de las últimas 2 semanas</div></div></div><div class="list" id="cobranza"></div></div>
       </div>
       <div class="grid2">
         <div class="card panel"><div class="ph"><div><h3>Colocación: nuevos y renovaciones</h3><div class="sub">Nuevos se pagan por cliente; renovaciones por dinero entregado</div></div><div class="seg" id="colp"><button type="button" data-p="sem" class="on">Semana</button><button type="button" data-p="mes">Mes</button></div></div><div id="colTab"></div></div>
-        <div class="card panel"><div class="ph"><div><h3>Seguros cobrados</h3><div class="sub">$${PARAM('seguro_monto', 150)} por crédito · no cambia la deuda del cliente</div></div></div><div class="grid-rep" id="segTab"></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Gastos administrativos cobrados</h3><div class="sub">$${PARAM('seguro_monto', 150)} por crédito · no cambia la deuda del cliente</div></div></div><div class="grid-rep" id="segTab"></div></div>
       </div>
       <div class="grid3">
         <div class="card panel span2"><div class="ph"><div><h3>Recaudo vs colocación</h3><div class="sub" id="trendSub"></div></div></div><div class="chart-box" style="height:250px"><canvas id="trend"></canvas></div></div>
@@ -530,13 +560,16 @@ VIEWS.tablero = {
     $('#donutTot').textContent = pesoK(total)
     $('#legend').innerHTML = ESTADOS.map((e) => {
       const n = new Set(act.filter((c) => c.estado === e.k).map((c) => c.cliente_id)).size
-      return `<div class="li"><span class="dot" style="background:${e.c};color:${e.c}"></span><span>${e.n}</span><span class="amt">${peso(porEstado[e.k])}</span><small>${pct(porEstado[e.k], total)}% de lo que deben · ${e.s} · ${n} clientes</small></div>`
+      return `<button type="button" class="li click" data-est="${e.k}"><span class="dot" style="background:${e.c};color:${e.c}"></span><span>${e.n}</span><span class="amt">${peso(porEstado[e.k])}</span><small>${pct(porEstado[e.k], total)}% de lo que deben · ${e.s} · ${n} clientes · <u>ver</u></small></button>`
     }).join('')
     chart($('#donut'), {
       type: 'doughnut',
       data: { labels: ESTADOS.map((e) => e.n), datasets: [{ data: total ? ESTADOS.map((e) => porEstado[e.k]) : [1], backgroundColor: total ? ESTADOS.map((e) => e.c) : ['rgba(255,255,255,.08)'], borderWidth: 0, cutout: '74%', hoverOffset: 6, spacing: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: !!total, callbacks: { label: (c) => ' ' + peso(c.raw) } } } },
+      options: { responsive: true, maintainAspectRatio: false, onClick: (ev, els) => { if (total && els[0]) clientesPorEstado(ESTADOS[els[0].index].k) },
+        onHover: (ev, els) => { if (ev.native?.target) ev.native.target.style.cursor = els[0] ? 'pointer' : 'default' },
+        plugins: { legend: { display: false }, tooltip: { enabled: !!total, callbacks: { label: (c) => ' ' + peso(c.raw) + ' · toca para ver' } } } },
     })
+    $$('#legend [data-est]').forEach((b) => b.addEventListener('click', () => clientesPorEstado(b.dataset.est)))
 
     const rutas = sc.rutas().map((r) => {
       const hoyR = sum(rec.filter((x) => x.ruta_id === r.ruta_id && x.fecha === hoy), (x) => x.monto)
@@ -567,7 +600,7 @@ VIEWS.tablero = {
       + `<div class="note">${p === 'sem' ? 'Desde el lunes' : 'Desde el día 1'} · ${esc(scopeLabel())}. En renovaciones, «entregado» ya descuenta lo que debía el cliente.</div>`
   },
   seguros() {
-    const L = DB.movimientos.filter((m) => m.categoria === 'Seguro' && cajasAmbito().has(m.caja_destino))
+    const L = DB.movimientos.filter((m) => esGA(m) && cajasAmbito().has(m.caja_destino))
     const s = (desde) => sum(L.filter((m) => m.fecha >= desde && m.fecha <= DB.hoy), (m) => m.monto)
     const tiles = [['Hoy', s(DB.hoy)], ['Esta semana', s(lunes(DB.hoy))], ['Este mes', s(DB.hoy.slice(0, 8) + '01')], ['Últimos 12 meses', s(addDays(DB.hoy, -365))]]
     $('#segTab').innerHTML = tiles.map(([l, v]) => `<div class="mini inset"><div class="lab">${l}</div><div class="val">${peso(v)}</div></div>`).join('')
@@ -639,56 +672,34 @@ function fichaCliente(id) {
   const c = cr[0], act = cr.filter((x) => x.saldo > 0)
   const pagos = (k) => DB.pagos.filter((x) => x.credito_id === k).sort((a, b) => b.fecha.localeCompare(a.fecha))
   const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${esc(v)}</span></div>` : ''
-  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+  const ft = fotoCliente(id)
+  modal(`<div class="ph"><div class="fhead">${ft ? `<img class="cfoto big" alt="" id="fFoto">` : ''}<div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="statrow">${[['Debe hoy (saldo)', peso(sum(cr, (x) => x.saldo))], ['Base (prestado)', peso(sum(act, (x) => x.monto))], ['Créditos en su historial', cr.length], ['Atraso', act.length ? Math.max(...act.map((x) => x.dias_atraso)) + ' días' : '—']].map(([l, v]) => `<div class="card"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
     <div class="toolbar">${act.length && puede('registrar_pagos') ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
       ${act.some(puedeRenovar) && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="fren">Renovar</button>` : ''}
       ${!act.length && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
-    <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Dirección', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Fecha de nacimiento', c.fecha_nacimiento)}</div>
+    <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Celular', c.celular)}${dato('Dirección de cobro', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Dirección del negocio', c.direccion_negocio)}${dato('Fecha de nacimiento', c.fecha_nacimiento)}${dato('Observaciones', c.observaciones)}</div>
+    <div class="toolbar">${(() => { const a = mapsUrl(c.lat, c.lng, [c.direccion, c.colonia].filter(Boolean).join(', ')), b = c.direccion_negocio || c.lat_negocio != null ? mapsUrl(c.lat_negocio, c.lng_negocio, c.direccion_negocio) : ''
+      return (a ? `<a class="btn ghost sm" href="${a}" target="_blank" rel="noopener">Maps: dirección de cobro</a>` : '') + (b ? `<a class="btn ghost sm" href="${b}" target="_blank" rel="noopener">Maps: negocio</a>` : '') })()}</div>
     <h3 class="sec-title" style="margin-top:6px">Expediente de créditos</h3>
-    <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Seguro</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Gastos adm.</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
     ${cr.map((x) => `<tr class="click" data-pg="${x.credito_id}"><td>#${x.credito_id}${x.credito_anterior_id ? `<div class="muted" style="font-size:12px">renueva #${x.credito_anterior_id}</div>` : ''}</td><td>${tipoChip(x.tipo)}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${x.descuento_renovacion ? peso(x.descuento_renovacion) : '—'}</td><td class="num">${peso(x.entregado)}</td><td class="num">${x.seguro ? peso(x.seguro) : '—'}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
     </tbody></table></div>
     <div id="fpagos"></div>
     <div id="fdocs"></div>
     <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
+  if (ft) fotoEn($('#fFoto'), ft.path)
   const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
   panelDocs($('#fdocs'), 'cliente', id, { puede: puede('subir_documentos'), extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
     const L = pagos(k)
-    $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
+    $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Observación', f: (x) => esc(x.observacion || '') }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
   }
   $$('[data-pg]').forEach((tr) => tr.addEventListener('click', () => verPagos(+tr.dataset.pg)))
   verPagos(cr[0].credito_id)
   $('#fpago')?.addEventListener('click', () => registrarPago(act[0].credito_id))
   $('#fren')?.addEventListener('click', () => nuevaSolicitud({ renovar: act.find(puedeRenovar).credito_id }))
   $('#frec')?.addEventListener('click', () => nuevaSolicitud({ recompra: cr[0].credito_id }))
-}
-// Registro de pago desde la ruta. La fecha la pone la base de datos: después de las 18:00 cuenta para mañana.
-function registrarPago(creditoId) {
-  const act = sc.activos().sort((a, b) => a.cliente.localeCompare(b.cliente))
-  if (!act.length) { toast('No hay créditos activos en tu ámbito.', 'warn'); return }
-  const c0 = act.find((c) => c.credito_id === creditoId) || null
-  const tarde = new Date().getHours() >= 18
-  formModal({
-    titulo: 'Registrar pago', boton: 'Procesar pago',
-    nota: tarde ? 'Ya pasó el cierre de las 18:00: este pago cuenta para mañana.' : 'Se registra con la fecha de hoy y tu usuario. Queda en la caja de la ruta hasta el cierre de las 18:00.',
-    campos: [
-      { id: 'credito', label: 'Cliente y crédito', tipo: 'select', req: 1, valor: c0?.credito_id ?? act[0].credito_id,
-        opciones: act.map((c) => [c.credito_id, `${c.cliente} · #${c.credito_id} · cuota ${peso(c.cuota)} · debe ${peso(c.saldo)}${c.dias_atraso ? ' · ' + c.dias_atraso + ' d atraso' : ''}`]) },
-      { id: 'monto', label: 'Monto cobrado (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1, valor: c0 ? Math.min(c0.cuota, c0.saldo) : '' },
-    ],
-    guardar: async (v) => {
-      const c = act.find((x) => x.credito_id === +v.credito), m = +v.monto
-      const err = (t) => { const e = new Error(t); e.userMsg = t; throw e }
-      if (!(m > 0)) err('El monto debe ser mayor a cero.')
-      if (m > c.saldo + 0.01) err(`El pago no puede ser mayor a lo que debe (${peso(c.saldo)}).`)
-      const ok = await escribir(() => sb.from('pagos').insert({ credito_id: c.credito_id, monto: m }))
-      return ok ? `Pago de ${peso(m)} registrado a ${c.cliente}.` : ''
-    },
-  })
-  const sel = $('#f_credito'), mon = $('#f_monto')
-  sel?.addEventListener('change', () => { const c = act.find((x) => x.credito_id === +sel.value); if (c) mon.value = Math.min(c.cuota, c.saldo) })
 }
 function modal(inner) {
   const host = $('#modalHost')
@@ -699,19 +710,68 @@ function modal(inner) {
   $('.modal', host).addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close() })
 }
 
-const EST_SOL = { borrador: ['Borrador', 'off'], revision: ['En revisión', 'wait'], observada: ['Observada', 'mid'], aprobada: ['Aprobada', 'ok'], rechazada: ['Rechazada', 'bad'], cancelada: ['Cancelada', 'off'] }
+// ============================================================ mesa de control
+// Flujo: borrador → pendiente mesa → (corrección) → autorizada → video de entrega → desembolsada.
+// Renovaciones que piden más del 20 % sobre el crédito anterior pasan al gerente zonal (excepción).
+const EST_SOL = { borrador: ['Borrador', 'off'], revision: ['Pendiente mesa', 'wait'], observada: ['Corrección solicitada', 'mid'], excepcion: ['Excepción · la autoriza el zonal', 'mid'],
+  autorizada: ['Autorizada · falta desembolsar', 'ok'], desembolsada: ['Desembolsada', 'ok'], rechazada: ['Rechazada', 'bad'], cancelada: ['Cancelada', 'off'] }
 const estSol = (e) => `<span class="st ${(EST_SOL[e] || ['', 'off'])[1]}">${(EST_SOL[e] || [e])[0]}</span>`
 const esMesa = () => puede('resolver_solicitudes')
+const esZonalDe = (s) => puede('autorizar_excepciones') && !!DB.R[s.ruta_id]
+const puedeDesembolsar = (s) => puede('desembolsar') && !!DB.R[s.ruta_id]
+const nombreDe = (uid) => (uid && (DB.perfiles.find((p) => p.id === uid) || {}).nombre) || (uid === DB.perfil.id ? DB.perfil.nombre : '') || ''
+const fechaLocal = (ts) => (ts ? iso(new Date(ts)) : '')
+const horaLocal = (ts) => (ts ? new Date(ts).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
+// Modalidad y porcentaje: los fija el dueño por gerencia (o para toda la empresa)
+function condicion(rutaId, frec) {
+  const g = DB.R[rutaId]?.gerencia_id
+  const L = DB.condiciones.filter((c) => c.frecuencia === frec)
+  const c = L.find((x) => x.gerencia_id === g) || L.find((x) => x.gerencia_id == null)
+  return c || { interes_pct: PARAM('interes_pct', 50), num_cuotas: PARAM('num_cuotas', 10), activo: frec !== 'diario' }
+}
+const modalidades = (rutaId) => FRECUENCIAS.filter(([f]) => condicion(rutaId, f).activo)
+const condSol = (s) => { const c = condicion(s.ruta_id, s.frecuencia || 'semanal'); return { i: s.interes_pct != null ? +s.interes_pct : c.interes_pct, n: s.num_cuotas != null ? +s.num_cuotas : c.num_cuotas } }
+const FREC_TXT = { diario: 'diario', semanal: 'semanal', quincenal: 'quincenal', mensual: 'mensual' }
+// Fotos que pide mesa de control en cada solicitud (video de Emmanuel)
+const FOTOS_SOL = ['INE (frente)', 'INE (reverso)', 'Comprobante de domicilio', 'Solicitud firmada', 'Carta de declaración de ingresos',
+  'Casa (frente)', 'Casa (lado derecho)', 'Casa (lado izquierdo)', 'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Mercancía']
+const docsSol = (id) => DB.documentos.filter((d) => d.tipo === 'solicitud' && d.entidad_id === id)
+const faltanFotos = (id) => { const D = docsSol(id); return FOTOS_SOL.filter((f) => !D.some((d) => d.categoria === f)) }
+const mapsUrl = (lat, lng, txt) => lat != null && lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+  : txt ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(txt)}` : ''
+const BANDEJAS = [
+  ['revision', 'Pendientes mesa', '#f5b83d', (s) => s.estado === 'revision', 'Ya las mandó el asesor. Ábrela, revisa y decide.'],
+  ['excepcion', 'Renovaciones con excepción', '#a27bff', (s) => s.estado === 'excepcion', 'Piden más del ' + 20 + ' % sobre su crédito anterior: las autoriza el gerente zonal.'],
+  ['autorizada', 'Autorizadas · falta desembolsar', '#2fbf71', (s) => s.estado === 'autorizada', 'El asesor va con el cliente, graba el video de entrega y desembolsa.'],
+  ['hoy', 'Desembolsadas hoy', '#4c8dff', (s) => s.estado === 'desembolsada' && fechaLocal(s.desembolsado) === DB.hoy, ''],
+  ['videos', 'Videos de entrega', '#2bb7d6', (s) => s.estado === 'desembolsada' && !!s.video_path, 'El cliente dice en video cuánto recibe y cómo va a pagar.'],
+  ['observada', 'Corrección solicitada', '#ff9f43', (s) => s.estado === 'observada', 'Regresaron al asesor para corregir.'],
+  ['borrador', 'Borradores', '#8892a6', (s) => s.estado === 'borrador', 'Capturadas, sin enviar a mesa.'],
+  ['no', 'Rechazadas y canceladas', '#ff6b6b', (s) => ['rechazada', 'cancelada'].includes(s.estado), 'Se guardan con su motivo, como piden las regulaciones.'],
+  ['desembolsada', 'Desembolsadas', '#1fb5a6', (s) => s.estado === 'desembolsada', 'Ya son créditos.'],
+]
 VIEWS.solicitudes = {
+  abiertas: new Set(['revision', 'excepcion']),
   html() {
-    const cols = [['borrador', 'Borrador', 'Capturada, sin enviar'], ['revision', 'En revisión', 'Mesa de control revisa documentos'], ['observada', 'Observada', 'Regresa al asesor para corregir'], ['aprobada', 'Aprobada', 'Crédito creado'], ['no', 'No concretadas', 'Rechazadas o canceladas · se guardan por regulación']]
     const S = sc.solicitudes().slice().sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id)
-    return `${head('Solicitudes', 'Mesa de control: revisa cada solicitud y la aprueba, la observa, la rechaza o la cancela. Toca una para verla completa.')}
-      <div class="note-card"><b>Mesa de control integrada.</b> Al aprobar, el sistema crea el cliente y el crédito con la fórmula vigente, cobra el seguro y, si es renovación, liquida el crédito anterior. Las que no se concretan se guardan con su motivo.</div>
-      <div class="pipe">${cols.map(([k, t, d]) => { const L = S.filter((s) => k === 'no' ? ['rechazada', 'cancelada'].includes(s.estado) : s.estado === k); return `<div class="card col"><div class="ch"><h4>${t}</h4><span class="cnt">${L.length}</span></div>
-        ${L.slice(0, 40).map((s) => `<button type="button" class="sol inset click" data-sol="${s.id}" style="text-align:left;border:0;color:inherit;cursor:pointer"><b>${esc(s.cliente_nombre)}</b><span>${peso(s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</span><span class="muted">${esc(s.asesor || '')}${s.motivo ? ' · ' + esc(s.motivo) : ''}</span></button>`).join('') || `<div class="note">${d}</div>`}</div>` }).join('')}</div>`
+    const sig = esMesa() && S.some((s) => s.estado === 'revision')
+    const item = (s, k) => `<button type="button" class="sol inset click" data-sol="${s.id}" data-tab="${k === 'videos' ? 'archivos' : 'datos'}">
+      <b>${esc(s.cliente_nombre)}</b><span>${peso(s.monto_autorizado ?? s.monto)}${s.monto_autorizado != null && s.monto_autorizado !== s.monto ? ` <s class="muted">${peso(s.monto)}</s>` : ''} · ${TIPO[s.tipo] || 'Nuevo'} · ${FREC_TXT[s.frecuencia] || 'semanal'}</span>
+      <span class="muted">Oficina ${esc(s.oficina || '')} · ${esc(s.asesor || '')}${k === 'revision' && s.revision_por ? ' · revisando: ' + esc(nombreDe(s.revision_por) || 'mesa') : ''}${k === 'videos' || k === 'hoy' ? ' · entregado ' + esc(horaLocal(s.desembolsado)) : ''}${['observada', 'no'].includes(k) && s.motivo ? ' · ' + esc(s.motivo) : ''}</span></button>`
+    return `${head('Solicitudes', 'Mesa de control: revisa cada solicitud con sus fotos, autoriza, pide corrección o rechaza. El crédito nace cuando el asesor sube el video de entrega.',
+      sig ? '<button class="btn" type="button" id="ssig"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Revisar siguiente pendiente</button>' : '')}
+      <div class="bandejas">${BANDEJAS.map(([k, t, c, f, d]) => { const L = S.filter(f)
+        return `<details class="card bandeja" style="--c:${c}" data-b="${k}"${this.abiertas.has(k) ? ' open' : ''}><summary><span class="bt">${t}</span><span class="cnt">${L.length}</span></summary>
+          ${d ? `<div class="note">${d}</div>` : ''}<div class="list">${L.slice(0, 60).map((s) => item(s, k)).join('') || '<div class="empty"><b>Sin solicitudes</b></div>'}</div></details>` }).join('')}</div>`
   },
-  init() { $$('[data-sol]').forEach((b) => b.addEventListener('click', () => detalleSolicitud(+b.dataset.sol))) },
+  init() {
+    $$('[data-sol]').forEach((b) => b.addEventListener('click', () => detalleSolicitud(+b.dataset.sol, b.dataset.tab)))
+    $$('details.bandeja').forEach((d) => d.addEventListener('toggle', () => { if (d.open) this.abiertas.add(d.dataset.b); else this.abiertas.delete(d.dataset.b) }))
+    $('#ssig')?.addEventListener('click', () => {
+      const L = sc.solicitudes().filter((s) => s.estado === 'revision' && (!s.revision_por || s.revision_por === DB.perfil.id)).sort((a, b) => String(a.creada).localeCompare(String(b.creada)) || a.id - b.id)
+      if (L.length) detalleSolicitud(L[0].id); else toast('Todas las pendientes ya las está revisando alguien.', 'warn')
+    })
+  },
 }
 async function duplicados(curp, nombre) {
   if (sb) {
@@ -727,71 +787,274 @@ async function duplicados(curp, nombre) {
 }
 const dupHtml = (L) => L.length ? `<div class="note-card" style="background:rgba(255,200,87,.12);box-shadow:inset 0 0 0 1px rgba(255,200,87,.45)"><b>Este cliente ya está registrado.</b>
   ${L.map((d) => `<div>${d.origen === 'cliente' ? 'Cliente' : 'Solicitud'}: ${esc(d.nombre)} · ruta ${esc(d.ruta)} · ${esc(EST_SOL[d.estado]?.[0] || d.estado)}</div>`).join('')}</div>` : ''
-function detalleSolicitud(id) {
+// Ficha de la solicitud: Datos · Archivos · Historial · Conversación (como la mesa que usan hoy)
+function detalleSolicitud(id, tab = 'datos') {
   const s = DB.solicitudes.find((x) => x.id === id); if (!s) return
   const ant = s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
-  const desc = s.tipo === 'renovacion' && ant ? ant.saldo : 0
+  const cr = s.credito_id ? DB.cartera.find((c) => c.credito_id === s.credito_id) : null
+  const k = condSol(s), monto = s.monto_autorizado ?? s.monto
+  const desc = cr ? cr.descuento_renovacion : s.tipo === 'renovacion' && ant ? ant.saldo : 0
+  const total = monto * (1 + k.i / 100)
   const dato = (l, v) => v ? `<div class="r"><span class="k">${l}</span><span class="v">${v}</span></div>` : ''
+  const lugar = (dir, lat, lng) => dir || lat != null ? `${esc(dir || 'Ubicación capturada')}${mapsUrl(lat, lng, dir) ? ` · <a href="${mapsUrl(lat, lng, dir)}" target="_blank" rel="noopener">Abrir en Maps</a>` : ''}` : ''
   const abierta = ['borrador', 'revision', 'observada'].includes(s.estado)
-  const btn = (k, t, cls = 'ghost') => `<button class="btn ${cls}" type="button" data-acc="${k}">${t}</button>`
-  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(s.cliente_nombre)}</h3><div class="sub">Solicitud #${s.id} · ${esc(s.ruta || '')} (${esc(s.asesor || '')}) · capturada ${esc(s.creada || '')}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="toolbar">${estSol(s.estado)} ${tipoChip(s.tipo)}</div>
-    <div class="kv">${dato('Monto solicitado', peso(s.monto))}${dato('Frecuencia', esc(s.frecuencia || 'semanal'))}
-      ${s.tipo === 'renovacion' ? dato('Debe del crédito anterior (#' + s.credito_anterior_id + ')', peso(desc)) + dato('Se le entrega', peso(s.monto - desc)) : ''}
-      ${dato('Total a pagar', peso(s.monto * (1 + PARAM('interes_pct', 50) / 100)))}${dato('Pago', peso(s.monto * (1 + PARAM('interes_pct', 50) / 100) / PARAM('num_cuotas', 10)) + ' × ' + PARAM('num_cuotas', 10))}
-      ${dato('Seguro de gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
-      ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Dirección', esc([s.direccion, s.colonia].filter(Boolean).join(', ')))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
-      ${dato('Motivo / observación', esc(s.motivo || ''))}</div>
-    <div id="sdup"></div><div id="sdocs"></div><div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
-    <div class="toolbar" style="justify-content:flex-end">
-      ${abierta && esMesa() && s.estado !== 'borrador' ? btn('cancelada', 'Cancelar (no lo quiso)') + btn('rechazada', 'Rechazar') + btn('observada', 'Observar') + btn('aprobada', 'Aprobar y crear crédito', '') : ''}
-      ${['borrador', 'observada'].includes(s.estado) && puede('crear_solicitudes') ? btn('editar', 'Corregir') + btn('revision', 'Enviar a revisión', '') : ''}
-    </div>`)
-  panelDocs($('#sdocs'), 'solicitud', s.id, { puede: abierta && puede('subir_documentos'), titulo: 'Documentos de la solicitud' })
-  if (s.tipo === 'nuevo') duplicados(s.curp, s.cliente_nombre).then((L) => { const el = $('#sdup'); if (el) el.innerHTML = dupHtml(L.filter((d) => !(d.origen === 'solicitud' && d.nombre === s.cliente_nombre && d.estado === s.estado))) }).catch(() => {})
+  const faltan = faltanFotos(s.id), msgs = DB.mensajes.filter((m) => m.solicitud_id === s.id)
+  const btn = (a, t, cls = 'ghost') => `<button class="btn ${cls}" type="button" data-acc="${a}">${t}</button>`
+  const acc = []
+  if (s.estado === 'revision' && esMesa()) {
+    if (!s.revision_por) acc.push(btn('tomar', 'Comenzar revisión'))
+    acc.push(btn('observada', 'Solicitar corrección'), btn('rechazada', 'Rechazar'), btn('cancelada', 'Cancelar (no lo quiso)'), btn('autorizar', 'Autorizar', ''))
+  }
+  if (s.estado === 'excepcion' && esZonalDe(s)) acc.push(btn('observada', 'Solicitar corrección'), btn('rechazada', 'Rechazar'), btn('autorizar', 'Autorizar excepción', ''))
+  if (s.estado === 'autorizada' && (esMesa() || esZonalDe(s))) acc.push(btn('cancelada', 'Cancelar'))
+  if (s.estado === 'autorizada' && puedeDesembolsar(s)) acc.push(btn('desembolsar', 'Grabar video y desembolsar', ''))
+  if (['borrador', 'observada'].includes(s.estado) && puede('crear_solicitudes')) acc.push(btn('editar', 'Corregir datos'), btn('revision', 'Enviar a mesa de control', ''))
+  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(s.cliente_nombre)}</h3><div class="sub">Solicitud #${s.id} · ${esc(s.ruta || '')} (${esc(s.asesor || '')}) · oficina ${esc(s.oficina || '')} · capturada ${esc(s.creada || '')}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="toolbar">${estSol(s.estado)} ${tipoChip(s.tipo)} ${s.excepcion && s.estado !== 'excepcion' ? '<span class="chip a">Fue excepción</span>' : ''} ${faltan.length && s.estado !== 'desembolsada' ? `<span class="chip r">Faltan ${faltan.length} fotos</span>` : ''}
+      <button class="btn ghost sm" type="button" id="spdf" style="margin-left:auto"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>Expediente PDF</button></div>
+    <div class="tabs stabs" id="stabs">${[['datos', 'Datos'], ['archivos', `Archivos (${docsSol(s.id).length})`], ['historial', 'Historial'], ['conversacion', `Conversación${msgs.length ? ' (' + msgs.length + ')' : ''}`]].map(([t, l]) => `<button type="button" data-st="${t}" class="${t === tab ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div id="sbody"></div>
+    <div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    ${acc.length ? `<div class="toolbar sacc" style="justify-content:flex-end">${acc.join('')}</div>` : ''}`)
+  const pinta = (t) => {
+    $$('#stabs button').forEach((b) => b.classList.toggle('on', b.dataset.st === t))
+    const el = $('#sbody'); if (!el) return
+    if (t === 'datos') {
+      el.innerHTML = `<div class="kv">${dato('Monto solicitado', peso(s.monto))}${s.monto_autorizado != null ? dato('Monto autorizado', `<b>${peso(s.monto_autorizado)}</b>`) : ''}
+        ${dato('Modalidad', esc(FREC_TXT[s.frecuencia] || 'semanal'))}${dato('Porcentaje', k.i + ' %')}${dato('Pago', `${peso(total / k.n)} × ${k.n}`)}${dato('Total a pagar', peso(total))}
+        ${s.tipo === 'renovacion' && ant ? dato('Monto del crédito anterior (#' + s.credito_anterior_id + ')', peso(ant.monto)) + dato('Debe del crédito anterior', peso(desc)) + dato('Se le entrega', peso(monto - desc)) : ''}
+        ${dato('Gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
+        ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Celular', esc(s.celular || ''))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
+        ${dato('Dirección de cobro', lugar([s.direccion, s.colonia].filter(Boolean).join(', '), s.lat, s.lng))}${dato('Dirección del negocio', lugar(s.direccion_negocio, s.lat_negocio, s.lng_negocio))}
+        ${dato('Observaciones', esc(s.observaciones || ''))}${dato('Comentario de autorización', esc(s.comentario || ''))}${dato('Motivo', esc(s.motivo || ''))}</div><div id="sdup"></div>`
+      if (s.tipo === 'nuevo' && abierta) duplicados(s.curp, s.cliente_nombre).then((L) => { const e = $('#sdup'); if (e) e.innerHTML = dupHtml(L.filter((d) => !(d.origen === 'solicitud' && d.nombre === s.cliente_nombre && d.estado === s.estado))) }).catch(() => {})
+    } else if (t === 'archivos') {
+      panelFotos(el, s)
+    } else if (t === 'historial') {
+      const cli = s.cliente_id || ant?.cliente_id
+      const H = cli ? DB.cartera.filter((c) => c.cliente_id === cli).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)) : []
+      el.innerHTML = H.length ? `<h3 class="sec-title">Créditos del cliente</h3>` + tabla([{ t: 'Crédito', f: (c) => '#' + c.credito_id }, { t: 'Tipo', f: (c) => tipoChip(c.tipo) }, { t: 'Inicio', k: 'fecha_inicio' }, { t: 'Base', num: 1, f: P('monto') }, { t: 'Pagadas', num: 1, f: (c) => `${c.cuotas_pagadas}/${c.num_cuotas}` }, { t: 'Saldo', num: 1, b: 1, f: P('saldo') }, { t: 'Estado', f: (c) => estadoChip(c.estado) }], H)
+        + (ant ? estadoCuenta(ant) : '') : '<div class="empty"><b>Cliente nuevo</b>No tiene créditos anteriores con la empresa.</div>'
+    } else {
+      const bit = [[s.creada, `Capturada por ${esc(s.asesor || 'el asesor')}`], [s.revision_inicio, s.revision_por ? `Mesa comenzó la revisión · ${esc(nombreDe(s.revision_por))}` : ''],
+        [s.autorizado, s.autorizado_por ? `Autorizada por ${peso(s.monto_autorizado)} · ${esc(nombreDe(s.autorizado_por))}` : ''], [s.autorizado, s.excepcion_por ? `Excepción autorizada por el zonal · ${esc(nombreDe(s.excepcion_por))}` : ''],
+        [s.revisado, ['rechazada', 'cancelada', 'observada'].includes(s.estado) ? `${EST_SOL[s.estado][0]} · ${esc(s.motivo || '')}` : ''], [s.desembolsado, s.desembolsado ? `Desembolsada con video · ${esc(nombreDe(s.desembolsado_por))}` : '']].filter(([, x]) => x)
+      el.innerHTML = `<h3 class="sec-title">Conversación con mesa de control</h3><div class="chat">${msgs.map((m) => `<div class="msg ${m.autor === DB.perfil.id ? 'yo' : ''}"><b>${esc(m.autor_nombre || nombreDe(m.autor) || 'Usuario')}</b><span>${esc(m.texto)}</span><small>${esc(horaLocal(m.creado))}</small></div>`).join('') || '<div class="note">Aún no hay mensajes en este expediente.</div>'}</div>
+        <form class="chatform" id="sMsg"><input class="ctl" id="sTxt" maxlength="2000" placeholder="Escribe un mensaje para ${esMesa() ? 'el asesor' : 'mesa de control'}…" autocomplete="off"><button class="btn" type="submit">Enviar</button></form>
+        <h3 class="sec-title" style="margin-top:14px">Bitácora</h3><div class="kv">${bit.map(([f, x]) => `<div class="r"><span class="k">${x}</span><span class="v muted">${esc(String(f || '').length > 10 ? horaLocal(f) : f || '')}</span></div>`).join('')}</div>`
+      $('#sMsg').addEventListener('submit', async (e) => {
+        e.preventDefault(); const txt = $('#sTxt').value.trim(); if (!txt) return
+        try { const ok = await escribir(() => sb.from('solicitud_mensajes').insert({ solicitud_id: s.id, texto: txt, autor_nombre: DB.perfil.nombre || null })); if (ok) detalleSolicitud(s.id, 'conversacion') }
+        catch (er) { $('#sErr').textContent = er.userMsg || 'No se pudo enviar.' }
+      })
+    }
+  }
+  pinta(tab)
+  $$('#stabs button').forEach((b) => b.addEventListener('click', () => pinta(b.dataset.st)))
+  $('#spdf').addEventListener('click', () => imprimirExpediente(s))
   $$('[data-acc]').forEach((b) => b.addEventListener('click', async () => {
-    const acc = b.dataset.acc
-    if (acc === 'editar') return nuevaSolicitud({ editar: s })
-    if (acc === 'revision') {
-      try { const ok = await escribir(() => sb.from('solicitudes').update({ estado: 'revision' }).eq('id', s.id)); if (ok) { $('#modalHost').innerHTML = ''; toast('Solicitud enviada a mesa de control.') } } catch (e) { $('#sErr').textContent = e.userMsg || 'No se pudo enviar.' }
+    const a = b.dataset.acc, err = $('#sErr')
+    if (a === 'editar') return nuevaSolicitud({ editar: s })
+    if (a === 'desembolsar') return grabarVideoEntrega(s)
+    if (a === 'revision') {
+      if (faltan.length && !b.dataset.ok) { b.dataset.ok = 1; b.textContent = 'Enviar aunque falten fotos'; err.textContent = `Faltan ${faltan.length} fotos: ${faltan.join(', ')}. Mesa puede pedir corrección.`; return }
+      try { const ok = await escribir(() => sb.from('solicitudes').update({ estado: 'revision' }).eq('id', s.id)); if (ok) { $('#modalHost').innerHTML = ''; toast('Solicitud enviada a mesa de control.') } } catch (e) { err.textContent = e.userMsg || 'No se pudo enviar.' }
       return
     }
-    const resolver = async (motivo) => {
-      const r = await escribir(() => sb.rpc('resolver_solicitud', { p_id: s.id, p_estado: acc, p_motivo: motivo || null }))
-      return r ? (acc === 'aprobada' ? `Crédito creado${typeof r === 'number' ? ' #' + r : ''}. Seguro cargado a la caja del asesor.` : `Solicitud ${EST_SOL[acc][0].toLowerCase()}.`) : ''
-    }
-    if (acc === 'aprobada') {
-      b.disabled = true; b.textContent = 'Creando crédito…'
-      try { const m = await resolver(''); $('#modalHost').innerHTML = ''; if (m) toast(m) } catch (e) { $('#sErr').textContent = e.userMsg || 'No se pudo aprobar.'; b.disabled = false; b.textContent = 'Aprobar y crear crédito' }
+    const rpc = (estado, motivo, montoA) => escribir(() => sb.rpc('resolver_solicitud', { p_id: s.id, p_estado: estado, p_motivo: motivo || null, p_monto: montoA ?? null }))
+    if (a === 'tomar') {
+      try { const r = await rpc('tomar'); if (r) { toast('Revisión iniciada: el equipo ve que tú la estás revisando.'); detalleSolicitud(s.id, 'archivos') } } catch (e) { err.textContent = e.userMsg || 'No se pudo iniciar la revisión.' }
       return
     }
-    formModal({ titulo: { observada: 'Observar solicitud', rechazada: 'Rechazar solicitud', cancelada: 'Cancelar solicitud' }[acc], nota: 'La solicitud y sus datos se conservan con este motivo.', boton: 'Guardar',
-      campos: [{ id: 'motivo', label: 'Motivo', req: 1 }], guardar: (v) => resolver(v.motivo) })
+    if (a === 'autorizar') {
+      const tope = ant ? ant.monto * (1 + PARAM('excepcion_pct', 20) / 100) : Infinity
+      return formModal({
+        titulo: s.estado === 'excepcion' ? 'Autorizar excepción (zonal)' : 'Autorizar solicitud',
+        nota: `${esc(s.cliente_nombre)} pidió ${peso(s.monto)}. El monto solicitado y el autorizado se guardan por separado.${s.tipo === 'renovacion' && ant && s.estado !== 'excepcion' && !esZonalDe(s) ? ` Si autorizas más de ${peso(tope)} (${PARAM('excepcion_pct', 20)} % sobre su crédito anterior), pasa al gerente zonal.` : ''}${faltan.length ? ` <b>Ojo: faltan ${faltan.length} fotos.</b>` : ''}`,
+        boton: 'Confirmar autorización',
+        campos: [{ id: 'monto', label: 'Monto autorizado (MXN)', tipo: 'number', min: 500, step: '50', req: 1, valor: s.monto_autorizado ?? s.monto }, { id: 'comentario', label: 'Comentario (opcional)', tipo: 'textarea' }],
+        guardar: async (v) => {
+          const m = +v.monto
+          if (!(m >= 500)) { const e = new Error('m'); e.userMsg = 'El monto mínimo es $500.'; throw e }
+          const r = await rpc('autorizada', v.comentario, m)
+          return r === 'excepcion' ? 'Es una renovación con excepción: pasa al gerente zonal para que la autorice.' : r ? 'Solicitud autorizada. El asesor ya la ve para desembolsarla con el video de entrega.' : ''
+        },
+      })
+    }
+    formModal({ titulo: { observada: 'Solicitar corrección', rechazada: 'Rechazar solicitud', cancelada: 'Cancelar solicitud' }[a],
+      nota: a === 'observada' ? 'La solicitud regresa al asesor con este mensaje para que corrija o suba lo que falta.' : 'La solicitud y sus datos se conservan con este motivo (regulación).', boton: 'Guardar',
+      campos: [{ id: 'motivo', label: a === 'observada' ? 'Qué debe corregir' : 'Motivo', req: 1, tipo: 'textarea' }],
+      guardar: async (v) => { const r = await rpc(a, v.motivo); return r ? `Solicitud: ${EST_SOL[a][0].toLowerCase()}.` : '' } })
   }))
 }
+// Estado de cuenta del crédito anterior (para renovaciones): pagos y saldo después de cada uno
+function estadoCuenta(c) {
+  const ps = DB.pagos.filter((x) => x.credito_id === c.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id)
+  let saldo = c.total_pagar
+  const rows = ps.map((x) => { saldo -= x.monto; return { ...x, saldo: Math.max(0, saldo) } })
+  return `<h3 class="sec-title" style="margin-top:14px">Estado de cuenta del crédito anterior #${c.credito_id}</h3>
+    <div class="kv">${[['Prestado', peso(c.monto)], ['Total a pagar', peso(c.total_pagar)], ['Pago', peso(c.cuota) + ' × ' + c.num_cuotas + ' (' + (FREC_TXT[c.frecuencia] || '') + ')'], ['Pagado', peso(c.total_pagar - c.saldo) + ` · ${pct(c.total_pagar - c.saldo, c.total_pagar)} %`], ['Debe hoy', peso(c.saldo)], ['Atraso', c.dias_atraso ? c.dias_atraso + ' días' : 'Al día']].map(([l, v]) => `<div class="r"><span class="k">${l}</span><span class="v">${v}</span></div>`).join('')}</div>`
+    + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Saldo después', num: 1, b: 1, f: P('saldo') }], rows.slice().reverse())
+}
+// Lista de fotos obligatorias: cada una con su botón de cámara
+function panelFotos(el, s) {
+  const D = docsSol(s.id), abierta = ['borrador', 'revision', 'observada'].includes(s.estado)
+  const sube = abierta && puede('subir_documentos')
+  const video = D.find((d) => d.categoria === 'Video de entrega')
+  const otros = D.filter((d) => !FOTOS_SOL.includes(d.categoria) && d.categoria !== 'Video de entrega')
+  const fila = (cat) => {
+    const L = D.filter((d) => d.categoria === cat), ok = L.length > 0
+    return `<div class="foto inset ${ok ? 'ok' : ''}"><span class="ic">${ok ? '✓' : '•'}</span><div class="t">${cat}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}</div>
+      <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">Ver${L.length > 1 ? ' ' + (i + 1) : ''}</button>`).join('')}
+      ${sube && (!ok || cat === 'Mercancía') ? `<label class="btn sm"><input type="file" accept="image/*" capture="environment" data-cat="${esc(cat)}" hidden>${ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>` : ''}</div></div>`
+  }
+  el.innerHTML = `${video ? `<div class="vid inset"><div class="ph"><h3 class="sec-title">Video de entrega</h3><span class="muted">${esc(horaLocal(video.creado))}</span></div><div data-vid></div></div>` : ''}
+    <div class="ph"><h3 class="sec-title">Fotos del expediente</h3><span class="chip ${faltanFotos(s.id).length ? 'r' : 'g'}">${FOTOS_SOL.length - faltanFotos(s.id).length} de ${FOTOS_SOL.length}</span></div>
+    <div class="fotos">${FOTOS_SOL.map(fila).join('')}</div>
+    ${otros.length ? `<h3 class="sec-title" style="margin-top:10px">Otros documentos</h3><div class="list">${otros.map((d) => `<button type="button" class="rowitem inset docrow" data-doc="${d.id}"><div><div class="t">${esc(d.categoria)}</div><div class="s">${esc(d.nombre)}</div></div><div class="m"><small>Ver</small></div></button>`).join('')}</div>` : ''}
+    <div class="muted" data-fmsg></div>
+    <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
+  $$('[data-doc]', el).forEach((b) => b.addEventListener('click', () => verDocumento(DB.documentos.find((d) => d.id === +b.dataset.doc))))
+  if (video) { const box = $('[data-vid]', el); if (sb) blobDe(video.path).then((u) => { box.innerHTML = `<video controls playsinline preload="metadata" src="${u}" style="width:100%;max-height:52vh;border-radius:14px;background:#000"></video>` }).catch(() => { box.innerHTML = '<div class="note">No se pudo cargar el video.</div>' }); else box.innerHTML = '<div class="note">Modo de prueba: sin video.</div>' }
+  $$('[data-cat]', el).forEach((inp) => inp.addEventListener('change', async () => {
+    const f = inp.files?.[0]; if (!f) return
+    const msg = $('[data-fmsg]', el); msg.textContent = `Subiendo ${inp.dataset.cat}…`
+    try { const ok = await subirDocumento('solicitud', s.id, inp.dataset.cat, f); if (ok) toast(`${inp.dataset.cat}: guardado.`); panelFotos(el, DB.solicitudes.find((x) => x.id === s.id) || s) }
+    catch (e) { msg.textContent = ''; toast(e.userMsg || 'No se pudo subir la foto.', 'warn') }
+    inp.value = ''
+  }))
+}
+// Video de entrega: el cliente dice cuánto recibe y cómo paga. Sin video no hay desembolso.
+function guionEntrega(s) {
+  const k = condSol(s), monto = s.monto_autorizado ?? s.monto, cuota = monto * (1 + k.i / 100) / k.n
+  const dia = new Date().toLocaleDateString('es-MX', { weekday: 'long' }), dias = dia.endsWith('s') ? dia : dia + 's'
+  const cada = { diario: 'cada día', semanal: 'cada 8 días', quincenal: 'cada 15 días', mensual: 'cada mes' }[s.frecuencia] || 'cada 8 días'
+  const plazo = { diario: 'días', semanal: 'semanas', quincenal: 'quincenas', mensual: 'meses' }[s.frecuencia] || 'semanas'
+  const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  return `Yo, ${s.cliente_nombre}, hoy ${hoy}, recibo un crédito de parte de Nexus Capital por la cantidad de ${peso(monto)}, de los cuales estaré pagando ${peso(cuota)} ${cada}${s.frecuencia === 'semanal' ? ', los días ' + dias : ''}, durante ${k.n} ${plazo}.`
+}
+function grabarVideoEntrega(s) {
+  const guion = guionEntrega(s), monto = s.monto_autorizado ?? s.monto
+  const ant = s.tipo === 'renovacion' && s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
+  const entrega = monto - (ant ? ant.saldo : 0)
+  const puedeGrabar = !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder)
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Video de entrega</h3><div class="sub">${esc(s.cliente_nombre)} · entregas ${peso(entrega)}${ant ? ` (autorizado ${peso(monto)} menos ${peso(ant.saldo)} que debía)` : ''}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="guion inset"><span class="muted">Pide al cliente que diga, mirando a la cámara:</span><p>“${esc(guion)}”</p></div>
+    <div class="cam"><video id="vCam" playsinline muted autoplay></video><span class="rec" id="vRec" hidden>● <b id="vT">0:00</b></span></div>
+    <div class="err" id="vErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    <div class="toolbar" style="justify-content:flex-end" id="vBtns">
+      ${puedeGrabar ? '<button class="btn ghost" type="button" id="vFlip">Cambiar cámara</button><button class="btn" type="button" id="vGo">Empezar a grabar</button>' : ''}
+      <label class="btn ${puedeGrabar ? 'ghost' : ''}"><input type="file" accept="video/*" capture="environment" id="vFile" hidden>${puedeGrabar ? 'Usar la cámara del teléfono' : 'Grabar video'}</label>
+      <button class="btn" type="button" id="vUp" hidden>Subir video y desembolsar</button></div>
+    <div class="note">El video es obligatorio para desembolsar y queda en el expediente. Graba con buena luz; dura de 15 a 60 segundos.</div>`)
+  let stream = null, rec = null, chunks = [], blob = null, cara = 'environment', t0 = 0, timer = 0
+  const cam = $('#vCam'), err = $('#vErr')
+  const parar = () => { clearInterval(timer); try { rec?.state === 'recording' && rec.stop() } catch {} stream?.getTracks().forEach((t) => t.stop()); stream = null }
+  const obs = new MutationObserver(() => { if (!document.body.contains(cam)) { parar(); obs.disconnect() } }); obs.observe($('#modalHost'), { childList: true })
+  const encender = async () => {
+    stream?.getTracks().forEach((t) => t.stop())
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cara, width: { ideal: 640 }, height: { ideal: 480 } }, audio: true })
+      cam.srcObject = stream; cam.muted = true; cam.controls = false; await cam.play().catch(() => {})
+    } catch (e) { err.textContent = 'No se pudo abrir la cámara. Da permiso de cámara y micrófono, o usa «Usar la cámara del teléfono».' }
+  }
+  const listo = (b) => {
+    blob = b; parar()
+    cam.srcObject = null; cam.src = URL.createObjectURL(b); cam.muted = false; cam.controls = true
+    $('#vUp').hidden = false; if ($('#vGo')) $('#vGo').textContent = 'Grabar otra vez'
+  }
+  if (puedeGrabar) {
+    encender()
+    $('#vFlip').addEventListener('click', () => { cara = cara === 'environment' ? 'user' : 'environment'; if (!rec || rec.state !== 'recording') encender() })
+    $('#vGo').addEventListener('click', async () => {
+      err.textContent = ''
+      if (rec && rec.state === 'recording') { if (Date.now() - t0 < 5000) { err.textContent = 'Graba al menos 5 segundos.'; return } rec.stop(); return }
+      if (!stream) await encender(); if (!stream) return
+      cam.src = ''; cam.srcObject = stream; cam.muted = true; cam.controls = false; $('#vUp').hidden = true; blob = null
+      const tipo = ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm'].find((x) => MediaRecorder.isTypeSupported?.(x)) || ''
+      chunks = []
+      rec = new MediaRecorder(stream, { ...(tipo ? { mimeType: tipo } : {}), videoBitsPerSecond: 900000, audioBitsPerSecond: 64000 })
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data)
+      rec.onstop = () => { $('#vRec').hidden = true; $('#vGo').textContent = 'Grabar otra vez'; listo(new Blob(chunks, { type: (rec.mimeType || tipo || 'video/webm').split(';')[0] })) }
+      rec.start(1000); t0 = Date.now(); $('#vRec').hidden = false; $('#vGo').textContent = 'Detener'
+      timer = setInterval(() => { const x = Math.floor((Date.now() - t0) / 1000); $('#vT').textContent = `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`; if (x >= 180) rec.stop() }, 500)
+    })
+  }
+  $('#vFile').addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) listo(f) })
+  $('#vUp').addEventListener('click', async () => {
+    if (!blob) return
+    if (blob.size > 50 * 1024 * 1024) { err.textContent = 'El video pesa más de 50 MB. Graba uno más corto (30 a 60 segundos).'; return }
+    const b = $('#vUp'); b.disabled = true; b.textContent = 'Subiendo video…'
+    try {
+      const tipo = (blob.type || 'video/mp4').split(';')[0], ext = tipo.includes('webm') ? 'webm' : tipo.includes('quicktime') ? 'mov' : 'mp4'
+      const path = await subirDocumento('solicitud', s.id, 'Video de entrega', new File([blob], `entrega-${s.id}.${ext}`, { type: tipo }), { volver: true })
+      if (!path) { b.disabled = false; b.textContent = 'Subir video y desembolsar'; return }
+      b.textContent = 'Creando el crédito…'
+      const r = await escribir(() => sb.rpc('desembolsar_solicitud', { p_id: s.id, p_video: path }))
+      if (r) { $('#modalHost').innerHTML = ''; toast(`Desembolsado: crédito #${r}. Ya aparece en su ruta.`) }
+    } catch (e) { err.textContent = e.userMsg || 'No se pudo desembolsar. Intenta de nuevo.'; b.disabled = false; b.textContent = 'Subir video y desembolsar' }
+  })
+}
+// Expediente en PDF (para revisarlo o pasarlo a la IA): se abre la impresión y se elige «Guardar como PDF»
+async function imprimirExpediente(s) {
+  const k = condSol(s), monto = s.monto_autorizado ?? s.monto, total = monto * (1 + k.i / 100)
+  const ant = s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
+  const D = docsSol(s.id).filter((d) => /^image\//.test(d.mime || ''))
+  const r = (l, v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : ''
+  let host = $('#printHost'); if (!host) { host = document.createElement('div'); host.id = 'printHost'; document.body.appendChild(host) }
+  toast('Preparando el expediente…')
+  const imgs = []
+  for (const d of D) { try { imgs.push([d.categoria, sb ? await blobDe(d.path) : '']) } catch {} }
+  const msgs = DB.mensajes.filter((m) => m.solicitud_id === s.id)
+  host.innerHTML = `<div class="pg"><img src="logo-nexus.png" alt="Nexus Capital" class="plogo"><h1>Expediente de solicitud #${s.id}</h1>
+    <p class="psub">${esc(s.cliente_nombre)} · ${TIPO[s.tipo] || 'Nuevo'} · ${EST_SOL[s.estado]?.[0] || s.estado} · impreso ${new Date().toLocaleString('es-MX')}</p>
+    <h2>Solicitud</h2><table>${r('Cliente', esc(s.cliente_nombre))}${r('CURP', esc(s.curp || ''))}${r('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}${r('Teléfono', esc(s.telefono || ''))}${r('Celular', esc(s.celular || ''))}
+      ${r('Dirección de cobro', esc([s.direccion, s.colonia].filter(Boolean).join(', ')) + (s.lat != null ? ` (${s.lat}, ${s.lng})` : ''))}${r('Dirección del negocio', esc(s.direccion_negocio || '') + (s.lat_negocio != null ? ` (${s.lat_negocio}, ${s.lng_negocio})` : ''))}
+      ${r('Observaciones', esc(s.observaciones || ''))}${r('Asesor', esc(s.asesor || ''))}${r('Ruta / oficina', esc(`${s.ruta || ''} · ${s.oficina || ''} · ${s.gerencia || ''}`))}${r('Capturada', esc(s.creada || ''))}</table>
+    <h2>Condiciones</h2><table>${r('Monto solicitado', peso(s.monto))}${s.monto_autorizado != null ? r('Monto autorizado', peso(s.monto_autorizado)) : ''}${r('Modalidad', FREC_TXT[s.frecuencia] || 'semanal')}${r('Porcentaje', k.i + ' %')}
+      ${r('Pago', `${peso(total / k.n)} × ${k.n}`)}${r('Total a pagar', peso(total))}${r('Gastos administrativos', peso(PARAM('seguro_monto', 150)))}
+      ${ant ? r('Crédito anterior', `#${ant.credito_id} · prestado ${peso(ant.monto)} · debe ${peso(ant.saldo)} · ${pct(ant.total_pagar - ant.saldo, ant.total_pagar)} % pagado`) + r('Se le entrega', peso(monto - (s.estado === 'desembolsada' ? 0 : ant.saldo))) : ''}</table>
+    ${ant ? `<h2>Estado de cuenta anterior</h2><table class="pt"><tr><th>Fecha</th><th>Monto</th><th>Tipo</th></tr>${DB.pagos.filter((x) => x.credito_id === ant.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha)).map((x) => `<tr><td>${x.fecha}</td><td>${peso(x.monto)}</td><td>${x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago'}</td></tr>`).join('')}</table>` : ''}
+    ${msgs.length ? `<h2>Conversación con mesa</h2><table>${msgs.map((m) => r(esc(m.autor_nombre || 'Usuario') + ' · ' + esc(horaLocal(m.creado)), esc(m.texto))).join('')}</table>` : ''}
+    <h2>Fotos (${imgs.length} de ${FOTOS_SOL.length} requeridas)</h2><p class="psub">Faltan: ${esc(faltanFotos(s.id).join(', ') || 'ninguna')}</p></div>
+    ${imgs.map(([c, u]) => `<div class="pg pimg"><h2>${esc(c)}</h2>${u ? `<img src="${u}" alt="${esc(c)}">` : ''}</div>`).join('')}`
+  await Promise.all($$('img', host).map((im) => im.complete ? 0 : new Promise((ok) => { im.onload = im.onerror = ok })))
+  setTimeout(() => { window.print(); toast('Elige «Guardar como PDF» para descargarlo.') }, 150)
+}
 // Captura de solicitud: nueva, renovación (al 80 %) o recompra. Revisa duplicados por CURP o nombre.
+// La modalidad y el porcentaje los fija el dueño por gerencia: el asesor no los puede cambiar.
 function nuevaSolicitud({ renovar, recompra, editar } = {}) {
-  const ant = renovar ? DB.cartera.find((c) => c.credito_id === renovar) : recompra ? DB.cartera.find((c) => c.credito_id === recompra) : null
+  const ant = renovar ? DB.cartera.find((c) => c.credito_id === renovar) : recompra ? DB.cartera.find((c) => c.credito_id === recompra) : editar?.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === editar.credito_anterior_id) : null
   const tipo = editar ? editar.tipo : renovar ? 'renovacion' : recompra ? 'recompra' : 'nuevo'
   const rutas = sc.rutas()
   if (!rutas.length) { toast('No tienes rutas en tu ámbito.', 'warn'); return }
   const e = editar || {}
+  const ruta0 = tipo === 'nuevo' ? (e.ruta_id ?? rutas[0].ruta_id) : ant.ruta_id
+  const mods = modalidades(ruta0)
+  if (!mods.length) { toast('Tu gerencia no tiene modalidades activas. Pide al dueño que las configure.', 'warn'); return }
+  const geo = (lat, lng) => (lat != null && lng != null ? `${lat},${lng}` : '')
   const campos = []
   if (tipo === 'nuevo') campos.push(
     { id: 'nombre', label: 'Nombre completo del cliente', req: 1, valor: e.cliente_nombre }, { id: 'curp', label: 'CURP', req: 1, valor: e.curp },
     { id: 'fnac', label: 'Fecha de nacimiento', tipo: 'date', valor: e.fecha_nacimiento }, { id: 'telefono', label: 'Teléfono', tipo: 'tel', req: 1, valor: e.telefono },
-    { id: 'direccion', label: 'Dirección (calle y número)', req: 1, valor: e.direccion }, { id: 'colonia', label: 'Colonia', valor: e.colonia },
-    { id: 'ruta', label: 'Ruta', tipo: 'select', req: 1, opciones: rutas.map((r) => [r.ruta_id, `${r.ruta} · ${r.asesor || ''}`]), valor: e.ruta_id ?? rutas[0].ruta_id })
-  campos.push({ id: 'monto', label: 'Monto del crédito (MXN)', tipo: 'number', min: 500, step: '500', req: 1, valor: e.monto ?? (ant ? ant.monto : '') },
-    { id: 'frecuencia', label: 'Frecuencia de pago', tipo: 'select', req: 1, opciones: [['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['mensual', 'Mensual']], valor: e.frecuencia || ant?.frecuencia || 'semanal' },
-    { id: 'enviar', label: 'Enviar a mesa de control ahora', tipo: 'check', valor: true })
+    { id: 'celular', label: 'Celular (WhatsApp)', tipo: 'tel', valor: e.celular },
+    { id: 'ruta', label: 'Ruta', tipo: 'select', req: 1, opciones: rutas.map((r) => [r.ruta_id, `${r.ruta} · ${r.asesor || ''}`]), valor: ruta0 })
+  campos.push(
+    { id: 'geo', label: 'Ubicación de cobro', tipo: 'geo', dir: 'direccion', col: 'colonia', valor: geo(e.lat ?? ant?.lat, e.lng ?? ant?.lng) },
+    { id: 'direccion', label: 'Dirección de cobro (calle y número)', req: tipo === 'nuevo' ? 1 : 0, valor: e.direccion ?? ant?.direccion }, { id: 'colonia', label: 'Colonia', valor: e.colonia ?? ant?.colonia },
+    { id: 'geon', label: 'Ubicación del negocio', tipo: 'geo', dir: 'negocio', valor: geo(e.lat_negocio ?? ant?.lat_negocio, e.lng_negocio ?? ant?.lng_negocio) },
+    { id: 'negocio', label: 'Dirección del negocio', valor: e.direccion_negocio ?? ant?.direccion_negocio },
+    { id: 'monto', label: 'Monto del crédito (MXN)', tipo: 'number', min: 500, step: '500', req: 1, valor: e.monto ?? (ant ? ant.monto : '') },
+    { id: 'frecuencia', label: 'Modalidad', tipo: 'select', req: 1, opciones: mods, valor: mods.some(([f]) => f === (e.frecuencia || ant?.frecuencia)) ? (e.frecuencia || ant?.frecuencia) : mods.some(([f]) => f === 'semanal') ? 'semanal' : mods[0][0] },
+    { id: 'obs', label: 'Observaciones', tipo: 'textarea', valor: e.observaciones },
+    { id: 'enviar', label: 'Enviar a mesa de control ahora', tipo: 'check', valor: !editar })
   const saldoAnt = tipo === 'renovacion' && ant ? ant.saldo : 0
   let confirmado = false
   formModal({
     titulo: editar ? 'Corregir solicitud' : { nuevo: 'Nuevo crédito', renovacion: 'Renovar crédito', recompra: 'Recompra' }[tipo],
-    nota: tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id}. Ese saldo se descuenta de lo que se le entrega.`
+    nota: (tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id} (prestado ${peso(ant.monto)}). Ese saldo se descuenta de lo que se le entrega.`
       : tipo === 'recompra' ? `${esc(ant.cliente)} · ya liquidó. Se crea un crédito nuevo y queda en su expediente como recompra.`
-      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).',
+      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span>',
     boton: 'Guardar solicitud', campos,
     guardar: async (v) => {
       const err = (t) => { const x = new Error(t); x.userMsg = t; throw x }
@@ -806,18 +1069,33 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
           if (L.length) { confirmado = true; $('#fmOk').textContent = 'Guardar de todos modos'; $('#fmErr').innerHTML = dupHtml(L); const x = new Error('dup'); x.userMsg = ''; x.html = true; throw x }
         }
       }
+      const [lat, lng] = v.geo ? v.geo.split(',').map(Number) : [null, null]
+      const [latn, lngn] = v.geon ? v.geon.split(',').map(Number) : [null, null]
       const row = tipo === 'nuevo'
-        ? { cliente_nombre: v.nombre, curp: v.curp, fecha_nacimiento: v.fnac || null, telefono: v.telefono, direccion: v.direccion, colonia: v.colonia || null, ruta_id: +v.ruta }
-        : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, direccion: ant.direccion || null, colonia: ant.colonia || null, credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }
-      Object.assign(row, { monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
+        ? { cliente_nombre: v.nombre, curp: v.curp, fecha_nacimiento: v.fnac || null, telefono: v.telefono, celular: v.celular || null, ruta_id: +v.ruta }
+        : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, celular: ant.celular || null, ...(editar ? {} : { credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }) }
+      Object.assign(row, { direccion: v.direccion || null, colonia: v.colonia || null, lat, lng, direccion_negocio: v.negocio || null, lat_negocio: latn, lng_negocio: lngn,
+        observaciones: v.obs || null, monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
       if (!editar) row.creado_por = DB.perfil.id
       const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row).select('id').single())
       if (!ok) return ''
       const nid = editar ? editar.id : ok.id
-      if (nid) setTimeout(() => { detalleSolicitud(nid); toast('Ahora sube la INE y el comprobante de domicilio.') }, 50)
+      if (nid) setTimeout(() => { detalleSolicitud(nid, 'archivos'); toast('Ahora toma las fotos: INE, comprobante, casa, negocio y mercancía.') }, 50)
       return v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.'
     },
   })
+  // La modalidad depende de la gerencia de la ruta; el porcentaje y los pagos se muestran, no se editan
+  const fr = $('#f_frecuencia'), ru = $('#f_ruta')
+  const cond = () => {
+    const rid = ru ? +ru.value : ruta0, c = condicion(rid, fr.value)
+    $('#fCond').innerHTML = `<b>Condiciones: ${c.interes_pct} % en ${c.num_cuotas} pagos (${FREC_TXT[fr.value]}).</b> Las fija el dueño por gerencia.`
+  }
+  ru?.addEventListener('change', () => {
+    const L = modalidades(+ru.value), cur = fr.value
+    fr.innerHTML = L.map(([v, t]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${t}</option>`).join('')
+    cond()
+  })
+  fr.addEventListener('change', cond); cond()
 }
 VIEWS.originacion = {
   html() {
@@ -827,6 +1105,12 @@ VIEWS.originacion = {
     const liq = porCliente(sc.cartera()).filter((c) => c.saldo === 0).sort((a, b) => a.cliente.localeCompare(b.cliente))
     return `${head('Crear crédito', 'Captura la solicitud del cliente y envíala a mesa de control. Aquí también renuevas al ' + PARAM('renovacion_pct', 80) + ' % de pagos.',
       puede('crear_solicitudes') ? '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>' : '')}
+      ${(() => { const A = sc.solicitudes().filter((s) => s.estado === 'autorizada'), O = sc.solicitudes().filter((s) => s.estado === 'observada')
+        return A.length || O.length ? `<div class="grid2">
+        ${A.length ? `<div class="card panel aviso ok"><div class="ph"><div><h3>Autorizadas: ve a desembolsar</h3><div class="sub">Mesa ya las autorizó. Ve con el cliente, graba el video de entrega y desembolsa.</div></div><span class="chip g">${A.length}</span></div>
+          <div class="list">${A.map((s) => `<div class="rowitem inset"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${peso(s.monto_autorizado ?? s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</div></div><div class="m"><small>${puedeDesembolsar(s) ? `<button class="btn sm" type="button" data-des="${s.id}">Grabar video y desembolsar</button>` : ''}</small></div></div>`).join('')}</div></div>` : ''}
+        ${O.length ? `<div class="card panel aviso"><div class="ph"><div><h3>Mesa pidió corrección</h3><div class="sub">Corrige o sube lo que falta y vuelve a enviar.</div></div><span class="chip a">${O.length}</span></div>
+          <div class="list">${O.map((s) => `<button type="button" class="rowitem inset docrow" data-obs="${s.id}"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${esc(s.motivo || '')}</div></div><div class="m"><small>Abrir</small></div></button>`).join('')}</div></div>` : ''}</div>` : '' })()}
       <div class="card panel"><div class="ph"><div><h3>Mis solicitudes</h3><div class="sub">Pendientes y de los últimos 30 días · toca una para verla</div></div><span class="chip">${mias.length}</span></div>
         ${tabla([{ t: 'Cliente', f: (s) => `<b>${esc(s.cliente_nombre)}</b>`, }, { t: 'Tipo', f: (s) => tipoChip(s.tipo) }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Ruta', k: 'ruta' }, { t: 'Estado', f: (s) => estSol(s.estado) }, { t: 'Motivo', f: (s) => esc(s.motivo || '') }], mias)}</div>
       <div class="grid2">
@@ -847,6 +1131,8 @@ VIEWS.originacion = {
     pinta()
     $('#oq').addEventListener('input', (e) => pinta(e.target.value))
     $('#onuevo')?.addEventListener('click', () => nuevaSolicitud())
+    $$('[data-des]').forEach((b) => b.addEventListener('click', () => grabarVideoEntrega(DB.solicitudes.find((s) => s.id === +b.dataset.des))))
+    $$('[data-obs]').forEach((b) => b.addEventListener('click', () => detalleSolicitud(+b.dataset.obs)))
     $$('[data-ren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.ren })))
     $$('#view .tbl tbody tr').forEach((tr, i) => { const L = sc.solicitudes().filter((s) => ['borrador', 'revision', 'observada'].includes(s.estado) || (s.creada && s.creada >= addDays(DB.hoy, -30))).sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || b.id - a.id); if (L[i]) { tr.classList.add('click'); tr.addEventListener('click', () => detalleSolicitud(L[i].id)) } })
   },
@@ -862,7 +1148,7 @@ VIEWS.creditos = {
       <div class="card panel">
         <div class="ph"><div class="tabs" id="fil">${[['todos', 'Todos'], ...ESTADOS.map((e) => [e.k, e.n]), ['liquidado', 'Liquidados'], ['renovacion', 'Renovaciones'], ['recompra', 'Recompras']].map(([k, t]) => `<button type="button" data-f="${k}" class="${this.filtro === k ? 'on' : ''}">${t}</button>`).join('')}</div><span class="chip" id="cnt"></span></div>
         <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Cliente</th><th>Tipo</th><th>Ruta</th><th>Inicio</th><th class="num">Base (prestado)</th><th class="num">Cuota</th><th class="num">Pagadas</th><th class="num">Saldo (debe)</th><th class="num">Atraso</th><th>Estado</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
-        <div class="note">Interés ${PARAM('interes_pct', 50)} % plano en ${PARAM('num_cuotas', 10)} pagos. Se puede renovar al ${PARAM('renovacion_pct', 80)} % de pagos. A cada crédito se le cobra un seguro de $${PARAM('seguro_monto', 150)} que no cambia lo que debe el cliente.</div>
+        <div class="note">Interés ${PARAM('interes_pct', 50)} % plano en ${PARAM('num_cuotas', 10)} pagos. Se puede renovar al ${PARAM('renovacion_pct', 80)} % de pagos. A cada crédito se le cobran $${PARAM('seguro_monto', 150)} de gastos administrativos que no cambian lo que debe el cliente.</div>
       </div>`
   },
   init() {
@@ -892,7 +1178,12 @@ VIEWS.cobranza = {
       return { ...r, cobrado: sum(hoyR, (x) => x.monto), pagos: sum(hoyR, (x) => x.pagos), prom: p, atN: new Set(at.map((c) => c.cliente_id)).size, atS: sum(at, (c) => c.saldo) }
     })
     const tot = sum(rows, (r) => r.cobrado)
-    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes.', puede('registrar_pagos') ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
+    this.unaRuta = rows.length === 1 ? rows[0].ruta_id : null
+    if (this.unaRuta) return `${head('Mi ruta de cobro', 'Toca «Cobrar» en cada cliente. Los colores dicen cómo va: verde al día, amarillo atrasado, rosa alto riesgo y rojo vencido.')}
+      <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
+        .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
+      <div class="card panel" id="miRuta"></div><div class="note">Pagos en efectivo. Lo que se registre después de las 18:00 cuenta para el día siguiente.</div>`
+    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes por color y en su orden de visita.', puede('registrar_pagos') ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
       <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel"><div class="ph"><h3>Por ruta</h3></div>
@@ -902,40 +1193,174 @@ VIEWS.cobranza = {
         <div class="note">Pagos en efectivo. Lo que se registre después de las 18:00 cuenta para el día siguiente.</div></div>`
   },
   init() {
+    if (this.unaRuta) listaCobro($('#miRuta'), this.unaRuta)
     $('#cpago')?.addEventListener('click', () => registrarPago())
     $$('[data-ruta]').forEach((tr) => tr.addEventListener('click', () => detalleRuta(+tr.dataset.ruta)))
   },
 }
-function detalleRuta(rutaId) {
+// Ruta de cobro del asesor: tarjetas por color (verde al día, amarillo, naranja, rojo), con foto,
+// botones a Google Maps (cobro y negocio) y su orden de visita.
+const fotoCliente = (cid) => DB.documentos.find((d) => d.tipo === 'cliente' && d.entidad_id === cid && d.categoria === 'Foto del cliente' && /^image\//.test(d.mime || ''))
+function ordenRuta(L) {
+  return L.slice().sort((a, b) => (a.orden_ruta ?? 1e9) - (b.orden_ruta ?? 1e9) || a.cliente.localeCompare(b.cliente) || a.credito_id - b.credito_id)
+}
+function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
+  if (!el) return
   const r = DB.R[rutaId], hoy = DB.hoy
-  const L = sc.activos().filter((c) => c.ruta_id === rutaId).sort((a, b) => b.dias_atraso - a.dias_atraso || a.cliente.localeCompare(b.cliente))
   const pagHoy = new Set(DB.pagos.filter((x) => x.fecha === hoy && x.tipo !== 'liquidacion_renovacion').map((x) => x.credito_id))
-  modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(r.ruta)}</h3><div class="sub">${esc(r.asesor || '')} · ${esc(r.oficina)} · ${L.length} créditos por cobrar</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="tablewrap"><table class="tbl"><thead><tr><th>Cliente</th><th class="num">Cuota</th><th class="num">Debe</th><th class="num">Atraso</th><th>Hoy</th><th></th></tr></thead><tbody>
-    ${L.map((c) => `<tr class="click" data-cli="${c.cliente_id}"><td class="strong">${esc(c.cliente)}<div class="muted" style="font-size:12px">${esc(c.colonia || '')} · #${c.credito_id}</div></td><td class="num">${peso(c.cuota)}</td><td class="num strong">${peso(c.saldo)}</td><td class="num">${c.dias_atraso ? c.dias_atraso + ' d' : '—'}</td>
-      <td>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó</span>' : '<span class="st off">Pendiente</span>'}</td><td class="num">${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6"><div class="empty"><b>Sin créditos por cobrar</b></div></td></tr>'}
-    </tbody></table></div>`)
-  $$('[data-cli]').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('[data-cobrar]')) return; fichaCliente(+tr.dataset.cli) }))
-  $$('[data-cobrar]').forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
+  const todos = ordenRuta(DB.cartera.filter((c) => c.ruta_id === rutaId && c.saldo > 0))
+  const F = { todos: () => true, pendientes: (c) => !pagHoy.has(c.credito_id), atraso: (c) => c.dias_atraso > 0, pagaron: (c) => pagHoy.has(c.credito_id) }
+  const L = est.ordenar ? todos : todos.filter(F[est.f] || F.todos)
+  const n = (k) => todos.filter(F[k]).length
+  const card = (c, i) => {
+    const e = ESTADO[c.estado] || ESTADO.al_dia, foto = fotoCliente(c.cliente_id)
+    const cob = mapsUrl(c.lat, c.lng, [c.direccion, c.colonia].filter(Boolean).join(', ')), neg = c.direccion_negocio || c.lat_negocio != null ? mapsUrl(c.lat_negocio, c.lng_negocio, c.direccion_negocio) : ''
+    return `<div class="cobro inset${pagHoy.has(c.credito_id) ? ' pago' : ''}" style="--c:${e.c}" data-cc="${c.credito_id}">
+      <div class="cfoto">${foto ? `<img alt="" data-ft="${esc(foto.path)}">` : esc(c.cliente.trim().slice(0, 1))}</div>
+      <div class="cinfo"><b>${est.ordenar ? `<span class="num-orden">${i + 1}</span>` : ''}${esc(c.cliente)}</b><span>${esc([c.direccion, c.colonia].filter(Boolean).join(', ') || 'Sin dirección')}</span>
+        <span class="muted">${e.n}${c.dias_atraso ? ` · ${c.dias_atraso} días` : ''} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos · ${FREC_TXT[c.frecuencia] || ''}</span></div>
+      <div class="cmonto"><b>${peso(Math.min(c.cuota, c.saldo))}</b><small>debe ${peso(c.saldo)}</small>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó hoy</span>' : ''}</div>
+      <div class="cacc">${est.ordenar ? `<button class="btn ghost sm" type="button" data-up="${i}" aria-label="Subir">▲</button><button class="btn ghost sm" type="button" data-dn="${i}" aria-label="Bajar">▼</button>`
+        : `${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}
+        ${cob ? `<a class="btn ghost sm" href="${cob}" target="_blank" rel="noopener">Ir a cobrar</a>` : ''}${neg ? `<a class="btn ghost sm" href="${neg}" target="_blank" rel="noopener">Negocio</a>` : ''}
+        <button class="btn ghost sm" type="button" data-ficha="${c.cliente_id}">Ficha</button>`}</div></div>`
+  }
+  el.innerHTML = `<div class="ph"><div><h3>${esc(r?.ruta || 'Ruta')}</h3><div class="sub">${esc(r?.asesor || '')} · ${todos.length} créditos por cobrar · ${pagHoy.size ? [...pagHoy].filter((k) => todos.some((c) => c.credito_id === k)).length + ' ya pagaron hoy' : 'nadie ha pagado hoy'}</div></div>
+      ${puede('ordenar_ruta') ? `<div class="toolbar">${est.ordenar ? '<button class="btn ghost sm" type="button" data-ord="no">Cancelar</button><button class="btn sm" type="button" data-ord="ok">Guardar orden</button>' : '<button class="btn ghost sm" type="button" data-ord="si">Ordenar ruta</button>'}</div>` : ''}</div>
+    ${est.ordenar ? '<div class="note-card">Acomoda a los clientes en el orden en que pasas a cobrarles. Así aparecen siempre, también para el gerente si sale a cubrir la ruta.</div>'
+      : `<div class="tabs ftabs">${[['todos', 'Todos'], ['pendientes', 'Por cobrar hoy'], ['atraso', 'Con atraso'], ['pagaron', 'Pagaron hoy']].map(([k, t]) => `<button type="button" data-fc="${k}" class="${est.f === k ? 'on' : ''}">${t} <span class="muted">${n(k)}</span></button>`).join('')}</div>`}
+    <div class="cobros">${L.map(card).join('') || '<div class="empty"><b>Nadie en este filtro</b></div>'}</div>
+    <div class="legend-st">${ESTADOS.map((x) => `<span><i style="background:${x.c}"></i>${x.n}</span>`).join('')}</div>`
+  $$('[data-ft]', el).forEach((im) => fotoEn(im, im.dataset.ft))
+  $$('[data-fc]', el).forEach((b) => b.addEventListener('click', () => listaCobro(el, rutaId, { ...est, f: b.dataset.fc })))
+  $$('[data-cobrar]', el).forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
+  $$('[data-ficha]', el).forEach((b) => b.addEventListener('click', () => fichaCliente(+b.dataset.ficha)))
+  const mover = (i, d) => { const j = i + d; if (j < 0 || j >= todos.length) return; [todos[i], todos[j]] = [todos[j], todos[i]]; todos.forEach((c, k) => { DB.cartera.filter((x) => x.cliente_id === c.cliente_id).forEach((x) => { x.orden_ruta = k + 1 }) }); listaCobro(el, rutaId, est) }
+  $$('[data-up]', el).forEach((b) => b.addEventListener('click', () => mover(+b.dataset.up, -1)))
+  $$('[data-dn]', el).forEach((b) => b.addEventListener('click', () => mover(+b.dataset.dn, 1)))
+  $$('[data-ord]', el).forEach((b) => b.addEventListener('click', async () => {
+    const a = b.dataset.ord
+    if (a === 'si') { est.antes = DB.cartera.filter((c) => c.ruta_id === rutaId).map((c) => [c, c.orden_ruta]); return listaCobro(el, rutaId, { ...est, ordenar: true }) }
+    if (a === 'no') { (est.antes || []).forEach(([c, o]) => { c.orden_ruta = o }); return listaCobro(el, rutaId, { f: est.f, ordenar: false }) }
+    const ids = [...new Set(todos.map((c) => c.cliente_id))]
+    b.disabled = true; b.textContent = 'Guardando…'
+    try { const ok = await escribir(() => sb.rpc('ordenar_ruta', { p_ruta: rutaId, p_clientes: ids })); if (ok) toast('Orden de la ruta guardado.'); else listaCobro(el, rutaId, { f: est.f }) }
+    catch (e) { toast(e.userMsg || 'No se pudo guardar el orden.', 'warn'); b.disabled = false; b.textContent = 'Guardar orden' }
+  }))
+}
+function detalleRuta(rutaId) {
+  modal(`<div class="ph"><div></div><button class="x" data-close aria-label="Cerrar">×</button></div><div id="rCobro"></div>`)
+  listaCobro($('#rCobro'), rutaId)
+}
+// Registrar pago: primero se ve la información del cliente; después monto, observación y foto (opcional).
+// Al guardar se ofrece el comprobante para mandarlo al cliente por WhatsApp.
+function registrarPago(creditoId) {
+  const act = sc.activos().sort((a, b) => a.cliente.localeCompare(b.cliente))
+  if (!act.length) { toast('No hay créditos activos en tu ámbito.', 'warn'); return }
+  const c0 = act.find((c) => c.credito_id === creditoId) || null
+  const tarde = new Date().getHours() >= 18
+  const info = (c) => c ? `<div class="pinfo"><b>${esc(c.cliente)}</b> · crédito #${c.credito_id} · ${estadoChip(c.estado)}<br>Pago ${peso(c.cuota)} · debe ${peso(c.saldo)} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos${c.dias_atraso ? ` · <b style="color:#ff9a9a">${c.dias_atraso} días de atraso</b>` : ''}
+    <br>${esc([c.direccion, c.colonia].filter(Boolean).join(', ') || '')}${c.telefono || c.celular ? ' · tel. ' + esc(c.celular || c.telefono) : ''}${c.observaciones ? `<br><span class="muted">${esc(c.observaciones)}</span>` : ''}</div>` : ''
+  formModal({
+    titulo: 'Registrar pago', boton: 'Registrar abono',
+    nota: `<span id="pInfo">${info(c0)}</span>` + (tarde ? 'Ya pasó el cierre de las 18:00: este pago cuenta para mañana.' : 'Se registra con la fecha de hoy y tu usuario. Queda en tu caja hasta el cierre de las 18:00.'),
+    campos: [
+      ...(c0 ? [] : [{ id: 'credito', label: 'Cliente y crédito', tipo: 'select', req: 1, valor: act[0].credito_id,
+        opciones: act.map((c) => [c.credito_id, `${c.cliente} · #${c.credito_id} · pago ${peso(c.cuota)} · debe ${peso(c.saldo)}${c.dias_atraso ? ' · ' + c.dias_atraso + ' d atraso' : ''}`]) }]),
+      { id: 'monto', label: 'Monto cobrado (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1, valor: c0 ? Math.min(c0.cuota, c0.saldo) : Math.min(act[0].cuota, act[0].saldo) },
+      { id: 'obs', label: 'Observación (opcional)', tipo: 'textarea' },
+      { id: 'foto', label: 'Foto (opcional)', tipo: 'foto' },
+    ],
+    guardar: async (v) => {
+      const c = c0 || act.find((x) => x.credito_id === +v.credito), m = +v.monto
+      const err = (t) => { const e = new Error(t); e.userMsg = t; throw e }
+      if (!(m > 0)) err('El monto debe ser mayor a cero.')
+      if (m > c.saldo + 0.01) err(`El pago no puede ser mayor a lo que debe (${peso(c.saldo)}).`)
+      if (!sb) { setTimeout(() => ticketPago(c, m, 0, v.obs), 60); return 'Modo de prueba: el pago no se guardó.' }
+      const ok = await escribir(() => sb.from('pagos').insert({ credito_id: c.credito_id, monto: m, observacion: v.obs || null }).select('id').single())
+      if (!ok) return ''
+      if (v.foto) { try { await subirDocumento('credito', c.credito_id, 'Foto del pago', v.foto) } catch (e) { toast('El pago se guardó, pero la foto no se pudo subir.', 'warn') } }
+      setTimeout(() => ticketPago(c, m, ok.id, v.obs), 60)
+      return `Pago de ${peso(m)} registrado a ${c.cliente}.`
+    },
+  })
+  const sel = $('#f_credito'), mon = $('#f_monto')
+  sel?.addEventListener('change', () => { const c = act.find((x) => x.credito_id === +sel.value); if (c) { mon.value = Math.min(c.cuota, c.saldo); $('#pInfo').innerHTML = info(c) } })
+  if (sel) $('#pInfo').innerHTML = info(act[0])
+}
+// Comprobante del abono para el cliente (WhatsApp, compartir o copiar)
+function ticketPago(c, monto, folio, obs) {
+  const saldo = Math.max(0, c.saldo - monto), pagadas = Math.min(c.num_cuotas, Math.floor((c.total_pagar - saldo) / c.cuota + 1e-4))
+  const ahora = new Date().toLocaleString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const txt = `NEXUS CAPITAL MX\nComprobante de pago${folio ? ' · folio ' + folio : ''}\n\nCliente: ${c.cliente}\nCrédito: #${c.credito_id}\nFecha: ${ahora}\nAbono: ${peso(monto)}\nSaldo pendiente: ${peso(saldo)}\nPagos: ${pagadas} de ${c.num_cuotas}\nRecibió: ${DB.perfil.nombre || 'Asesor'}${obs ? '\nNota: ' + obs : ''}\n\n${saldo === 0 ? '¡Crédito liquidado! Gracias por su puntualidad.' : 'Gracias por su pago.'}`
+  const tel = String(c.celular || c.telefono || '').replace(/\D/g, ''), wa = tel.length === 10 ? '52' + tel : tel.length === 12 && tel.startsWith('52') ? tel : ''
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Comprobante de pago</h3><div class="sub">Mándaselo al cliente</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <pre class="ticket">${esc(txt)}</pre>
+    <div class="toolbar" style="justify-content:flex-end">
+      <button class="btn ghost" type="button" id="tCopy">Copiar</button>
+      ${navigator.share ? '<button class="btn ghost" type="button" id="tShare">Compartir</button>' : ''}
+      <a class="btn" href="https://wa.me/${wa}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${wa ? 'Enviar por WhatsApp' : 'Abrir WhatsApp'}</a></div>
+    ${wa ? '' : '<div class="note">El cliente no tiene celular registrado: WhatsApp te pedirá elegir el contacto.</div>'}`)
+  $('#tCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(txt); toast('Comprobante copiado.') } catch { toast('No se pudo copiar.', 'warn') } })
+  $('#tShare')?.addEventListener('click', () => navigator.share({ title: 'Comprobante de pago', text: txt }).catch(() => {}))
+}
+// Modalidad y porcentaje por gerencia (lo decide el dueño). Sin regla propia, la gerencia usa la de la empresa.
+function pintarCondiciones(el) {
+  const puedeEditar = ['dueno', 'soporte', 'direccion'].includes(DB.perfil.rol)
+  const filas = [{ id: null, nombre: 'Toda la empresa (regla general)' }, ...DB.gerencias.map((g) => ({ id: g.id, nombre: g.nombre }))]
+  const celda = (g, f) => {
+    const propia = DB.condiciones.find((c) => c.gerencia_id === g.id && c.frecuencia === f)
+    const c = propia || (g.id != null ? DB.condiciones.find((x) => x.gerencia_id == null && x.frecuencia === f) : null)
+    const txt = !c ? '<span class="muted">—</span>' : c.activo ? `${c.interes_pct} % · ${c.num_cuotas} pagos` : '<span class="muted">No se ofrece</span>'
+    return `<td class="${propia || g.id == null ? '' : 'hereda'}">${puedeEditar ? `<button type="button" class="celda" data-cg="${g.id ?? ''}" data-cf="${f}">${txt}</button>` : txt}</td>`
+  }
+  el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Modalidades y porcentaje por gerencia</h3><div class="sub">El asesor sólo ve las modalidades activas de su gerencia y no puede cambiar el porcentaje. En gris: usa la regla de la empresa.</div></div></div>
+    <div class="tablewrap"><table class="tbl cond"><thead><tr><th>Gerencia</th>${FRECUENCIAS.map(([, t]) => `<th>${t}</th>`).join('')}</tr></thead><tbody>
+    ${filas.map((g) => `<tr><td class="strong">${esc(g.nombre)}</td>${FRECUENCIAS.map(([f]) => celda(g, f)).join('')}</tr>`).join('')}</tbody></table></div>
+    ${DB.condiciones.length ? '' : '<div class="note">Falta aplicar la actualización 08 de la base de datos.</div>'}</div>`
+  $$('[data-cf]', el).forEach((b) => b.addEventListener('click', () => {
+    const gid = b.dataset.cg === '' ? null : +b.dataset.cg, f = b.dataset.cf
+    const propia = DB.condiciones.find((c) => c.gerencia_id === gid && c.frecuencia === f)
+    const base = propia || DB.condiciones.find((c) => c.gerencia_id == null && c.frecuencia === f) || { interes_pct: PARAM('interes_pct', 50), num_cuotas: PARAM('num_cuotas', 10), activo: true }
+    const nom = gid == null ? 'toda la empresa' : DB.gerencias.find((g) => g.id === gid)?.nombre
+    formModal({
+      titulo: `${FRECUENCIAS.find(([k]) => k === f)[1]} · ${esc(nom)}`,
+      nota: gid == null ? 'Regla general: la usan las gerencias que no tienen una propia.' : 'Regla propia de esta gerencia. Deja la casilla de «Usar la regla de la empresa» para quitarla.',
+      boton: 'Guardar',
+      campos: [{ id: 'activo', label: 'Se ofrece esta modalidad', tipo: 'check', valor: base.activo },
+        { id: 'interes', label: 'Porcentaje (interés plano %)', tipo: 'number', min: 0, step: '0.5', req: 1, valor: base.interes_pct },
+        { id: 'pagos', label: 'Número de pagos', tipo: 'number', min: 1, step: '1', req: 1, valor: base.num_cuotas },
+        ...(gid != null && propia ? [{ id: 'quitar', label: 'Usar la regla de la empresa (quitar la propia)', tipo: 'check', valor: false }] : [])],
+      guardar: async (v) => {
+        const err = (t) => { const e = new Error(t); e.userMsg = t; throw e }
+        if (v.quitar) { const ok = await escribir(() => sb.from('condiciones').delete().eq('id', propia.id)); return ok ? 'La gerencia vuelve a usar la regla de la empresa.' : '' }
+        if (!(+v.interes >= 0 && +v.interes <= 300)) err('El porcentaje debe estar entre 0 y 300.')
+        if (!(+v.pagos >= 1 && +v.pagos <= 400 && Number.isInteger(+v.pagos))) err('El número de pagos debe ser entero, de 1 a 400.')
+        const row = { gerencia_id: gid, frecuencia: f, interes_pct: +v.interes, num_cuotas: +v.pagos, activo: !!v.activo, actualizado: new Date().toISOString(), actualizado_por: DB.perfil.id }
+        const ok = await escribir(() => propia ? sb.from('condiciones').update(row).eq('id', propia.id) : sb.from('condiciones').insert(row))
+        return ok ? 'Condiciones guardadas. Aplican a las solicitudes nuevas.' : ''
+      },
+    })
+  }))
 }
 
 VIEWS.cajas = {
   html() {
     const hoy = DB.hoy, rec = sc.recaudo(), cerrada = new Date().getHours() >= 18, S = saldos(hoy)
     const ger = DB.gerencias.filter((g) => sc.rutas().some((r) => r.gerencia_id === g.id))
-    const segHoy = (rid) => sum(DB.movimientos.filter((m) => m.categoria === 'Seguro' && m.fecha === hoy && m.caja_destino === 'ruta:' + rid), (m) => m.monto)
+    const segHoy = (rid) => sum(DB.movimientos.filter((m) => esGA(m) && m.fecha === hoy && m.caja_destino === 'ruta:' + rid), (m) => m.monto)
     const btns = [puede('registrar_pagos') ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
       puede('registrar_gastos') ? '<button class="btn ghost" type="button" id="kgasto">Registrar gasto</button>' : '',
       puede('ver_tesoreria') && (esAdmin() || puede('tesoreria_excedente')) ? '<button class="btn ghost" type="button" id="kteso">Ir a tesorería</button>' : ''].join('')
     return `${head('Cajas', 'Lo que cobra cada asesor entra a su caja; a las 18:00 pasa solo a la caja de su gerente. Lo que se registre después de las 18:00 cuenta para el día siguiente.', btns)}
       <div class="card panel"><h3 class="sec-title">Flujo del efectivo</h3>
-        <div class="flow"><div class="node inset"><b>Asesor cobra en ruta</b><span>pagos y seguros entran a su caja</span></div><div class="arr">→</div><div class="node inset"><b>Cierre 18:00</b><span>traslado automático</span></div><div class="arr">→</div><div class="node inset"><b>Caja del gerente</b><span>recibe y resguarda</span></div><div class="arr">→</div><div class="node inset"><b>Banco</b><span>tesorería retira el excedente</span></div></div></div>
+        <div class="flow"><div class="node inset"><b>Asesor cobra en ruta</b><span>pagos y gastos administrativos entran a su caja</span></div><div class="arr">→</div><div class="node inset"><b>Cierre 18:00</b><span>traslado automático</span></div><div class="arr">→</div><div class="node inset"><b>Caja del gerente</b><span>recibe y resguarda</span></div><div class="arr">→</div><div class="node inset"><b>Banco</b><span>tesorería retira el excedente</span></div></div></div>
       <div class="grid3">${ger.map((g) => {
         const rg = sc.rutas().filter((r) => r.gerencia_id === g.id)
         const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto) + sum(rg, (r) => segHoy(r.ruta_id))
         return `<div class="card panel lift"><div class="ph"><div><h3>${esc(g.resp || g.nombre)}</h3><div class="sub">${esc(g.nombre)} · caja ${peso(S.get('gerencia:' + g.id) || 0)}</div></div><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Cerrada' : '18:00'}</span></div>
           <div class="kv">${rg.map((r) => { const c = sum(rec.filter((x) => x.ruta_id === r.ruta_id && x.fecha === hoy), (x) => x.monto), sg = segHoy(r.ruta_id)
-            return `<div class="r"><span class="k">${esc(r.asesor || r.ruta)}<div class="muted" style="font-size:12px">cobrado ${peso(c)}${sg ? ' · seguros ' + peso(sg) : ''} · en caja ${peso(S.get('ruta:' + r.ruta_id) || 0)}</div></span><span class="v">${peso(c + sg)}</span></div>` }).join('')}
+            return `<div class="r"><span class="k">${esc(r.asesor || r.ruta)}<div class="muted" style="font-size:12px">cobrado ${peso(c)}${sg ? ' · gastos adm. ' + peso(sg) : ''} · en caja ${peso(S.get('ruta:' + r.ruta_id) || 0)}</div></span><span class="v">${peso(c + sg)}</span></div>` }).join('')}
           <div class="r"><span class="k strong">${cerrada ? 'Recibió el gerente' : 'Recibe el gerente a las 18:00'}</span><span class="v" style="color:var(--teal)">${peso(m)}</span></div></div></div>`
       }).join('')}</div>`
   },
@@ -984,12 +1409,12 @@ const REPORTES = {
   antiguedad: { t: 'Antigüedad', d: 'Saldo agrupado por días de atraso.' },
   colocacion: { t: 'Nuevos y renovaciones', d: 'Colocación por asesor: clientes nuevos, renovaciones y recompras.' },
   comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado.' },
-  seguros: { t: 'Seguros', d: 'Seguro de gastos administrativos cobrado por ruta.' },
+  seguros: { t: 'Gastos administrativos', d: 'Gastos administrativos cobrados por ruta.' },
   medida: { t: 'A la medida', d: 'Elige cómo agrupar, las fechas y las columnas; descárgalo en Excel.' },
 }
 const RCOLS = {
   clientes: 'Clientes', creditos: 'Créditos activos', base: 'Base prestada', saldo: 'Saldo (deuda)', al_dia: 'Cartera al día', atraso: 'Con atraso', normalidad: 'Normalidad %',
-  cobrado: 'Cobrado', nuevos: 'Clientes nuevos', colocado: 'Colocado (base)', renovado: 'Renovaciones (entregado)', seguros: 'Seguros',
+  cobrado: 'Cobrado', nuevos: 'Clientes nuevos', colocado: 'Colocado (base)', renovado: 'Renovaciones (entregado)', seguros: 'Gastos administrativos',
 }
 VIEWS.reportes = {
   tab: 'general', q: '', desde: null, hasta: null, agrupar: 'ruta', cols: ['clientes', 'base', 'saldo', 'normalidad', 'cobrado', 'nuevos', 'renovado', 'seguros'],
@@ -1070,17 +1495,17 @@ VIEWS.reportes = {
         exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
       }
     } else if (this.tab === 'seguros') {
-      const M = DB.movimientos.filter((x) => x.categoria === 'Seguro' && enRango(x.fecha) && cajasAmbito().has(x.caja_destino))
+      const M = DB.movimientos.filter((x) => esGA(x) && enRango(x.fecha) && cajasAmbito().has(x.caja_destino))
       const m = porAsesor(M, () => ({ n: 0, monto: 0 }))
       M.forEach((x) => { const y = m.get(+x.caja_destino.split(':')[1]); if (y) { y.n++; y.monto += x.monto } })
       const rows = [...m.values()].sort((a, b) => b.monto - a.monto)
       const sem = new Map(); M.forEach((x) => { const k = lunes(x.fecha); sem.set(k, (sem.get(k) || 0) + x.monto) })
       const semanas = [...sem.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => ({ semana: 'Semana del ' + fechaCorta(k), monto: v }))
-      body = `<div class="card panel">${hdr(fechas)}<div class="grid-rep">${[['Total cobrado', peso(sum(rows, (r) => r.monto))], ['Créditos con seguro', NUM.format(sum(rows, (r) => r.n))], ['Por crédito', peso(PARAM('seguro_monto', 150))]].map(([l, v]) => `<div class="mini inset"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
-        ${tabla([{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Créditos', k: 'n', num: 1, tot: (r) => sum(r, (x) => x.n) }, { t: 'Seguros cobrados', num: 1, b: 1, f: P('monto'), tot: T('monto') }], rows, true)}
+      body = `<div class="card panel">${hdr(fechas)}<div class="grid-rep">${[['Total cobrado', peso(sum(rows, (r) => r.monto))], ['Créditos con gastos adm.', NUM.format(sum(rows, (r) => r.n))], ['Por crédito', peso(PARAM('seguro_monto', 150))]].map(([l, v]) => `<div class="mini inset"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
+        ${tabla([{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Créditos', k: 'n', num: 1, tot: (r) => sum(r, (x) => x.n) }, { t: 'Gastos adm. cobrados', num: 1, b: 1, f: P('monto'), tot: T('monto') }], rows, true)}
         <h3 class="sec-title">Por semana</h3>${tabla([{ t: 'Semana', k: 'semana', b: 1 }, { t: 'Cobrado', num: 1, f: P('monto'), tot: T('monto') }], semanas, true)}
-        <div class="note">El seguro entra a la caja del asesor; la deuda del cliente no cambia.</div></div>`
-      exp = () => csv('seguros', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Créditos', 'n'], ['Seguros', 'monto']], rows)
+        <div class="note">Los gastos administrativos entran a la caja del asesor; la deuda del cliente no cambia.</div></div>`
+      exp = () => csv('gastos_administrativos', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Créditos', 'n'], ['Gastos administrativos', 'monto']], rows)
     } else if (this.tab === 'medida') {
       const key = this.agrupar, idk = key === 'cliente' ? 'cliente_id' : key + '_id', namek = { zona: 'zona', gerencia: 'gerencia', oficina: 'oficina', ruta: 'ruta', cliente: 'cliente' }[key]
       const m = new Map(), get = (c) => { let y = m.get(c[idk]); if (!y) { y = { nombre: c[namek], resp: key === 'ruta' ? c.asesor : key === 'gerencia' || key === 'oficina' ? c.gerente : key === 'zona' ? c.zonal : c.ruta, cli: new Set(), creditos: 0, base: 0, saldo: 0, al_dia: 0, cobrado: 0, nuevosS: new Set(), colocado: 0, renovado: 0, seguros: 0 }; m.set(c[idk], y) } return y }
@@ -1095,7 +1520,7 @@ VIEWS.reportes = {
           : money.includes(k) ? { t: RCOLS[k], num: 1, f: P(k), tot: T(k) } : { t: RCOLS[k], k, num: 1, tot: (rr) => sum(rr, (x) => x[k]) })]
       const ctrl = `<label class="field sel"><label>Agrupar por</label><select class="ctl" id="rag">${[['zona', 'Zona'], ['gerencia', 'Gerencia'], ['oficina', 'Oficina'], ['ruta', 'Ruta / asesor'], ['cliente', 'Cliente']].map(([k, t]) => `<option value="${k}"${k === key ? ' selected' : ''}>${t}</option>`).join('')}</select></label>${fechas}`
       body = `<div class="card panel">${hdr(ctrl)}<div class="toolbar">${Object.entries(RCOLS).map(([k, t]) => `<label class="fl chk" style="display:inline-flex;font-size:12.5px"><input type="checkbox" data-col="${k}"${this.cols.includes(k) ? ' checked' : ''}> <span>${t}</span></label>`).join('')}</div>
-        ${tabla(cols, rows.slice(0, 400), true)}<div class="note">Saldos y cartera: al día de hoy. Cobrado, colocado, renovaciones y seguros: entre las fechas elegidas. ${esc(scopeLabel())}.</div></div>`
+        ${tabla(cols, rows.slice(0, 400), true)}<div class="note">Saldos y cartera: al día de hoy. Cobrado, colocado, renovaciones y gastos administrativos: entre las fechas elegidas. ${esc(scopeLabel())}.</div></div>`
       exp = () => csv('reporte_a_la_medida', [[cols[0].t, 'nombre'], [cols[1].t, 'resp'], ...this.cols.map((k) => [RCOLS[k], k])], rows)
     } else {
       const B = [['Al día', 0, 0], ['1 a 7 días', 1, 7], ['8 a 30 días', 8, 30], ['31 a 60 días', 31, 60], ['Más de 60 días', 61, 1e9]]
@@ -1192,10 +1617,11 @@ VIEWS.admin = {
     } else if (this.tab === 'parametros') {
       const L = DB.parametros.slice().sort((a, b) => a.clave.localeCompare(b.clave))
       const fmt = (x) => x.valor == null ? '<span class="pend">por definir</span>' : /pct|_pct|meta/.test(x.clave) ? x.valor + ' %' : /monto|comision_nuevo/.test(x.clave) ? peso(x.valor) : /dias/.test(x.clave) ? x.valor + ' días' : x.valor
-      const fijos = [['Frecuencias', 'semanal · quincenal · mensual'], ['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
+      const fijos = [['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Parámetros del negocio</h3><div class="sub">Se aplican a los créditos nuevos desde que se cambian</div></div></div>
         <div class="kv">${L.map((x) => `<div class="r"><span class="k">${esc(x.descripcion)}</span><span class="v">${fmt(x)} ${esAdmin() ? `<button class="btn ghost sm" type="button" data-par="${esc(x.clave)}" style="margin-left:8px">Cambiar</button>` : ''}</span></div>`).join('') || '<div class="empty"><b>Falta aplicar la actualización de la base de datos</b></div>'}
-        ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
+        ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div><div id="pcond"></div>`
+      pintarCondiciones($('#pcond'))
       $$('[data-par]').forEach((b) => b.addEventListener('click', () => { const x = DB.parametros.find((y) => y.clave === b.dataset.par)
         formModal({ titulo: 'Cambiar parámetro', nota: esc(x.descripcion), campos: [{ id: 'valor', label: 'Valor', tipo: 'number', step: 'any', min: 0, valor: x.valor ?? '' }],
           guardar: async (v) => { const ok = await escribir(() => sb.from('parametros').update({ valor: v.valor === '' ? null : +v.valor }).eq('clave', x.clave)); return ok ? 'Parámetro actualizado.' : '' } }) }))
@@ -1227,15 +1653,19 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
     const id = 'f_' + c.id, req = c.req ? ' required' : ''
     if (c.tipo === 'select') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><div class="field sel" style="display:block"><select class="ctl" id="${id}" style="width:100%"${req}>${c.opciones.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(c.valor ?? '') ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div></label>`
     if (c.tipo === 'check') return `<label class="fl chk"><input type="checkbox" id="${id}"${c.valor ? ' checked' : ''}> <span>${c.label}</span></label>`
+    if (c.tipo === 'foto') return `<div class="fl"><span>${c.label}</span><div class="geo"><label class="btn ghost sm"><input type="file" accept="image/*" capture="environment" id="${id}" hidden onchange="this.closest('.geo').querySelector('.muted').textContent = this.files[0] ? 'Foto lista ✓' : ''">Tomar foto</label><span class="muted"></span></div></div>`
+    if (c.tipo === 'textarea') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><textarea class="ctl" id="${id}" rows="2" maxlength="2000" style="width:100%"${req}>${esc(c.valor ?? '')}</textarea></label>`
+    if (c.tipo === 'geo') return `<div class="fl"><span>${c.label}</span><div class="geo"><button class="btn ghost sm" type="button" data-geo="${c.id}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Capturar ubicación</button><span class="muted" id="g_${c.id}">${c.valor ? 'Ubicación guardada ✓' : 'Toca el botón estando en el lugar'}</span><input type="hidden" id="${id}" value="${esc(c.valor ?? '')}"></div></div>`
     return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><input class="ctl" id="${id}" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}"${c.min != null ? ` min="${c.min}"` : ''}${c.step ? ` step="${c.step}"` : ''}${req} style="width:100%"></label>`
   }
   modal(`<div class="ph"><div><h3 style="font-size:19px">${titulo}</h3>${nota ? `<div class="sub">${nota}</div>` : ''}</div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <form id="fm" class="fgrid" novalidate>${campos.map(f).join('')}<div class="err" id="fmErr" role="alert"></div>
     <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" id="fmOk">${boton}</button></div></form>`)
+  campos.filter((c) => c.tipo === 'geo').forEach((c) => $(`[data-geo="${c.id}"]`).addEventListener('click', () => capturarUbicacion(c)))
   $('#fm').addEventListener('submit', async (e) => {
     e.preventDefault()
     const v = {}
-    campos.forEach((c) => { const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : el.value.trim() })
+    campos.forEach((c) => { const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : c.tipo === 'foto' ? (el.files?.[0] || null) : el.value.trim() })
     const falta = campos.find((c) => c.req && !v[c.id])
     if (falta) { $('#fmErr').textContent = `Falta: ${falta.label}.`; return }
     const b = $('#fmOk'); b.disabled = true; b.textContent = 'Guardando…'
@@ -1249,6 +1679,28 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
     }
   })
 }
+// GPS del celular: guarda la ubicación y, si la dirección está vacía, la llena con el mapa (OpenStreetMap)
+function capturarUbicacion(c) {
+  const st = $('#g_' + c.id), inp = $('#f_' + c.id)
+  if (!navigator.geolocation) { st.textContent = 'Este navegador no da la ubicación.'; return }
+  st.textContent = 'Buscando ubicación…'
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = +pos.coords.latitude.toFixed(6), lng = +pos.coords.longitude.toFixed(6)
+    inp.value = `${lat},${lng}`
+    st.innerHTML = `Ubicación capturada ✓ (±${Math.round(pos.coords.accuracy)} m) · <a href="${mapsUrl(lat, lng)}" target="_blank" rel="noopener">ver</a>`
+    const dir = c.dir && $('#f_' + c.dir), col = c.col && $('#f_' + c.col)
+    if (!dir || dir.value.trim()) return
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&accept-language=es`)
+      const a = (await r.json()).address || {}
+      const calle = [a.road || a.pedestrian || a.street, a.house_number].filter(Boolean).join(' ')
+      if (calle && !dir.value.trim()) dir.value = calle
+      const colonia = a.neighbourhood || a.suburb || a.quarter || a.village || ''
+      if (col && colonia && !col.value.trim()) col.value = colonia
+    } catch {}
+  }, (e) => { st.textContent = e.code === 1 ? 'Sin permiso de ubicación: actívalo en el navegador.' : 'No se pudo obtener la ubicación. Intenta al aire libre.' },
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 })
+}
 const SIN_RED = 'Sin conexión a internet: NO se guardó. Inténtalo de nuevo cuando tengas señal.'
 function errorAmigable(error) {
   const m = String(error?.message || error || '')
@@ -1261,6 +1713,7 @@ function errorAmigable(error) {
 }
 async function escribir(fn) {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return false }
+  if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return false }
   if (!navigator.onLine) throw errorAmigable('network')
   let res
   try { res = await fn() } catch (err) { throw errorAmigable(err) }
@@ -1293,16 +1746,19 @@ async function reducirImagen(file) {
 }
 async function subirDocumento(tipo, id, categoria, file) {
   if (!sb) { toast('Modo de prueba: los archivos no se guardan.'); return false }
+  if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return false }
   if (!navigator.onLine) throw errorAmigable('network')
-  const okTipo = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.type)
-  if (!okTipo) { const e = new Error('tipo'); e.userMsg = 'Sólo se aceptan fotos (JPG, PNG, HEIC) o PDF.'; throw e }
-  const f = await reducirImagen(file)
-  if (f.size > 10 * 1024 * 1024) { const e = new Error('tam'); e.userMsg = 'El archivo pesa más de 10 MB.'; throw e }
-  const ext = f.type === 'application/pdf' ? 'pdf' : f.type.split('/')[1].replace('jpeg', 'jpg')
+  const esVideo = /^video\/(mp4|webm|quicktime)$/.test(file.type)
+  const okTipo = esVideo ? categoria === 'Video de entrega' : /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.type)
+  if (!okTipo) { const e = new Error('tipo'); e.userMsg = esVideo ? 'Los videos sólo se aceptan como video de entrega.' : 'Sólo se aceptan fotos (JPG, PNG, HEIC) o PDF.'; throw e }
+  const f = esVideo ? file : await reducirImagen(file)
+  if (f.size > (esVideo ? 50 : 10) * 1024 * 1024) { const e = new Error('tam'); e.userMsg = `El archivo pesa más de ${esVideo ? 50 : 10} MB.`; throw e }
+  const ext = f.type === 'application/pdf' ? 'pdf' : f.type === 'video/quicktime' ? 'mov' : f.type.split('/')[1].replace('jpeg', 'jpg')
   const path = `${tipo}/${id}/${Date.now()}-${slug(categoria)}.${ext}`
   const up = await sb.storage.from('expedientes').upload(path, f, { contentType: f.type, upsert: false })
   if (up.error) throw errorAmigable(up.error)
-  return escribir(() => sb.from('documentos').insert({ tipo, entidad_id: id, categoria, nombre: file.name.slice(0, 120), path, mime: f.type, tamano: f.size, subido_por: DB.perfil.id }))
+  const ok = await escribir(() => sb.from('documentos').insert({ tipo, entidad_id: id, categoria, nombre: file.name.slice(0, 120), path, mime: f.type, tamano: f.size, subido_por: DB.perfil.id }))
+  return ok ? path : false
 }
 const _blobs = new Map()
 async function blobDe(path) {
@@ -1314,9 +1770,9 @@ async function blobDe(path) {
 async function verDocumento(d) {
   if (!sb) { toast('Modo de prueba: no hay archivos.'); return }
   try {
-    const u = await blobDe(d.path), img = /^image\//.test(d.mime || '')
+    const u = await blobDe(d.path), img = /^image\//.test(d.mime || ''), vid = /^video\//.test(d.mime || '')
     modal(`<div class="ph"><div><h3 style="font-size:19px">${esc(d.categoria)}</h3><div class="sub">${esc(d.nombre)} · subido ${esc(String(d.creado).slice(0, 10))}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-      ${img ? `<img src="${u}" alt="${esc(d.categoria)}" style="max-width:100%;max-height:70vh;border-radius:14px;justify-self:center">` : `<div class="empty"><b>Documento PDF</b>Ábrelo para verlo completo.</div>`}
+      ${img ? `<img src="${u}" alt="${esc(d.categoria)}" style="max-width:100%;max-height:70vh;border-radius:14px;justify-self:center">` : vid ? `<video controls playsinline src="${u}" style="width:100%;max-height:70vh;border-radius:14px;background:#000"></video>` : `<div class="empty"><b>Documento PDF</b>Ábrelo para verlo completo.</div>`}
       <div class="toolbar" style="justify-content:flex-end"><a class="btn" href="${u}" target="_blank" rel="noopener" download="${esc(d.nombre)}">${img ? 'Descargar' : 'Abrir PDF'}</a></div>`)
   } catch (e) { toast(e.userMsg || 'No se pudo abrir el archivo.', 'warn') }
 }
@@ -1343,6 +1799,66 @@ function panelDocs(el, tipo, id, { puede = true, extra = [], titulo = 'Documento
   }))
 }
 async function fotoEn(img, path) { try { if (sb && path) img.src = await blobDe(path) } catch {} }
+
+// Tablero → toca un color: quiénes son esos clientes (con el ámbito elegido), Excel y reasignar a otra ruta
+function clientesPorEstado(k) {
+  const e = ESTADO[k]; if (!e) return
+  const L = porCliente(sc.cartera()).filter((c) => c.estado === k).sort((a, b) => b.dias - a.dias || b.saldo - a.saldo)
+  const reasig = puede('reasignar_cartera') && sc.rutas().length > 1
+  const rutas = sc.rutas()
+  modal(`<div class="ph"><div><h3 style="font-size:20px"><span class="dot" style="background:${e.c};display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px"></span>${e.n} · ${NUM.format(L.length)} clientes</h3>
+      <div class="sub">${e.s} · deben ${peso(sum(L, (c) => c.saldo))} · ${esc(scopeLabel())} (cambia el ámbito en el tablero para filtrar por asesor, gerencia o zona)</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="toolbar"><div class="seg" id="ceSeg">${ESTADOS.map((x) => `<button type="button" data-k="${x.k}" class="${x.k === k ? 'on' : ''}">${x.n}</button>`).join('')}</div>
+      ${puede('descargar_excel') ? '<button class="btn ghost sm" type="button" id="ceX"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>Exportar cartera (Excel)</button>' : ''}</div>
+    <div class="tablewrap"><table class="tbl"><thead><tr>${reasig ? '<th><input type="checkbox" id="ceAll" aria-label="Seleccionar todos"></th>' : ''}<th>Cliente</th><th>Ruta / asesor</th><th>Gerencia</th><th class="num">Debe</th><th class="num">Atraso</th><th>Teléfono</th><th>Dirección</th></tr></thead><tbody>
+    ${L.slice(0, 500).map((c) => `<tr class="click" data-cli="${c.cliente_id}">${reasig ? `<td><input type="checkbox" data-sel="${c.cliente_id}" aria-label="Seleccionar"></td>` : ''}<td class="strong">${esc(c.cliente)}</td><td>${esc(c.ruta)}<div class="muted" style="font-size:12px">${esc(c.asesor || '')}</div></td><td>${esc(c.gerencia)}</td>
+      <td class="num strong">${peso(c.saldo)}</td><td class="num">${c.dias} d</td><td>${esc(c.celular || c.telefono || '')}</td><td>${esc([c.direccion, c.colonia].filter(Boolean).join(', '))}</td></tr>`).join('') || `<tr><td colspan="8"><div class="empty"><b>Nadie en ${e.n.toLowerCase()}</b></div></td></tr>`}
+    </tbody></table></div>
+    ${reasig && L.length ? `<div class="toolbar reasig"><span class="muted" id="ceN">Selecciona clientes para asignárselos a otro asesor</span><div class="field sel"><label>Pasar a la ruta</label><select class="ctl" id="ceR">${rutas.map((r) => `<option value="${r.ruta_id}">${esc(r.ruta)} · ${esc(r.asesor || '')}</option>`).join('')}</select></div><button class="btn" type="button" id="ceGo" disabled>Reasignar</button></div>` : ''}`)
+  $$('#ceSeg button').forEach((b) => b.addEventListener('click', () => clientesPorEstado(b.dataset.k)))
+  $$('[data-cli]').forEach((tr) => tr.addEventListener('click', (ev) => { if (ev.target.closest('input')) return; fichaCliente(+tr.dataset.cli) }))
+  $('#ceX')?.addEventListener('click', () => csv(`cartera_${k}_${DB.hoy}`, [['Cliente', 'cliente'], ['Código', 'codigo'], ['Ruta', 'ruta'], ['Asesor', 'asesor'], ['Oficina', 'oficina'], ['Gerencia', 'gerencia'], ['Zona', 'zona'],
+    ['Debe', 'saldo'], ['Días de atraso', 'dias'], ['Teléfono', 'telefono'], ['Celular', 'celular'], ['Dirección', 'direccion'], ['Colonia', 'colonia'], ['Negocio', 'direccion_negocio']], L))
+  const sel = () => $$('[data-sel]:checked').map((x) => +x.dataset.sel)
+  const upd = () => { const n = sel().length; if ($('#ceN')) $('#ceN').textContent = n ? `${n} cliente(s) seleccionado(s)` : 'Selecciona clientes para asignárselos a otro asesor'; if ($('#ceGo')) $('#ceGo').disabled = !n }
+  $$('[data-sel]').forEach((x) => x.addEventListener('change', upd))
+  $('#ceAll')?.addEventListener('change', (ev) => { $$('[data-sel]').forEach((x) => { x.checked = ev.target.checked }); upd() })
+  $('#ceGo')?.addEventListener('click', async () => {
+    const ids = sel(), rid = +$('#ceR').value, b = $('#ceGo')
+    b.disabled = true; b.textContent = 'Reasignando…'
+    try { const n = await escribir(() => sb.rpc('reasignar_clientes', { p_clientes: ids, p_ruta: rid })); if (n !== false) { toast(`${typeof n === 'number' ? n : ids.length} cliente(s) pasaron a ${DB.R[rid]?.ruta || 'la ruta'}.`); clientesPorEstado(k) } else { b.disabled = false; b.textContent = 'Reasignar' } }
+    catch (er) { toast(er.userMsg || 'No se pudo reasignar.', 'warn'); b.disabled = false; b.textContent = 'Reasignar' }
+  })
+}
+// «Ver como…»: el dueño ve exactamente las pantallas de un cargo (y de una persona) para capacitar. No guarda nada.
+function verComo() {
+  const cargos = CARGOS_PERM.map((r) => [r, ROLES[r]])
+  const gente = (rol) => DB.perfiles.filter((u) => u.rol === rol && u.activo !== false)
+  const ops = (rol) => [['', '— Elegir sólo el ámbito —'], ...gente(rol).map((u) => [u.id, `${u.nombre || u.correo} · ${ambitoNombre(u.ambito || 'empresa')}`])]
+  formModal({
+    titulo: 'Ver el sistema como…', boton: 'Ver como este cargo',
+    nota: 'Verás lo mismo que ve esa persona: sus secciones, su ámbito y sus botones. Es sólo para ver y capacitar: nada se guarda.',
+    campos: [{ id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargos, valor: 'asesor' },
+      { id: 'persona', label: 'Persona', tipo: 'select', opciones: ops('asesor'), valor: gente('asesor')[0]?.id || '' },
+      { id: 'ambito', label: 'Ámbito (si no eliges persona)', tipo: 'select', opciones: ambitoOpciones(), valor: DB.rutas[0] ? 'ruta:' + DB.rutas[0].ruta_id : 'empresa' }],
+    guardar: async (v) => {
+      const u = DB.perfiles.find((x) => x.id === v.persona)
+      const real = SIM ? SIM.real : DB.perfil
+      SIM = { real, rol: v.rol, nombre: u?.nombre || ROLES[v.rol], ambito: u ? u.ambito || 'empresa' : v.ambito }
+      DB.perfil = { ...real, rol: SIM.rol, ambito: SIM.ambito, nombre: SIM.nombre }
+      SCOPE = raiz(); VIEW = 'tablero'; showApp.avisado = true; showApp()
+      return `Viendo como ${ROLES[v.rol]}${u ? ' · ' + (u.nombre || '') : ''}.`
+    },
+  })
+  const r = $('#f_rol'), p = $('#f_persona')
+  r.addEventListener('change', () => { p.innerHTML = ops(r.value).map(([a, b]) => `<option value="${esc(a)}">${esc(b)}</option>`).join(''); p.value = gente(r.value)[0]?.id || '' })
+}
+function salirVerComo() {
+  if (!SIM) return
+  DB.perfil = SIM.real; SIM = null
+  SCOPE = raiz(); VIEW = 'tablero'; showApp()
+  toast('Regresaste a tu vista.')
+}
 
 // ============================================================ personal y peticiones
 function editarPersona(x) {
@@ -1424,10 +1940,12 @@ const PERM_DESC = {
   ver_tablero: 'Resumen de la cartera, normalidad y cobranza del día', ver_clientes: 'Lista de clientes y su expediente', ver_originacion: 'Pantalla para capturar créditos nuevos y renovaciones',
   ver_solicitudes: 'Solicitudes en revisión, aprobadas y rechazadas', ver_creditos: 'Todos los créditos con su saldo y atraso', ver_cobranza: 'Lo cobrado por ruta y los clientes por cobrar',
   ver_normalidad: 'Porcentaje de cartera al día y comparativos', ver_proyecciones: 'Metas y logros de cada oficina', ver_cajas: 'Dinero en la caja de cada asesor y gerente',
-  ver_tesoreria: 'Bancos, flujo del dinero y movimientos', ver_reportes: 'Reportes de cartera, comisiones y seguros',
-  registrar_pagos: 'Cobrar a los clientes desde el celular', crear_solicitudes: 'Capturar créditos nuevos, renovaciones y recompras', resolver_solicitudes: 'Aprobar, observar, rechazar o cancelar solicitudes',
+  ver_tesoreria: 'Bancos, flujo del dinero y movimientos', ver_reportes: 'Reportes de cartera, comisiones y gastos administrativos',
+  registrar_pagos: 'Cobrar a los clientes desde el celular', crear_solicitudes: 'Capturar créditos nuevos, renovaciones y recompras', resolver_solicitudes: 'Mesa de control: autorizar, pedir corrección, rechazar o cancelar',
   registrar_gastos: 'Gasolina, papelería y otros gastos de su caja', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
   capturar_proyecciones: 'Subir la meta de la mañana y el logro de la tarde', subir_documentos: 'INE, comprobantes y fotos del expediente', descargar_excel: 'Bajar los reportes a Excel',
+  desembolsar: 'Grabar el video de entrega y convertir la solicitud autorizada en crédito', autorizar_excepciones: 'Renovaciones que piden más del 20 % sobre su crédito anterior',
+  ordenar_ruta: 'Acomodar a los clientes en el orden en que se les cobra', reasignar_cartera: 'Pasar clientes de una ruta a otra (desde el tablero)',
 }
 let permCargo = (() => { try { const v = localStorage.getItem('permCargo'); return CARGOS_PERM.includes(v) ? v : 'asesor' } catch { return 'asesor' } })()
 function matrizPermisos() {
@@ -1811,7 +2329,7 @@ VIEWS.tesoreria = {
       </div>
       <div class="grid2">
         <div class="card panel"><div class="ph"><h3>Cajas</h3><span class="chip" id="tcnt"></span></div><div class="list" id="tcajas"></div></div>
-        <div class="card panel"><div class="ph"><h3>Movimientos</h3><div class="tabs" id="ttipo">${[['todos', 'Todos'], ['traslado', 'Traslados'], ['deposito', 'Depósitos'], ['retiro', 'Retiros'], ['egreso', 'Gastos'], ['ingreso', 'Seguros e ingresos'], ['fondeo', 'Inversiones']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="tmov"></div></div>
+        <div class="card panel"><div class="ph"><h3>Movimientos</h3><div class="tabs" id="ttipo">${[['todos', 'Todos'], ['traslado', 'Traslados'], ['deposito', 'Depósitos'], ['retiro', 'Retiros'], ['egreso', 'Gastos'], ['ingreso', 'Ingresos'], ['fondeo', 'Inversiones']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="tmov"></div></div>
       </div>`
   },
   init() {
@@ -1842,7 +2360,7 @@ VIEWS.tesoreria = {
     const isIn = (k) => set.has(k)
     const rec = sum(sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= hoy), (r) => r.monto)
     const prest = sum(sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= hoy), (c) => c.entregado)
-    const segP = sumM((m) => m.categoria === 'Seguro' && isIn(m.caja_destino))
+    const segP = sumM((m) => esGA(m) && isIn(m.caja_destino))
     const ing = sumM((m) => m.caja_origen === 'externo' && isIn(m.caja_destino))
     const egr = sumM((m) => m.caja_destino === 'externo' && isIn(m.caja_origen))
     const ent = sumM((m) => m.caja_origen !== 'externo' && !isIn(m.caja_origen) && isIn(m.caja_destino))
@@ -1851,7 +2369,7 @@ VIEWS.tesoreria = {
     const final = inicial + rec - prest + ing - egr + ent - sal
     $('#tbsub').textContent = `${lab[0].toUpperCase() + lab.slice(1)} · ${scopeLabel()}`
     const row = (k, v, cls = '') => `<div class="r"><span class="k ${cls}">${k}</span><span class="v ${cls}">${v}</span></div>`
-    $('#tbal').innerHTML = row('Caja inicial', peso(inicial)) + row('+ Cobrado a clientes', peso(rec)) + row('− Préstamos entregados', peso(prest)) + row('+ Seguros cobrados', peso(segP)) + row('+ Inversión y otros ingresos', peso(ing - segP)) + row('− Gastos', peso(egr))
+    $('#tbal').innerHTML = row('Caja inicial', peso(inicial)) + row('+ Cobrado a clientes', peso(rec)) + row('− Préstamos entregados', peso(prest)) + row('+ Gastos administrativos', peso(segP)) + row('+ Inversión y otros ingresos', peso(ing - segP)) + row('− Gastos', peso(egr))
       + (SCOPE === 'emp' ? '' : row('+ Entradas de otras cajas', peso(ent)) + row('− Salidas a otras cajas', peso(sal))) + row('Caja final', peso(final), 'strong')
 
     const act = sc.cartera()

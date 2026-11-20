@@ -109,6 +109,8 @@ $$;
 do $$
 declare src text;
 begin
+  -- (desde 08_mesa_y_campo.sql la función es otra; entonces no hay nada que corregir aquí)
+  if to_regprocedure('public.resolver_solicitud(integer, text, text)') is null then return; end if;
   select pg_get_functiondef('public.resolver_solicitud(integer, text, text)'::regprocedure) into src;
   if position('tiene_permiso(''resolver_solicitudes'')' in src) = 0 then
     src := replace(src, 'if coalesce(public.mi_rol(), '''') not in (''mesa'', ''dueno'', ''direccion'', ''soporte'') then',

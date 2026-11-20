@@ -223,9 +223,9 @@ begin
   select ini, 'retiro', 'banco:1', 'gerencia:' || id, 'Fondo fijo', 'Fondo fijo de gerencia', 90000, true
   from public.gerencias where es_demo;
 
-  -- Seguro de gastos administrativos: entra a la caja del asesor el día del crédito
+  -- Gastos administrativos: entran a la caja del asesor el día del crédito
   insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
-  select c.fecha_inicio, 'ingreso', 'externo', 'ruta:' || cl.ruta_id, 'Seguro', 'Seguro de gastos administrativos · crédito #' || c.id, c.seguro, true
+  select c.fecha_inicio, 'ingreso', 'externo', 'ruta:' || cl.ruta_id, 'Gastos administrativos', 'Gastos administrativos · crédito #' || c.id, c.seguro, true
   from public.creditos c join public.clientes cl on cl.id = c.cliente_id where c.es_demo and c.seguro > 0 and c.fecha_inicio >= ini;
 
   -- Gasolina diaria por ruta (lunes a sábado)
@@ -246,15 +246,15 @@ begin
   ) x join public.rutas r on r.id = x.ruta_id join public.oficinas o on o.id = r.oficina_id
   group by x.fecha, x.ruta_id, o.gerencia_id;
 
-  -- Cierre de las 18:00: la cobranza y los seguros del día pasan de la ruta a su gerente (hoy aún no cierra)
+  -- Cierre de las 18:00: la cobranza y los gastos administrativos del día pasan de la ruta a su gerente (hoy aún no cierra)
   insert into public.movimientos_tesoreria (fecha, tipo, caja_origen, caja_destino, categoria, concepto, monto, es_demo)
-  select x.fecha, 'traslado', 'ruta:' || x.ruta_id, 'gerencia:' || o.gerencia_id, 'Cierre 18:00', 'Cobranza y seguros del día', sum(x.monto), true
+  select x.fecha, 'traslado', 'ruta:' || x.ruta_id, 'gerencia:' || o.gerencia_id, 'Cierre 18:00', 'Cobranza y gastos administrativos del día', sum(x.monto), true
   from (
     select p.fecha, cl.ruta_id, p.monto from public.pagos p join public.creditos c on c.id = p.credito_id join public.clientes cl on cl.id = c.cliente_id
     where p.es_demo and p.tipo = 'cuota' and p.fecha < hoy and p.fecha >= ini
     union all
     select m.fecha, split_part(m.caja_destino, ':', 2)::int, m.monto from public.movimientos_tesoreria m
-    where m.es_demo and m.categoria = 'Seguro' and m.fecha < hoy
+    where m.es_demo and m.categoria in ('Gastos administrativos', 'Seguro') and m.fecha < hoy
   ) x join public.rutas r on r.id = x.ruta_id join public.oficinas o on o.id = r.oficina_id
   group by x.fecha, x.ruta_id, o.gerencia_id;
 
