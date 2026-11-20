@@ -680,7 +680,8 @@ function fichaCliente(id) {
       ${!act.length && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
     <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Celular', c.celular)}${dato('Dirección de cobro', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Dirección del negocio', c.direccion_negocio)}${dato('Fecha de nacimiento', c.fecha_nacimiento)}${dato('Observaciones', c.observaciones)}</div>
     <div class="toolbar">${(() => { const a = mapsUrl(c.lat, c.lng, [c.direccion, c.colonia].filter(Boolean).join(', ')), b = c.direccion_negocio || c.lat_negocio != null ? mapsUrl(c.lat_negocio, c.lng_negocio, c.direccion_negocio) : ''
-      return (a ? `<a class="btn ghost sm" href="${a}" target="_blank" rel="noopener">Maps: dirección de cobro</a>` : '') + (b ? `<a class="btn ghost sm" href="${b}" target="_blank" rel="noopener">Maps: negocio</a>` : '') })()}</div>
+      return (a ? `<a class="btn ghost sm" href="${a}" target="_blank" rel="noopener">Maps: dirección de cobro</a>` : '') + (b ? `<a class="btn ghost sm" href="${b}" target="_blank" rel="noopener">Maps: negocio</a>` : '')
+        + (puede('registrar_pagos') && DB.R[c.ruta_id] ? '<button class="btn ghost sm" type="button" id="fUbi">📍 Guardar ubicación</button>' : '') })()}</div>
     <h3 class="sec-title" style="margin-top:6px">Expediente de créditos</h3>
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Gastos adm.</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
     ${cr.map((x) => `<tr class="click" data-pg="${x.credito_id}"><td>#${x.credito_id}${x.credito_anterior_id ? `<div class="muted" style="font-size:12px">renueva #${x.credito_anterior_id}</div>` : ''}</td><td>${tipoChip(x.tipo)}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${x.descuento_renovacion ? peso(x.descuento_renovacion) : '—'}</td><td class="num">${peso(x.entregado)}</td><td class="num">${x.seguro ? peso(x.seguro) : '—'}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
@@ -689,6 +690,7 @@ function fichaCliente(id) {
     <div id="fdocs"></div>
     <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
   if (ft) fotoEn($('#fFoto'), ft.path)
+  $('#fUbi')?.addEventListener('click', () => guardarUbicacion(c))
   const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
   panelDocs($('#fdocs'), 'cliente', id, { puede: puede('subir_documentos'), extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
@@ -1223,6 +1225,7 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
       <div class="cacc">${est.ordenar ? `<button class="btn ghost sm" type="button" data-up="${i}" aria-label="Subir">▲</button><button class="btn ghost sm" type="button" data-dn="${i}" aria-label="Bajar">▼</button>`
         : `${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}
         ${cob ? `<a class="btn ghost sm" href="${cob}" target="_blank" rel="noopener">Ir a cobrar</a>` : ''}${neg ? `<a class="btn ghost sm" href="${neg}" target="_blank" rel="noopener">Negocio</a>` : ''}
+        ${puede('registrar_pagos') ? `<button class="btn ghost sm${c.lat == null ? ' falta' : ''}" type="button" data-ubi="${c.credito_id}">${c.lat == null ? '📍 Guardar ubicación' : 'Ubicación'}</button>` : ''}
         <button class="btn ghost sm" type="button" data-ficha="${c.cliente_id}">Ficha</button>`}</div></div>`
   }
   el.innerHTML = `<div class="ph"><div><h3>${esc(r?.ruta || 'Ruta')}</h3><div class="sub">${esc(r?.asesor || '')} · ${todos.length} créditos por cobrar · ${pagHoy.size ? [...pagHoy].filter((k) => todos.some((c) => c.credito_id === k)).length + ' ya pagaron hoy' : 'nadie ha pagado hoy'}</div></div>
@@ -1235,6 +1238,7 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
   $$('[data-fc]', el).forEach((b) => b.addEventListener('click', () => listaCobro(el, rutaId, { ...est, f: b.dataset.fc })))
   $$('[data-cobrar]', el).forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
   $$('[data-ficha]', el).forEach((b) => b.addEventListener('click', () => fichaCliente(+b.dataset.ficha)))
+  $$('[data-ubi]', el).forEach((b) => b.addEventListener('click', () => guardarUbicacion(todos.find((c) => c.credito_id === +b.dataset.ubi), () => listaCobro($('#miRuta') || $('#rCobro'), rutaId, { f: est.f }))))
   const mover = (i, d) => { const j = i + d; if (j < 0 || j >= todos.length) return; [todos[i], todos[j]] = [todos[j], todos[i]]; todos.forEach((c, k) => { DB.cartera.filter((x) => x.cliente_id === c.cliente_id).forEach((x) => { x.orden_ruta = k + 1 }) }); listaCobro(el, rutaId, est) }
   $$('[data-up]', el).forEach((b) => b.addEventListener('click', () => mover(+b.dataset.up, -1)))
   $$('[data-dn]', el).forEach((b) => b.addEventListener('click', () => mover(+b.dataset.dn, 1)))
@@ -1247,6 +1251,51 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
     try { const ok = await escribir(() => sb.rpc('ordenar_ruta', { p_ruta: rutaId, p_clientes: ids })); if (ok) toast('Orden de la ruta guardado.'); else listaCobro(el, rutaId, { f: est.f }) }
     catch (e) { toast(e.userMsg || 'No se pudo guardar el orden.', 'warn'); b.disabled = false; b.textContent = 'Guardar orden' }
   }))
+}
+// Guardar la ubicación de un cliente que ya existe, estando con él (clientes de Listo sin GPS)
+function guardarUbicacion(c, alTerminar) {
+  const tiene = (t) => t === 'cobro' ? c.lat != null : c.lat_negocio != null
+  let tipo = tiene('cobro') && !tiene('negocio') && c.direccion_negocio ? 'negocio' : 'cobro', pos = null, dir = ''
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Guardar ubicación</h3><div class="sub">${esc(c.cliente)} · ponte en la puerta del lugar y toca «Tomar ubicación»</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="seg" id="uTipo"><button type="button" data-t="cobro">Dirección de cobro${tiene('cobro') ? ' ✓' : ''}</button><button type="button" data-t="negocio">Negocio${tiene('negocio') ? ' ✓' : ''}</button></div>
+    <div class="pinfo" id="uEst"></div>
+    <div class="err" id="uErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" id="uGps"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Tomar ubicación</button><button class="btn" type="button" id="uOk" disabled>Guardar aquí</button></div>
+    <div class="note">Desde ese momento «Ir a cobrar» abre Google Maps justo en este punto, para ti y para quien cubra la ruta.</div>`)
+  const pinta = () => {
+    $$('#uTipo button').forEach((b) => b.classList.toggle('on', b.dataset.t === tipo))
+    const ya = tipo === 'cobro' ? [c.lat, c.lng, [c.direccion, c.colonia].filter(Boolean).join(', ')] : [c.lat_negocio, c.lng_negocio, c.direccion_negocio]
+    $('#uEst').innerHTML = pos ? `<b>Ubicación lista</b> · precisión ±${Math.round(pos.acc)} m${dir ? '<br>' + esc(dir) : ''} · <a href="${mapsUrl(pos.lat, pos.lng)}" target="_blank" rel="noopener">ver en el mapa</a>`
+      : ya[0] != null ? `Ya tiene ubicación guardada${ya[2] ? ': ' + esc(ya[2]) : ''} · <a href="${mapsUrl(ya[0], ya[1])}" target="_blank" rel="noopener">ver</a>. Si tomas otra, la reemplaza.`
+      : `Todavía no tiene ubicación${ya[2] ? ' (sólo la dirección escrita: ' + esc(ya[2]) + ')' : ''}.`
+  }
+  pinta()
+  $$('#uTipo button').forEach((b) => b.addEventListener('click', () => { tipo = b.dataset.t; pinta() }))
+  $('#uGps').addEventListener('click', () => {
+    const err = $('#uErr'); err.textContent = ''
+    if (!navigator.geolocation) { err.textContent = 'Este navegador no da la ubicación.'; return }
+    $('#uEst').textContent = 'Buscando ubicación…'
+    navigator.geolocation.getCurrentPosition(async (g) => {
+      pos = { lat: +g.coords.latitude.toFixed(6), lng: +g.coords.longitude.toFixed(6), acc: g.coords.accuracy }
+      $('#uOk').disabled = false; pinta()
+      if (pos.acc > 80) err.textContent = 'La señal está débil (más de 80 m). Si puedes, sal a la calle y vuelve a tomarla.'
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pos.lat}&lon=${pos.lng}&zoom=18&accept-language=es`)
+        const a = (await r.json()).address || {}
+        dir = [[a.road || a.pedestrian, a.house_number].filter(Boolean).join(' '), a.neighbourhood || a.suburb || a.quarter].filter(Boolean).join(', ')
+        pinta()
+      } catch {}
+    }, (e) => { $('#uEst').textContent = ''; err.textContent = e.code === 1 ? 'Sin permiso de ubicación: actívalo en el navegador.' : 'No se pudo obtener la ubicación. Intenta al aire libre.' },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 })
+  })
+  $('#uOk').addEventListener('click', async () => {
+    const b = $('#uOk'); b.disabled = true; b.textContent = 'Guardando…'
+    try {
+      const ok = await escribir(() => sb.rpc('guardar_ubicacion', { p_cliente: c.cliente_id, p_tipo: tipo, p_lat: pos.lat, p_lng: pos.lng, p_direccion: dir || null }))
+      if (ok) { $('#modalHost').innerHTML = ''; toast(`Ubicación ${tipo === 'cobro' ? 'de cobro' : 'del negocio'} guardada para ${c.cliente}.`); alTerminar?.() }
+      else { b.disabled = false; b.textContent = 'Guardar aquí' }
+    } catch (e) { $('#uErr').textContent = e.userMsg || 'No se pudo guardar.'; b.disabled = false; b.textContent = 'Guardar aquí' }
+  })
 }
 function detalleRuta(rutaId) {
   modal(`<div class="ph"><div></div><button class="x" data-close aria-label="Cerrar">×</button></div><div id="rCobro"></div>`)

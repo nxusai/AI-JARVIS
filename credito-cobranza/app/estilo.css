@@ -606,3 +606,4 @@ a.btn { text-decoration: none; }
 .ph { flex-wrap: wrap; } .ph > .tabs { min-width: 0; max-width: 100%; }
 .grid2 > *, .grid3 > * { min-width: 0; }
 .card.panel { grid-template-columns: minmax(0,1fr); }
+.cacc .btn.falta { box-shadow: inset 0 0 0 1px rgba(255,200,87,.7); color: var(--amber); }
