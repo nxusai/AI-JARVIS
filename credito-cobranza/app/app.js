@@ -1666,7 +1666,7 @@ VIEWS.admin = {
     } else if (this.tab === 'parametros') {
       const L = DB.parametros.slice().sort((a, b) => a.clave.localeCompare(b.clave))
       const fmt = (x) => x.valor == null ? '<span class="pend">por definir</span>' : /pct|_pct|meta/.test(x.clave) ? x.valor + ' %' : /monto|comision_nuevo/.test(x.clave) ? peso(x.valor) : /dias/.test(x.clave) ? x.valor + ' días' : x.valor
-      const fijos = [['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'diarios automáticos · 7 días']]
+      const fijos = [['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'base de datos: diaria, se guardan 7 días · fotos y videos: espacio privado que no se borra desde el portal']]
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Parámetros del negocio</h3><div class="sub">Se aplican a los créditos nuevos desde que se cambian</div></div></div>
         <div class="kv">${L.map((x) => `<div class="r"><span class="k">${esc(x.descripcion)}</span><span class="v">${fmt(x)} ${esAdmin() ? `<button class="btn ghost sm" type="button" data-par="${esc(x.clave)}" style="margin-left:8px">Cambiar</button>` : ''}</span></div>`).join('') || '<div class="empty"><b>Falta aplicar la actualización de la base de datos</b></div>'}
         ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div><div id="pcond"></div>`
