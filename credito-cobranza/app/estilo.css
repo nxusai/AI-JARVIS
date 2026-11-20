@@ -607,3 +607,4 @@ a.btn { text-decoration: none; }
 .grid2 > *, .grid3 > * { min-width: 0; }
 .card.panel { grid-template-columns: minmax(0,1fr); }
 .cacc .btn.falta { box-shadow: inset 0 0 0 1px rgba(255,200,87,.7); color: var(--amber); }
+.modal .card { grid-template-columns: minmax(0,1fr); } .modal .card > * { min-width: 0; } #rCobro { display: grid; gap: 12px; min-width: 0; }
