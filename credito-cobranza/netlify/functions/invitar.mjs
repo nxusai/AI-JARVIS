@@ -6,7 +6,7 @@
 const ROLES = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'tesoreria', 'consulta']
 // El cargo de dueño sólo lo puede dar soporte NXUS o el mismo dueño.
 const ROLES_DUENO = [...ROLES, 'dueno']
-const AMBITO = /^empresa$|^(region|zona|gerencia|oficina|ruta):[0-9]+$/
+const AMBITO = /^empresa$|^(region|zona|gerencia|oficina|ruta):[0-9]+(,(region|zona|gerencia|oficina|ruta):[0-9]+)*$/
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 const resp = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })

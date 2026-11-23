@@ -50,17 +50,19 @@ const PERM_BASE = {
   regional: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   zonal: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   gerente: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
-  asesor: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'cajas', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'subir_documentos', 'descargar_excel'],
-  mesa: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'reportes'), 'resolver_solicitudes', 'subir_documentos', 'descargar_excel'],
+  asesor: [...V('tablero', 'clientes', 'originacion', 'creditos', 'cobranza', 'normalidad', 'cajas', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'subir_documentos', 'descargar_excel'],
+  mesa: [...V('solicitudes'), 'resolver_solicitudes'],
   tesoreria: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'tesoreria_excedente', 'descargar_excel'],
   consulta: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'descargar_excel'],
 }
-function permitido(rol, k) {
+function permitido(rol, k, uid) {
   if (['dueno', 'soporte'].includes(rol)) return true
+  const o = uid && (DB.permisosUsuario || []).find((q) => q.usuario === uid && q.permiso === k)
+  if (o) return !!o.permitido
   const x = DB.permisos.find((q) => q.rol === rol && q.permiso === k)
   return x ? !!x.permitido : (PERM_BASE[rol] || []).includes(k) || (PERM_EXTRA[rol] || []).includes(k)
 }
-const puede = (k) => permitido(DB.perfil.rol, k)
+const puede = (k) => permitido(DB.perfil.rol, k, DB.perfil.id)
 const TIPO = { nuevo: 'Nuevo', renovacion: 'Renovación', recompra: 'Recompra' }
 const tipoChip = (t) => `<span class="chip ${t === 'renovacion' ? 'g' : t === 'recompra' ? 'a' : ''}">${TIPO[t] || 'Nuevo'}</span>`
 const ADMIN_ROLES = ['dueno', 'direccion', 'soporte']
@@ -175,7 +177,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -188,9 +190,9 @@ async function loadRaw(perfil) {
     opt('v_pagos', (q) => q.order('fecha').order('id')), opt('parametros', (q) => q), opt('proyecciones', (q) => q.gte('fecha', addDays(iso(new Date()), -120)).order('fecha')),
     opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
     opt('documentos', (q) => q.order('creado', { ascending: false })), opt('permisos', (q) => q),
-    opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')),
+    opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')), opt('permisos_usuario', (q) => q),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -209,6 +211,9 @@ async function loadAndShow(session) {
       return showLogin('Tu cuenta todavía no está activa. Pide al administrador que la active.')
     }
     DB = prep(await loadRaw({ ...perfil, correo: session.user.email }))
+    // Si el dueño estaba en «Ver como…» y recargó la página, sigue en esa vista
+    try { const g = JSON.parse(sessionStorage.getItem('verComo') || 'null'); if (g && ['dueno', 'soporte'].includes(DB.perfil.rol)) {
+      SIM = { real: DB.perfil, ...g, rutas: g.rol === 'mesa' ? null : rutasDeAmbito(g.ambito) }; DB.perfil = { ...DB.perfil, id: g.uid || DB.perfil.id, rol: g.rol, ambito: g.ambito, nombre: g.nombre } } } catch {}
     showApp()
   } catch (e) {
     console.error(e)
@@ -235,6 +240,7 @@ function prep(raw) {
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
     personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
+    permisosUsuario: raw.permisosUsuario || [],
     condiciones: (raw.condiciones || []).map((x) => ({ ...x, interes_pct: +x.interes_pct, num_cuotas: +x.num_cuotas })), mensajes: raw.mensajes || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
@@ -249,11 +255,19 @@ function prep(raw) {
 const NIVEL = ['emp', 'region', 'zona', 'gerencia', 'oficina', 'ruta']
 function raiz() {
   const p = DB.perfil
-  if (ADMIN_ROLES.includes(p.rol) || !p.ambito || p.ambito === 'empresa') return 'emp'
+  // Con varias rutas o zonas, la base de datos ya sólo entrega lo suyo: «todo mi ámbito»
+  if (ADMIN_ROLES.includes(p.rol) || !p.ambito || p.ambito === 'empresa' || p.ambito.includes(',') || p.ambito === 'ninguno') return 'emp'
   return p.ambito
 }
+const multiAmbito = () => !ADMIN_ROLES.includes(DB.perfil.rol) && String(DB.perfil.ambito || '').includes(',')
+// Rutas que entran en una lista de ámbitos («ruta:3,gerencia:2»)
+function rutasDeAmbito(amb) {
+  if (!amb || amb === 'empresa') return null
+  const L = String(amb).split(',')
+  return new Set(DB.rutas.filter((r) => L.some((a) => { const [n, id] = a.split(':'); return String(r[n + '_id']) === id })).map((r) => r.ruta_id))
+}
 const nivelDe = (sc) => NIVEL.indexOf(sc.split(':')[0])
-function inScope(row) { return inScopeDe(SCOPE)(row) }
+function inScope(row) { return inScopeDe(SCOPE)(row) && (!SIM || !SIM.rutas || row.ruta_id == null || SIM.rutas.has(row.ruta_id)) }
 function inScopeDe(scope) {
   if (scope === 'emp') return () => true
   const [nivel, id] = scope.split(':')
@@ -264,7 +278,7 @@ const sc = {
   activos: () => DB.cartera.filter((c) => c.saldo > 0 && inScope(c)),
   recaudo: () => DB.recaudo.filter(inScope),
   rutas: () => DB.rutas.filter(inScope),
-  solicitudes: () => DB.solicitudes.filter(inScope),
+  solicitudes: () => DB.solicitudes.filter((s) => (SIM && puede('resolver_solicitudes') ? inScopeDe(SCOPE)(s) : inScope(s))),
 }
 const PARAM = (k, d = null) => (DB.param && DB.param[k] != null ? DB.param[k] : d)
 const dias = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5)
@@ -307,7 +321,7 @@ function historiaNormalidad(fechas, clave = '') {
   return out
 }
 function scopeLabel() {
-  if (SCOPE === 'emp') return 'toda la empresa'
+  if (SCOPE === 'emp') return multiAmbito() || SIM?.rutas ? 'todo tu ámbito' : 'toda la empresa'
   const [nivel, id] = SCOPE.split(':')
   const r = DB.rutas.find((x) => String(x[nivel + '_id']) === id)
   const name = { region: r?.region, zona: r?.zona, gerencia: r?.gerencia, oficina: 'oficina ' + r?.oficina, ruta: 'ruta ' + r?.ruta }[nivel]
@@ -353,7 +367,7 @@ function showApp() {
   $('#bannerTxt').dataset.corto = DB.demo ? 'DATOS DE EJEMPLO' : ''
   if (!scopeValido(SCOPE)) SCOPE = raiz()
   const ok = vistasPermitidas()
-  if (!ok.includes(VIEW)) VIEW = 'tablero'
+  if (!ok.includes(VIEW)) VIEW = ok[0] || 'tablero'
   const S0 = DB.solicitudes.filter(inScopeDe(raiz()))
   const nRev = (esMesa() ? S0.filter((s) => s.estado === 'revision').length : 0) + (puede('autorizar_excepciones') ? S0.filter((s) => s.estado === 'excepcion').length : 0)
   const nOri = puede('crear_solicitudes') ? S0.filter((s) => s.estado === 'observada' || (s.estado === 'autorizada' && puedeDesembolsar(s))).length : 0
@@ -389,10 +403,11 @@ function showApp() {
     document.body.classList.add('simulando')
   } else { bar?.remove(); document.body.classList.remove('simulando') }
   // Celular: 4 secciones principales abajo + «Más» (guías de iOS y Android: 3 a 5 destinos)
-  const tabs = ({ asesor: ['tablero', 'cobranza', 'originacion', 'cajas'], mesa: ['tablero', 'solicitudes', 'clientes', 'reportes'], tesoreria: ['tablero', 'tesoreria', 'cajas', 'reportes'] }[DB.perfil.rol]
+  const tabs = ({ asesor: ['tablero', 'cobranza', 'originacion', 'cajas'], mesa: ['solicitudes', 'tablero', 'clientes', 'reportes'], tesoreria: ['tablero', 'tesoreria', 'cajas', 'reportes'] }[DB.perfil.rol]
     || ['tablero', 'cobranza', 'normalidad', 'reportes']).filter((k) => ok.includes(k))
   const corto = { tablero: 'Inicio', cobranza: 'Cobranza', clientes: 'Clientes', cajas: 'Mi caja', normalidad: 'Normalidad', reportes: 'Reportes', originacion: 'Crédito', solicitudes: 'Mesa', tesoreria: 'Tesorería' }
   $('#tabbar').innerHTML = tabs.map((k) => `<button type="button" data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><span>${corto[k]}</span></button>`).join('')
+    .replace(/(data-tab="originacion"[^>]*>)/, nOri ? '$1<i class="dot"></i>' : '$1')
     + `<button type="button" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Más</span>${nRev || nOri ? '<i class="dot"></i>' : ''}</button>`
   $$('#tabbar button').forEach((b) => b.addEventListener('click', () => b.dataset.tab === 'mas' ? abrirMenu() : go(b.dataset.tab)))
   go(VIEW, false)
@@ -400,7 +415,7 @@ function showApp() {
 function vistasPermitidas() {
   const rol = DB.perfil.rol
   return NAV.map(([k]) => k).filter((k) => k !== 'h'
-    && (['importar', 'admin'].includes(k) ? esAdmin() : k === 'tablero' || puede('ver_' + k)))
+    && (['importar', 'admin'].includes(k) ? esAdmin() : puede('ver_' + k)))
 }
 function abrirMenu() { $('#side').classList.add('open'); $('#scrim').classList.add('on') }
 function cerrarMenu() { $('#side').classList.remove('open'); $('#scrim').classList.remove('on') }
@@ -456,8 +471,9 @@ function scopeOpciones() {
     ['gerencia', 'Gerencias', DB.gerencias.map((g) => ['gerencia:' + g.id, g.nombre])],
     ['oficina', 'Oficinas', DB.oficinas.map((x) => ['oficina:' + x.id, x.nombre])],
     ['ruta', 'Rutas', DB.rutas.map((r) => ['ruta:' + r.ruta_id, `${r.ruta} · ${r.asesor || ''}`])],
-  ].filter(([n, , ops]) => NIVEL.indexOf(n) > nr && ops.length)
-  const top = R === 'emp' ? ['emp', 'Toda la empresa'] : [R, 'Todo mi ámbito · ' + scopeLabelDe(R)]
+  ].map(([n, l, ops]) => [n, l, SIM?.rutas ? ops.filter(([v]) => DB.rutas.some((r) => SIM.rutas.has(r.ruta_id) && String(r[v.split(':')[0] + '_id']) === v.split(':')[1])) : ops])
+   .filter(([n, , ops]) => NIVEL.indexOf(n) > nr && ops.length)
+  const top = R === 'emp' ? ['emp', multiAmbito() || SIM?.rutas ? `Todo mi ámbito · ${new Set(sc.rutas().map((r) => r.ruta_id)).size} rutas` : 'Toda la empresa'] : [R, 'Todo mi ámbito · ' + scopeLabelDe(R)]
   return { top, grupos }
 }
 function scopeLabelDe(sc) { const k = SCOPE; SCOPE = sc; const l = scopeLabel(); SCOPE = k; return l }
@@ -466,6 +482,7 @@ function scopeValido(sc) {
   return sc === top[0] || grupos.some(([, , ops]) => ops.some(([v]) => v === sc))
 }
 function scopeField() {
+  if (DB.perfil.rol === 'mesa') return ''
   const o = (v, t) => `<option value="${v}"${SCOPE === v ? ' selected' : ''}>${esc(t)}</option>`
   const { top, grupos } = scopeOpciones()
   return `<div class="field sel"><label for="scope">Ámbito</label><select class="ctl" id="scope">
@@ -486,9 +503,52 @@ function estadoChip(k) { const e = ESTADO[k] || ESTADO.al_dia; return `<span cla
 // ============================================================ vistas
 const VIEWS = {}
 
+// Inicio del asesor: como una app. Su avance del día en un anillo y botones grandes para trabajar.
+const esInicioCampo = () => DB.perfil.rol === 'asesor' && !VIEWS.tablero.completo
+function inicioCampo() {
+  const hoy = DB.hoy, act = sc.activos()
+  const pagHoy = new Set(DB.pagos.filter((x) => x.fecha === hoy && x.tipo !== 'liquidacion_renovacion').map((x) => x.credito_id))
+  const toca = act.filter((c) => addDays(c.fecha_inicio, (c.cuotas_pagadas + 1) * (PER[c.frecuencia] || 7)) <= hoy || pagHoy.has(c.credito_id))
+  const esperado = sum(toca, (c) => Math.min(c.cuota, c.saldo + (pagHoy.has(c.credito_id) ? c.cuota : 0)))
+  const cobrado = sum(sc.recaudo().filter((r) => r.fecha === hoy), (r) => r.monto)
+  const visitados = toca.filter((c) => pagHoy.has(c.credito_id)).length, faltan = toca.length - visitados
+  const P = esperado ? Math.min(100, Math.round(cobrado / esperado * 100)) : 0
+  const S = sc.solicitudes(), A = S.filter((x) => x.estado === 'autorizada' && puedeDesembolsar(x)).length, O = S.filter((x) => x.estado === 'observada').length
+  const R = act.filter(puedeRenovar).length, N = Math.round(normalidadHoy(sc.cartera()).p)
+  const caja = sum(sc.rutas(), (r) => saldos(hoy).get('ruta:' + r.ruta_id) || 0)
+  const nombre = (DB.perfil.nombre || '').split(' ')[0]
+  const h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
+  const C = 2 * Math.PI * 54
+  const tiles = [
+    ['cobrar', 'Cobrar mi ruta', faltan ? `${faltan} por cobrar hoy` : 'Todo cobrado por hoy', ICON.cobranza, ['#2ee6cf', '#3f7bff'], faltan, 'registrar_pagos'],
+    ['nuevo', 'Nuevo crédito', 'Cliente, fotos y GPS', ICON.originacion, ['#b294ff', '#6b5bff'], 0, 'crear_solicitudes'],
+    ['desembolso', 'Desembolsos', A ? `${A} listo${A > 1 ? 's' : ''} para entregar` : 'Ninguno pendiente', '<path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.6"/><path d="M7 7V5h10v2"/>', ['#55e8a8', '#13a874'], A, 'desembolsar'],
+    ['correccion', 'Correcciones', O ? `${O} que mesa regresó` : 'Sin pendientes', '<path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/>', ['#ffc857', '#ff8a3d'], O, 'crear_solicitudes'],
+    ['renovar', 'Renovar', R ? `${R} cliente${R > 1 ? 's' : ''} al ${PARAM('renovacion_pct', 80)} %` : 'Nadie al 80 % todavía', '<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>', ['#ff86a6', '#d14b8f'], R, 'crear_solicitudes'],
+    ['clientes', 'Mis clientes', `${new Set(act.map((c) => c.cliente_id)).size} con crédito`, ICON.clientes, ['#6b97ff', '#3956d6'], 0, 'ver_clientes'],
+    ['caja', 'Mi caja', peso(caja), ICON.cajas, ['#8fd3ff', '#3a8edb'], 0, 'ver_cajas'],
+    ['gasto', 'Registrar gasto', 'Gasolina y otros', '<path d="M3 21V5a2 2 0 012-2h7a2 2 0 012 2v16"/><path d="M3 21h11M14 9h2a2 2 0 012 2v6a2 2 0 004 0V8l-3-3"/>', ['#c7a2ff', '#8b5cf6'], 0, 'registrar_gastos'],
+    ['normalidad', 'Mi normalidad', `${N} % al día`, ICON.normalidad, N >= PARAM('meta_normalidad', 90) ? ['#55e8a8', '#2ee6cf'] : ['#ffc857', '#ff7272'], 0, 'ver_normalidad'],
+  ].filter((t) => puede(t[6]))
+  return `<div class="home">
+    <div class="hero card"><div class="ring"><svg viewBox="0 0 120 120"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ee6cf"/><stop offset="1" stop-color="#6b97ff"/></linearGradient></defs>
+        <circle cx="60" cy="60" r="54" class="trk"/><circle cx="60" cy="60" r="54" class="val" stroke="url(#rg)" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - P / 100)}"/></svg>
+        <div class="rc"><b>${P}%</b><span>de la meta de hoy</span></div></div>
+      <div class="hi"><div class="dt">${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1>${saludo}${nombre ? ', ' + esc(nombre) : ''}</h1>
+        <div class="hm"><div><b>${peso(cobrado)}</b><span>cobrado de ${peso(esperado)}</span></div><div><b>${visitados}/${toca.length}</b><span>clientes cobrados hoy</span></div><div><b>${act.filter((c) => c.dias_atraso > 0).length}</b><span>con atraso</span></div></div></div></div>
+    <div class="tiles">${tiles.map(([k, t, d, ico, g, n]) => `<button type="button" class="tile card" data-tile="${k}"><span class="ti" style="background:linear-gradient(135deg,${g[0]},${g[1]})"><svg viewBox="0 0 24 24">${ico}</svg></span>${n ? `<span class="tb">${n}</span>` : ''}<b>${t}</b><small>${d}</small></button>`).join('')}</div>
+    <button type="button" class="btn ghost sm vertab" id="vTab">Ver tablero completo</button></div>`
+}
+function inicioCampoInit() {
+  const ir = { cobrar: () => go('cobranza'), nuevo: () => nuevaSolicitud(), desembolso: () => go('originacion'), correccion: () => go('originacion'), renovar: () => go('originacion'),
+    clientes: () => go('clientes'), caja: () => go('cajas'), gasto: () => registrarGasto(), normalidad: () => go('normalidad') }
+  $$('[data-tile]').forEach((b) => b.addEventListener('click', () => ir[b.dataset.tile]?.()))
+  $('#vTab')?.addEventListener('click', () => { VIEWS.tablero.completo = true; render() })
+}
 VIEWS.tablero = {
   periodo: 'sem',
   html() {
+    if (esInicioCampo()) return inicioCampo()
     const h = new Date().getHours()
     const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
     const nombre = (DB.perfil.nombre || '').split(' ')[0]
@@ -518,6 +578,7 @@ VIEWS.tablero = {
       </div>`
   },
   init() {
+    if (esInicioCampo()) return inicioCampoInit()
     const hoy = DB.hoy, act = sc.activos(), car = sc.cartera(), rec = sc.recaudo()
     const total = sum(act, (c) => c.saldo)
     const atraso = sum(act.filter((c) => c.dias_atraso > 0), (c) => c.saldo)
@@ -681,7 +742,8 @@ function fichaCliente(id) {
     <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Celular', c.celular)}${dato('Dirección de cobro', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Dirección del negocio', c.direccion_negocio)}${dato('Fecha de nacimiento', c.fecha_nacimiento)}${dato('Observaciones', c.observaciones)}</div>
     <div class="toolbar">${(() => { const a = mapsUrl(c.lat, c.lng, [c.direccion, c.colonia].filter(Boolean).join(', ')), b = c.direccion_negocio || c.lat_negocio != null ? mapsUrl(c.lat_negocio, c.lng_negocio, c.direccion_negocio) : ''
       return (a ? `<a class="btn ghost sm" href="${a}" target="_blank" rel="noopener">Maps: dirección de cobro</a>` : '') + (b ? `<a class="btn ghost sm" href="${b}" target="_blank" rel="noopener">Maps: negocio</a>` : '')
-        + (puede('registrar_pagos') && DB.R[c.ruta_id] ? '<button class="btn ghost sm" type="button" id="fUbi">📍 Guardar ubicación</button>' : '') })()}</div>
+        + (puede('registrar_pagos') && DB.R[c.ruta_id] ? '<button class="btn ghost sm" type="button" id="fUbi">📍 Guardar ubicación</button>' : '')
+        + (puede('reasignar_cartera') && sc.rutas().length > 1 ? '<button class="btn ghost sm" type="button" id="fRuta">Cambiar de ruta</button>' : '') })()}</div>
     <h3 class="sec-title" style="margin-top:6px">Expediente de créditos</h3>
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th class="num">Base</th><th class="num">Descuento renovación</th><th class="num">Entregado</th><th class="num">Gastos adm.</th><th class="num">Pagadas</th><th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>
     ${cr.map((x) => `<tr class="click" data-pg="${x.credito_id}"><td>#${x.credito_id}${x.credito_anterior_id ? `<div class="muted" style="font-size:12px">renueva #${x.credito_anterior_id}</div>` : ''}</td><td>${tipoChip(x.tipo)}</td><td>${x.fecha_inicio}</td><td class="num">${peso(x.monto)}</td><td class="num">${x.descuento_renovacion ? peso(x.descuento_renovacion) : '—'}</td><td class="num">${peso(x.entregado)}</td><td class="num">${x.seguro ? peso(x.seguro) : '—'}</td><td class="num">${x.cuotas_pagadas}/${x.num_cuotas}</td><td class="num strong">${peso(x.saldo)}</td><td>${estadoChip(x.estado)}</td></tr>`).join('')}
@@ -691,6 +753,11 @@ function fichaCliente(id) {
     <div class="note">El expediente se conserva completo (también los créditos liquidados) para auditorías de 6 años. Toca un crédito para ver sus pagos.</div>`)
   if (ft) fotoEn($('#fFoto'), ft.path)
   $('#fUbi')?.addEventListener('click', () => guardarUbicacion(c))
+  $('#fRuta')?.addEventListener('click', () => formModal({
+    titulo: 'Cambiar de ruta', nota: `${esc(c.cliente)} está en ${esc(c.ruta)} (${esc(c.asesor || '')}). Al cambiarlo, su crédito y su historial pasan al nuevo asesor; el anterior deja de verlo.`, boton: 'Cambiar de ruta',
+    campos: [{ id: 'ruta', label: 'Nueva ruta', tipo: 'select', req: 1, opciones: sc.rutas().filter((r) => r.ruta_id !== c.ruta_id).map((r) => [r.ruta_id, `${r.ruta} · ${r.asesor || ''} · ${r.oficina}`]) }],
+    guardar: async (v) => { const n = await escribir(() => sb.rpc('reasignar_clientes', { p_clientes: [id], p_ruta: +v.ruta })); return n !== false ? `${c.cliente} ahora está en ${DB.R[+v.ruta]?.ruta || 'la nueva ruta'}.` : '' },
+  }))
   const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
   panelDocs($('#fdocs'), 'cliente', id, { puede: puede('subir_documentos'), extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
@@ -735,8 +802,10 @@ const modalidades = (rutaId) => FRECUENCIAS.filter(([f]) => condicion(rutaId, f)
 const condSol = (s) => { const c = condicion(s.ruta_id, s.frecuencia || 'semanal'); return { i: s.interes_pct != null ? +s.interes_pct : c.interes_pct, n: s.num_cuotas != null ? +s.num_cuotas : c.num_cuotas } }
 const FREC_TXT = { diario: 'diario', semanal: 'semanal', quincenal: 'quincenal', mensual: 'mensual' }
 // Fotos que pide mesa de control en cada solicitud (video de Emmanuel)
-const FOTOS_SOL = ['INE (frente)', 'INE (reverso)', 'Comprobante de domicilio', 'Solicitud firmada', 'Carta de declaración de ingresos',
-  'Casa (frente)', 'Casa (lado derecho)', 'Casa (lado izquierdo)', 'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Mercancía']
+const FOTOS_SOL = ['Foto del cliente', 'INE (frente)', 'INE (reverso)', 'Comprobante de domicilio', 'Solicitud firmada', 'Carta de declaración de ingresos',
+  'Domicilio (frente)', 'Domicilio (lado derecho)', 'Domicilio (lado izquierdo)', 'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Video de la mercancía (15 s)']
+const FOTOS_OPC = ['Fotos de mercancía', 'Documento opcional 1', 'Documento opcional 2']
+const esVideoCat = (c) => /^Video/.test(c)
 const docsSol = (id) => DB.documentos.filter((d) => d.tipo === 'solicitud' && d.entidad_id === id)
 const faltanFotos = (id) => { const D = docsSol(id); return FOTOS_SOL.filter((f) => !D.some((d) => d.categoria === f)) }
 const mapsUrl = (lat, lng, txt) => lat != null && lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
@@ -824,7 +893,9 @@ function detalleSolicitud(id, tab = 'datos') {
     if (t === 'datos') {
       el.innerHTML = `<div class="kv">${dato('Monto solicitado', peso(s.monto))}${s.monto_autorizado != null ? dato('Monto autorizado', `<b>${peso(s.monto_autorizado)}</b>`) : ''}
         ${dato('Modalidad', esc(FREC_TXT[s.frecuencia] || 'semanal'))}${dato('Porcentaje', k.i + ' %')}${dato('Pago', `${peso(total / k.n)} × ${k.n}`)}${dato('Total a pagar', peso(total))}
-        ${s.tipo === 'renovacion' && ant ? dato('Monto del crédito anterior (#' + s.credito_anterior_id + ')', peso(ant.monto)) + dato('Debe del crédito anterior', peso(desc)) + dato('Se le entrega', peso(monto - desc)) : ''}
+        ${s.tipo === 'renovacion' && ant ? dato('Monto del crédito anterior (#' + s.credito_anterior_id + ')', peso(ant.monto)) + dato('Debe del crédito anterior', peso(desc)) + dato('Se le entrega', peso(monto - desc)) : s.credito_anterior_id ? dato('Crédito anterior', `#${s.credito_anterior_id} · ve la pestaña Historial`) : ''}
+        ${dato('Sexo', { H: 'Hombre', M: 'Mujer', X: 'No binario' }[s.sexo] || '')}${dato('Correo', esc(s.correo || ''))}${dato('Teléfono adicional', esc(s.telefono2 || ''))}
+        ${(s.referencias || []).map((r, i) => dato('Referencia ' + (i + 1), esc([r.nombre, r.parentesco, r.telefono].filter(Boolean).join(' · ')))).join('')}
         ${dato('Gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
         ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Celular', esc(s.celular || ''))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
         ${dato('Dirección de cobro', lugar([s.direccion, s.colonia].filter(Boolean).join(', '), s.lat, s.lng))}${dato('Dirección del negocio', lugar(s.direccion_negocio, s.lat_negocio, s.lng_negocio))}
@@ -833,10 +904,13 @@ function detalleSolicitud(id, tab = 'datos') {
     } else if (t === 'archivos') {
       panelFotos(el, s)
     } else if (t === 'historial') {
-      const cli = s.cliente_id || ant?.cliente_id
-      const H = cli ? DB.cartera.filter((c) => c.cliente_id === cli).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)) : []
+      el.innerHTML = '<div class="note">Cargando historial del cliente…</div>'
+      historialDe(s).then(({ creditos: H, pagos: PG }) => {
+      if ($('#stabs .on')?.dataset.st !== 'historial') return
+      const a2 = H.find((c) => c.credito_id === s.credito_anterior_id)
       el.innerHTML = H.length ? `<h3 class="sec-title">Créditos del cliente</h3>` + tabla([{ t: 'Crédito', f: (c) => '#' + c.credito_id }, { t: 'Tipo', f: (c) => tipoChip(c.tipo) }, { t: 'Inicio', k: 'fecha_inicio' }, { t: 'Base', num: 1, f: P('monto') }, { t: 'Pagadas', num: 1, f: (c) => `${c.cuotas_pagadas}/${c.num_cuotas}` }, { t: 'Saldo', num: 1, b: 1, f: P('saldo') }, { t: 'Estado', f: (c) => estadoChip(c.estado) }], H)
-        + (ant ? estadoCuenta(ant) : '') : '<div class="empty"><b>Cliente nuevo</b>No tiene créditos anteriores con la empresa.</div>'
+        + (a2 ? estadoCuenta(a2, PG) : '') : '<div class="empty"><b>Cliente nuevo</b>No tiene créditos anteriores con la empresa.</div>'
+      })
     } else {
       const bit = [[s.creada, `Capturada por ${esc(s.asesor || 'el asesor')}`], [s.revision_inicio, s.revision_por ? `Mesa comenzó la revisión · ${esc(nombreDe(s.revision_por))}` : ''],
         [s.autorizado, s.autorizado_por ? `Autorizada por ${peso(s.monto_autorizado)} · ${esc(nombreDe(s.autorizado_por))}` : ''], [s.autorizado, s.excepcion_por ? `Excepción autorizada por el zonal · ${esc(nombreDe(s.excepcion_por))}` : ''],
@@ -869,12 +943,13 @@ function detalleSolicitud(id, tab = 'datos') {
       return
     }
     if (a === 'autorizar') {
-      const tope = ant ? ant.monto * (1 + PARAM('excepcion_pct', 20) / 100) : Infinity
+      const antX = ant || (s.credito_anterior_id ? (await historialDe(s)).creditos.find((c) => c.credito_id === s.credito_anterior_id) : null)
+      const tope = antX ? antX.monto * (1 + PARAM('excepcion_pct', 20) / 100) : Infinity
       return formModal({
         titulo: s.estado === 'excepcion' ? 'Autorizar excepción (zonal)' : 'Autorizar solicitud',
-        nota: `${esc(s.cliente_nombre)} pidió ${peso(s.monto)}. El monto solicitado y el autorizado se guardan por separado.${s.tipo === 'renovacion' && ant && s.estado !== 'excepcion' && !esZonalDe(s) ? ` Si autorizas más de ${peso(tope)} (${PARAM('excepcion_pct', 20)} % sobre su crédito anterior), pasa al gerente zonal.` : ''}${faltan.length ? ` <b>Ojo: faltan ${faltan.length} fotos.</b>` : ''}`,
+        nota: `${esc(s.cliente_nombre)} pidió ${peso(s.monto)}. El monto solicitado y el autorizado se guardan por separado.${s.tipo === 'renovacion' && antX && s.estado !== 'excepcion' && !esZonalDe(s) ? ` Si autorizas más de ${peso(tope)} (${PARAM('excepcion_pct', 20)} % sobre su crédito anterior), pasa al gerente zonal.` : ''}${faltan.length ? ` <b>Ojo: faltan ${faltan.length} fotos.</b>` : ''}`,
         boton: 'Confirmar autorización',
-        campos: [{ id: 'monto', label: 'Monto autorizado (MXN)', tipo: 'number', min: 500, step: '50', req: 1, valor: s.monto_autorizado ?? s.monto }, { id: 'comentario', label: 'Comentario (opcional)', tipo: 'textarea' }],
+        campos: [{ id: 'monto', label: 'Monto autorizado (MXN)', tipo: 'number', min: 500, step: '50', req: 1, valor: s.monto_autorizado ?? s.monto }, { id: 'comentario', label: 'Dictamen o comentario (puedes pegar aquí el dictamen de ChatGPT)', tipo: 'textarea', rows: 6 }],
         guardar: async (v) => {
           const m = +v.monto
           if (!(m >= 500)) { const e = new Error('m'); e.userMsg = 'El monto mínimo es $500.'; throw e }
@@ -889,9 +964,23 @@ function detalleSolicitud(id, tab = 'datos') {
       guardar: async (v) => { const r = await rpc(a, v.motivo); return r ? `Solicitud: ${EST_SOL[a][0].toLowerCase()}.` : '' } })
   }))
 }
+// Historial del cliente de una solicitud: de la cartera si la ve; si no (mesa), lo pide a la base de datos
+const _histSol = new Map()
+async function historialDe(s) {
+  const ant = s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
+  const curp = String(s.curp || '').toUpperCase()
+  const cli = s.cliente_id || ant?.cliente_id || (curp ? DB.cartera.find((c) => String(c.curp || '').toUpperCase() === curp)?.cliente_id : null)
+  if (cli && DB.cartera.some((c) => c.cliente_id === cli)) return { creditos: DB.cartera.filter((c) => c.cliente_id === cli).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)), pagos: DB.pagos }
+  if (!sb) return { creditos: [], pagos: [] }
+  if (_histSol.has(s.id)) return _histSol.get(s.id)
+  const { data, error } = await sb.rpc('historial_solicitud', { p_id: s.id })
+  const num = (o, ks) => ({ ...o, ...Object.fromEntries(ks.map((k) => [k, o[k] == null ? o[k] : +o[k]])) })
+  const r = error || !data ? { creditos: [], pagos: [] } : { creditos: (data.creditos || []).map((c) => num(c, ['monto', 'saldo', 'total_pagar', 'cuota', 'entregado', 'descuento_renovacion', 'seguro'])), pagos: (data.pagos || []).map((x) => num(x, ['monto'])) }
+  _histSol.set(s.id, r); return r
+}
 // Estado de cuenta del crédito anterior (para renovaciones): pagos y saldo después de cada uno
-function estadoCuenta(c) {
-  const ps = DB.pagos.filter((x) => x.credito_id === c.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id)
+function estadoCuenta(c, pagos = DB.pagos) {
+  const ps = pagos.filter((x) => x.credito_id === c.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id)
   let saldo = c.total_pagar
   const rows = ps.map((x) => { saldo -= x.monto; return { ...x, saldo: Math.max(0, saldo) } })
   return `<h3 class="sec-title" style="margin-top:14px">Estado de cuenta del crédito anterior #${c.credito_id}</h3>
@@ -903,24 +992,25 @@ function panelFotos(el, s) {
   const D = docsSol(s.id), abierta = ['borrador', 'revision', 'observada'].includes(s.estado)
   const sube = abierta && puede('subir_documentos')
   const video = D.find((d) => d.categoria === 'Video de entrega')
-  const otros = D.filter((d) => !FOTOS_SOL.includes(d.categoria) && d.categoria !== 'Video de entrega')
-  const fila = (cat) => {
-    const L = D.filter((d) => d.categoria === cat), ok = L.length > 0
-    return `<div class="foto inset ${ok ? 'ok' : ''}"><span class="ic">${ok ? '✓' : '•'}</span><div class="t">${cat}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}</div>
-      <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">Ver${L.length > 1 ? ' ' + (i + 1) : ''}</button>`).join('')}
-      ${sube && (!ok || cat === 'Mercancía') ? `<label class="btn sm"><input type="file" accept="image/*" capture="environment" data-cat="${esc(cat)}" hidden>${ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>` : ''}</div></div>`
+  const otros = D.filter((d) => !FOTOS_SOL.includes(d.categoria) && !FOTOS_OPC.includes(d.categoria) && d.categoria !== 'Video de entrega')
+  const fila = (cat, opc) => {
+    const L = D.filter((d) => d.categoria === cat), ok = L.length > 0, vid = esVideoCat(cat), mult = cat === 'Fotos de mercancía'
+    return `<div class="foto inset ${ok ? 'ok' : ''}${opc ? ' opc' : ''}"><span class="ic">${ok ? '✓' : opc ? '+' : '•'}</span><div class="t">${cat}${opc ? ' <span class="muted">(opcional)</span>' : ''}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}</div>
+      <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">${vid ? 'Ver video' : 'Ver'}${L.length > 1 ? ' ' + (i + 1) : ''}</button>`).join('')}
+      ${sube && (!ok || mult) ? (vid ? `<label class="btn sm"><input type="file" accept="video/*" capture="environment" data-cat="${esc(cat)}" hidden>Grabar video</label><label class="btn ghost sm"><input type="file" accept="video/*" data-cat="${esc(cat)}" hidden>Subir</label>`
+        : `<label class="btn sm"><input type="file" accept="image/*" capture="${cat === 'Foto del cliente' ? 'user' : 'environment'}" data-cat="${esc(cat)}" hidden>${ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>`) : ''}</div></div>`
   }
   el.innerHTML = `${video ? `<div class="vid inset"><div class="ph"><h3 class="sec-title">Video de entrega</h3><span class="muted">${esc(horaLocal(video.creado))}</span></div><div data-vid></div></div>` : ''}
     <div class="ph"><h3 class="sec-title">Fotos del expediente</h3><span class="chip ${faltanFotos(s.id).length ? 'r' : 'g'}">${FOTOS_SOL.length - faltanFotos(s.id).length} de ${FOTOS_SOL.length}</span></div>
-    <div class="fotos">${FOTOS_SOL.map(fila).join('')}</div>
+    <div class="fotos">${FOTOS_SOL.map((c) => fila(c)).join('')}${FOTOS_OPC.map((c) => fila(c, true)).join('')}</div>
     ${otros.length ? `<h3 class="sec-title" style="margin-top:10px">Otros documentos</h3><div class="list">${otros.map((d) => `<button type="button" class="rowitem inset docrow" data-doc="${d.id}"><div><div class="t">${esc(d.categoria)}</div><div class="s">${esc(d.nombre)}</div></div><div class="m"><small>Ver</small></div></button>`).join('')}</div>` : ''}
     <div class="muted" data-fmsg></div>
-    <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
+    <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. El video de la mercancía: unos 15 segundos. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
   $$('[data-doc]', el).forEach((b) => b.addEventListener('click', () => verDocumento(DB.documentos.find((d) => d.id === +b.dataset.doc))))
   if (video) { const box = $('[data-vid]', el); if (sb) blobDe(video.path).then((u) => { box.innerHTML = `<video controls playsinline preload="metadata" src="${u}" style="width:100%;max-height:52vh;border-radius:14px;background:#000"></video>` }).catch(() => { box.innerHTML = '<div class="note">No se pudo cargar el video.</div>' }); else box.innerHTML = '<div class="note">Modo de prueba: sin video.</div>' }
   $$('[data-cat]', el).forEach((inp) => inp.addEventListener('change', async () => {
     const f = inp.files?.[0]; if (!f) return
-    const msg = $('[data-fmsg]', el); msg.textContent = `Subiendo ${inp.dataset.cat}…`
+    const msg = $('[data-fmsg]', el); msg.textContent = `Subiendo ${inp.dataset.cat}…${/^video/.test(f.type) ? ' (los videos tardan un poco más)' : ''}`
     try { const ok = await subirDocumento('solicitud', s.id, inp.dataset.cat, f); if (ok) toast(`${inp.dataset.cat}: guardado.`); panelFotos(el, DB.solicitudes.find((x) => x.id === s.id) || s) }
     catch (e) { msg.textContent = ''; toast(e.userMsg || 'No se pudo subir la foto.', 'warn') }
     inp.value = ''
@@ -1000,7 +1090,8 @@ function grabarVideoEntrega(s) {
 // Expediente en PDF (para revisarlo o pasarlo a la IA): se abre la impresión y se elige «Guardar como PDF»
 async function imprimirExpediente(s) {
   const k = condSol(s), monto = s.monto_autorizado ?? s.monto, total = monto * (1 + k.i / 100)
-  const ant = s.credito_anterior_id ? DB.cartera.find((c) => c.credito_id === s.credito_anterior_id) : null
+  const HIST = await historialDe(s)
+  const ant = HIST.creditos.find((c) => c.credito_id === s.credito_anterior_id) || null
   const D = docsSol(s.id).filter((d) => /^image\//.test(d.mime || ''))
   const r = (l, v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : ''
   let host = $('#printHost'); if (!host) { host = document.createElement('div'); host.id = 'printHost'; document.body.appendChild(host) }
@@ -1012,11 +1103,14 @@ async function imprimirExpediente(s) {
     <p class="psub">${esc(s.cliente_nombre)} · ${TIPO[s.tipo] || 'Nuevo'} · ${EST_SOL[s.estado]?.[0] || s.estado} · impreso ${new Date().toLocaleString('es-MX')}</p>
     <h2>Solicitud</h2><table>${r('Cliente', esc(s.cliente_nombre))}${r('CURP', esc(s.curp || ''))}${r('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}${r('Teléfono', esc(s.telefono || ''))}${r('Celular', esc(s.celular || ''))}
       ${r('Dirección de cobro', esc([s.direccion, s.colonia].filter(Boolean).join(', ')) + (s.lat != null ? ` (${s.lat}, ${s.lng})` : ''))}${r('Dirección del negocio', esc(s.direccion_negocio || '') + (s.lat_negocio != null ? ` (${s.lat_negocio}, ${s.lng_negocio})` : ''))}
+      ${r('Sexo', { H: 'Hombre', M: 'Mujer', X: 'No binario' }[s.sexo] || '')}${r('Correo', esc(s.correo || ''))}${r('Teléfono adicional', esc(s.telefono2 || ''))}
+      ${(s.referencias || []).map((x, i) => r('Referencia ' + (i + 1), esc([x.nombre, x.parentesco, x.telefono].filter(Boolean).join(' · ')))).join('')}
       ${r('Observaciones', esc(s.observaciones || ''))}${r('Asesor', esc(s.asesor || ''))}${r('Ruta / oficina', esc(`${s.ruta || ''} · ${s.oficina || ''} · ${s.gerencia || ''}`))}${r('Capturada', esc(s.creada || ''))}</table>
     <h2>Condiciones</h2><table>${r('Monto solicitado', peso(s.monto))}${s.monto_autorizado != null ? r('Monto autorizado', peso(s.monto_autorizado)) : ''}${r('Modalidad', FREC_TXT[s.frecuencia] || 'semanal')}${r('Porcentaje', k.i + ' %')}
       ${r('Pago', `${peso(total / k.n)} × ${k.n}`)}${r('Total a pagar', peso(total))}${r('Gastos administrativos', peso(PARAM('seguro_monto', 150)))}
       ${ant ? r('Crédito anterior', `#${ant.credito_id} · prestado ${peso(ant.monto)} · debe ${peso(ant.saldo)} · ${pct(ant.total_pagar - ant.saldo, ant.total_pagar)} % pagado`) + r('Se le entrega', peso(monto - (s.estado === 'desembolsada' ? 0 : ant.saldo))) : ''}</table>
-    ${ant ? `<h2>Estado de cuenta anterior</h2><table class="pt"><tr><th>Fecha</th><th>Monto</th><th>Tipo</th></tr>${DB.pagos.filter((x) => x.credito_id === ant.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha)).map((x) => `<tr><td>${x.fecha}</td><td>${peso(x.monto)}</td><td>${x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago'}</td></tr>`).join('')}</table>` : ''}
+    ${HIST.creditos.length ? `<h2>Historial de créditos del cliente</h2><table class="pt"><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th>Prestado</th><th>Pagos</th><th>Debe</th></tr>${HIST.creditos.map((c) => `<tr><td>#${c.credito_id}</td><td>${TIPO[c.tipo] || 'Nuevo'}</td><td>${c.fecha_inicio}</td><td>${peso(c.monto)}</td><td>${c.cuotas_pagadas}/${c.num_cuotas}</td><td>${peso(c.saldo)}</td></tr>`).join('')}</table>` : '<h2>Historial</h2><p class="psub">Cliente nuevo: sin créditos anteriores.</p>'}
+    ${ant ? `<h2>Estado de cuenta anterior</h2><table class="pt"><tr><th>Fecha</th><th>Monto</th><th>Tipo</th></tr>${HIST.pagos.filter((x) => x.credito_id === ant.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha)).map((x) => `<tr><td>${x.fecha}</td><td>${peso(x.monto)}</td><td>${x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago'}</td></tr>`).join('')}</table>` : ''}
     ${msgs.length ? `<h2>Conversación con mesa</h2><table>${msgs.map((m) => r(esc(m.autor_nombre || 'Usuario') + ' · ' + esc(horaLocal(m.creado)), esc(m.texto))).join('')}</table>` : ''}
     <h2>Fotos (${imgs.length} de ${FOTOS_SOL.length} requeridas)</h2><p class="psub">Faltan: ${esc(faltanFotos(s.id).join(', ') || 'ninguna')}</p></div>
     ${imgs.map(([c, u]) => `<div class="pg pimg"><h2>${esc(c)}</h2>${u ? `<img src="${u}" alt="${esc(c)}">` : ''}</div>`).join('')}`
@@ -1036,16 +1130,22 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
   if (!mods.length) { toast('Tu gerencia no tiene modalidades activas. Pide al dueño que las configure.', 'warn'); return }
   const geo = (lat, lng) => (lat != null && lng != null ? `${lat},${lng}` : '')
   const campos = []
+  const R0 = e.referencias || ant?.referencias || []
   if (tipo === 'nuevo') campos.push(
-    { id: 'nombre', label: 'Nombre completo del cliente', req: 1, valor: e.cliente_nombre }, { id: 'curp', label: 'CURP', req: 1, valor: e.curp },
-    { id: 'fnac', label: 'Fecha de nacimiento', tipo: 'date', valor: e.fecha_nacimiento }, { id: 'telefono', label: 'Teléfono', tipo: 'tel', req: 1, valor: e.telefono },
-    { id: 'celular', label: 'Celular (WhatsApp)', tipo: 'tel', valor: e.celular },
+    { tipo: 'titulo', label: '1 · Datos del cliente' },
+    { id: 'curp', label: 'CURP (llena sola la fecha de nacimiento y el sexo)', req: 1, valor: e.curp }, { id: 'nombre', label: 'Nombre completo (nombres y apellidos)', req: 1, valor: e.cliente_nombre },
+    { id: 'fnac', label: 'Fecha de nacimiento', tipo: 'date', valor: e.fecha_nacimiento }, { id: 'sexo', label: 'Sexo', tipo: 'select', opciones: [['', '—'], ['M', 'Mujer'], ['H', 'Hombre'], ['X', 'No binario']], valor: e.sexo || '' },
+    { id: 'telefono', label: 'Teléfono', tipo: 'tel', req: 1, valor: e.telefono }, { id: 'celular', label: 'Celular (WhatsApp)', tipo: 'tel', valor: e.celular },
+    { id: 'tel2', label: 'Teléfono adicional', tipo: 'tel', valor: e.telefono2 }, { id: 'correo', label: 'Correo (opcional)', tipo: 'email', valor: e.correo },
     { id: 'ruta', label: 'Ruta', tipo: 'select', req: 1, opciones: rutas.map((r) => [r.ruta_id, `${r.ruta} · ${r.asesor || ''}`]), valor: ruta0 })
-  campos.push(
+  campos.push({ tipo: 'titulo', label: tipo === 'nuevo' ? '2 · Dónde vive y dónde se le cobra' : 'Domicilio de cobro y negocio' },
     { id: 'geo', label: 'Ubicación de cobro', tipo: 'geo', dir: 'direccion', col: 'colonia', valor: geo(e.lat ?? ant?.lat, e.lng ?? ant?.lng) },
     { id: 'direccion', label: 'Dirección de cobro (calle y número)', req: tipo === 'nuevo' ? 1 : 0, valor: e.direccion ?? ant?.direccion }, { id: 'colonia', label: 'Colonia', valor: e.colonia ?? ant?.colonia },
     { id: 'geon', label: 'Ubicación del negocio', tipo: 'geo', dir: 'negocio', valor: geo(e.lat_negocio ?? ant?.lat_negocio, e.lng_negocio ?? ant?.lng_negocio) },
     { id: 'negocio', label: 'Dirección del negocio', valor: e.direccion_negocio ?? ant?.direccion_negocio },
+    { tipo: 'titulo', label: tipo === 'nuevo' ? '3 · Referencias (opcional)' : 'Referencias (opcional)' },
+    ...[0, 1].flatMap((i) => [{ id: 'rn' + i, label: `Referencia ${i + 1}: nombre`, valor: R0[i]?.nombre }, { id: 'rp' + i, label: 'Parentesco o relación', valor: R0[i]?.parentesco }, { id: 'rt' + i, label: 'Teléfono', tipo: 'tel', valor: R0[i]?.telefono }]),
+    { tipo: 'titulo', label: tipo === 'nuevo' ? '4 · Crédito' : 'Crédito' },
     { id: 'monto', label: 'Monto del crédito (MXN)', tipo: 'number', min: 500, step: '500', req: 1, valor: e.monto ?? (ant ? ant.monto : '') },
     { id: 'frecuencia', label: 'Modalidad', tipo: 'select', req: 1, opciones: mods, valor: mods.some(([f]) => f === (e.frecuencia || ant?.frecuencia)) ? (e.frecuencia || ant?.frecuencia) : mods.some(([f]) => f === 'semanal') ? 'semanal' : mods[0][0] },
     { id: 'obs', label: 'Observaciones', tipo: 'textarea', valor: e.observaciones },
@@ -1056,7 +1156,7 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
     titulo: editar ? 'Corregir solicitud' : { nuevo: 'Nuevo crédito', renovacion: 'Renovar crédito', recompra: 'Recompra' }[tipo],
     nota: (tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id} (prestado ${peso(ant.monto)}). Ese saldo se descuenta de lo que se le entrega.`
       : tipo === 'recompra' ? `${esc(ant.cliente)} · ya liquidó. Se crea un crédito nuevo y queda en su expediente como recompra.`
-      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span>',
+      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span> <b>Al guardar se abre la lista de fotos y videos:</b> INE, comprobante, 3 del domicilio, 3 del negocio, foto del cliente y video de su mercancía.',
     boton: 'Guardar solicitud', campos,
     guardar: async (v) => {
       const err = (t) => { const x = new Error(t); x.userMsg = t; throw x }
@@ -1076,7 +1176,9 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
       const row = tipo === 'nuevo'
         ? { cliente_nombre: v.nombre, curp: v.curp, fecha_nacimiento: v.fnac || null, telefono: v.telefono, celular: v.celular || null, ruta_id: +v.ruta }
         : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, celular: ant.celular || null, ...(editar ? {} : { credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }) }
-      Object.assign(row, { direccion: v.direccion || null, colonia: v.colonia || null, lat, lng, direccion_negocio: v.negocio || null, lat_negocio: latn, lng_negocio: lngn,
+      const refs = [0, 1].map((i) => ({ nombre: v['rn' + i], parentesco: v['rp' + i], telefono: v['rt' + i] })).filter((r) => r.nombre || r.telefono)
+      if (tipo === 'nuevo') Object.assign(row, { sexo: v.sexo || null, correo: v.correo || null, telefono2: v.tel2 || null })
+      Object.assign(row, { referencias: refs.length ? refs : null, direccion: v.direccion || null, colonia: v.colonia || null, lat, lng, direccion_negocio: v.negocio || null, lat_negocio: latn, lng_negocio: lngn,
         observaciones: v.obs || null, monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
       if (!editar) row.creado_por = DB.perfil.id
       const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row).select('id').single())
@@ -1098,6 +1200,14 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
     cond()
   })
   fr.addEventListener('change', cond); cond()
+  // La CURP trae la fecha de nacimiento y el sexo: se llenan solos
+  $('#f_curp')?.addEventListener('input', (ev) => {
+    const c = ev.target.value.toUpperCase().replace(/\s+/g, ''), m = c.match(/^[A-Z]{4}(\d{2})(\d{2})(\d{2})([HMX])[A-Z]{5}([0-9A-Z])/)
+    if (!m) return
+    const siglo = /\d/.test(m[5]) ? '19' : '20', f = `${siglo}${m[1]}-${m[2]}-${m[3]}`
+    if (!isNaN(new Date(f + 'T12:00:00')) && !$('#f_fnac').value) $('#f_fnac').value = f
+    if (!$('#f_sexo').value) $('#f_sexo').value = m[4]
+  })
 }
 VIEWS.originacion = {
   html() {
@@ -1109,12 +1219,12 @@ VIEWS.originacion = {
       puede('crear_solicitudes') ? '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>' : '')}
       ${(() => { const A = sc.solicitudes().filter((s) => s.estado === 'autorizada'), O = sc.solicitudes().filter((s) => s.estado === 'observada')
         return A.length || O.length ? `<div class="grid2">
-        ${A.length ? `<div class="card panel aviso ok"><div class="ph"><div><h3>Autorizadas: ve a desembolsar</h3><div class="sub">Mesa ya las autorizó. Ve con el cliente, graba el video de entrega y desembolsa.</div></div><span class="chip g">${A.length}</span></div>
+        ${A.length ? `<div class="card panel aviso ok"><div class="ph"><div><h3>Desembolsos pendientes</h3><div class="sub">Mesa ya las autorizó. Ve con el cliente, graba el video de entrega y desembolsa.</div></div><span class="chip g">${A.length}</span></div>
           <div class="list">${A.map((s) => `<div class="rowitem inset"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${peso(s.monto_autorizado ?? s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</div></div><div class="m"><small>${puedeDesembolsar(s) ? `<button class="btn sm" type="button" data-des="${s.id}">Grabar video y desembolsar</button>` : ''}</small></div></div>`).join('')}</div></div>` : ''}
         ${O.length ? `<div class="card panel aviso"><div class="ph"><div><h3>Mesa pidió corrección</h3><div class="sub">Corrige o sube lo que falta y vuelve a enviar.</div></div><span class="chip a">${O.length}</span></div>
           <div class="list">${O.map((s) => `<button type="button" class="rowitem inset docrow" data-obs="${s.id}"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${esc(s.motivo || '')}</div></div><div class="m"><small>Abrir</small></div></button>`).join('')}</div></div>` : ''}</div>` : '' })()}
       <div class="card panel"><div class="ph"><div><h3>Mis solicitudes</h3><div class="sub">Pendientes y de los últimos 30 días · toca una para verla</div></div><span class="chip">${mias.length}</span></div>
-        ${tabla([{ t: 'Cliente', f: (s) => `<b>${esc(s.cliente_nombre)}</b>`, }, { t: 'Tipo', f: (s) => tipoChip(s.tipo) }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Ruta', k: 'ruta' }, { t: 'Estado', f: (s) => estSol(s.estado) }, { t: 'Motivo', f: (s) => esc(s.motivo || '') }], mias)}</div>
+        ${tabla([{ t: 'Cliente', f: (s) => `<b>${esc(s.cliente_nombre)}</b>`, }, { t: 'Tipo', f: (s) => tipoChip(s.tipo) }, { t: 'Monto', num: 1, f: P('monto') }, { t: 'Ruta', k: 'ruta' }, { t: 'Estado', f: (s) => estSol(s.estado) }, { t: 'Fotos', f: (s) => { const n = FOTOS_SOL.length - faltanFotos(s.id).length; return `<span class="chip ${n === FOTOS_SOL.length ? 'g' : 'r'}">📷 ${n}/${FOTOS_SOL.length}</span>` } }, { t: 'Motivo', f: (s) => esc(s.motivo || '') }], mias)}</div>
       <div class="grid2">
         <div class="card panel"><div class="ph"><div><h3>Listos para renovar</h3><div class="sub">Llevan ${PARAM('renovacion_pct', 80)} % o más de sus pagos</div></div><span class="chip g">${renov.length}</span></div>
           <div class="list">${renov.slice(0, 30).map((c) => `<div class="rowitem inset"><div><div class="t">${esc(c.cliente)}</div><div class="s">${esc(c.ruta)} · #${c.credito_id} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos</div></div><div class="m">debe ${peso(c.saldo)}<small><button class="btn sm" type="button" data-ren="${c.credito_id}">Renovar</button></small></div></div>`).join('') || '<div class="empty"><b>Nadie llega todavía al ' + PARAM('renovacion_pct', 80) + ' %</b></div>'}</div></div>
@@ -1202,7 +1312,8 @@ VIEWS.cobranza = {
 }
 // Ruta de cobro del asesor: tarjetas por color (verde al día, amarillo, naranja, rojo), con foto,
 // botones a Google Maps (cobro y negocio) y su orden de visita.
-const fotoCliente = (cid) => DB.documentos.find((d) => d.tipo === 'cliente' && d.entidad_id === cid && d.categoria === 'Foto del cliente' && /^image\//.test(d.mime || ''))
+const fotoCliente = (cid) => DB.documentos.find((d) => d.categoria === 'Foto del cliente' && /^image\//.test(d.mime || '')
+  && ((d.tipo === 'cliente' && d.entidad_id === cid) || (d.tipo === 'solicitud' && DB.solicitudes.some((s) => s.id === d.entidad_id && s.cliente_id === cid))))
 function ordenRuta(L) {
   return L.slice().sort((a, b) => (a.orden_ruta ?? 1e9) - (b.orden_ruta ?? 1e9) || a.cliente.localeCompare(b.cliente) || a.credito_id - b.credito_id)
 }
@@ -1224,6 +1335,7 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
       <div class="cmonto"><b>${peso(Math.min(c.cuota, c.saldo))}</b><small>debe ${peso(c.saldo)}</small>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó hoy</span>' : ''}</div>
       <div class="cacc">${est.ordenar ? `<button class="btn ghost sm" type="button" data-up="${i}" aria-label="Subir">▲</button><button class="btn ghost sm" type="button" data-dn="${i}" aria-label="Bajar">▼</button>`
         : `${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}
+        ${puedeRenovar(c) && puede('crear_solicitudes') ? `<button class="btn sm renov" type="button" data-renov="${c.credito_id}">Renovar</button>` : ''}
         ${cob ? `<a class="btn ghost sm" href="${cob}" target="_blank" rel="noopener">Ir a cobrar</a>` : ''}${neg ? `<a class="btn ghost sm" href="${neg}" target="_blank" rel="noopener">Negocio</a>` : ''}
         ${puede('registrar_pagos') ? `<button class="btn ghost sm${c.lat == null ? ' falta' : ''}" type="button" data-ubi="${c.credito_id}">${c.lat == null ? '📍 Guardar ubicación' : 'Ubicación'}</button>` : ''}
         <button class="btn ghost sm" type="button" data-ficha="${c.cliente_id}">Ficha</button>`}</div></div>`
@@ -1237,6 +1349,7 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
   $$('[data-ft]', el).forEach((im) => fotoEn(im, im.dataset.ft))
   $$('[data-fc]', el).forEach((b) => b.addEventListener('click', () => listaCobro(el, rutaId, { ...est, f: b.dataset.fc })))
   $$('[data-cobrar]', el).forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
+  $$('[data-renov]', el).forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.renov })))
   $$('[data-ficha]', el).forEach((b) => b.addEventListener('click', () => fichaCliente(+b.dataset.ficha)))
   $$('[data-ubi]', el).forEach((b) => b.addEventListener('click', () => guardarUbicacion(todos.find((c) => c.credito_id === +b.dataset.ubi), () => listaCobro($('#miRuta') || $('#rCobro'), rutaId, { f: est.f }))))
   const mover = (i, d) => { const j = i + d; if (j < 0 || j >= todos.length) return; [todos[i], todos[j]] = [todos[j], todos[i]]; todos.forEach((c, k) => { DB.cartera.filter((x) => x.cliente_id === c.cliente_id).forEach((x) => { x.orden_ruta = k + 1 }) }); listaCobro(el, rutaId, est) }
@@ -1349,8 +1462,11 @@ function ticketPago(c, monto, folio, obs) {
       <button class="btn ghost" type="button" id="tCopy">Copiar</button>
       ${navigator.share ? '<button class="btn ghost" type="button" id="tShare">Compartir</button>' : ''}
       <a class="btn" href="https://wa.me/${wa}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${wa ? 'Enviar por WhatsApp' : 'Abrir WhatsApp'}</a></div>
+    ${saldo > 0 && (c.total_pagar - saldo) >= c.total_pagar * PARAM('renovacion_pct', 80) / 100 - 0.01 && puede('crear_solicitudes') ? `<div class="note-card renovar"><b>${esc(c.cliente)} ya llegó al ${PARAM('renovacion_pct', 80)} % de sus pagos.</b> ¿Quiere renovar?
+      <div class="toolbar" style="margin-top:8px"><button class="btn" type="button" id="tRen">Renovar ahora</button><button class="btn ghost" type="button" data-close>No renovar</button></div></div>` : ''}
     ${wa ? '' : '<div class="note">El cliente no tiene celular registrado: WhatsApp te pedirá elegir el contacto.</div>'}`)
   $('#tCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(txt); toast('Comprobante copiado.') } catch { toast('No se pudo copiar.', 'warn') } })
+  $('#tRen')?.addEventListener('click', () => nuevaSolicitud({ renovar: c.credito_id }))
   $('#tShare')?.addEventListener('click', () => navigator.share({ title: 'Comprobante de pago', text: txt }).catch(() => {}))
 }
 // Modalidad y porcentaje por gerencia (lo decide el dueño). Sin regla propia, la gerencia usa la de la empresa.
@@ -1603,7 +1719,7 @@ VIEWS.admin = {
   tab: 'usuarios',
   html() {
     return `${head('Administración', 'Usuarios y roles, estructura de la empresa, parámetros y bitácora. Las acciones sensibles quedan registradas.')}
-      <div class="tabs" id="atabs">${[['usuarios', 'Usuarios y roles'], ['estructura', 'Estructura'], ['personal', 'Personal'], ['parametros', 'Parámetros'], ['peticiones', 'Peticiones'], ['bitacora', 'Bitácora']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="tabs" id="atabs">${[['usuarios', 'Usuarios'], ['permisos', 'Permisos'], ['modalidades', 'Modalidades y %'], ['estructura', 'Estructura'], ['personal', 'Personal'], ['parametros', 'Parámetros'], ['peticiones', 'Peticiones'], ['bitacora', 'Bitácora']].map(([k, t]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="abody" style="display:grid;gap:14px"></div>`
   },
   init() {
@@ -1615,7 +1731,7 @@ VIEWS.admin = {
     if (this.tab === 'usuarios') {
       const roles = [['Dirección', 'Ve toda la empresa; autoriza acciones financieras y da de alta usuarios'], ['Gerente regional', 'Su región: zonas, gerencias, oficinas y rutas'],
         ['Gerente zonal', 'Su zona: gerencias, oficinas y rutas; ve el resumen completo de su zona'], ['Gerente', 'Sus oficinas y rutas; recibe y redistribuye la caja'],
-        ['Asesor de crédito', 'Su ruta: crea créditos, registra cobros y su caja'], ['Mesa de control', 'Revisa solicitudes; aprueba, observa, rechaza o cancela'], ['Tesorería', 'Pasa el excedente de la caja de los gerentes al banco; ve bancos y movimientos'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
+        ['Asesor de crédito', 'Su ruta: crea créditos, registra cobros y su caja'], ['Mesa de control', 'Empresa externa: sólo ve las solicitudes y el historial del cliente de cada una; autoriza, pide corrección, rechaza o cancela'], ['Tesorería', 'Pasa el excedente de la caja de los gerentes al banco; ve bancos y movimientos'], ['Consulta / auditoría', 'Sólo lectura dentro de su ámbito']]
       const lista = DB.perfiles.length ? DB.perfiles : [p]
       const amb = (a) => !a || a === 'empresa' ? 'Toda la empresa' : ambitoNombre(a)
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Usuarios</h3><div class="sub">Cada usuario tiene un cargo y un ámbito: sólo ve lo que le toca. Los permisos se validan en la base de datos.</div></div>
@@ -1625,12 +1741,15 @@ VIEWS.admin = {
             <td><span class="st ${u.activo ? 'ok' : 'off'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>` : ''}</td></tr>`).join('')}
           </tbody></table></div>
-          <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y el ámbito que les asignes; puedes desactivarlos en cualquier momento.</div></div>
+          <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y las rutas que les asignes; si a un asesor le cambias la ruta, desde ese momento ve la nueva y deja de ver la anterior. Lo que cada cargo puede ver y hacer se decide en la pestaña <b>Permisos</b>.</div></div>
         <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
           ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
-      el.insertAdjacentHTML('beforeend', '<div id="permisos"></div>'); pintarPermisos()
       $('#uinv')?.addEventListener('click', invitarUsuario)
       $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
+    } else if (this.tab === 'permisos') {
+      el.innerHTML = '<div id="permisos"></div><div id="permPers"></div>'; pintarPermisos(); pintarPermisosPersona()
+    } else if (this.tab === 'modalidades') {
+      el.innerHTML = '<div id="pcond"></div>'; pintarCondiciones($('#pcond'))
     } else if (this.tab === 'estructura') {
       const E = DB.est, car = DB.cartera.filter((c) => c.saldo > 0)
       const s$ = (k, id) => peso(sum(car.filter((c) => c[k] === id), (c) => c.saldo))
@@ -1669,8 +1788,9 @@ VIEWS.admin = {
       const fijos = [['Hora de cierre de caja', '18:00 (lo que se registre después cuenta para el día siguiente)'], ['Rangos de atraso', '<span class="pend">provisional: 1–7 · 8–30 · +30 días</span>'], ['Respaldos', 'base de datos: diaria, se guardan 7 días · fotos y videos: espacio privado que no se borra desde el portal']]
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Parámetros del negocio</h3><div class="sub">Se aplican a los créditos nuevos desde que se cambian</div></div></div>
         <div class="kv">${L.map((x) => `<div class="r"><span class="k">${esc(x.descripcion)}</span><span class="v">${fmt(x)} ${esAdmin() ? `<button class="btn ghost sm" type="button" data-par="${esc(x.clave)}" style="margin-left:8px">Cambiar</button>` : ''}</span></div>`).join('') || '<div class="empty"><b>Falta aplicar la actualización de la base de datos</b></div>'}
-        ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div><div id="pcond"></div>`
-      pintarCondiciones($('#pcond'))
+        ${fijos.map(([k, v]) => `<div class="r"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
+        <div class="r"><span class="k">Modalidades (diario, semanal, quincenal, mensual) y porcentaje por gerencia</span><span class="v"><button class="btn ghost sm" type="button" id="irMod">Ir a «Modalidades y %»</button></span></div></div></div>`
+      $('#irMod')?.addEventListener('click', () => { this.tab = 'modalidades'; render() })
       $$('[data-par]').forEach((b) => b.addEventListener('click', () => { const x = DB.parametros.find((y) => y.clave === b.dataset.par)
         formModal({ titulo: 'Cambiar parámetro', nota: esc(x.descripcion), campos: [{ id: 'valor', label: 'Valor', tipo: 'number', step: 'any', min: 0, valor: x.valor ?? '' }],
           guardar: async (v) => { const ok = await escribir(() => sb.from('parametros').update({ valor: v.valor === '' ? null : +v.valor }).eq('clave', x.clave)); return ok ? 'Parámetro actualizado.' : '' } }) }))
@@ -1703,19 +1823,31 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
     if (c.tipo === 'select') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><div class="field sel" style="display:block"><select class="ctl" id="${id}" style="width:100%"${req}>${c.opciones.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(c.valor ?? '') ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div></label>`
     if (c.tipo === 'check') return `<label class="fl chk"><input type="checkbox" id="${id}"${c.valor ? ' checked' : ''}> <span>${c.label}</span></label>`
     if (c.tipo === 'foto') return `<div class="fl"><span>${c.label}</span><div class="geo"><label class="btn ghost sm"><input type="file" accept="image/*" capture="environment" id="${id}" hidden onchange="this.closest('.geo').querySelector('.muted').textContent = this.files[0] ? 'Foto lista ✓' : ''">Tomar foto</label><span class="muted"></span></div></div>`
-    if (c.tipo === 'textarea') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><textarea class="ctl" id="${id}" rows="2" maxlength="2000" style="width:100%"${req}>${esc(c.valor ?? '')}</textarea></label>`
+    if (c.tipo === 'multi') {
+      const sel = new Set(String(c.valor || '').split(',').filter(Boolean))
+      let g = ''
+      return `<div class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><div class="multi" id="${id}">${c.opciones.map(([v, t, grupo]) => { const h = grupo && grupo !== g ? `<div class="mg">${esc(grupo)}</div>` : ''; g = grupo || g
+        return `${h}<label class="chk mi"><input type="checkbox" value="${esc(v)}"${sel.has(String(v)) ? ' checked' : ''}> <span>${esc(t)}</span></label>` }).join('')}</div></div>`
+    }
+    if (c.tipo === 'titulo') return `<div class="ftit">${c.label}</div>`
+    if (c.tipo === 'textarea') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><textarea class="ctl" id="${id}" rows="${c.rows || 2}" maxlength="${c.max || 2000}" style="width:100%"${req}>${esc(c.valor ?? '')}</textarea></label>`
     if (c.tipo === 'geo') return `<div class="fl"><span>${c.label}</span><div class="geo"><button class="btn ghost sm" type="button" data-geo="${c.id}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Capturar ubicación</button><span class="muted" id="g_${c.id}">${c.valor ? 'Ubicación guardada ✓' : 'Toca el botón estando en el lugar'}</span><input type="hidden" id="${id}" value="${esc(c.valor ?? '')}"></div></div>`
     return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><input class="ctl" id="${id}" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}"${c.min != null ? ` min="${c.min}"` : ''}${c.step ? ` step="${c.step}"` : ''}${req} style="width:100%"></label>`
   }
   modal(`<div class="ph"><div><h3 style="font-size:19px">${titulo}</h3>${nota ? `<div class="sub">${nota}</div>` : ''}</div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <form id="fm" class="fgrid" novalidate>${campos.map(f).join('')}<div class="err" id="fmErr" role="alert"></div>
     <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" data-close>Cancelar</button><button class="btn" type="submit" id="fmOk">${boton}</button></div></form>`)
+  // «Toda la empresa» y las demás casillas no se combinan
+  campos.filter((c) => c.tipo === 'multi').forEach((c) => $$('#f_' + c.id + ' input').forEach((x) => x.addEventListener('change', () => {
+    if (!x.checked) return
+    $$('#f_' + c.id + ' input').forEach((y) => { if (y !== x && (x.value === 'empresa' || y.value === 'empresa')) y.checked = false })
+  })))
   campos.filter((c) => c.tipo === 'geo').forEach((c) => $(`[data-geo="${c.id}"]`).addEventListener('click', () => capturarUbicacion(c)))
   $('#fm').addEventListener('submit', async (e) => {
     e.preventDefault()
     const v = {}
-    campos.forEach((c) => { const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : c.tipo === 'foto' ? (el.files?.[0] || null) : el.value.trim() })
-    const falta = campos.find((c) => c.req && !v[c.id])
+    campos.forEach((c) => { if (c.tipo === 'titulo') return; const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : c.tipo === 'foto' ? (el.files?.[0] || null) : c.tipo === 'multi' ? $$('input:checked', el).map((x) => x.value).join(',') : el.value.trim() })
+    const falta = campos.find((c) => c.req && c.id && !v[c.id])
     if (falta) { $('#fmErr').textContent = `Falta: ${falta.label}.`; return }
     const b = $('#fmOk'); b.disabled = true; b.textContent = 'Guardando…'
     try {
@@ -1798,8 +1930,8 @@ async function subirDocumento(tipo, id, categoria, file) {
   if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return false }
   if (!navigator.onLine) throw errorAmigable('network')
   const esVideo = /^video\/(mp4|webm|quicktime)$/.test(file.type)
-  const okTipo = esVideo ? categoria === 'Video de entrega' : /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.type)
-  if (!okTipo) { const e = new Error('tipo'); e.userMsg = esVideo ? 'Los videos sólo se aceptan como video de entrega.' : 'Sólo se aceptan fotos (JPG, PNG, HEIC) o PDF.'; throw e }
+  const okTipo = esVideoCat(categoria) ? esVideo : /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(file.type)
+  if (!okTipo) { const e = new Error('tipo'); e.userMsg = esVideoCat(categoria) ? 'Aquí va un video (MP4 o MOV).' : 'Sólo se aceptan fotos (JPG, PNG, HEIC) o PDF.'; throw e }
   const f = esVideo ? file : await reducirImagen(file)
   if (f.size > (esVideo ? 50 : 10) * 1024 * 1024) { const e = new Error('tam'); e.userMsg = `El archivo pesa más de ${esVideo ? 50 : 10} MB.`; throw e }
   const ext = f.type === 'application/pdf' ? 'pdf' : f.type === 'video/quicktime' ? 'mov' : f.type.split('/')[1].replace('jpeg', 'jpg')
@@ -1893,18 +2025,24 @@ function verComo() {
     guardar: async (v) => {
       const u = DB.perfiles.find((x) => x.id === v.persona)
       const real = SIM ? SIM.real : DB.perfil
-      SIM = { real, rol: v.rol, nombre: u?.nombre || ROLES[v.rol], ambito: u ? u.ambito || 'empresa' : v.ambito }
-      DB.perfil = { ...real, rol: SIM.rol, ambito: SIM.ambito, nombre: SIM.nombre }
+      const amb = ['mesa', 'direccion'].includes(v.rol) ? 'empresa' : u ? u.ambito || 'empresa' : v.ambito
+      SIM = { real, rol: v.rol, nombre: u?.nombre || ROLES[v.rol], ambito: amb, rutas: v.rol === 'mesa' ? null : rutasDeAmbito(amb), uid: u?.id || null }
+      DB.perfil = { ...real, id: SIM.uid || real.id, rol: SIM.rol, ambito: SIM.ambito, nombre: SIM.nombre }
+      try { sessionStorage.setItem('verComo', JSON.stringify({ rol: SIM.rol, nombre: SIM.nombre, ambito: SIM.ambito, uid: SIM.uid })) } catch {}
       SCOPE = raiz(); VIEW = 'tablero'; showApp.avisado = true; showApp()
       return `Viendo como ${ROLES[v.rol]}${u ? ' · ' + (u.nombre || '') : ''}.`
     },
   })
   const r = $('#f_rol'), p = $('#f_persona')
-  r.addEventListener('change', () => { p.innerHTML = ops(r.value).map(([a, b]) => `<option value="${esc(a)}">${esc(b)}</option>`).join(''); p.value = gente(r.value)[0]?.id || '' })
+  const amb = $('#f_ambito').closest('.fl')
+  const sinc = () => { amb.style.display = ['mesa', 'direccion'].includes(r.value) || p.value ? 'none' : '' }
+  r.addEventListener('change', () => { p.innerHTML = ops(r.value).map(([a, b]) => `<option value="${esc(a)}">${esc(b)}</option>`).join(''); p.value = gente(r.value)[0]?.id || ''; sinc() })
+  p.addEventListener('change', sinc); sinc()
 }
 function salirVerComo() {
   if (!SIM) return
   DB.perfil = SIM.real; SIM = null
+  try { sessionStorage.removeItem('verComo') } catch {}
   SCOPE = raiz(); VIEW = 'tablero'; showApp()
   toast('Regresaste a tu vista.')
 }
@@ -2004,7 +2142,7 @@ function matrizPermisos() {
   return `<div class="card panel" id="permisos"><div class="ph"><div><h3>Permisos por cargo</h3><div class="sub">${dueno ? 'Elige un cargo y enciende o apaga lo que puede ver y hacer. Se guarda al instante.' : 'Sólo el dueño puede cambiarlos.'} El dueño siempre tiene todo.</div></div></div>
     <div class="field sel" style="display:block"><label for="pcargo">Cargo</label><select class="ctl" id="pcargo" style="width:100%">${CARGOS_PERM.map((x) => `<option value="${x}"${x === r ? ' selected' : ''}>${esc(ROLES[x])}</option>`).join('')}</select></div>
     ${PERMISOS.map(([g, L]) => `<h3 class="sec-title" style="margin-top:4px">${g}</h3><div class="perms">${L.map(fila).join('')}</div>`).join('')}
-    <div class="note">Cada quien sólo ve la parte de la empresa de su ámbito. Lo de «Puede hacer» también lo revisa la base de datos: si el cargo no lo tiene, el sistema lo rechaza. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
+    <div class="note">Cada quien sólo ve la parte de la empresa de sus rutas. Lo de «Puede hacer» también lo revisa la base de datos: si no lo tiene, el sistema lo rechaza. Mesa de control es externa: aunque le prendas secciones, nunca ve la cartera ni los clientes; sólo las solicitudes y el historial del cliente de cada una. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
 }
 function pintarPermisos() {
   const el = document.getElementById('permisos'); if (!el) return
@@ -2023,6 +2161,46 @@ async function cambiarPermiso(c) {
     toast(`${ROLES[rol]}: ${v ? 'puede' : 'ya no puede'} «${PERMISOS.flatMap(([, L]) => L).find(([k]) => k === permiso)[1]}».`)
   } catch (e) { c.checked = !v; toast(e.userMsg || 'No se pudo guardar el permiso.', 'warn') }
   c.disabled = false
+}
+
+let permPersona = ''
+function pintarPermisosPersona() {
+  const el = document.getElementById('permPers'); if (!el) return
+  const dueno = ['dueno', 'soporte'].includes(DB.perfil.rol)
+  const gente = DB.perfiles.filter((u) => !['dueno', 'soporte'].includes(u.rol) && u.activo !== false).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)))
+  if (!gente.some((u) => u.id === permPersona)) permPersona = gente[0]?.id || ''
+  const u = gente.find((x) => x.id === permPersona)
+  const exc = (k) => (DB.permisosUsuario || []).find((q) => q.usuario === permPersona && q.permiso === k)
+  const fila = ([k, t]) => { const x = exc(k), base = permitido(u.rol, k), val = x ? !!x.permitido : base
+    return `<label class="perm inset${dueno ? '' : ' ro'}${x ? ' exc' : ''}"><span><b>${t}${x ? ' <em class="chip a">sólo a esta persona</em>' : ''}</b><small>${x ? `Su cargo ${base ? 'sí' : 'no'} lo tiene` : 'Igual que su cargo'}</small></span>
+      <span class="sw"><input type="checkbox" data-pp="${k}"${val ? ' checked' : ''}${dueno ? '' : ' disabled'} aria-label="${esc(t)}"><i></i></span></label>` }
+  el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Permisos de una persona</h3><div class="sub">Para darle o quitarle algo a alguien en específico sin cambiar a todo su cargo. Lo que no cambies aquí, sigue igual que su cargo.</div></div></div>
+    ${gente.length ? `<div class="field sel" style="display:block"><label for="ppers">Persona</label><select class="ctl" id="ppers" style="width:100%">${gente.map((x) => `<option value="${esc(x.id)}"${x.id === permPersona ? ' selected' : ''}>${esc(x.nombre || x.correo)} · ${esc(ROLES[x.rol] || x.rol)}</option>`).join('')}</select></div>
+    ${PERMISOS.map(([g, L]) => `<h3 class="sec-title" style="margin-top:4px">${g}</h3><div class="perms">${L.map(fila).join('')}</div>`).join('')}
+    ${dueno && (DB.permisosUsuario || []).some((q) => q.usuario === permPersona) ? '<div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" id="ppReset">Quitar sus excepciones (que quede igual que su cargo)</button></div>' : ''}`
+    : '<div class="empty"><b>Todavía no hay personal dado de alta</b>Invita usuarios en la pestaña Usuarios.</div>'}</div>`
+  $('#ppers')?.addEventListener('change', (e) => { permPersona = e.target.value; pintarPermisosPersona() })
+  $$('[data-pp]', el).forEach((c) => c.addEventListener('change', async () => {
+    const k = c.dataset.pp, v = c.checked
+    if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); c.checked = !v; return }
+    if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); c.checked = !v; return }
+    c.disabled = true
+    try {
+      const igual = permitido(u.rol, k) === v
+      const r = igual ? await sb.from('permisos_usuario').delete().eq('usuario', permPersona).eq('permiso', k)
+        : await sb.from('permisos_usuario').upsert({ usuario: permPersona, permiso: k, permitido: v, actualizado: new Date().toISOString(), actualizado_por: DB.perfil.id })
+      if (r.error) throw errorAmigable(r.error)
+      DB.permisosUsuario = DB.permisosUsuario.filter((q) => !(q.usuario === permPersona && q.permiso === k))
+      if (!igual) DB.permisosUsuario.push({ usuario: permPersona, permiso: k, permitido: v })
+      toast(`${u.nombre || 'La persona'}: ${v ? 'puede' : 'ya no puede'} «${PERMISOS.flatMap(([, L]) => L).find(([x]) => x === k)[1]}».`)
+      pintarPermisosPersona()
+    } catch (e) { c.checked = !v; c.disabled = false; toast(e.userMsg || 'No se pudo guardar el permiso.', 'warn') }
+  }))
+  $('#ppReset')?.addEventListener('click', async () => {
+    try { const r = await sb.from('permisos_usuario').delete().eq('usuario', permPersona); if (r.error) throw errorAmigable(r.error)
+      DB.permisosUsuario = DB.permisosUsuario.filter((q) => q.usuario !== permPersona); toast('Listo: tiene los mismos permisos que su cargo.'); pintarPermisosPersona() }
+    catch (e) { toast(e.userMsg || 'No se pudo.', 'warn') }
+  })
 }
 
 // ============================================================ altas de estructura y usuarios
@@ -2055,12 +2233,28 @@ function editarNivel(tipo, id) {
     },
   })
 }
+// Lista para las casillas: agrupada por nivel, como «consultar y agregar rutas» de Listo
+function ambitoCasillas() {
+  const E = DB.est, ofi = (o) => E.oficinas.find((x) => x.id === o)?.nombre || ''
+  return [['empresa', 'Toda la empresa', 'General'], ...E.zonas.map((x) => ['zona:' + x.id, x.nombre, 'Zonas']), ...E.gerencias.map((x) => ['gerencia:' + x.id, x.nombre, 'Gerencias']),
+    ...E.oficinas.map((x) => ['oficina:' + x.id, x.nombre, 'Oficinas']), ...E.rutas.map((x) => ['ruta:' + x.id, `${x.nombre}${x.responsable ? ' · ' + x.responsable : ''} (oficina ${ofi(x.oficina_id)})`, 'Rutas'])]
+}
+// Al asignar rutas a un asesor, su nombre queda como responsable de esas rutas (asignación inmediata)
+async function asignarResponsable(rol, ambito, nombre) {
+  if (rol !== 'asesor' || !sb) return
+  const ids = String(ambito).split(',').filter((a) => a.startsWith('ruta:')).map((a) => +a.split(':')[1])
+  for (const id of ids) await sb.from('rutas').update({ responsable: nombre }).eq('id', id)
+}
 function ambitoOpciones() {
   const E = DB.est
   return [['empresa', 'Toda la empresa'], ...E.regiones.map((x) => ['region:' + x.id, 'Región · ' + x.nombre]), ...E.zonas.map((x) => ['zona:' + x.id, 'Zona · ' + x.nombre]),
     ...E.gerencias.map((x) => ['gerencia:' + x.id, 'Gerencia · ' + x.nombre]), ...E.oficinas.map((x) => ['oficina:' + x.id, 'Oficina · ' + x.nombre]), ...E.rutas.map((x) => ['ruta:' + x.id, 'Ruta · ' + x.nombre])]
 }
-function ambitoNombre(a) { return (ambitoOpciones().find(([v]) => v === a) || [a, a])[1] }
+function ambitoNombre(a) {
+  if (a === 'ninguno') return 'Sólo solicitudes (mesa de control)'
+  const O = ambitoOpciones(), L = String(a || 'empresa').split(',')
+  return L.map((x) => (O.find(([v]) => v === x) || [x, x])[1]).join(' + ')
+}
 const cargoOpciones = () => Object.entries(ROLES).filter(([k]) => !['soporte', 'dueno'].includes(k) || (k === 'dueno' && ['soporte', 'dueno'].includes(DB.perfil.rol)))
 function editarUsuario(u) {
   if (!u) return
@@ -2069,12 +2263,15 @@ function editarUsuario(u) {
     campos: [
       { id: 'nombre', label: 'Nombre', req: 1, valor: u.nombre },
       { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: u.rol },
-      { id: 'ambito', label: 'Ámbito (qué parte de la empresa ve)', tipo: 'select', req: 1, opciones: ambitoOpciones(), valor: u.ambito || 'empresa' },
+      { id: 'ambito', label: 'Qué puede ver: marca sus rutas, oficinas, gerencias o zonas (puedes marcar varias)', tipo: 'multi', req: 1, opciones: ambitoCasillas(), valor: u.ambito || 'empresa' },
       { id: 'activo', label: 'Activo (puede entrar al sistema)', tipo: 'check', valor: u.activo },
     ],
     guardar: async (v) => {
-      const ok = await escribir(() => sb.from('perfiles').update({ nombre: v.nombre, rol: v.rol, ambito: v.ambito, activo: v.activo }).eq('id', u.id))
-      return ok ? 'Usuario actualizado.' : ''
+      const amb = ['dueno', 'direccion', 'mesa'].includes(v.rol) ? 'empresa' : v.ambito
+      if (!amb) { const e = new Error('amb'); e.userMsg = 'Marca al menos una ruta, oficina, gerencia o zona.'; throw e }
+      if (sb && !SIM) await asignarResponsable(v.rol, amb, v.nombre)
+      const ok = await escribir(() => sb.from('perfiles').update({ nombre: v.nombre, rol: v.rol, ambito: amb, activo: v.activo }).eq('id', u.id))
+      return ok ? `Usuario actualizado. Desde ahora ve: ${ambitoNombre(amb)}.` : ''
     },
   })
 }
@@ -2084,15 +2281,19 @@ function invitarUsuario() {
     campos: [
       { id: 'nombre', label: 'Nombre completo', req: 1 }, { id: 'correo', label: 'Correo', tipo: 'email', req: 1 },
       { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: 'asesor' },
-      { id: 'ambito', label: 'Ámbito (qué parte de la empresa ve)', tipo: 'select', req: 1, opciones: ambitoOpciones(), valor: 'empresa' },
+      { id: 'ambito', label: 'Qué puede ver: marca sus rutas, oficinas, gerencias o zonas (puedes marcar varias)', tipo: 'multi', req: 1, opciones: ambitoCasillas(), valor: 'empresa' },
     ],
     guardar: async (v) => {
       if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
+      if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return '' }
+      if (['dueno', 'direccion', 'mesa'].includes(v.rol)) v.ambito = 'empresa'
+      if (!v.ambito) { const e = new Error('amb'); e.userMsg = 'Marca al menos una ruta, oficina, gerencia o zona.'; throw e }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.correo)) { const e = new Error('correo'); e.userMsg = 'Escribe un correo válido.'; throw e }
       const { data } = await sb.auth.getSession()
       const r = await fetch('/.netlify/functions/invitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify(v) })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) { const e = new Error(j.error || 'invitar'); e.userMsg = j.error || 'No se pudo enviar la invitación.'; throw e }
+      await asignarResponsable(v.rol, v.ambito, v.nombre)
       await reload()
       return `Invitación enviada a ${v.correo}.`
     },
