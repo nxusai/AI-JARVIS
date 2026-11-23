@@ -8,6 +8,7 @@
 - Nunca pedir ni pegar llaves, contraseñas o tokens en el chat. Las llaves del cerebro se escriben en el Mac mini con `llaves.mjs`; las de Netlify y Supabase, en sus paneles.
 - Preguntar antes de instalar algo en todo el sistema. No abrir PR si no lo pide.
 - Enseñar foto o vista previa antes de que él suba o publique algo.
+- Los videos siempre llevan explicación con voz (narración en español; voz de ElevenLabs/Higgsfield, por ejemplo "Regina - Voz Oficial").
 - No inventar estadísticas.
 - NEX se prende y apaga a mano: nunca sugerir que corra solo.
 - Rama de trabajo: `claude/jarvis-project-setup-gs6uu2`. En su Mac el proyecto vive en `~/Desktop/nexy`.
