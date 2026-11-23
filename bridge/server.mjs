@@ -22,6 +22,7 @@ import { uiServer } from './ui.mjs'
 import { chromeAvailable, chromeServer } from './chrome.mjs'
 import { visionServer } from './vision.mjs'
 import { callOwnerNow, phoneServer } from './phone.mjs'
+import { startContactCallWatch } from './llamadas-contactos.mjs'
 import { messagesServer } from './messages.mjs'
 import { contactsServer } from './contacts.mjs'
 import { memoryPrompt, memoryServer } from './memory.mjs'
@@ -2121,6 +2122,7 @@ if (existsSync(join(homedir(), '.nexy', 'mudada.json'))) {
   startAdsWatch()
   // The clients' brains: the owner hears when one stops, is touched, or someone tries to get in.
   startBrainWatch({ callOwner: (text) => callOwnerNow(elevenKey, text) })
+  startContactCallWatch(elevenKey)
   // Ultron, the direction's AI for Mi Semago and Abuelito, answering from the work center (scripts/ultron.mjs).
   // Once he answers from the client's brain (scripts/cerebro.mjs mudar-ultron), NEX does not start him too.
   if (ultronMoved()) console.log("[jarvis] Ultron answers from the client's brain")

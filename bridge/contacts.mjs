@@ -2,6 +2,10 @@ import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import { country, findContacts, fold, readContacts, toE164, writeContacts } from './contact-book.mjs'
 import { resolveWhen } from './phone.mjs'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { recentConversations, sendConversation, watchCall } from './llamadas-contactos.mjs'
 
 /**
  * Phoning the owner's contacts with a message from them — and hearing back.
@@ -257,7 +261,10 @@ export function contactsServer(elevenKey, zone) {
               lastByContact.delete(contact.telefono)
               return refuse(`The call to ${contact.nombre} could not be placed (error ${res.status}).`)
             }
-            return ok(`Calling ${contact.nombre} now. Their reply can be checked afterwards.`)
+            const placed = await res.json().catch(() => ({}))
+            // Live news on Telegram: dialing, answered, hung up (with what they said), or no answer.
+            if (placed.conversation_id) watchCall(placed.conversation_id, contact.nombre)
+            return ok(`Calling ${contact.nombre} now. The user gets live updates on Telegram (answered, hung up, what they said, or no answer) and the transcript and recording when it ends.`)
           } catch (err) {
             console.log(`[jarvis] call_contact failed: ${err?.message ?? err}`)
             lastCall = 0
@@ -366,6 +373,76 @@ export function contactsServer(elevenKey, zone) {
           }
           console.log('[jarvis] contacts: removed a contact')
           return ok(`Removed ${found[0].nombre}.`)
+        },
+      ),
+
+      tool(
+        'send_conversation',
+        'Send the user, to their Telegram, the transcript (.txt) and recording (.mp3) of ElevenLabs conversations: ' +
+          "calls the messenger made to a contact (de: the contact's name, or 'contactos' for the latest), Ana Sofi's sales calls " +
+          "(de: 'ana sofi', optionally with buscar: the lead's name or number), or the calls NEX made to the user (de: 'mis llamadas'). " +
+          'Use it when the user asks you to download or send a call or conversation.',
+        {
+          de: z.string().describe("A contact's name, 'contactos', 'ana sofi' or 'mis llamadas'."),
+          buscar: z.string().optional().describe("For Ana Sofi: a lead's name or phone to find."),
+          cuantas: z.union([z.number(), z.string()]).optional().catch(undefined).describe('How many (newest first), 1 to 5. Default 1.'),
+          dias: z.union([z.number(), z.string()]).optional().catch(undefined).describe('How many days back. Default 14.'),
+        },
+        async (args) => {
+          const key = elevenKey()
+          if (!key) return refuse('The ElevenLabs key is missing on this machine.')
+          const de = String(args.de ?? '').toLowerCase()
+          const n = Math.min(5, Math.max(1, Number(args.cuantas) || 1))
+          const dias = Math.min(90, Math.max(1, Number(args.dias) || 14))
+          let agent = (process.env.NEXY_MESSENGER_AGENT_ID ?? '').trim()
+          let titulo = 'Llamada a contacto'
+          let quien = 'Persona'
+          let filtro = null
+          if (/ana ?sof/.test(de)) {
+            try {
+              agent = JSON.parse(readFileSync(join(homedir(), '.nexy', 'ventas.json'), 'utf8')).agentId ?? ''
+            } catch {
+              agent = ''
+            }
+            titulo = 'Llamada de Ana Sofi'
+            quien = 'Cliente'
+            filtro = args.buscar ? String(args.buscar) : null
+          } else if (/mis llamadas|a mi|conmigo|nex/.test(de)) {
+            agent = (process.env.NEXY_CALL_AGENT_ID ?? '').trim()
+            titulo = 'Llamada de NEX contigo'
+            quien = 'Tú'
+          } else if (!/^contactos?$/.test(de)) {
+            const m = findContacts(readContacts(), args.de)
+            if (!m.length) return refuse(`"${String(args.de).slice(0, 60)}" is not a contact. Ask who.`)
+            filtro = m[0].telefono
+            titulo = `Llamada a ${m[0].nombre}`
+            quien = m[0].nombre.split(' ')[0]
+          }
+          if (!/^agent_\w+$/.test(agent)) return refuse('That agent is not set up on this machine.')
+          try {
+            const lista = await recentConversations(key, agent, dias, 50)
+            const elegidas = []
+            for (const c of lista) {
+              if (elegidas.length >= n) break
+              if (c.status && c.status !== 'done') continue
+              if (filtro) {
+                const res = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${c.conversation_id}`, { headers: { 'xi-api-key': key }, signal: AbortSignal.timeout(20_000) })
+                const d = res.ok ? await res.json() : {}
+                const vars = d.conversation_initiation_client_data?.dynamic_variables ?? {}
+                const hay = JSON.stringify([d.metadata?.phone_call?.external_number, vars]).toLowerCase()
+                const f = filtro.toLowerCase()
+                const digitos = f.replace(/\D/g, '').slice(-10)
+                if (!(hay.includes(f) || (digitos.length >= 7 && hay.replace(/\D/g, '').includes(digitos)))) continue
+              }
+              elegidas.push(c.conversation_id)
+            }
+            if (!elegidas.length) return ok(`No finished conversations found for that in the last ${dias} days.`)
+            for (const id of elegidas) await sendConversation(key, id, { titulo, nombrePersona: quien, nombreAgente: /ana/.test(titulo.toLowerCase()) ? 'Ana Sofi' : titulo.includes('NEX') ? 'NEX' : 'Mensajera' })
+            return ok(`Sent ${elegidas.length} conversation${elegidas.length === 1 ? '' : 's'} (transcript and recording) to the user's Telegram.`)
+          } catch (err) {
+            console.log(`[jarvis] send_conversation failed: ${err?.message ?? err}`)
+            return refuse(`The conversation could not be sent: ${String(err?.message ?? err).slice(0, 160)}`)
+          }
         },
       ),
 

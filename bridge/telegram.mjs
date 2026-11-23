@@ -23,6 +23,7 @@ import { zohoAction, zohoLines } from './zoho-preview.mjs'
 import { louder, smoothBoss } from './speech.mjs'
 import { addCost, costMeter } from './proyectos.mjs'
 import { cutBrain, readBrains } from './cerebros.mjs'
+import { callAgain } from './llamadas-contactos.mjs'
 
 /**
  * NEX on Telegram: the owner's way to reach her away from the office.
@@ -694,6 +695,19 @@ export async function startTelegram({ agentOptions, elevenKey, voiceId, runQuery
         await api(token, 'editMessageReplyMarkup', { chat_id: owner.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
         console.log(`[jarvis] telegram: emergency cut of brain ${id}`)
         await say(owner.id, await cutBrain(id))
+        return
+      }
+      // 🔁 under a "no answer": the same contact and message again (the tap is the owner's order).
+      if (kind === 'rellamar' && id) {
+        await api(token, 'answerCallbackQuery', { callback_query_id: q.id, text: 'Llamando otra vez…' }).catch(() => {})
+        await api(token, 'editMessageReplyMarkup', { chat_id: owner.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
+        let r
+        try {
+          r = await callAgain(elevenKey, id)
+        } catch (err) {
+          r = `No pude volver a llamar: ${String(err?.message ?? err).slice(0, 160)}`
+        }
+        await say(owner.id, r)
         return
       }
       if (kind === 'cn') {
