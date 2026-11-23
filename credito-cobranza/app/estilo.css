@@ -660,3 +660,11 @@ a.btn { text-decoration: none; }
 .foto.reus .ic { color: var(--amber); }
 .foto .chip.reu { margin-left: 6px; font-size: 10.5px; white-space: normal; }
 .note-card.reus { background: rgba(255,200,87,.10); box-shadow: inset 0 0 0 1px rgba(255,200,87,.40); margin-top: 8px; }
+/* Ventanas: la X siempre arriba a la derecha */
+.modal .card > .ph:first-child { flex-wrap: nowrap; }
+.modal .card > .ph:first-child > :first-child { min-width: 0; flex: 1 1 auto; }
+.ph > .x { flex: 0 0 auto; margin-left: auto; }
+/* «Ver como…»: la barra no tapa ventanas ni el final de la página */
+body:has(.modal) #simBar { display: none; }
+@media (max-width: 820px) { body.simulando .wrap { padding-bottom: calc(184px + env(safe-area-inset-bottom, 0px)); } }
+.tbl.cond em.chip { font-style: normal; font-size: 10px; padding: 1px 7px; margin-left: 4px; }

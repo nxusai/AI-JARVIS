@@ -1226,9 +1226,10 @@ VIEWS.originacion = {
     return `${head('Crear crédito', 'Captura la solicitud del cliente y envíala a mesa de control. Aquí también renuevas al ' + PARAM('renovacion_pct', 80) + ' % de pagos.',
       puede('crear_solicitudes') ? '<button class="btn" type="button" id="onuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo crédito</button>' : '')}
       ${(() => { const A = sc.solicitudes().filter((s) => s.estado === 'autorizada'), O = sc.solicitudes().filter((s) => s.estado === 'observada')
-        return A.length || O.length ? `<div class="grid2">
-        ${A.length ? `<div class="card panel aviso ok"><div class="ph"><div><h3>Desembolsos pendientes</h3><div class="sub">Mesa ya las autorizó. Ve con el cliente, graba el video de entrega y desembolsa.</div></div><span class="chip g">${A.length}</span></div>
-          <div class="list">${A.map((s) => `<div class="rowitem inset"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${peso(s.monto_autorizado ?? s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</div></div><div class="m"><small>${puedeDesembolsar(s) ? `<button class="btn sm" type="button" data-des="${s.id}">Grabar video y desembolsar</button>` : ''}</small></div></div>`).join('')}</div></div>` : ''}
+        const verDes = puede('desembolsar')
+        return A.length || O.length || verDes ? `<div class="grid2">
+        ${A.length || verDes ? `<div class="card panel aviso ok"><div class="ph"><div><h3>Desembolsos pendientes</h3><div class="sub">Mesa ya las autorizó. Ve con el cliente, graba el video de entrega y desembolsa.</div></div><span class="chip g">${A.length}</span></div>
+          <div class="list">${A.map((s) => `<div class="rowitem inset"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${peso(s.monto_autorizado ?? s.monto)} · ${TIPO[s.tipo] || 'Nuevo'} · ${esc(s.ruta || '')}</div></div><div class="m"><small>${puedeDesembolsar(s) ? `<button class="btn sm" type="button" data-des="${s.id}">Grabar video y desembolsar</button>` : ''}</small></div></div>`).join('') || '<div class="empty"><b>Ninguno pendiente</b>Cuando mesa autorice una solicitud tuya, aparece aquí para entregar el dinero.</div>'}</div></div>` : ''}
         ${O.length ? `<div class="card panel aviso"><div class="ph"><div><h3>Mesa pidió corrección</h3><div class="sub">Corrige o sube lo que falta y vuelve a enviar.</div></div><span class="chip a">${O.length}</span></div>
           <div class="list">${O.map((s) => `<button type="button" class="rowitem inset docrow" data-obs="${s.id}"><div><div class="t">${esc(s.cliente_nombre)}</div><div class="s">${esc(s.motivo || '')}</div></div><div class="m"><small>Abrir</small></div></button>`).join('')}</div></div>` : ''}</div>` : '' })()}
       <div class="card panel"><div class="ph"><div><h3>Mis solicitudes</h3><div class="sub">Pendientes y de los últimos 30 días · toca una para verla</div></div><span class="chip">${mias.length}</span></div>
@@ -1484,10 +1485,10 @@ function pintarCondiciones(el) {
   const celda = (g, f) => {
     const propia = DB.condiciones.find((c) => c.gerencia_id === g.id && c.frecuencia === f)
     const c = propia || (g.id != null ? DB.condiciones.find((x) => x.gerencia_id == null && x.frecuencia === f) : null)
-    const txt = !c ? '<span class="muted">—</span>' : c.activo ? `${c.interes_pct} % · ${c.num_cuotas} pagos` : '<span class="muted">No se ofrece</span>'
+    const txt = !c ? '<span class="muted">—</span>' : c.activo ? `${+c.interes_pct} % · ${c.num_cuotas} pagos` : `<span class="muted">${+c.interes_pct} % · ${c.num_cuotas} pagos</span> <em class="chip">apagada</em>`
     return `<td class="${propia || g.id == null ? '' : 'hereda'}">${puedeEditar ? `<button type="button" class="celda" data-cg="${g.id ?? ''}" data-cf="${f}">${txt}</button>` : txt}</td>`
   }
-  el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Modalidades y porcentaje por gerencia</h3><div class="sub">El asesor sólo ve las modalidades activas de su gerencia y no puede cambiar el porcentaje. En gris: usa la regla de la empresa.</div></div></div>
+  el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Modalidades y porcentaje por gerencia</h3><div class="sub">El asesor sólo ve las modalidades activas de su gerencia y no puede cambiar el porcentaje. En gris: usa la regla de la empresa. «Apagada»: ya está configurada pero no se ofrece; tócala para encenderla.</div></div></div>
     <div class="tablewrap"><table class="tbl cond"><thead><tr><th>Gerencia</th>${FRECUENCIAS.map(([, t]) => `<th>${t}</th>`).join('')}</tr></thead><tbody>
     ${filas.map((g) => `<tr><td class="strong">${esc(g.nombre)}</td>${FRECUENCIAS.map(([f]) => celda(g, f)).join('')}</tr>`).join('')}</tbody></table></div>
     ${DB.condiciones.length ? '' : '<div class="note">Falta aplicar la actualización 08 de la base de datos.</div>'}</div>`
