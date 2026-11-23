@@ -806,6 +806,7 @@ const FOTOS_SOL = ['Foto del cliente', 'INE (frente)', 'INE (reverso)', 'Comprob
   'Domicilio (frente)', 'Domicilio (lado derecho)', 'Domicilio (lado izquierdo)', 'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Video de la mercancía (15 s)']
 const FOTOS_OPC = ['Fotos de mercancía', 'Documento opcional 1', 'Documento opcional 2']
 const esVideoCat = (c) => /^Video/.test(c)
+const fechaDoc = (t) => { const d = new Date(t); return isNaN(d) ? String(t || '').slice(0, 10) : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) }
 const docsSol = (id) => DB.documentos.filter((d) => d.tipo === 'solicitud' && d.entidad_id === id)
 const faltanFotos = (id) => { const D = docsSol(id); return FOTOS_SOL.filter((f) => !D.some((d) => d.categoria === f)) }
 const mapsUrl = (lat, lng, txt) => lat != null && lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
@@ -995,16 +996,18 @@ function panelFotos(el, s) {
   const otros = D.filter((d) => !FOTOS_SOL.includes(d.categoria) && !FOTOS_OPC.includes(d.categoria) && d.categoria !== 'Video de entrega')
   const fila = (cat, opc) => {
     const L = D.filter((d) => d.categoria === cat), ok = L.length > 0, vid = esVideoCat(cat), mult = cat === 'Fotos de mercancía'
-    return `<div class="foto inset ${ok ? 'ok' : ''}${opc ? ' opc' : ''}"><span class="ic">${ok ? '✓' : opc ? '+' : '•'}</span><div class="t">${cat}${opc ? ' <span class="muted">(opcional)</span>' : ''}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}</div>
-      <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">${vid ? 'Ver video' : 'Ver'}${L.length > 1 ? ' ' + (i + 1) : ''}</button>`).join('')}
-      ${sube && (!ok || mult) ? (vid ? `<label class="btn sm"><input type="file" accept="video/*" capture="environment" data-cat="${esc(cat)}" hidden>Grabar video</label><label class="btn ghost sm"><input type="file" accept="video/*" data-cat="${esc(cat)}" hidden>Subir</label>`
-        : `<label class="btn sm"><input type="file" accept="image/*" capture="${cat === 'Foto del cliente' ? 'user' : 'environment'}" data-cat="${esc(cat)}" hidden>${ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>`) : ''}</div></div>`
+    const reus = ok && L.every((d) => d.origen_id)
+    return `<div class="foto inset ${ok ? 'ok' : ''}${opc ? ' opc' : ''}${reus ? ' reus' : ''}"><span class="ic">${ok ? '✓' : opc ? '+' : '•'}</span><div class="t">${cat}${opc ? ' <span class="muted">(opcional)</span>' : ''}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}${reus ? `<span class="chip a reu">♻ del crédito anterior · ${esc(fechaDoc(L[0].creado))}</span>` : ''}</div>
+      <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">${vid ? 'Ver video' : 'Ver'}${L.length > 1 ? ' ' + (i + 1) : ''}${L.length > 1 && d.origen_id ? ' (anterior)' : ''}</button>`).join('')}
+      ${sube && (!ok || mult || reus) ? (vid ? `<label class="btn sm"><input type="file" accept="video/*" capture="environment" data-cat="${esc(cat)}" hidden>Grabar video</label><label class="btn ghost sm"><input type="file" accept="video/*" data-cat="${esc(cat)}" hidden>Subir</label>`
+        : `<label class="btn sm"><input type="file" accept="image/*" capture="${cat === 'Foto del cliente' ? 'user' : 'environment'}" data-cat="${esc(cat)}" hidden>${reus ? 'Actualizar' : ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>`) : ''}</div></div>`
   }
   el.innerHTML = `${video ? `<div class="vid inset"><div class="ph"><h3 class="sec-title">Video de entrega</h3><span class="muted">${esc(horaLocal(video.creado))}</span></div><div data-vid></div></div>` : ''}
     <div class="ph"><h3 class="sec-title">Fotos del expediente</h3><span class="chip ${faltanFotos(s.id).length ? 'r' : 'g'}">${FOTOS_SOL.length - faltanFotos(s.id).length} de ${FOTOS_SOL.length}</span></div>
     <div class="fotos">${FOTOS_SOL.map((c) => fila(c)).join('')}${FOTOS_OPC.map((c) => fila(c, true)).join('')}</div>
     ${otros.length ? `<h3 class="sec-title" style="margin-top:10px">Otros documentos</h3><div class="list">${otros.map((d) => `<button type="button" class="rowitem inset docrow" data-doc="${d.id}"><div><div class="t">${esc(d.categoria)}</div><div class="s">${esc(d.nombre)}</div></div><div class="m"><small>Ver</small></div></button>`).join('')}</div>` : ''}
     <div class="muted" data-fmsg></div>
+    ${D.some((d) => d.origen_id) ? `<div class="note-card reus"><b>♻ Renovación:</b> la foto del cliente, la INE y el comprobante (si tiene menos de ${PARAM('comprobante_vigencia_dias', 90)} días) se tomaron solos del crédito anterior. ${sube ? 'Si cambió algo, toca <b>Actualizar</b>. ' : ''}Lo demás se toma nuevo para ver cómo está hoy su casa y su negocio.</div>` : ''}
     <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. El video de la mercancía: unos 15 segundos. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
   $$('[data-doc]', el).forEach((b) => b.addEventListener('click', () => verDocumento(DB.documentos.find((d) => d.id === +b.dataset.doc))))
   if (video) { const box = $('[data-vid]', el); if (sb) blobDe(video.path).then((u) => { box.innerHTML = `<video controls playsinline preload="metadata" src="${u}" style="width:100%;max-height:52vh;border-radius:14px;background:#000"></video>` }).catch(() => { box.innerHTML = '<div class="note">No se pudo cargar el video.</div>' }); else box.innerHTML = '<div class="note">Modo de prueba: sin video.</div>' }
@@ -1097,7 +1100,7 @@ async function imprimirExpediente(s) {
   let host = $('#printHost'); if (!host) { host = document.createElement('div'); host.id = 'printHost'; document.body.appendChild(host) }
   toast('Preparando el expediente…')
   const imgs = []
-  for (const d of D) { try { imgs.push([d.categoria, sb ? await blobDe(d.path) : '']) } catch {} }
+  for (const d of D) { try { imgs.push([d.categoria + (d.origen_id ? ' · del crédito anterior (' + fechaDoc(d.creado) + ')' : ''), sb ? await blobDe(d.path) : '']) } catch {} }
   const msgs = DB.mensajes.filter((m) => m.solicitud_id === s.id)
   host.innerHTML = `<div class="pg"><img src="logo-nexus.png" alt="Nexus Capital" class="plogo"><h1>Expediente de solicitud #${s.id}</h1>
     <p class="psub">${esc(s.cliente_nombre)} · ${TIPO[s.tipo] || 'Nuevo'} · ${EST_SOL[s.estado]?.[0] || s.estado} · impreso ${new Date().toLocaleString('es-MX')}</p>
@@ -1156,7 +1159,8 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
     titulo: editar ? 'Corregir solicitud' : { nuevo: 'Nuevo crédito', renovacion: 'Renovar crédito', recompra: 'Recompra' }[tipo],
     nota: (tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id} (prestado ${peso(ant.monto)}). Ese saldo se descuenta de lo que se le entrega.`
       : tipo === 'recompra' ? `${esc(ant.cliente)} · ya liquidó. Se crea un crédito nuevo y queda en su expediente como recompra.`
-      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span> <b>Al guardar se abre la lista de fotos y videos:</b> INE, comprobante, 3 del domicilio, 3 del negocio, foto del cliente y video de su mercancía.',
+      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span> ' + (tipo === 'nuevo' || editar ? '<b>Al guardar se abre la lista de fotos y videos:</b> INE, comprobante, 3 del domicilio, 3 del negocio, foto del cliente y video de su mercancía.'
+        : `<b>No se vuelve a subir todo:</b> la foto del cliente, la INE y el comprobante (si tiene menos de ${PARAM('comprobante_vigencia_dias', 90)} días) se toman solos del crédito anterior. Al guardar sólo tomas la solicitud firmada, la carta de ingresos, 3 fotos del domicilio, 3 del negocio y el video de su mercancía.`),
     boton: 'Guardar solicitud', campos,
     guardar: async (v) => {
       const err = (t) => { const x = new Error(t); x.userMsg = t; throw x }
@@ -1184,7 +1188,11 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
       const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row).select('id').single())
       if (!ok) return ''
       const nid = editar ? editar.id : ok.id
-      if (nid) setTimeout(() => { detalleSolicitud(nid, 'archivos'); toast('Ahora toma las fotos: INE, comprobante, casa, negocio y mercancía.') }, 50)
+      if (nid) setTimeout(() => {
+        detalleSolicitud(nid, 'archivos')
+        const r = docsSol(nid).filter((d) => d.origen_id).length, f = faltanFotos(nid).length
+        toast(r ? `Se tomaron ${r} documentos del crédito anterior. Faltan ${f}: casa, negocio, solicitud y mercancía.` : 'Ahora toma las fotos: INE, comprobante, casa, negocio y mercancía.')
+      }, 50)
       return v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.'
     },
   })

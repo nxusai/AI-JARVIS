@@ -655,3 +655,8 @@ a.btn { text-decoration: none; }
   .tiles { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
   .tile { min-height: 124px; padding: 14px; }
 }
+/* Renovación: documentos tomados del crédito anterior */
+.foto.reus { border-left-color: var(--amber); }
+.foto.reus .ic { color: var(--amber); }
+.foto .chip.reu { margin-left: 6px; font-size: 10.5px; white-space: normal; }
+.note-card.reus { background: rgba(255,200,87,.10); box-shadow: inset 0 0 0 1px rgba(255,200,87,.40); margin-top: 8px; }
