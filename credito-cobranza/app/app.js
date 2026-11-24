@@ -516,7 +516,7 @@ function inicioCampo() {
   const S = sc.solicitudes(), A = S.filter((x) => x.estado === 'autorizada' && puedeDesembolsar(x)).length, O = S.filter((x) => x.estado === 'observada').length
   const R = act.filter(puedeRenovar).length, N = Math.round(normalidadHoy(sc.cartera()).p)
   const caja = sum(sc.rutas(), (r) => saldos(hoy).get('ruta:' + r.ruta_id) || 0)
-  const nombre = (DB.perfil.nombre || '').split(' ')[0]
+  const nombre = SIM && SIM.nombre === ROLES[SIM.rol] ? '' : (DB.perfil.nombre || '').split(' ')[0]
   const h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
   const C = 2 * Math.PI * 54
   const tiles = [
@@ -551,7 +551,7 @@ VIEWS.tablero = {
     if (esInicioCampo()) return inicioCampo()
     const h = new Date().getHours()
     const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
-    const nombre = (DB.perfil.nombre || '').split(' ')[0]
+    const nombre = SIM && SIM.nombre === ROLES[SIM.rol] ? '' : (DB.perfil.nombre || '').split(' ')[0]
     return `<div class="top">
         <div class="hello"><h1>${saludo}${nombre ? ', ' + esc(nombre) : ''}</h1><p>Así va la cartera de ${esc(scopeLabel())} hoy.</p></div>
         <div class="toolbar">${scopeField()}
@@ -887,7 +887,7 @@ function detalleSolicitud(id, tab = 'datos') {
     <div class="tabs stabs" id="stabs">${[['datos', 'Datos'], ['archivos', `Archivos (${docsSol(s.id).length})`], ['historial', 'Historial'], ['conversacion', `Conversación${msgs.length ? ' (' + msgs.length + ')' : ''}`]].map(([t, l]) => `<button type="button" data-st="${t}" class="${t === tab ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div id="sbody"></div>
     <div class="err" id="sErr" role="alert" style="color:var(--red);font-weight:600"></div>
-    ${acc.length ? `<div class="toolbar sacc" style="justify-content:flex-end">${acc.join('')}</div>` : ''}`)
+    ${acc.length ? `${SIM ? '<div class="note">Vista de prueba: así ve estos botones quien tiene este cargo. Aquí no guardan nada.</div>' : ''}<div class="toolbar sacc${SIM ? ' simacc' : ''}" style="justify-content:flex-end">${acc.join('')}</div>` : ''}`)
   const pinta = (t) => {
     $$('#stabs button').forEach((b) => b.classList.toggle('on', b.dataset.st === t))
     const el = $('#sbody'); if (!el) return

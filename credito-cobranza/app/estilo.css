@@ -668,3 +668,14 @@ a.btn { text-decoration: none; }
 body:has(.modal) #simBar { display: none; }
 @media (max-width: 820px) { body.simulando .wrap { padding-bottom: calc(184px + env(safe-area-inset-bottom, 0px)); } }
 .tbl.cond em.chip { font-style: normal; font-size: 10px; padding: 1px 7px; margin-left: 4px; }
+/* «Ver como…»: barra en una sola línea, abajo al centro, sin tapar el aviso ni la insignia */
+#simBar { flex-wrap: nowrap; }
+#simBar span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 821px) {
+  #simBar { top: auto; bottom: 18px; max-width: min(760px, calc(100vw - 480px)); }
+  body.simulando .main { padding-top: 0; }
+  body.simulando .wrap { padding-bottom: 90px; }
+}
+.sacc.simacc .btn { opacity: .6; }
+/* Celular: el aviso de datos de ejemplo se queda arriba y no persigue al bajar */
+@media (max-width: 820px) { .demo-banner { position: relative; } }
