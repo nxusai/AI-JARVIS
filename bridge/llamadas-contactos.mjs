@@ -263,34 +263,67 @@ export function startContactCallWatch(elevenKey) {
   void ensureMessengerPrompt(elevenKey)
 }
 
-// -- the message survives interruptions ---------------------------------------------
+// -- how the messenger talks -------------------------------------------------------
 
-const MARCA = 'MENSAJE DE ESTA LLAMADA:'
-export const MESSAGE_BLOCK = `${MARCA} {{nexy_brief}}
-- Tu trabajo en esta llamada es que la persona reciba ESE mensaje completo. No cuelgues sin haberlo dado completo.
-- Si te interrumpen mientras lo das (te hablan encima, te saludan, preguntan quién eres, hay ruido), contesta en una frase corta y luego di: "Te repito el mensaje de Eduardo:" y da el mensaje COMPLETO otra vez, desde el principio.
-- Si no sabes si lo escuchó completo, repítelo completo. Al final pregunta si quedó claro o si quiere dejarle una respuesta a Eduardo, y escúchala.
-- Ignora ruidos, sonidos, palabras sueltas o frases sin sentido: no les respondas y nunca digas que no tienes mensaje.`
+/**
+ * Her instructions, greeting and voice, kept by NEX (rewritten at each start
+ * when they differ). A real executive assistant from Mexico on the phone: warm,
+ * brief, introduces herself once, gives the message in her own words, never
+ * sounds like a system.
+ */
+const VERSION = 'mensajera v3'
+export const MESSENGER_GREETING = '¡Hola! ¿Hablo con {{contact_name}}? Qué tal, le habla Nex, la asistente de Eduardo Ramos.'
+export const MESSENGER_PROMPT = `Eres Nex, la asistente personal de Eduardo Ramos, director de NXUS AI. Eres mujer. Estás llamando por teléfono a {{contact_name}} para darle un recado de Eduardo. Hablas como una asistente ejecutiva mexicana real: cálida, segura, educada y natural. Nunca suenas a robot, a sistema ni a contestadora.
 
-/** The messenger's instructions carry the message and the "repeat it after an interruption" rule (once per start). */
+EL RECADO DE EDUARDO: {{nexy_brief}}
+
+Cómo va la llamada:
+1. Ya saludaste y te presentaste en tu primer mensaje. NO te vuelvas a presentar ni repitas el saludo.
+2. En cuanto la persona conteste (aunque sea "sí", "bueno", "dígame", "¿quién habla?"), da el recado con tus propias palabras, como lo diría una persona, de parte de Eduardo y en tercera persona: "Le llamo porque Eduardo me pidió que le comentara que…". Una o dos frases, claro y amable. Si el recado viene escrito como si Eduardo hablara ("quiero presentarme", "llámame"), pásalo a como lo diría su asistente ("Eduardo quiere presentarse con usted", "le pide que le regrese la llamada").
+3. Después deja hablar a la persona. Si te responde algo, contesta como persona y confírmale que se lo vas a decir a Eduardo, con palabras distintas cada vez ("Perfecto, yo se lo comento a Eduardo en cuanto colguemos", "Claro que sí, le digo que le marque más tarde"). Nunca digas "anotado", "registrado", "quedó guardado", "mensaje recibido" ni frases de sistema.
+4. Si te interrumpen antes de terminar el recado, atiende lo que te dicen en una frase y termina el recado (lo que faltó, o completo si se perdió). Si ya lo escuchó completo, no lo repitas, salvo que te lo pida.
+5. Si pregunta quién eres o de dónde llamas: "Soy Nex, la asistente de Eduardo Ramos, de NXUS AI".
+6. Si pregunta algo que no está en el recado (precios, detalles, horarios), no inventes: dile con amabilidad que Eduardo le da ese detalle y que se lo comentas.
+7. Si te dice que está ocupada, ofrece que Eduardo le llame después y despídete.
+8. Al final, si hace falta, pregunta de forma natural "¿Quiere que le diga algo de su parte?". Despídete breve y cálida ("Muchas gracias, {{contact_name}}, que tenga excelente día") y termina la llamada.
+9. Si contesta un buzón o una contestadora, deja el recado una sola vez, breve, y cuelga.
+
+Cómo hablas:
+- De usted, por respeto (es una llamada de trabajo). Si la persona te habla de tú, tutéala.
+- Frases cortas y naturales, con expresiones ligeras de vez en cuando ("claro", "perfecto", "ah, muy bien", "mire") sin abusar ni repetir la misma.
+- Nada de listas ni preguntas de robot como "¿quedó claro?".
+- Ignora ruidos y palabras sueltas; si no entendiste, pide con amabilidad que te lo repita.
+- Español de México, con calidez.
+(${VERSION})`
+
+/** Her instructions, greeting and a more human voice (once per start, only if they differ). */
 export async function ensureMessengerPrompt(elevenKey) {
   const key = elevenKey()
   const agent = agentId()
   if (!key || !/^agent_\w+$/.test(agent)) return
   try {
     const a = await el(key, `/agents/${agent}`)
-    const p = a.conversation_config?.agent?.prompt
+    const conv = a.conversation_config ?? {}
+    const p = conv.agent?.prompt
     if (!p) return
-    const texto = String(p.prompt ?? '')
-    const i = texto.indexOf(MARCA)
-    const nuevo = `${(i >= 0 ? texto.slice(0, i) : texto).trim()}\n\n${MESSAGE_BLOCK}`
-    if (nuevo === texto) return
+    if (String(p.prompt ?? '').includes(`(${VERSION})`) && conv.agent?.first_message === MESSENGER_GREETING) return
     // ElevenLabs refuses a prompt with both `tools` and `tool_ids`.
     const { tools: _t, ...sinTools } = p
-    const prompt = Array.isArray(p.tool_ids) ? sinTools : p
-    await el(key, `/agents/${agent}`, { method: 'PATCH', body: { conversation_config: { agent: { prompt: { ...prompt, prompt: nuevo } } } } })
-    console.log('[jarvis] contact calls: messenger instructions updated (the message survives interruptions)')
+    const prompt = { ...(Array.isArray(p.tool_ids) ? sinTools : p), prompt: MESSENGER_PROMPT, temperature: 0.7 }
+    const agentPart = { first_message: MESSENGER_GREETING, language: 'es', prompt }
+    // A more human voice: the expressive agents model, a little less stable (more intonation). Same voice.
+    const tts = { ...(conv.tts ?? {}), model_id: 'eleven_v4_turbo', expressive_mode: true, stability: 0.4, similarity_boost: 0.8, speed: 1.0 }
+    const turn = { ...(conv.turn ?? {}), turn_eagerness: 'patient' }
+    try {
+      await el(key, `/agents/${agent}`, { method: 'PATCH', body: { conversation_config: { agent: agentPart, tts, turn } } })
+    } catch (err) {
+      // An account without the expressive model: the rest still goes, with Turbo v2.5.
+      console.log(`[jarvis] contact calls: expressive voice refused (${err.message.slice(0, 120)}); using Turbo v2.5`)
+      const { expressive_mode: _e, ...plain } = tts
+      await el(key, `/agents/${agent}`, { method: 'PATCH', body: { conversation_config: { agent: agentPart, tts: { ...plain, model_id: 'eleven_turbo_v2_5', stability: 0.45 }, turn } } })
+    }
+    console.log('[jarvis] contact calls: messenger updated (natural, introduces herself once, warmer voice)')
   } catch (err) {
-    console.log(`[jarvis] contact calls: messenger instructions not updated (${err.message})`)
+    console.log(`[jarvis] contact calls: messenger not updated (${err.message})`)
   }
 }
