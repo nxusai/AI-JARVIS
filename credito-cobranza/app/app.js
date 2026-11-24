@@ -177,7 +177,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -191,8 +191,9 @@ async function loadRaw(perfil) {
     opt('personal', (q) => q.order('id')), opt('peticiones', (q) => q.order('creado', { ascending: false })),
     opt('documentos', (q) => q.order('creado', { ascending: false })), opt('permisos', (q) => q),
     opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')), opt('permisos_usuario', (q) => q),
+    opt('bitacora', (q) => q.gte('cuando', addDays(iso(new Date()), -120)).order('cuando', { ascending: false })),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -240,7 +241,7 @@ function prep(raw) {
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
     personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
-    permisosUsuario: raw.permisosUsuario || [],
+    permisosUsuario: raw.permisosUsuario || [], bitacora: raw.bitacora || [],
     condiciones: (raw.condiciones || []).map((x) => ({ ...x, interes_pct: +x.interes_pct, num_cuotas: +x.num_cuotas })), mensajes: raw.mensajes || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
@@ -1813,7 +1814,17 @@ VIEWS.admin = {
       $('#ppet').addEventListener('click', enviarPeticion)
       $$('[data-pet]').forEach((sel) => sel.addEventListener('change', async () => { try { await escribir(() => sb.from('peticiones').update({ estado: sel.value }).eq('id', +sel.dataset.pet)); toast('Petición actualizada.') } catch (e) { toast(e.userMsg || 'No se pudo actualizar.', 'warn') } }))
     } else {
-      el.innerHTML = `<div class="card panel"><div class="ph"><h3>Bitácora</h3><span class="chip">0 eventos</span></div><div class="empty"><b>Sin eventos todavía</b>Cada alta, cambio, pago, reverso o cierre quedará aquí: quién, cuándo, qué y por qué.</div></div>`
+      // Bitácora: la escribe la base de datos sola en cada acción importante; nadie la edita.
+      const NP = Object.fromEntries(PERMISOS.flatMap(([, L]) => L)), quien = (id) => id ? (DB.perfiles.find((u) => u.id === id)?.nombre || 'Usuario') : 'Sistema'
+      const det = (t) => esc(t || '').replace(/\b(ver_[a-z_]+|registrar_[a-z_]+|crear_[a-z_]+|resolver_[a-z_]+|autorizar_[a-z_]+|reasignar_[a-z_]+|ordenar_[a-z_]+|subir_[a-z_]+|descargar_[a-z_]+|capturar_[a-z_]+|tesoreria_[a-z_]+|desembolsar)\b/g, (k) => NP[k] ? '«' + NP[k] + '»' : k)
+        .replace(/^(dueno|direccion|regional|zonal|gerente|asesor|mesa|tesoreria|consulta):/, (m, r) => (ROLES[r] || r) + ':')
+      const L = DB.bitacora || [], q = (this.qb || '').toLowerCase()
+      const F = L.filter((x) => !q || [quien(x.usuario), x.accion, x.detalle].join(' ').toLowerCase().includes(q))
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Bitácora</h3><div class="sub">La base de datos registra sola cada acción importante: quién, cuándo y qué. Nadie la puede editar ni borrar. Últimos 120 días.</div></div><span class="chip">${L.length} eventos</span></div>
+        <input class="ctl" id="bq" placeholder="Buscar por persona, acción o cliente…" value="${esc(this.qb || '')}">
+        ${L.length ? tabla([{ t: 'Cuándo', f: (x) => esc(horaLocal(x.cuando)) }, { t: 'Quién', f: (x) => `<b>${esc(quien(x.usuario))}</b>` }, { t: 'Acción', k: 'accion' }, { t: 'Detalle', f: (x) => det(x.detalle) }], F.slice(0, 300))
+          : '<div class="empty"><b>Sin eventos todavía</b>Desde que se activa, cada pago, solicitud, desembolso, movimiento de dinero, cambio de usuario, permiso, parámetro o modalidad queda aquí.</div>'}</div>`
+      $('#bq')?.addEventListener('input', (e) => { this.qb = e.target.value; const pos = e.target.selectionStart; this.paint ? this.paint() : render(); const i = $('#bq'); if (i) { i.focus(); i.setSelectionRange(pos, pos) } })
     }
   },
 }
