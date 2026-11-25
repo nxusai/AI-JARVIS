@@ -1,0 +1,236 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--v:#1c3a2d;--v2:#2b5743;--vo:#0f2219;--m:#c9975b;--m2:#e2bb87;--c:#f6f1e7;--t:#13241c}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;background:#000;overflow:hidden}
+#st{position:absolute;inset:0;font-family:Inter,sans-serif;color:#fff;overflow:hidden}
+.sc{position:absolute;inset:0;overflow:hidden}
+.abs{position:absolute}
+.cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.serif{font-family:'Playfair Display',serif}
+.tag{position:absolute;left:90px;top:70px;display:flex;align-items:center;gap:16px;font:700 22px Inter;letter-spacing:.28em;text-transform:uppercase;color:#fff;padding:14px 26px 14px 20px;border-radius:40px;background:rgba(15,34,25,.72);backdrop-filter:blur(6px);border:1px solid rgba(226,187,135,.35)}
+.tag i{width:12px;height:12px;border-radius:50%;background:var(--m2);box-shadow:0 0 14px var(--m2)}
+.chip{position:absolute;display:flex;align-items:center;gap:16px;padding:18px 30px;border-radius:16px;background:rgba(246,241,231,.96);color:var(--t);font:600 32px Inter;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.chip b{width:14px;height:14px;border-radius:4px;background:var(--m);flex:none}
+.card{position:absolute;background:#fff;border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+.sub{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);max-width:1500px;text-align:center;font:600 36px/1.3 Inter;color:#fff;padding:12px 30px;border-radius:14px;background:rgba(8,18,13,.62);white-space:nowrap}
+</style></head><body><div id="st"></div>
+<script>
+const W = 1920, H = 1080
+const cl = (x) => Math.max(0, Math.min(1, x))
+const ss = (x) => { x = cl(x); return x * x * (3 - 2 * x) }
+const eo = (x) => 1 - Math.pow(1 - cl(x), 3)
+const ap = (t, t0, d = 0.6) => eo((t - t0) / d)
+const out = (t, t1, d = 0.4) => 1 - ss((t - t1) / d)
+const vis = (t, t0, t1, d = 0.6) => Math.min(ap(t, t0, d), out(t, t1))
+const up = (a, px = 40) => `opacity:${a};transform:translateY(${(1 - a) * px}px)`
+const pad = (n) => String(n).padStart(4, '0')
+const fr = (dir, t, t0, n) => `${dir}/${pad(Math.min(n, Math.max(1, Math.floor((t - t0) * 30) + 1)))}.jpg`
+const money = (v) => '$' + Math.round(v).toLocaleString('en-US')
+
+// ---- Subtítulos (texto del guion, tiempos de la voz) ----
+const SUB = [[0.0,'Cada llamada que entra a El Abuelito'],[1.34,'la contesta una persona,'],[2.28,'y la forma en que trabaja esa persona'],[4.24,'se escucha del otro lado de la línea.'],[6.16,'Hoy el equipo atiende desde este espacio.'],[8.39,'El trabajo sale, pero cada puesto es distinto.'],[10.75,'Escritorios que no combinan,'],[12.15,'sillas que no se ajustan y poco orden alrededor.'],[14.09,'Cuando un equipo trabaja cómodo, en un lugar ordenado'],[16.19,'y con buenas herramientas,'],[17.29,'se cansa menos, se concentra mejor'],[19.11,'y atiende con más seguridad.'],[20.55,'Por eso proponemos cinco puestos iguales:'],[22.67,'escritorio con cajonera, silla ergonómica ajustable,'],[25.53,'monitor de 24 pulgadas'],[26.87,'y diadema profesional para cada agente.'],[28.69,'El diseño principal se llama Executive Wood:'],[30.97,'madera clara con detalles en verde El Abuelito.'],[33.29,'Aprovecha el local actual: el piso, las ventanas'],[35.71,'y el aire acondicionado,'],[36.81,'y le da al equipo una imagen profesional.'],[38.81,'También hay una versión clara'],[39.97,'y otra con muro verde, para elegir el estilo.'],[42.29,'Una zona compartida de impresión libera los escritorios.'],[44.98,'Y el uniforme: polo verde bordado,'],[46.72,'pantalón negro y calzado cómodo,'],[48.24,'hace que el equipo se vea y se sienta como uno solo.'],[50.3,'La inversión estimada es de $54,615 pesos'],[52.66,'reutilizando las computadoras que funcionen,'],[54.52,'o $96,965 pesos con cinco mini PC nuevas.'],[57.72,'Todo sujeto a cotización.'],[59.72,'Y no hay que decidir todo de una vez.'],[61.42,'Primero probamos un solo puesto durante una jornada real,'],[63.96,'revisando el espacio, la comodidad y las llamadas.'],[66.78,'Les pedimos autorizar un puesto piloto.'],[68.45,'Con esa prueba y las cotizaciones en la mano,'],[70.17,'decidimos juntos cómo renovar los cinco,'],[71.99,'porque un mejor lugar de trabajo se nota en cada llamada.'],[74.9,'']]
+window.SUB = SUB
+function subtitle(t) {
+  for (let i = 0; i < SUB.length - 1; i++) {
+    const [a, txt] = SUB[i], b = SUB[i + 1][0]
+    if (t >= a - 0.05 && t < b && txt) {
+      const o = Math.min(ap(t, a - 0.05, 0.15), 1 - ss((t - (b - 0.12)) / 0.12))
+      return `<div class="sub" style="opacity:${o}">${txt}</div>`
+    }
+  }
+  return ''
+}
+
+// ---- Escenas ----
+const tag = (txt, a = 1) => `<div class="tag" style="opacity:${a}"><i></i>${txt}</div>`
+const greenBg = `background:radial-gradient(1200px 800px at 75% 20%, #2b5743 0%, #1c3a2d 45%, #0f2219 100%)`
+
+function s1(t) { // Gancho
+  const k = 1.08 + 0.1 * ss(t / 6.5)
+  const bars = Array.from({ length: 34 }, (_, i) => {
+    const h = 14 + 60 * Math.abs(Math.sin(t * 5.2 + i * 0.7) * Math.sin(t * 2.3 + i * 0.31))
+    return `<div style="width:8px;height:${h}px;border-radius:4px;background:var(--m2);opacity:${0.35 + 0.65 * (i % 3 === 0)}"></div>`
+  }).join('')
+  return `<img class="cover" src="F2.jpg" style="transform:scale(${k});filter:blur(3px) saturate(.7)">
+  <div class="abs" style="inset:0;background:linear-gradient(90deg,rgba(15,34,25,.94) 0%,rgba(15,34,25,.82) 48%,rgba(15,34,25,.45) 100%)"></div>
+  <div class="abs" style="left:130px;top:250px;${up(ap(t, 0.15))};font:700 22px Inter;letter-spacing:.32em;color:var(--m2)">EL ABUELITO · CENTRO DE LLAMADAS</div>
+  <div class="abs serif" style="left:126px;top:310px;font:600 104px/1.08 'Playfair Display';width:1300px">
+    <div style="${up(ap(t, 0.25, 0.8), 50)}">Cada llamada</div>
+    <div style="${up(ap(t, 1.3, 0.8), 50)}">la contesta una persona.</div></div>
+  <div class="abs serif" style="left:130px;top:580px;${up(ap(t, 2.4, 0.9), 30)};font:italic 500 56px 'Playfair Display';color:var(--m2);width:1300px">Y su forma de trabajar se escucha<br>del otro lado de la línea.</div>
+  <div class="abs" style="left:130px;top:790px;display:flex;align-items:center;gap:7px;opacity:${ap(t, 3.2, 1)}">${bars}</div>`
+}
+
+function photoCard(src, x, y, w, h, rot, a, t, t0) {
+  const k = 1.04 + 0.06 * ss((t - t0) / 8)
+  return `<div class="card" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;padding:14px;opacity:${a};transform:translateY(${(1 - a) * 60}px) rotate(${rot}deg)">
+    <div style="position:relative;width:100%;height:100%;overflow:hidden;border-radius:12px"><img class="cover" src="${src}" style="transform:scale(${k})"></div></div>`
+}
+function s2(t) { // Estado actual
+  const chips = [[10.75, 'Escritorios que no combinan'], [12.15, 'Sillas que no se ajustan'], [13.09, 'Poco orden alrededor']]
+  return `<div class="abs" style="inset:0;${greenBg}"></div>
+  ${tag('Estado actual', ap(t, 6.2))}
+  <div class="abs serif" style="left:92px;top:150px;${up(ap(t, 6.3))};font:600 64px 'Playfair Display'">Hoy el equipo atiende desde este espacio</div>
+  ${photoCard('F1.jpg', 92, 270, 840, 630, -1.2, ap(t, 6.4, 0.8), t, 6.4)}
+  ${photoCard('F3.jpg', 988, 270, 840, 630, 1.2, ap(t, 8.4, 0.8), t, 8.4)}
+  ${chips.map(([t0, txt], i) => `<div class="chip" style="left:${140 + i * 560}px;top:850px;${up(ap(t, t0, 0.5), 30)}"><b></b>${txt}</div>`).join('')}`
+}
+
+const ICON = {
+  energia: `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#e2bb87" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>`,
+  foco: `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#e2bb87" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.8" fill="#e2bb87"/></svg>`,
+  voz: `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#e2bb87" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-2 2.5-5 2.5"/></svg>`,
+}
+function s3(t) { // Por qué importa
+  const words = [[14.97, 'Comodidad'], [15.65, 'Orden'], [16.51, 'Buenas herramientas']]
+  const cards = [[17.29, 'energia', 'Se cansa', 'menos'], [18.37, 'foco', 'Se concentra', 'mejor'], [19.53, 'voz', 'Atiende con', 'más seguridad']]
+  return `<img class="cover" src="${fr('fr/c3s', t, 13.9, 194)}" style="filter:blur(10px) saturate(.8);transform:scale(1.08)">
+  <div class="abs" style="inset:0;background:rgba(15,34,25,.78)"></div>
+  <div class="abs" style="left:0;right:0;top:170px;text-align:center;display:flex;justify-content:center;gap:60px">
+    ${words.map(([t0, w], i) => `<div style="${up(ap(t, t0, 0.5), 30)};font:600 64px 'Playfair Display';color:${i === 2 ? 'var(--m2)' : '#fff'}">${w}${i < 2 ? '<span style="color:var(--m2);margin-left:60px">·</span>' : ''}</div>`).join('')}</div>
+  <div class="abs" style="left:0;right:0;top:330px;text-align:center;${up(ap(t, 14.2), 20)};font:600 24px Inter;letter-spacing:.3em;color:rgba(255,255,255,.7)">CUANDO EL EQUIPO TRABAJA A GUSTO</div>
+  ${cards.map(([t0, ic, a, b], i) => {
+    const o = ap(t, t0, 0.6)
+    return `<div class="abs" style="left:${200 + i * 540}px;top:450px;width:480px;height:380px;border-radius:26px;background:rgba(246,241,231,.08);border:1px solid rgba(226,187,135,.4);backdrop-filter:blur(8px);opacity:${o};transform:translateY(${(1 - o) * 60}px) scale(${0.94 + 0.06 * o});display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px">
+      <div style="width:120px;height:120px;border-radius:50%;background:rgba(226,187,135,.12);display:grid;place-items:center">${ICON[ic]}</div>
+      <div style="text-align:center;font:500 40px/1.2 Inter">${a}<br><span style="font:italic 600 54px 'Playfair Display';color:var(--m2)">${b}</span></div></div>`
+  }).join('')}`
+}
+
+function product(src, x, y, a, name, desc) {
+  return `<div class="abs" style="left:${x}px;top:${y}px;width:400px;opacity:${a};transform:translateY(${(1 - a) * 50}px)">
+    <div style="height:400px;border-radius:24px;background:#fff;box-shadow:0 24px 60px rgba(20,40,30,.18);display:grid;place-items:center;overflow:hidden"><img src="${src}" style="max-width:86%;max-height:86%;object-fit:contain"></div>
+    <div style="margin-top:26px;font:700 32px Inter;color:var(--t)">${name}</div>
+    <div style="margin-top:6px;font:500 24px Inter;color:#5d6d64">${desc}</div></div>`
+}
+function s4(t) { // 5 puestos
+  const n = Math.round(1 + 4 * ss((t - 21.2) / 0.9))
+  return `<div class="abs" style="inset:0;background:linear-gradient(180deg,#f6f1e7,#ece3d2)"></div>
+  <div class="abs" style="left:90px;top:70px;${up(ap(t, 20.6))};display:flex;align-items:center;gap:16px;font:700 22px Inter;letter-spacing:.28em;color:var(--v2)"><i style="width:12px;height:12px;border-radius:50%;background:var(--m)"></i>LA PROPUESTA</div>
+  <div class="abs serif" style="left:90px;top:120px;${up(ap(t, 20.7))};font:600 92px 'Playfair Display';color:var(--t)"><span style="color:var(--m)">${n}</span> puestos iguales</div>
+  <div class="abs" style="left:94px;top:240px;${up(ap(t, 21.6))};font:500 30px Inter;color:#5d6d64">Cada agente con el mismo equipo de trabajo</div>
+  ${product('p6.png', 110, 330, ap(t, 22.67), 'Escritorio', 'con cajonera')}
+  ${product('p7.png', 560, 330, ap(t, 23.99), 'Silla ergonómica', 'ajustable')}
+  ${product('p8.png', 1010, 330, ap(t, 25.53), 'Monitor 24"', 'Full HD')}
+  ${product('p11.png', 1460, 330, ap(t, 27.2), 'Diadema', 'profesional')}`
+}
+
+function s5(t) { // Executive Wood
+  const tb = vis(t, 29.9, 33.0)
+  const items = [[33.29, 'Mismo local'], [34.53, 'Mismo piso'], [35.23, 'Mismas ventanas'], [36.05, 'Mismo aire acondicionado']]
+  const ip = vis(t, 33.29, 38.6)
+  return `<img class="cover" src="${fr('fr/a', t, 28.6, 298)}">
+  <div class="abs" style="inset:0;background:linear-gradient(90deg,rgba(15,34,25,.85) 0%,rgba(15,34,25,.35) 42%,rgba(15,34,25,0) 70%)"></div>
+  ${tag('Concepto de diseño', ap(t, 28.8))}
+  <div class="abs" style="left:96px;top:600px;opacity:${tb}">
+    <div style="${up(ap(t, 29.9))};font:700 22px Inter;letter-spacing:.3em;color:var(--m2)">DISEÑO PRINCIPAL</div>
+    <div class="serif" style="${up(ap(t, 30.0, 0.8), 50)};font:600 120px/1.05 'Playfair Display';margin-top:10px">Executive Wood</div>
+    <div style="${up(ap(t, 30.97))};font:500 36px Inter;margin-top:18px;color:#f1ebe0">Madera clara con detalles en <span style="color:var(--m2);font-weight:700">verde El Abuelito</span></div></div>
+  <div class="abs" style="left:96px;top:300px;opacity:${ip}">
+    <div style="${up(ap(t, 33.29))};font:700 22px Inter;letter-spacing:.3em;color:var(--m2);margin-bottom:26px">APROVECHA LO QUE YA HAY</div>
+    ${items.map(([t0, txt]) => `<div style="${up(ap(t, t0, 0.5), 30)};display:flex;align-items:center;gap:20px;font:600 44px Inter;margin:20px 0"><span style="width:44px;height:44px;border-radius:50%;background:var(--m);display:grid;place-items:center;font:800 26px Inter;color:var(--vo)">✓</span>${txt}</div>`).join('')}
+    <div class="serif" style="${up(ap(t, 37.2, 0.7), 30)};font:italic 600 64px 'Playfair Display';color:var(--m2);margin-top:40px">Una imagen profesional.</div></div>`
+}
+
+function s6(t) { // Variantes
+  const lab = (txt, a, x) => `<div class="abs" style="left:${x}px;bottom:150px;${up(a, 30)};padding:18px 30px;border-radius:14px;background:rgba(15,34,25,.82);font:600 38px 'Playfair Display'">${txt}</div>`
+  return `<div class="abs" style="left:0;top:0;width:960px;height:1080px;overflow:hidden"><img src="${fr('fr/b2', t, 38.7, 149)}" style="position:absolute;left:-480px;top:0;width:1920px;height:1080px"></div>
+  <div class="abs" style="left:960px;top:0;width:960px;height:1080px;overflow:hidden"><img src="${fr('fr/c3', t, 38.7, 149)}" style="position:absolute;left:-300px;top:0;width:1920px;height:1080px"></div>
+  <div class="abs" style="left:956px;top:0;width:8px;height:1080px;background:var(--m)"></div>
+  ${tag('Concepto de diseño · Variantes', ap(t, 38.8))}
+  ${lab('Variante clara', ap(t, 39.31), 70)}
+  ${lab('Variante con muro verde', ap(t, 40.57), 1030)}`
+}
+
+function s7(t) { // Zona de impresión
+  return `<img class="cover" src="${fr('fr/b3', t, 42.2, 149)}">
+  <div class="abs" style="inset:0;background:linear-gradient(270deg,rgba(15,34,25,.88) 0%,rgba(15,34,25,.5) 38%,rgba(15,34,25,0) 62%)"></div>
+  ${tag('Concepto de diseño', ap(t, 42.3))}
+  <div class="card" style="right:110px;top:180px;width:420px;height:420px;display:grid;place-items:center;${up(ap(t, 42.5), 50)}"><img src="p9.png" style="max-width:90%;max-height:90%"></div>
+  <div class="abs" style="right:110px;top:640px;width:620px;text-align:right">
+    <div class="serif" style="${up(ap(t, 42.47))};font:600 62px/1.1 'Playfair Display'">Zona compartida<br>de impresión</div>
+    <div style="${up(ap(t, 43.87))};font:500 34px Inter;color:var(--m2);margin-top:20px">Escritorios libres y ordenados</div></div>`
+}
+
+function s8(t) { // Uniforme
+  const items = [[45.66, 'Polo verde bordado'], [46.72, 'Pantalón negro'], [47.5, 'Calzado cómodo']]
+  return `<div class="abs" style="inset:0;${greenBg}"></div>
+  <div class="card" style="left:150px;top:110px;width:640px;height:860px;display:grid;place-items:center;background:#fff;${up(ap(t, 45.1, 0.8), 60)}"><img src="p12.png" style="height:820px;width:600px;object-fit:contain"></div>
+  <div class="abs" style="left:900px;top:190px">
+    <div style="${up(ap(t, 45.1))};font:700 22px Inter;letter-spacing:.3em;color:var(--m2)">IMAGEN DEL EQUIPO</div>
+    <div class="serif" style="${up(ap(t, 45.22, 0.8))};font:600 110px 'Playfair Display';margin:10px 0 40px">Uniforme</div>
+    ${items.map(([t0, txt]) => `<div style="${up(ap(t, t0, 0.5), 30)};display:flex;align-items:center;gap:22px;font:600 46px Inter;margin:26px 0"><span style="width:18px;height:18px;border-radius:5px;background:var(--m)"></span>${txt}</div>`).join('')}
+    <div class="serif" style="${up(ap(t, 48.6, 0.8))};font:italic 600 60px 'Playfair Display';color:var(--m2);margin-top:56px">Un solo equipo.</div></div>`
+}
+
+function s9(t) { // Inversión
+  const box = (x, t0, tc, val, usd, l1, l2, hi) => {
+    const o = ap(t, t0, 0.7), v = val * ss((t - tc) / 1.3)
+    return `<div class="abs" style="left:${x}px;top:300px;width:780px;height:470px;border-radius:28px;padding:50px 56px;background:${hi ? 'rgba(246,241,231,.97)' : 'rgba(246,241,231,.1)'};color:${hi ? 'var(--t)' : '#fff'};border:1px solid rgba(226,187,135,.5);opacity:${o};transform:translateY(${(1 - o) * 60}px)">
+      <div style="font:700 22px Inter;letter-spacing:.28em;color:var(--m)">${l1}</div>
+      <div style="font:700 112px Inter;letter-spacing:-.02em;margin-top:30px;font-variant-numeric:tabular-nums">${money(v)}<span style="font:600 40px Inter;margin-left:14px;opacity:.7">MXN</span></div>
+      <div style="font:500 26px Inter;opacity:.6;margin-top:6px">≈ US$${usd}</div>
+      <div style="font:600 36px/1.3 Inter;margin-top:44px;${up(ap(t, tc + 1.4, 0.5), 20)}">${l2}</div></div>`
+  }
+  return `<div class="abs" style="inset:0;${greenBg}"></div>
+  <div class="abs" style="left:0;right:0;top:110px;text-align:center;${up(ap(t, 50.35))};font:700 24px Inter;letter-spacing:.34em;color:var(--m2)">INVERSIÓN ESTIMADA · 5 PUESTOS</div>
+  <div class="abs serif" style="left:0;right:0;top:160px;text-align:center;${up(ap(t, 50.5))};font:600 70px 'Playfair Display'">Dos caminos posibles</div>
+  ${box(140, 51.0, 51.1, 54615, '2,820', 'OPCIÓN 1', 'Reutilizando las computadoras<br>que funcionen', false)}
+  ${box(1000, 54.4, 54.8, 96965, '5,007', 'OPCIÓN 2', 'Con 5 mini PC nuevas', false)}
+  <div class="abs" style="left:0;right:0;top:830px;text-align:center;${up(ap(t, 57.72, 0.6), 20)}"><span style="display:inline-block;padding:16px 40px;border-radius:40px;border:2px solid var(--m2);font:600 34px Inter;color:var(--m2)">Estimación sujeta a cotización</span></div>`
+}
+
+function s10(t) { // Piloto
+  const q = vis(t, 59.75, 61.25)
+  const checks = [[64.78, 'Espacio'], [65.34, 'Comodidad'], [66.08, 'Llamadas']]
+  return `<img class="cover" src="${fr('fr/b2s', t, 59.6, 216)}" style="filter:blur(9px) saturate(.8);transform:scale(1.08)">
+  <div class="abs" style="inset:0;background:rgba(15,34,25,.8)"></div>
+  <div class="abs serif" style="left:0;right:0;top:430px;text-align:center;opacity:${q};transform:translateY(${(1 - ap(t, 59.75)) * 40}px);font:600 84px 'Playfair Display'">No hay que decidir<br><span style="font-style:italic;color:var(--m2)">todo de una vez.</span></div>
+  <div class="abs" style="left:150px;top:250px;opacity:${ap(t, 61.4, 0.7)}">
+    <div style="font:700 24px Inter;letter-spacing:.32em;color:var(--m2)">PRIMER PASO</div>
+    <div class="serif" style="${up(ap(t, 61.5, 0.8), 40)};font:600 120px/1.05 'Playfair Display';margin-top:14px">1 puesto piloto</div>
+    <div style="${up(ap(t, 63.12, 0.6), 30)};font:500 44px Inter;margin-top:26px;color:#f1ebe0">durante una jornada real</div></div>
+  <div class="abs" style="left:1240px;top:300px;width:540px;padding:40px 46px;border-radius:26px;background:rgba(246,241,231,.97);color:var(--t);${up(ap(t, 63.96, 0.6), 40)}">
+    <div style="font:700 22px Inter;letter-spacing:.28em;color:var(--v2);margin-bottom:16px">SE REVISA</div>
+    ${checks.map(([t0, txt]) => { const c = ap(t, t0, 0.35); return `<div style="display:flex;align-items:center;gap:24px;font:600 46px Inter;margin:22px 0"><span style="width:52px;height:52px;border-radius:14px;border:3px solid var(--v2);background:${c > 0.5 ? 'var(--v2)' : 'transparent'};display:grid;place-items:center;font:800 32px Inter;color:#fff;transform:scale(${1 + 0.25 * Math.sin(Math.PI * c)})">${c > 0.5 ? '✓' : ''}</span>${txt}</div>` }).join('')}</div>`
+}
+
+function s11(t) { // Llamado
+  const k = 1.06 + 0.06 * ss((t - 66.6) / 6)
+  return `<img class="cover" src="k_A.jpg" style="transform:scale(${k});filter:blur(4px) saturate(.85)">
+  <div class="abs" style="inset:0;background:rgba(15,34,25,.74)"></div>
+  <div class="abs" style="left:0;right:0;top:250px;text-align:center;${up(ap(t, 66.8))};font:700 24px Inter;letter-spacing:.34em;color:var(--m2)">LES PEDIMOS</div>
+  <div class="abs" style="left:0;right:0;top:330px;text-align:center"><div style="display:inline-block;${up(ap(t, 67.2, 0.8), 50)};padding:40px 80px;border-radius:30px;background:linear-gradient(135deg,#d6a86b,#b5814a);color:var(--vo);font:700 96px 'Playfair Display';box-shadow:0 30px 80px rgba(0,0,0,.4)">Autorizar 1 puesto piloto</div></div>
+  <div class="abs" style="left:0;right:0;top:620px;text-align:center;${up(ap(t, 68.5, 0.7), 30)};font:500 42px/1.4 Inter;color:#f1ebe0">Con la prueba y las cotizaciones en la mano,<br><span style="${up(ap(t, 70.17, 0.6), 20)};display:inline-block">decidimos juntos cómo renovar los cinco.</span></div>`
+}
+
+function s12(t) { // Cierre
+  const o = ap(t, 72.0, 0.9)
+  return `<div class="abs" style="inset:0;background:linear-gradient(180deg,#f6f1e7,#ece3d2)"></div>
+  <img src="logo.png" class="abs" style="left:${960 - 300}px;top:190px;width:600px;opacity:${o};transform:scale(${0.9 + 0.1 * o})">
+  <div class="abs" style="left:0;right:0;top:640px;height:4px;display:flex;justify-content:center"><div style="width:${360 * ap(t, 72.4, 1)}px;height:4px;background:var(--m);border-radius:2px"></div></div>
+  <div class="abs serif" style="left:0;right:0;top:690px;text-align:center;${up(ap(t, 72.59, 0.8), 30)};font:italic 600 60px/1.3 'Playfair Display';color:var(--v)">Un mejor lugar de trabajo<br>se nota en cada llamada.</div>`
+}
+
+const SCENES = [[0, 6.15, s1], [6.1, 14.05, s2], [13.95, 20.6, s3], [20.5, 28.7, s4], [28.6, 38.75, s5], [38.7, 42.3, s6], [42.2, 45.0, s7], [44.95, 50.35, s8], [50.25, 59.75, s9], [59.65, 66.75, s10], [66.65, 72.05, s11], [71.95, 99, s12]]
+const FADE = 0.45
+const END = 77.7, OFF = 0.5
+window.render = async (T) => {
+  const t = T - OFF
+  let html = ''
+  for (const [a, b, fn] of SCENES) {
+    if ((a > 0 && t < a) || t > b + FADE + 0.05) continue
+    const o = a === 0 ? 1 : ss((t - a) / FADE)
+    html += `<div class="sc" style="opacity:${o}">${fn(t)}</div>`
+  }
+  html += subtitle(t)
+  const black = Math.max(1 - ss(T / 0.5), ss((T - (END - 0.9)) / 0.9))
+  if (black > 0) html += `<div class="abs" style="inset:0;background:#000;opacity:${black}"></div>`
+  const st = document.getElementById('st')
+  st.innerHTML = html
+  await Promise.all([...st.querySelectorAll('img')].map((i) => i.decode().catch(() => {})))
+}
+</script></body></html>
