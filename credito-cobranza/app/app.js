@@ -111,6 +111,15 @@ async function boot() {
   }
   sb.auth.onAuthStateChange((ev) => { if (ev === 'PASSWORD_RECOVERY') showNewPass(); if (ev === 'SIGNED_OUT') showLogin() })
   window.addEventListener('hashchange', () => { if (/type=(recovery|invite)/.test(location.hash)) showNewPass() })
+  // Enlace de acceso del administrador (#acceso=…): la clave se usa hasta que la persona lo abre
+  const acc = location.hash.match(/acceso=([\w-]+)(?:&tipo=(invite|recovery))?/)
+  if (acc) {
+    history.replaceState(null, '', location.pathname)
+    await sb.auth.signOut({ scope: 'local' }).catch(() => {})
+    const { error } = await sb.auth.verifyOtp({ token_hash: acc[1], type: acc[2] || 'recovery' })
+    if (error) return showLogin('Este enlace ya se usó o venció. Pide a tu administrador que te mande uno nuevo.')
+    return showNewPass()
+  }
   const { data } = await sb.auth.getSession()
   if (recovery && data.session) return showNewPass()
   if (!data.session) return showLogin()

@@ -9,6 +9,13 @@ const ROLES_DUENO = [...ROLES, 'dueno']
 const AMBITO = /^empresa$|^(region|zona|gerencia|oficina|ruta):[0-9]+(,(region|zona|gerencia|oficina|ruta):[0-9]+)*$/
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
+// El enlace apunta a NUESTRA página y la clave va después de «#»: las vistas previas de WhatsApp
+// (y los revisores de correo) no la usan; sólo se gasta cuando la persona abre el enlace.
+const enlacePropio = (origin, j, type) => {
+  const h = j.hashed_token || j.properties?.hashed_token
+  const t = j.verification_type || j.properties?.verification_type || type
+  return h ? `${origin}/#acceso=${encodeURIComponent(h)}&tipo=${t === 'invite' ? 'invite' : 'recovery'}` : null
+}
 const resp = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 
 // Enlace nuevo para crear contraseña. A quien nunca ha entrado se lo puede dar dueño, dirección o soporte.
@@ -22,8 +29,8 @@ async function enlaceNuevo(url, adm, id, correo, origin, puedeRestablecer = fals
   for (const type of entro ? ['recovery'] : ['invite', 'recovery']) {
     const r = await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: adm, body: JSON.stringify({ type, email: correo, redirect_to: origin }) })
     const j = await r.json().catch(() => ({}))
-    const enlace = j.action_link || j.properties?.action_link
-    if (r.ok && enlace) return { enlace, entro }
+    const enlace = r.ok && enlacePropio(origin, j, type)
+    if (enlace) return { enlace, entro }
   }
   return { status: 502, error: 'No se pudo generar el enlace nuevo.' }
 }
@@ -86,7 +93,7 @@ export default async (req) => {
     await fetch(`${url}/rest/v1/perfiles?id=eq.${ya.id}`, { method: 'PATCH', headers: { ...adm, Prefer: 'return=minimal' }, body: JSON.stringify({ nombre, rol, ambito, activo: true }) })
     return resp(200, { ok: true, enlace: e.enlace, existia: true })
   }
-  const enlace = ij.action_link || ij.properties?.action_link
+  const enlace = enlacePropio(origin, ij, 'invite')
   const id = ij.id || ij.user?.id
   // El perfil lo crea la base de datos al registrarse; aquí se le pone cargo, ámbito y se activa.
   const up = await fetch(`${url}/rest/v1/perfiles?id=eq.${encodeURIComponent(id)}`, {
