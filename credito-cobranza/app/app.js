@@ -2295,9 +2295,19 @@ function editarUsuario(u) {
     },
   })
 }
+// Enlace de acceso del usuario nuevo: se comparte por WhatsApp (no depende del correo)
+function enlaceInvitacion(nombre, enlace) {
+  const txt = `Hola ${nombre.split(' ')[0]}, ya tienes acceso al sistema de Nexus Capital. Entra en este enlace y crea tu contraseña:\n${enlace}`
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Mándale su acceso</h3><div class="sub">${esc(nombre)} entra con este enlace y crea su contraseña. Sirve una sola vez: no lo compartas con nadie más.</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="pinfo" style="word-break:break-all;font-size:12px">${esc(enlace)}</div>
+    <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" id="eCopy">Copiar enlace</button>
+      <a class="btn" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+    <div class="note">Después de crear su contraseña, entra siempre con su correo y esa contraseña.</div>`)
+  $('#eCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(txt); toast('Enlace copiado.') } catch { toast('No se pudo copiar; mantén presionado el enlace para copiarlo.', 'warn') } })
+}
 function invitarUsuario() {
   formModal({
-    titulo: 'Invitar usuario', nota: 'Le llega un correo para crear su contraseña. Entra con este cargo y ámbito.', boton: 'Enviar invitación',
+    titulo: 'Invitar usuario', nota: 'Al guardar te damos su enlace de acceso para mandárselo por WhatsApp. Con él crea su contraseña y entra con este cargo y ámbito.', boton: 'Crear usuario',
     campos: [
       { id: 'nombre', label: 'Nombre completo', req: 1 }, { id: 'correo', label: 'Correo', tipo: 'email', req: 1 },
       { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: 'asesor' },
@@ -2315,7 +2325,8 @@ function invitarUsuario() {
       if (!r.ok) { const e = new Error(j.error || 'invitar'); e.userMsg = j.error || 'No se pudo enviar la invitación.'; throw e }
       await asignarResponsable(v.rol, v.ambito, v.nombre)
       await reload()
-      return `Invitación enviada a ${v.correo}.`
+      if (j.enlace) setTimeout(() => enlaceInvitacion(v.nombre, j.enlace), 80)
+      return `Usuario creado: ${v.nombre}.`
     },
   })
 }

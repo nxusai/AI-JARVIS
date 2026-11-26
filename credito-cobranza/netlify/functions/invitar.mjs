@@ -1,4 +1,4 @@
-// Invita a un usuario nuevo al sistema (NXUS AI).
+// Invita a un usuario nuevo al sistema (NXUS AI): crea su cuenta y devuelve su enlace de acceso.
 // La clave secreta de Supabase vive sólo aquí, como variable de entorno de
 // Netlify (SUPABASE_SECRET_KEY). La página nunca la ve.
 // Sólo un administrador activo (dueño, dirección o soporte) puede invitar.
@@ -41,17 +41,20 @@ export default async (req) => {
   if (rol === 'dueno' && ambito !== 'empresa') return resp(400, { error: 'El dueño ve toda la empresa: elige «Toda la empresa».' })
 
   const origin = new URL(req.url).origin
-  const inv = await fetch(`${url}/auth/v1/invite`, { method: 'POST', headers: adm, body: JSON.stringify({ email: correo, data: { nombre }, redirect_to: origin }) })
+  // Se genera el enlace de invitación SIN mandar correo (el correo de Supabase sin SMTP propio
+  // sólo llega al equipo del proyecto y tiene límite por hora). El dueño lo comparte por WhatsApp.
+  const inv = await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: adm, body: JSON.stringify({ type: 'invite', email: correo, data: { nombre }, redirect_to: origin }) })
   const ij = await inv.json().catch(() => ({}))
   if (!inv.ok) {
-    const m = String(ij.msg || ij.message || ij.error_description || '')
-    return resp(inv.status === 422 ? 409 : 502, { error: /registered|exists/i.test(m) ? 'Ese correo ya tiene cuenta.' : 'No se pudo enviar la invitación.' })
+    const m = String(ij.msg || ij.message || ij.error_description || ij.error || '')
+    return resp(inv.status === 422 ? 409 : 502, { error: /registered|exists/i.test(m) ? 'Ese correo ya tiene cuenta.' : 'No se pudo crear la invitación: ' + (m || 'error ' + inv.status) })
   }
+  const enlace = ij.action_link || ij.properties?.action_link
   const id = ij.id || ij.user?.id
   // El perfil lo crea la base de datos al registrarse; aquí se le pone cargo, ámbito y se activa.
   const up = await fetch(`${url}/rest/v1/perfiles?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH', headers: { ...adm, Prefer: 'return=minimal' }, body: JSON.stringify({ nombre, correo, rol, ambito, activo: true }),
   })
   if (!up.ok) return resp(502, { error: 'Se envió el correo, pero no se pudo asignar el cargo. Edítalo desde Usuarios.' })
-  return resp(200, { ok: true })
+  return resp(200, { ok: true, enlace })
 }
