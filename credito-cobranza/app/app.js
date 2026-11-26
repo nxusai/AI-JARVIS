@@ -2297,8 +2297,9 @@ function editarUsuario(u) {
   })
 }
 // Enlace de acceso del usuario nuevo: se comparte por WhatsApp (no depende del correo)
-function enlaceInvitacion(nombre, enlace) {
-  const txt = `Hola ${nombre.split(' ')[0]}, ya tienes acceso al sistema de Nexus Capital. Entra en este enlace y crea tu contraseña:\n${enlace}`
+function enlaceInvitacion(nombre, enlace, restablecer) {
+  const txt = restablecer ? `Hola ${nombre.split(' ')[0]}, entra en este enlace del sistema de Nexus Capital y crea tu nueva contraseña:\n${enlace}`
+    : `Hola ${nombre.split(' ')[0]}, ya tienes acceso al sistema de Nexus Capital. Entra en este enlace y crea tu contraseña:\n${enlace}`
   modal(`<div class="ph"><div><h3 style="font-size:20px">Mándale su acceso</h3><div class="sub">${esc(nombre)} entra con este enlace y crea su contraseña. Sirve una sola vez: no lo compartas con nadie más.</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="pinfo" style="word-break:break-all;font-size:12px">${esc(enlace)}</div>
     <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" id="eCopy">Copiar enlace</button>
@@ -2317,7 +2318,7 @@ async function reenviarAcceso(u, b) {
     const r = await fetch('/.netlify/functions/invitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify({ accion: 'reenviar', id: u.id }) })
     const j = await r.json().catch(() => ({}))
     if (!r.ok) throw Object.assign(new Error('reenviar'), { userMsg: j.error || 'No se pudo generar el enlace.' })
-    enlaceInvitacion(u.nombre || u.correo || 'Usuario', j.enlace)
+    enlaceInvitacion(u.nombre || u.correo || 'Usuario', j.enlace, j.restablecer)
   } catch (e) { toast(e.userMsg || 'No se pudo generar el enlace.', 'warn') }
   b.disabled = false; b.textContent = txt
 }

@@ -11,18 +11,19 @@ const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 const resp = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 
-// Enlace nuevo para alguien que ya tiene cuenta pero NUNCA ha entrado (por ejemplo, se le venció el correo).
-// A quien ya entró no se le genera: así nadie puede entrar con la cuenta de otra persona.
-async function enlaceNuevo(url, adm, id, correo, origin) {
+// Enlace nuevo para crear contraseña. A quien nunca ha entrado se lo puede dar dueño, dirección o soporte.
+// A quien ya entró (olvidó su contraseña) sólo dueño o soporte, y queda en la bitácora.
+async function enlaceNuevo(url, adm, id, correo, origin, puedeRestablecer = false) {
   const ur = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(id)}`, { headers: adm })
   if (!ur.ok) return { status: 404, error: 'No encontré esa cuenta.' }
   const u = await ur.json()
-  if ((u.user || u).last_sign_in_at) return { status: 409, error: 'Esa persona ya entró al sistema: que use su correo y su contraseña.' }
-  for (const type of ['invite', 'recovery']) {
+  const entro = !!(u.user || u).last_sign_in_at
+  if (entro && !puedeRestablecer) return { status: 409, error: 'Esa persona ya entró al sistema: sólo el dueño puede darle un enlace para cambiar su contraseña.' }
+  for (const type of entro ? ['recovery'] : ['invite', 'recovery']) {
     const r = await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: adm, body: JSON.stringify({ type, email: correo, redirect_to: origin }) })
     const j = await r.json().catch(() => ({}))
     const enlace = j.action_link || j.properties?.action_link
-    if (r.ok && enlace) return { enlace }
+    if (r.ok && enlace) return { enlace, entro }
   }
   return { status: 502, error: 'No se pudo generar el enlace nuevo.' }
 }
@@ -58,8 +59,10 @@ export default async (req) => {
     if (!t) return resp(404, { error: 'No encontré ese usuario.' })
     if (t.rol === 'soporte' || (t.rol === 'dueno' && !['dueno', 'soporte'].includes(perfil.rol))) return resp(403, { error: 'No puedes reenviar el acceso a esa cuenta.' })
     if (!t.activo) return resp(409, { error: 'Ese usuario está inactivo: actívalo primero en Editar.' })
-    const e = await enlaceNuevo(url, adm, id, t.correo, origin)
-    return e.enlace ? resp(200, { ok: true, enlace: e.enlace }) : resp(e.status, { error: e.error })
+    const e = await enlaceNuevo(url, adm, id, t.correo, origin, ['dueno', 'soporte'].includes(perfil.rol))
+    if (!e.enlace) return resp(e.status, { error: e.error })
+    await fetch(`${url}/rest/v1/bitacora`, { method: 'POST', headers: { ...adm, Prefer: 'return=minimal' }, body: JSON.stringify({ usuario: yo.id, accion: e.entro ? 'Enlace para cambiar contraseña' : 'Enlace de acceso reenviado', tabla: 'perfiles', registro: id, detalle: t.correo }) }).catch(() => {})
+    return resp(200, { ok: true, enlace: e.enlace, restablecer: e.entro })
   }
   const nombre = String(v.nombre || '').trim().slice(0, 120), correo = String(v.correo || '').trim().toLowerCase()
   const rol = String(v.rol || ''), ambito = String(v.ambito || 'empresa')
