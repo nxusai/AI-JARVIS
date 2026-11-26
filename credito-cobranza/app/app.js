@@ -1749,13 +1749,14 @@ VIEWS.admin = {
           <div class="tablewrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Correo</th><th>Cargo</th><th>Ámbito</th><th>Estado</th><th></th></tr></thead><tbody>
           ${lista.map((u) => `<tr><td class="strong">${esc(u.nombre || '')}${u.id === p.id ? ' <span class="chip">tú</span>' : ''}</td><td>${esc(u.correo || '')}</td><td>${esc(ROLES[u.rol] || u.rol || '')}</td><td>${esc(amb(u.ambito))}</td>
             <td><span class="st ${u.activo ? 'ok' : 'off'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
-            <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>` : ''}</td></tr>`).join('')}
+            <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>${u.activo && (u.rol !== 'dueno' || ['dueno', 'soporte'].includes(p.rol)) ? ` <button class="btn ghost sm" type="button" data-reacc="${esc(u.id)}">Reenviar acceso</button>` : ''}` : ''}</td></tr>`).join('')}
           </tbody></table></div>
-          <div class="note">Los usuarios nuevos reciben un correo para crear su contraseña. Entran con el cargo y las rutas que les asignes; si a un asesor le cambias la ruta, desde ese momento ve la nueva y deja de ver la anterior. Lo que cada cargo puede ver y hacer se decide en la pestaña <b>Permisos</b>.</div></div>
+          <div class="note">Al crear un usuario te damos su enlace de acceso para mandárselo por WhatsApp; con él crea su contraseña. Si no alcanzó a entrar o se le venció, toca <b>Reenviar acceso</b>. Entran con el cargo y las rutas que les asignes; si a un asesor le cambias la ruta, desde ese momento ve la nueva y deja de ver la anterior. Lo que cada cargo puede ver y hacer se decide en la pestaña <b>Permisos</b>.</div></div>
         <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
           ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
       $('#uinv')?.addEventListener('click', invitarUsuario)
       $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
+      $$('[data-reacc]').forEach((b) => b.addEventListener('click', () => reenviarAcceso(DB.perfiles.find((u) => u.id === b.dataset.reacc), b)))
     } else if (this.tab === 'permisos') {
       el.innerHTML = '<div id="permisos"></div><div id="permPers"></div>'; pintarPermisos(); pintarPermisosPersona()
     } else if (this.tab === 'modalidades') {
@@ -2305,6 +2306,21 @@ function enlaceInvitacion(nombre, enlace) {
     <div class="note">Después de crear su contraseña, entra siempre con su correo y esa contraseña.</div>`)
   $('#eCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(txt); toast('Enlace copiado.') } catch { toast('No se pudo copiar; mantén presionado el enlace para copiarlo.', 'warn') } })
 }
+// Enlace nuevo para quien todavía no ha entrado (se le venció o no le llegó)
+async function reenviarAcceso(u, b) {
+  if (!u) return
+  if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
+  if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return }
+  const txt = b.textContent; b.disabled = true; b.textContent = 'Generando…'
+  try {
+    const { data } = await sb.auth.getSession()
+    const r = await fetch('/.netlify/functions/invitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify({ accion: 'reenviar', id: u.id }) })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok) throw Object.assign(new Error('reenviar'), { userMsg: j.error || 'No se pudo generar el enlace.' })
+    enlaceInvitacion(u.nombre || u.correo || 'Usuario', j.enlace)
+  } catch (e) { toast(e.userMsg || 'No se pudo generar el enlace.', 'warn') }
+  b.disabled = false; b.textContent = txt
+}
 function invitarUsuario() {
   formModal({
     titulo: 'Invitar usuario', nota: 'Al guardar te damos su enlace de acceso para mandárselo por WhatsApp. Con él crea su contraseña y entra con este cargo y ámbito.', boton: 'Crear usuario',
@@ -2326,7 +2342,7 @@ function invitarUsuario() {
       await asignarResponsable(v.rol, v.ambito, v.nombre)
       await reload()
       if (j.enlace) setTimeout(() => enlaceInvitacion(v.nombre, j.enlace), 80)
-      return `Usuario creado: ${v.nombre}.`
+      return j.existia ? `${v.nombre} ya tenía cuenta sin estrenar: te damos un enlace nuevo.` : `Usuario creado: ${v.nombre}.`
     },
   })
 }
