@@ -11,6 +11,9 @@ const NUM = new Intl.NumberFormat('es-MX')
 const peso = (n) => MXN.format(Math.round(Number(n) || 0))
 const pesoK = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + ' M' : n >= 1000 ? '$' + Math.round(n / 1000) + ' k' : '$' + Math.round(n))
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0)
+// Porcentaje con 2 decimales (normalidad y efectividad, como pide el dueño: 56.62 %)
+const p2 = (x) => (Number.isFinite(x) ? x : 0).toFixed(2)
+const pct2 = (a, b) => (b > 0 ? p2((a / b) * 100) : '0.00')
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -36,7 +39,7 @@ const PERMISOS = [
   ['Ver secciones', [['ver_tablero', 'Tablero'], ['ver_clientes', 'Clientes'], ['ver_originacion', 'Crear crédito'], ['ver_solicitudes', 'Solicitudes'], ['ver_creditos', 'Créditos'],
     ['ver_cobranza', 'Cobranza'], ['ver_normalidad', 'Normalidad'], ['ver_proyecciones', 'Proyecciones'], ['ver_cajas', 'Cajas'], ['ver_tesoreria', 'Tesorería'], ['ver_reportes', 'Reportes']]],
   ['Puede hacer', [['registrar_pagos', 'Registrar pagos'], ['crear_solicitudes', 'Crear y renovar créditos (solicitudes)'], ['resolver_solicitudes', 'Mesa de control: aprobar o rechazar'],
-    ['registrar_gastos', 'Registrar gastos de su caja'], ['tesoreria_excedente', 'Pasar excedente de gerente al banco'], ['capturar_proyecciones', 'Capturar proyecciones'],
+    ['registrar_gastos', 'Registrar gastos (salen de la caja del gerente)'], ['cancelar_pagos', 'Cancelar pagos registrados por error'], ['revertir_desembolsos', 'Revertir desembolsos (el cliente ya no quiso)'], ['tesoreria_excedente', 'Pasar excedente de gerente al banco'], ['capturar_proyecciones', 'Capturar proyecciones'],
     ['desembolsar', 'Desembolsar créditos autorizados (con video)'], ['autorizar_excepciones', 'Autorizar renovaciones con excepción'],
     ['ordenar_ruta', 'Ordenar su ruta de cobro'], ['reasignar_cartera', 'Reasignar clientes a otra ruta'],
     ['subir_documentos', 'Subir documentos y fotos'], ['descargar_excel', 'Descargar reportes en Excel']]],
@@ -46,13 +49,13 @@ const V = (...k) => k.map((x) => 'ver_' + x)
 const PERM_EXTRA = { direccion: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], regional: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'],
   zonal: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], gerente: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], asesor: ['desembolsar', 'ordenar_ruta'] }
 const PERM_BASE = {
-  direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'resolver_solicitudes', 'registrar_gastos', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'resolver_solicitudes', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   regional: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   zonal: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
-  gerente: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
-  asesor: [...V('tablero', 'clientes', 'originacion', 'creditos', 'cobranza', 'normalidad', 'cajas', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'registrar_gastos', 'subir_documentos', 'descargar_excel'],
+  gerente: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  asesor: [...V('tablero', 'clientes', 'originacion', 'creditos', 'cobranza', 'normalidad', 'cajas', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'subir_documentos', 'descargar_excel'],
   mesa: [...V('solicitudes'), 'resolver_solicitudes'],
-  tesoreria: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'tesoreria_excedente', 'descargar_excel'],
+  tesoreria: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'tesoreria_excedente', 'registrar_gastos', 'descargar_excel'],
   consulta: [...V('tablero', 'clientes', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'descargar_excel'],
 }
 function permitido(rol, k, uid) {
@@ -186,7 +189,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -201,8 +204,9 @@ async function loadRaw(perfil) {
     opt('documentos', (q) => q.order('creado', { ascending: false })), opt('permisos', (q) => q),
     opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')), opt('permisos_usuario', (q) => q),
     opt('bitacora', (q) => q.gte('cuando', addDays(iso(new Date()), -120)).order('cuando', { ascending: false })),
+    opt('gestiones', (q) => q.gte('creado', addDays(iso(new Date()), -120)).order('creado')),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -250,7 +254,7 @@ function prep(raw) {
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
     personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
-    permisosUsuario: raw.permisosUsuario || [], bitacora: raw.bitacora || [],
+    permisosUsuario: raw.permisosUsuario || [], bitacora: raw.bitacora || [], gestiones: (raw.gestiones || []).map((g) => ({ ...g, promesa_monto: g.promesa_monto == null ? null : +g.promesa_monto })),
     condiciones: (raw.condiciones || []).map((x) => ({ ...x, interes_pct: +x.interes_pct, num_cuotas: +x.num_cuotas })), mensajes: raw.mensajes || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
@@ -524,13 +528,14 @@ function inicioCampo() {
   const visitados = toca.filter((c) => pagHoy.has(c.credito_id)).length, faltan = toca.length - visitados
   const P = esperado ? Math.min(100, Math.round(cobrado / esperado * 100)) : 0
   const S = sc.solicitudes(), A = S.filter((x) => x.estado === 'autorizada' && puedeDesembolsar(x)).length, O = S.filter((x) => x.estado === 'observada').length
-  const R = act.filter(puedeRenovar).length, N = Math.round(normalidadHoy(sc.cartera()).p)
+  const R = act.filter(puedeRenovar).length, N = normalidadHoy(sc.cartera()).p
   const caja = sum(sc.rutas(), (r) => saldos(hoy).get('ruta:' + r.ruta_id) || 0)
   const nombre = SIM && SIM.nombre === ROLES[SIM.rol] ? '' : (DB.perfil.nombre || '').split(' ')[0]
   const h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
   const C = 2 * Math.PI * 54
   const tiles = [
     ['cobrar', 'Cobrar mi ruta', faltan ? `${faltan} por cobrar hoy` : 'Todo cobrado por hoy', ICON.cobranza, ['#2ee6cf', '#3f7bff'], faltan, 'registrar_pagos'],
+    ['promesas', 'Promesas de hoy', (() => { const n = promesasDel(hoy, act).filter((g) => !g.ok).length; return n ? `${n} cliente${n > 1 ? 's' : ''} prometió pagar hoy` : 'Sin promesas pendientes' })(), '<path d="M8 2v4M16 2v4M3 9h18"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 14l3 3 5-6"/>', ['#ffd36b', '#f59e0b'], promesasDel(hoy, act).filter((g) => !g.ok).length, 'registrar_pagos'],
     ['nuevo', 'Nuevo crédito', 'Cliente, fotos y GPS', ICON.originacion, ['#b294ff', '#6b5bff'], 0, 'crear_solicitudes'],
     ['desembolso', 'Desembolsos', A ? `${A} listo${A > 1 ? 's' : ''} para entregar` : 'Ninguno pendiente', '<path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.6"/><path d="M7 7V5h10v2"/>', ['#55e8a8', '#13a874'], A, 'desembolsar'],
     ['correccion', 'Correcciones', O ? `${O} que mesa regresó` : 'Sin pendientes', '<path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/>', ['#ffc857', '#ff8a3d'], O, 'crear_solicitudes'],
@@ -538,7 +543,7 @@ function inicioCampo() {
     ['clientes', 'Mis clientes', `${new Set(act.map((c) => c.cliente_id)).size} con crédito`, ICON.clientes, ['#6b97ff', '#3956d6'], 0, 'ver_clientes'],
     ['caja', 'Mi caja', peso(caja), ICON.cajas, ['#8fd3ff', '#3a8edb'], 0, 'ver_cajas'],
     ['gasto', 'Registrar gasto', 'Gasolina y otros', '<path d="M3 21V5a2 2 0 012-2h7a2 2 0 012 2v16"/><path d="M3 21h11M14 9h2a2 2 0 012 2v6a2 2 0 004 0V8l-3-3"/>', ['#c7a2ff', '#8b5cf6'], 0, 'registrar_gastos'],
-    ['normalidad', 'Mi normalidad', `${N} % al día`, ICON.normalidad, N >= PARAM('meta_normalidad', 90) ? ['#55e8a8', '#2ee6cf'] : ['#ffc857', '#ff7272'], 0, 'ver_normalidad'],
+    ['normalidad', 'Mi normalidad', `${p2(N)} % al día`, ICON.normalidad, N >= PARAM('meta_normalidad', 95) ? ['#55e8a8', '#2ee6cf'] : ['#ffc857', '#ff7272'], 0, 'ver_normalidad'],
   ].filter((t) => puede(t[6]))
   return `<div class="home">
     <div class="hero card"><div class="ring"><svg viewBox="0 0 120 120"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ee6cf"/><stop offset="1" stop-color="#6b97ff"/></linearGradient></defs>
@@ -549,8 +554,15 @@ function inicioCampo() {
     <div class="tiles">${tiles.map(([k, t, d, ico, g, n]) => `<button type="button" class="tile card" data-tile="${k}"><span class="ti" style="background:linear-gradient(135deg,${g[0]},${g[1]})"><svg viewBox="0 0 24 24">${ico}</svg></span>${n ? `<span class="tb">${n}</span>` : ''}<b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <button type="button" class="btn ghost sm vertab" id="vTab">Ver tablero completo</button></div>`
 }
+// Clientes que ya pueden renovar: la renovación se captura y se manda a mesa de control para que la autorice
+function listaRenovar() {
+  const L = sc.activos().filter(puedeRenovar).sort((a, b) => a.cliente.localeCompare(b.cliente))
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Renovar</h3><div class="sub">Clientes con ${PARAM('renovacion_pct', 80)} % o más de sus pagos. La renovación se envía a <b>mesa de control</b> para que la autorice; hasta entonces no se entrega dinero.</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="list">${L.map((c) => `<div class="rowitem inset"><div><div class="t">${esc(c.cliente)}</div><div class="s">#${c.credito_id} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos · debe ${peso(c.saldo)}</div></div><div class="m"><button class="btn sm renov" type="button" data-lren="${c.credito_id}">Renovar</button></div></div>`).join('') || `<div class="empty"><b>Nadie llega todavía al ${PARAM('renovacion_pct', 80)} %</b></div>`}</div>`)
+  $$('[data-lren]').forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.lren })))
+}
 function inicioCampoInit() {
-  const ir = { cobrar: () => go('cobranza'), nuevo: () => nuevaSolicitud(), desembolso: () => go('originacion'), correccion: () => go('originacion'), renovar: () => go('originacion'),
+  const ir = { cobrar: () => go('cobranza'), promesas: () => go('cobranza'), nuevo: () => nuevaSolicitud(), desembolso: () => go('originacion'), correccion: () => go('originacion'), renovar: () => listaRenovar(),
     clientes: () => go('clientes'), caja: () => go('cajas'), gasto: () => registrarGasto(), normalidad: () => go('normalidad') }
   $$('[data-tile]').forEach((b) => b.addEventListener('click', () => ir[b.dataset.tile]?.()))
   $('#vTab')?.addEventListener('click', () => { VIEWS.tablero.completo = true; render() })
@@ -601,14 +613,14 @@ VIEWS.tablero = {
     const porEstado = Object.fromEntries(ESTADOS.map((e) => [e.k, sum(act.filter((c) => c.estado === e.k), (c) => c.saldo)]))
     const meter = (parts) => `<div class="meter">${parts.map(([v, c]) => `<i style="width:${v}%;background:${c}"></i>`).join('')}</div>`
     const umbral = PARAM('atraso_dias', 1)
-    const N = normalidadHoy(car), meta = PARAM('meta_normalidad', 90)
+    const N = normalidadHoy(car), meta = PARAM('meta_normalidad', 95)
     const colm = car.filter((c) => c.fecha_inicio >= mes)
     const nuevos = colm.filter((c) => c.tipo !== 'renovacion'), renov = colm.filter((c) => c.tipo === 'renovacion')
     const clientes = new Set(act.map((c) => c.cliente_id)).size
     const K = [
       { lab: 'Cartera total', val: peso(total), meta: `${NUM.format(clientes)} clientes · ${NUM.format(act.length)} créditos activos`, grad: [COL.teal, COL.blue], ico: '<path d="M3 6h18v12H3z"/><path d="M3 10h18"/>',
         extra: meter(ESTADOS.map((e) => [pct(porEstado[e.k], total), e.c])) },
-      { lab: 'Normalidad', val: Math.round(N.p) + '%', meta: `${peso(N.ok)} al día de ${pesoK(N.tot)} · meta ${meta}%`, grad: [COL.green, COL.teal], ico: ICON.normalidad,
+      { lab: 'Normalidad', val: p2(N.p) + '%', meta: `${peso(N.ok)} al día de ${pesoK(N.tot)} · meta ${meta}%`, grad: [COL.green, COL.teal], ico: ICON.normalidad,
         chip: `<span class="chip ${N.p >= meta ? 'g' : N.p >= meta - 15 ? 'a' : 'r'}">${N.p >= meta ? 'En meta' : 'Abajo de meta'}</span>`, extra: meter([[Math.round(N.p), N.p >= meta ? COL.green : COL.amber]]) },
       { lab: 'Cobrado hoy', val: peso(recHoy), meta: `promedio diario ${peso(recPrev)}`, grad: [COL.blue, COL.violet], ico: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
         chip: recPrev ? `<span class="chip ${recHoy >= recPrev ? 'g' : 'a'}">${recHoy >= recPrev ? '▲' : '▼'} ${Math.abs(pct(recHoy - recPrev, recPrev))}%</span>` : '', spark: d14.map((d) => recD.get(d) || 0), sc: COL.blue },
@@ -746,7 +758,7 @@ function fichaCliente(id) {
   const ft = fotoCliente(id)
   modal(`<div class="ph"><div class="fhead">${ft ? `<img class="cfoto big" alt="" id="fFoto">` : ''}<div><h3 style="font-size:20px">${esc(c.cliente)}</h3><div class="sub">${esc(c.codigo)} · ${esc(c.ruta)} (${esc(c.asesor || '')}) · ${esc(c.gerencia)} · ${esc(c.zona)}</div></div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="statrow">${[['Debe hoy (saldo)', peso(sum(cr, (x) => x.saldo))], ['Base (prestado)', peso(sum(act, (x) => x.monto))], ['Créditos en su historial', cr.length], ['Atraso', act.length ? Math.max(...act.map((x) => x.dias_atraso)) + ' días' : '—']].map(([l, v]) => `<div class="card"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
-    <div class="toolbar">${act.length && puede('registrar_pagos') ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
+    <div class="toolbar">${false ? `<button class="btn" type="button" id="fpago"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar pago</button>` : ''}
       ${act.some(puedeRenovar) && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="fren">Renovar</button>` : ''}
       ${!act.length && puede('crear_solicitudes') ? `<button class="btn ghost" type="button" id="frec">Recompra (nuevo crédito)</button>` : ''}</div>
     <div class="kv">${dato('CURP', c.curp)}${dato('Teléfono', c.telefono)}${dato('Celular', c.celular)}${dato('Dirección de cobro', [c.direccion, c.colonia].filter(Boolean).join(', '))}${dato('Dirección del negocio', c.direccion_negocio)}${dato('Fecha de nacimiento', c.fecha_nacimiento)}${dato('Observaciones', c.observaciones)}</div>
@@ -771,8 +783,30 @@ function fichaCliente(id) {
   const sols = DB.solicitudes.filter((x) => x.cliente_id === id || cr.some((k) => k.credito_id === x.credito_id)).map((x) => ['solicitud', x.id])
   panelDocs($('#fdocs'), 'cliente', id, { puede: puede('subir_documentos'), extra: [...sols, ...cr.map((k) => ['credito', k.credito_id])], titulo: 'Documentos del expediente' })
   const verPagos = (k) => {
-    const L = pagos(k)
-    $('#fpagos').innerHTML = `<h3 class="sec-title">Pagos del crédito #${k}</h3>` + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Observación', f: (x) => esc(x.observacion || '') }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') }], L, true)
+    const L = pagos(k), x0 = cr.find((x) => x.credito_id === k), Gs = gestionesDe(k).slice().reverse()
+    const cancela = puede('cancelar_pagos') && !SIM, revierte = puede('revertir_desembolsos') && !SIM && !L.length && !cr.some((x) => x.credito_anterior_id === k)
+    $('#fpagos').innerHTML = `<div class="ph"><h3 class="sec-title">Pagos del crédito #${k}</h3><div class="toolbar">
+        <button class="btn ghost sm" type="button" id="fEdo">Estado de cuenta (PDF)</button>
+        ${x0 && x0.saldo <= 0.005 ? '<button class="btn ghost sm" type="button" id="fCarta">Carta de liquidación</button>' : ''}
+        ${revierte ? '<button class="btn ghost sm" type="button" id="fRev">Revertir desembolso</button>' : ''}</div></div>`
+      + tabla([{ t: 'Fecha', k: 'fecha' }, { t: 'Tipo', f: (x) => x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago' }, { t: 'Observación', f: (x) => esc(x.observacion || '') }, { t: 'Monto', num: 1, b: 1, f: P('monto'), tot: T('monto') },
+        ...(cancela ? [{ t: '', f: (x) => x.tipo === 'liquidacion_renovacion' ? '' : `<button class="btn ghost sm" type="button" data-cpag="${x.id}">Cancelar</button>` }] : [])], L, true)
+      + (Gs.length ? `<h3 class="sec-title" style="margin-top:12px">Gestiones de cobranza</h3>` + tabla([{ t: 'Fecha', f: (g) => esc(horaLocal(g.creado)) }, { t: 'Qué pasó', f: (g) => esc(GEST[g.tipo]) }, { t: 'Promesa', f: (g) => g.promesa_fecha ? `${fechaCorta(g.promesa_fecha)} ${horaTxt(g.promesa_hora)}${g.promesa_monto ? ' · ' + peso(g.promesa_monto) : ''}` : '' }, { t: 'Nota', f: (g) => esc(g.nota || '') }, { t: 'Quién', f: (g) => esc(nombreDe(g.creado_por) || '') }], Gs) : '')
+    $('#fEdo').addEventListener('click', () => estadoCuentaPDF(id))
+    $('#fCarta')?.addEventListener('click', () => cartaLiquidacion(x0))
+    $('#fRev')?.addEventListener('click', () => formModal({
+      titulo: 'Revertir desembolso', boton: 'Revertir desembolso',
+      nota: `Crédito #${k} de ${esc(c.cliente)} por ${peso(x0.monto)}. Se usa cuando el cliente <b>ya no quiso el dinero</b> y lo regresó. El crédito se quita de la cartera, se quitan los gastos administrativos de la caja${x0.credito_anterior_id ? ` y el crédito anterior #${x0.credito_anterior_id} vuelve a deber lo que debía` : ''}. La solicitud queda cancelada con el motivo y todo queda en la bitácora.`,
+      campos: [{ id: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1 }],
+      guardar: async (v) => { const r = await escribir(() => sb.rpc('revertir_desembolso', { p_credito: k, p_motivo: v.motivo })); return r ? `Desembolso del crédito #${k} revertido.` : '' },
+    }))
+    $$('[data-cpag]').forEach((b) => b.addEventListener('click', () => {
+      const pg = L.find((x) => x.id === +b.dataset.cpag)
+      formModal({ titulo: 'Cancelar pago', boton: 'Cancelar pago',
+        nota: `Pago de <b>${peso(pg.monto)}</b> del ${fechaCorta(pg.fecha)} al crédito #${k} de ${esc(c.cliente)}. El saldo del cliente vuelve a subir por ese monto. El pago se guarda aparte con el motivo y queda en la bitácora.`,
+        campos: [{ id: 'motivo', label: 'Motivo (ej. se capturó dos veces, monto equivocado)', tipo: 'textarea', req: 1 }],
+        guardar: async (v) => { const r = await escribir(() => sb.rpc('cancelar_pago', { p_pago: pg.id, p_motivo: v.motivo })); return r ? 'Pago cancelado. El saldo del cliente se ajustó.' : '' } })
+    }))
   }
   $$('[data-pg]').forEach((tr) => tr.addEventListener('click', () => verPagos(+tr.dataset.pg)))
   verPagos(cr[0].credito_id)
@@ -811,10 +845,34 @@ function condicion(rutaId, frec) {
 const modalidades = (rutaId) => FRECUENCIAS.filter(([f]) => condicion(rutaId, f).activo)
 const condSol = (s) => { const c = condicion(s.ruta_id, s.frecuencia || 'semanal'); return { i: s.interes_pct != null ? +s.interes_pct : c.interes_pct, n: s.num_cuotas != null ? +s.num_cuotas : c.num_cuotas } }
 const FREC_TXT = { diario: 'diario', semanal: 'semanal', quincenal: 'quincenal', mensual: 'mensual' }
-// Fotos que pide mesa de control en cada solicitud (video de Emmanuel)
-const FOTOS_SOL = ['Foto del cliente', 'INE (frente)', 'INE (reverso)', 'Comprobante de domicilio', 'Solicitud firmada', 'Carta de declaración de ingresos',
-  'Domicilio (frente)', 'Domicilio (lado derecho)', 'Domicilio (lado izquierdo)', 'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Video de la mercancía (15 s)']
-const FOTOS_OPC = ['Fotos de mercancía', 'Documento opcional 1', 'Documento opcional 2']
+// Documentos obligatorios para mandar a mesa de control (lista del dueño; la base de datos pide los mismos)
+const FOTOS_SOL = ['INE (frente)', 'INE (reverso)', 'Domicilio (frente)', 'Domicilio (lado derecho)', 'Domicilio (lado izquierdo)',
+  'Negocio (frente)', 'Negocio (lado derecho)', 'Negocio (lado izquierdo)', 'Negocio interior 1', 'Negocio interior 2', 'Video del negocio (15 s)', 'Solicitud firmada']
+const FOTOS_OPC = ['Foto del cliente', 'Comprobante de domicilio', 'Carta de declaración de ingresos', 'Fotos de mercancía', 'Documento opcional 1', 'Documento opcional 2']
+// Ingresos y gastos del cliente: de aquí sale su capacidad real de pago por día
+const ING = [['ventas', 'Ventas del negocio por día', 'd'], ['gneg', 'Gasto del negocio por día (mercancía, insumos, pasajes)', 'd'],
+  ['otros', 'Otros ingresos del hogar al mes (pareja, pensión, apoyos)', 'm'], ['renta', 'Renta o pago de vivienda al mes', 'm'],
+  ['servicios', 'Luz, agua, gas, teléfono e internet al mes', 'm'], ['comida', 'Comida y despensa al mes', 'm'],
+  ['escuela', 'Escuela, transporte y otros gastos de la casa al mes', 'm'], ['creditos', 'Pagos de otros créditos o tandas al mes', 'm']]
+const DIAS_FREC = { diario: 1, semanal: 7, quincenal: 15, mensual: 30 }
+const capacidadDiaria = (x) => { if (!x || !(+x.ventas > 0)) return null; const n = (k) => +x[k] || 0; return n('ventas') - n('gneg') + (n('otros') - n('renta') - n('servicios') - n('comida') - n('escuela') - n('creditos')) / 30 }
+// Pago del crédito convertido a pesos por día, y qué tanto de su capacidad usa
+function evalCapacidad(x, monto, frec, i, n) {
+  const cap = capacidadDiaria(x); if (cap == null) return null
+  const pagoDia = (monto * (1 + i / 100) / n) / (DIAS_FREC[frec] || 7), uso = cap > 0 ? (pagoDia / cap) * 100 : Infinity
+  return { cap, pagoDia, uso, c: uso <= 50 ? 'g' : uso <= 80 ? 'a' : 'r', txt: cap <= 0 ? 'No le sobra dinero al día' : uso <= 50 ? 'Le alcanza bien' : uso <= 80 ? 'Le alcanza justo' : 'No le alcanza' }
+}
+const capHtml = (e) => e ? `<div class="kv"><div class="r"><span class="k">Le sobra al día (capacidad real de pago)</span><span class="v"><b>${peso(Math.round(e.cap))}</b></span></div>
+  <div class="r"><span class="k">El pago equivale por día a</span><span class="v">${peso(Math.round(e.pagoDia))}</span></div>
+  <div class="r"><span class="k">Usa de lo que le sobra</span><span class="v"><span class="chip ${e.c}">${Number.isFinite(e.uso) ? p2(e.uso) + ' %' : '—'} · ${e.txt}</span></span></div></div>` : '<div class="note">Falta capturar ingresos y gastos.</div>'
+// Qué le falta a una solicitud para poder mandarla a mesa de control
+function faltaParaMesa(s) {
+  const f = [], R = s.referencias || []
+  ;[0, 1].forEach((i) => { const r = R[i] || {}; if (!(String(r.nombre || '').trim().length >= 3 && String(r.parentesco || '').trim().length >= 2 && String(r.telefono || '').replace(/\D/g, '').length >= 10)) f.push(`referencia ${i + 1} (nombre, parentesco y teléfono a 10 dígitos)`) })
+  if (!(+s.ingresos?.ventas > 0)) f.push('ingresos y gastos del cliente')
+  const ft = faltanFotos(s.id); if (ft.length) f.push(...ft)
+  return f
+}
 const esVideoCat = (c) => /^Video/.test(c)
 const fechaDoc = (t) => { const d = new Date(t); return isNaN(d) ? String(t || '').slice(0, 10) : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) }
 const docsSol = (id) => DB.documentos.filter((d) => d.tipo === 'solicitud' && d.entidad_id === id)
@@ -892,7 +950,7 @@ function detalleSolicitud(id, tab = 'datos') {
   if (s.estado === 'autorizada' && puedeDesembolsar(s)) acc.push(btn('desembolsar', 'Grabar video y desembolsar', ''))
   if (['borrador', 'observada'].includes(s.estado) && puede('crear_solicitudes')) acc.push(btn('editar', 'Corregir datos'), btn('revision', 'Enviar a mesa de control', ''))
   modal(`<div class="ph"><div><h3 style="font-size:20px">${esc(s.cliente_nombre)}</h3><div class="sub">Solicitud #${s.id} · ${esc(s.ruta || '')} (${esc(s.asesor || '')}) · oficina ${esc(s.oficina || '')} · capturada ${esc(s.creada || '')}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="toolbar">${estSol(s.estado)} ${tipoChip(s.tipo)} ${s.excepcion && s.estado !== 'excepcion' ? '<span class="chip a">Fue excepción</span>' : ''} ${faltan.length && s.estado !== 'desembolsada' ? `<span class="chip r">Faltan ${faltan.length} fotos</span>` : ''}
+    <div class="toolbar">${estSol(s.estado)} ${tipoChip(s.tipo)} ${s.excepcion && s.estado !== 'excepcion' ? '<span class="chip a">Fue excepción</span>' : ''} ${faltan.length && s.estado !== 'desembolsada' ? `<span class="chip r">Faltan ${faltan.length} documentos</span>` : ''}
       <button class="btn ghost sm" type="button" id="spdf" style="margin-left:auto"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>Expediente PDF</button></div>
     <div class="tabs stabs" id="stabs">${[['datos', 'Datos'], ['archivos', `Archivos (${docsSol(s.id).length})`], ['historial', 'Historial'], ['conversacion', `Conversación${msgs.length ? ' (' + msgs.length + ')' : ''}`]].map(([t, l]) => `<button type="button" data-st="${t}" class="${t === tab ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div id="sbody"></div>
@@ -907,7 +965,11 @@ function detalleSolicitud(id, tab = 'datos') {
         ${s.tipo === 'renovacion' && ant ? dato('Monto del crédito anterior (#' + s.credito_anterior_id + ')', peso(ant.monto)) + dato('Debe del crédito anterior', peso(desc)) + dato('Se le entrega', peso(monto - desc)) : s.credito_anterior_id ? dato('Crédito anterior', `#${s.credito_anterior_id} · ve la pestaña Historial`) : ''}
         ${dato('Sexo', { H: 'Hombre', M: 'Mujer', X: 'No binario' }[s.sexo] || '')}${dato('Correo', esc(s.correo || ''))}${dato('Teléfono adicional', esc(s.telefono2 || ''))}
         ${(s.referencias || []).map((r, i) => dato('Referencia ' + (i + 1), esc([r.nombre, r.parentesco, r.telefono].filter(Boolean).join(' · ')))).join('')}
-        ${dato('Gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}
+        ${dato('Gastos administrativos', peso(PARAM('seguro_monto', 150)) + ' (no cambia la deuda)')}</div>
+        <h3 class="sec-title" style="margin-top:12px">Ingresos, gastos y capacidad de pago</h3>
+        ${s.ingresos ? `<div class="kv">${ING.map(([kk, l]) => dato(l, peso(+s.ingresos[kk] || 0))).join('')}${dato('Dependientes', String(s.ingresos.dependientes ?? 0))}</div>` : ''}
+        ${capHtml(evalCapacidad(s.ingresos, monto, s.frecuencia || 'semanal', k.i, k.n))}
+        <div class="kv">
         ${dato('CURP', esc(s.curp || ''))}${dato('Teléfono', esc(s.telefono || ''))}${dato('Celular', esc(s.celular || ''))}${dato('Fecha de nacimiento', esc(s.fecha_nacimiento || ''))}
         ${dato('Dirección de cobro', lugar([s.direccion, s.colonia].filter(Boolean).join(', '), s.lat, s.lng))}${dato('Dirección del negocio', lugar(s.direccion_negocio, s.lat_negocio, s.lng_negocio))}
         ${dato('Observaciones', esc(s.observaciones || ''))}${dato('Comentario de autorización', esc(s.comentario || ''))}${dato('Motivo', esc(s.motivo || ''))}</div><div id="sdup"></div>`
@@ -944,7 +1006,8 @@ function detalleSolicitud(id, tab = 'datos') {
     if (a === 'editar') return nuevaSolicitud({ editar: s })
     if (a === 'desembolsar') return grabarVideoEntrega(s)
     if (a === 'revision') {
-      if (faltan.length && !b.dataset.ok) { b.dataset.ok = 1; b.textContent = 'Enviar aunque falten fotos'; err.textContent = `Faltan ${faltan.length} fotos: ${faltan.join(', ')}. Mesa puede pedir corrección.`; return }
+      const fm = faltaParaMesa(s)
+      if (fm.length) { err.textContent = `Para mandarla a mesa de control falta: ${fm.join(', ')}.`; return }
       try { const ok = await escribir(() => sb.from('solicitudes').update({ estado: 'revision' }).eq('id', s.id)); if (ok) { $('#modalHost').innerHTML = ''; toast('Solicitud enviada a mesa de control.') } } catch (e) { err.textContent = e.userMsg || 'No se pudo enviar.' }
       return
     }
@@ -1009,6 +1072,7 @@ function panelFotos(el, s) {
     const reus = ok && L.every((d) => d.origen_id)
     return `<div class="foto inset ${ok ? 'ok' : ''}${opc ? ' opc' : ''}${reus ? ' reus' : ''}"><span class="ic">${ok ? '✓' : opc ? '+' : '•'}</span><div class="t">${cat}${opc ? ' <span class="muted">(opcional)</span>' : ''}${L.length > 1 ? ` <span class="muted">(${L.length})</span>` : ''}${reus ? `<span class="chip a reu">♻ del crédito anterior · ${esc(fechaDoc(L[0].creado))}</span>` : ''}</div>
       <div class="b">${L.map((d, i) => `<button type="button" class="btn ghost sm" data-doc="${d.id}">${vid ? 'Ver video' : 'Ver'}${L.length > 1 ? ' ' + (i + 1) : ''}${L.length > 1 && d.origen_id ? ' (anterior)' : ''}</button>`).join('')}
+      ${sube && cat === 'Solicitud firmada' && !ok ? '<button type="button" class="btn sm" data-firma>Firmar en pantalla</button>' : ''}
       ${sube && (!ok || mult || reus) ? (vid ? `<label class="btn sm"><input type="file" accept="video/*" capture="environment" data-cat="${esc(cat)}" hidden>Grabar video</label><label class="btn ghost sm"><input type="file" accept="video/*" data-cat="${esc(cat)}" hidden>Subir</label>`
         : `<label class="btn sm"><input type="file" accept="image/*" capture="${cat === 'Foto del cliente' ? 'user' : 'environment'}" data-cat="${esc(cat)}" hidden>${reus ? 'Actualizar' : ok ? 'Otra' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-cat="${esc(cat)}" hidden>Subir</label>`) : ''}</div></div>`
   }
@@ -1018,8 +1082,9 @@ function panelFotos(el, s) {
     ${otros.length ? `<h3 class="sec-title" style="margin-top:10px">Otros documentos</h3><div class="list">${otros.map((d) => `<button type="button" class="rowitem inset docrow" data-doc="${d.id}"><div><div class="t">${esc(d.categoria)}</div><div class="s">${esc(d.nombre)}</div></div><div class="m"><small>Ver</small></div></button>`).join('')}</div>` : ''}
     <div class="muted" data-fmsg></div>
     ${D.some((d) => d.origen_id) ? `<div class="note-card reus"><b>♻ Renovación:</b> la foto del cliente, la INE y el comprobante (si tiene menos de ${PARAM('comprobante_vigencia_dias', 90)} días) se tomaron solos del crédito anterior. ${sube ? 'Si cambió algo, toca <b>Actualizar</b>. ' : ''}Lo demás se toma nuevo para ver cómo está hoy su casa y su negocio.</div>` : ''}
-    <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. El video de la mercancía: unos 15 segundos. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
+    <div class="note">${sube ? 'Toma cada foto con el celular; se reduce sola para que suba rápido. El video del negocio: unos 15 segundos. La solicitud la puede firmar el cliente en la pantalla. ' : ''}Se guardan en privado y no se pueden borrar (auditorías de 6 años).</div>`
   $$('[data-doc]', el).forEach((b) => b.addEventListener('click', () => verDocumento(DB.documentos.find((d) => d.id === +b.dataset.doc))))
+  $('[data-firma]', el)?.addEventListener('click', () => firmarSolicitud(s))
   if (video) { const box = $('[data-vid]', el); if (sb) blobDe(video.path).then((u) => { box.innerHTML = `<video controls playsinline preload="metadata" src="${u}" style="width:100%;max-height:52vh;border-radius:14px;background:#000"></video>` }).catch(() => { box.innerHTML = '<div class="note">No se pudo cargar el video.</div>' }); else box.innerHTML = '<div class="note">Modo de prueba: sin video.</div>' }
   $$('[data-cat]', el).forEach((inp) => inp.addEventListener('change', async () => {
     const f = inp.files?.[0]; if (!f) return
@@ -1028,6 +1093,50 @@ function panelFotos(el, s) {
     catch (e) { msg.textContent = ''; toast(e.userMsg || 'No se pudo subir la foto.', 'warn') }
     inp.value = ''
   }))
+}
+// Firma digital: el cliente firma con el dedo; se genera la solicitud firmada como imagen y se guarda en su expediente
+function firmarSolicitud(s) {
+  const k = condSol(s), total = s.monto * (1 + k.i / 100)
+  const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  const decl = `Declaro que los datos de esta solicitud son verdaderos y autorizo a Nexus Capital MX a verificarlos con mis referencias. Solicito un crédito de ${peso(s.monto)} en modalidad ${FREC_TXT[s.frecuencia] || 'semanal'}: ${k.n} pagos de ${peso(total / k.n)} (total ${peso(total)}), sujeto a la autorización de mesa de control.`
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Firma de la solicitud</h3><div class="sub">${esc(s.cliente_nombre)} · ${hoy}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="guion inset"><p style="font-size:15px">${esc(decl)}</p></div>
+    <div class="muted">Pide al cliente que firme con el dedo dentro del recuadro:</div>
+    <canvas id="fCan" width="900" height="300" style="width:100%;aspect-ratio:3/1;background:#fff;border-radius:14px;touch-action:none;border:1px solid var(--line, #ccc)"></canvas>
+    <div class="err" id="fErr" role="alert" style="color:var(--red);font-weight:600"></div>
+    <div class="toolbar" style="justify-content:flex-end"><button class="btn ghost" type="button" id="fBorra">Borrar</button><button class="btn" type="button" id="fOk">Guardar solicitud firmada</button></div>`)
+  const cv = $('#fCan'), g = cv.getContext('2d'); let pinto = false, trazos = 0
+  g.lineWidth = 4; g.lineCap = g.lineJoin = 'round'; g.strokeStyle = '#0b1b3a'
+  const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height] }
+  cv.addEventListener('pointerdown', (e) => { pinto = true; cv.setPointerCapture(e.pointerId); const [x, y] = pt(e); g.beginPath(); g.moveTo(x, y); trazos++ })
+  cv.addEventListener('pointermove', (e) => { if (!pinto) return; const [x, y] = pt(e); g.lineTo(x, y); g.stroke() })
+  cv.addEventListener('pointerup', () => { pinto = false })
+  $('#fBorra').addEventListener('click', () => { g.clearRect(0, 0, cv.width, cv.height); trazos = 0 })
+  $('#fOk').addEventListener('click', async () => {
+    if (!trazos) { $('#fErr').textContent = 'Falta la firma del cliente.'; return }
+    const b = $('#fOk'); b.disabled = true; b.textContent = 'Guardando…'
+    // Hoja de la solicitud con los datos y la firma
+    const W = 1240, H = 1600, c = document.createElement('canvas'); c.width = W; c.height = H
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.fillStyle = '#0b1b3a'
+    const logo = await new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = 'logo-nexus.png' })
+    if (logo) x.drawImage(logo, 80, 60, 160, 160 * logo.height / logo.width)
+    x.font = 'bold 44px sans-serif'; x.fillText('NEXUS CAPITAL MX', 280, 120); x.font = '30px sans-serif'; x.fillText('Solicitud de crédito #' + s.id, 280, 170)
+    const linea = (t, y, f = '28px sans-serif') => { x.font = f; const pal = String(t).split(' '); let l = ''; for (const w of pal) { if (x.measureText(l + w).width > W - 160) { x.fillText(l, 80, y); y += 42; l = '' } l += w + ' ' } x.fillText(l, 80, y); return y + 48 }
+    let y = 290
+    const R = s.referencias || [], dato = (a, v) => { if (v) y = linea(`${a}: ${v}`, y) }
+    dato('Cliente', s.cliente_nombre); dato('CURP', s.curp); dato('Teléfono', s.telefono); dato('Dirección', [s.direccion, s.colonia].filter(Boolean).join(', ')); dato('Negocio', s.direccion_negocio)
+    R.forEach((r, i) => dato('Referencia ' + (i + 1), [r.nombre, r.parentesco, r.telefono].filter(Boolean).join(' · ')))
+    dato('Monto solicitado', peso(s.monto)); dato('Pagos', `${k.n} de ${peso(total / k.n)} (${FREC_TXT[s.frecuencia] || 'semanal'})`)
+    y = linea(decl, y + 20, 'italic 28px sans-serif')
+    y = Math.max(y + 20, 1150); x.drawImage(cv, 220, y, 800, 267); x.fillRect(220, y + 270, 800, 2)
+    x.font = '28px sans-serif'; x.fillText('Firma del cliente: ' + s.cliente_nombre, 220, y + 315); x.fillText('Fecha: ' + hoy + ' · Asesor: ' + (s.asesor || DB.perfil.nombre || ''), 220, y + 360)
+    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.9))
+    try {
+      const r = await subirDocumento('solicitud', s.id, 'Solicitud firmada', new File([blob], `solicitud-${s.id}-firmada.jpg`, { type: 'image/jpeg' }))
+      if (r) toast('Solicitud firmada guardada en el expediente.')
+      detalleSolicitud(s.id, 'archivos')
+    } catch (e) { $('#fErr').textContent = e.userMsg || 'No se pudo guardar.'; b.disabled = false; b.textContent = 'Guardar solicitud firmada' }
+  })
 }
 // Video de entrega: el cliente dice cuánto recibe y cómo paga. Sin video no hay desembolso.
 function guionEntrega(s) {
@@ -1046,14 +1155,30 @@ function grabarVideoEntrega(s) {
   modal(`<div class="ph"><div><h3 style="font-size:20px">Video de entrega</h3><div class="sub">${esc(s.cliente_nombre)} · entregas ${peso(entrega)}${ant ? ` (autorizado ${peso(monto)} menos ${peso(ant.saldo)} que debía)` : ''}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
     <div class="guion inset"><span class="muted">Pide al cliente que diga, mirando a la cámara:</span><p>“${esc(guion)}”</p></div>
     <div class="cam"><video id="vCam" playsinline muted autoplay></video><span class="rec" id="vRec" hidden>● <b id="vT">0:00</b></span></div>
+    <div class="foto inset" id="vCon"></div>
     <div class="err" id="vErr" role="alert" style="color:var(--red);font-weight:600"></div>
     <div class="toolbar" style="justify-content:flex-end" id="vBtns">
       ${puedeGrabar ? '<button class="btn ghost" type="button" id="vFlip">Cambiar cámara</button><button class="btn" type="button" id="vGo">Empezar a grabar</button>' : ''}
       <label class="btn ${puedeGrabar ? 'ghost' : ''}"><input type="file" accept="video/*" capture="environment" id="vFile" hidden>${puedeGrabar ? 'Usar la cámara del teléfono' : 'Grabar video'}</label>
       <button class="btn" type="button" id="vUp" hidden>Subir video y desembolsar</button></div>
-    <div class="note">El video es obligatorio para desembolsar y queda en el expediente. Graba con buena luz; dura de 15 a 60 segundos.</div>`)
+    <div class="note">El <b>video</b> y el <b>contrato firmado</b> son obligatorios para desembolsar (nuevos y renovaciones) y quedan en el expediente. Graba con buena luz; dura de 15 a 60 segundos.</div>`)
+  // Contrato firmado: foto de cada hoja (o PDF). Sin contrato no se puede desembolsar.
+  const conHay = () => docsSol(s.id).filter((d) => d.categoria === 'Contrato firmado').length
+  const pintaCon = () => {
+    const n = conHay()
+    $('#vCon').className = 'foto inset' + (n ? ' ok' : '')
+    $('#vCon').innerHTML = `<span class="ic">${n ? '✓' : '•'}</span><div class="t">Contrato firmado ${n ? `<span class="muted">(${n} ${n > 1 ? 'hojas' : 'hoja'})</span>` : '<span class="muted">(obligatorio)</span>'}</div>
+      <div class="b"><label class="btn sm"><input type="file" accept="image/*" capture="environment" data-con hidden>${n ? 'Otra hoja' : 'Tomar foto'}</label><label class="btn ghost sm"><input type="file" accept="image/*,application/pdf" data-con hidden>Subir</label></div>`
+    $$('[data-con]').forEach((inp) => inp.addEventListener('change', async () => {
+      const f = inp.files?.[0]; if (!f) return
+      err.textContent = 'Subiendo contrato…'
+      try { const ok = await subirDocumento('solicitud', s.id, 'Contrato firmado', f); err.textContent = ''; if (ok) toast('Contrato guardado.'); pintaCon(); if (blob) $('#vUp').hidden = !conHay() }
+      catch (e) { err.textContent = e.userMsg || 'No se pudo subir el contrato.' }
+    }))
+  }
   let stream = null, rec = null, chunks = [], blob = null, cara = 'environment', t0 = 0, timer = 0
   const cam = $('#vCam'), err = $('#vErr')
+  setTimeout(pintaCon)
   const parar = () => { clearInterval(timer); try { rec?.state === 'recording' && rec.stop() } catch {} stream?.getTracks().forEach((t) => t.stop()); stream = null }
   const obs = new MutationObserver(() => { if (!document.body.contains(cam)) { parar(); obs.disconnect() } }); obs.observe($('#modalHost'), { childList: true })
   const encender = async () => {
@@ -1066,7 +1191,7 @@ function grabarVideoEntrega(s) {
   const listo = (b) => {
     blob = b; parar()
     cam.srcObject = null; cam.src = URL.createObjectURL(b); cam.muted = false; cam.controls = true
-    $('#vUp').hidden = false; if ($('#vGo')) $('#vGo').textContent = 'Grabar otra vez'
+    $('#vUp').hidden = !conHay(); if (!conHay()) err.textContent = 'Video listo. Ahora sube el contrato firmado para poder desembolsar.'; if ($('#vGo')) $('#vGo').textContent = 'Grabar otra vez'
   }
   if (puedeGrabar) {
     encender()
@@ -1088,6 +1213,7 @@ function grabarVideoEntrega(s) {
   $('#vFile').addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) listo(f) })
   $('#vUp').addEventListener('click', async () => {
     if (!blob) return
+    if (!conHay()) { err.textContent = 'Falta el contrato firmado.'; return }
     if (blob.size > 50 * 1024 * 1024) { err.textContent = 'El video pesa más de 50 MB. Graba uno más corto (30 a 60 segundos).'; return }
     const b = $('#vUp'); b.disabled = true; b.textContent = 'Subiendo video…'
     try {
@@ -1118,6 +1244,8 @@ async function imprimirExpediente(s) {
       ${r('Dirección de cobro', esc([s.direccion, s.colonia].filter(Boolean).join(', ')) + (s.lat != null ? ` (${s.lat}, ${s.lng})` : ''))}${r('Dirección del negocio', esc(s.direccion_negocio || '') + (s.lat_negocio != null ? ` (${s.lat_negocio}, ${s.lng_negocio})` : ''))}
       ${r('Sexo', { H: 'Hombre', M: 'Mujer', X: 'No binario' }[s.sexo] || '')}${r('Correo', esc(s.correo || ''))}${r('Teléfono adicional', esc(s.telefono2 || ''))}
       ${(s.referencias || []).map((x, i) => r('Referencia ' + (i + 1), esc([x.nombre, x.parentesco, x.telefono].filter(Boolean).join(' · ')))).join('')}
+      ${s.ingresos ? ING.map(([kk, l]) => r(l, peso(+s.ingresos[kk] || 0))).join('') + r('Dependientes', String(s.ingresos.dependientes ?? 0)) : ''}
+      ${(() => { const ev = evalCapacidad(s.ingresos, monto, s.frecuencia || 'semanal', k.i, k.n); return ev ? r('Capacidad real de pago por día', peso(Math.round(ev.cap))) + r('Pago equivalente por día', `${peso(Math.round(ev.pagoDia))} · usa ${Number.isFinite(ev.uso) ? p2(ev.uso) + ' %' : '—'} de lo que le sobra · ${ev.txt}`) : '' })()}
       ${r('Observaciones', esc(s.observaciones || ''))}${r('Asesor', esc(s.asesor || ''))}${r('Ruta / oficina', esc(`${s.ruta || ''} · ${s.oficina || ''} · ${s.gerencia || ''}`))}${r('Capturada', esc(s.creada || ''))}</table>
     <h2>Condiciones</h2><table>${r('Monto solicitado', peso(s.monto))}${s.monto_autorizado != null ? r('Monto autorizado', peso(s.monto_autorizado)) : ''}${r('Modalidad', FREC_TXT[s.frecuencia] || 'semanal')}${r('Porcentaje', k.i + ' %')}
       ${r('Pago', `${peso(total / k.n)} × ${k.n}`)}${r('Total a pagar', peso(total))}${r('Gastos administrativos', peso(PARAM('seguro_monto', 150)))}
@@ -1125,7 +1253,7 @@ async function imprimirExpediente(s) {
     ${HIST.creditos.length ? `<h2>Historial de créditos del cliente</h2><table class="pt"><tr><th>Crédito</th><th>Tipo</th><th>Inicio</th><th>Prestado</th><th>Pagos</th><th>Debe</th></tr>${HIST.creditos.map((c) => `<tr><td>#${c.credito_id}</td><td>${TIPO[c.tipo] || 'Nuevo'}</td><td>${c.fecha_inicio}</td><td>${peso(c.monto)}</td><td>${c.cuotas_pagadas}/${c.num_cuotas}</td><td>${peso(c.saldo)}</td></tr>`).join('')}</table>` : '<h2>Historial</h2><p class="psub">Cliente nuevo: sin créditos anteriores.</p>'}
     ${ant ? `<h2>Estado de cuenta anterior</h2><table class="pt"><tr><th>Fecha</th><th>Monto</th><th>Tipo</th></tr>${HIST.pagos.filter((x) => x.credito_id === ant.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha)).map((x) => `<tr><td>${x.fecha}</td><td>${peso(x.monto)}</td><td>${x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago'}</td></tr>`).join('')}</table>` : ''}
     ${msgs.length ? `<h2>Conversación con mesa</h2><table>${msgs.map((m) => r(esc(m.autor_nombre || 'Usuario') + ' · ' + esc(horaLocal(m.creado)), esc(m.texto))).join('')}</table>` : ''}
-    <h2>Fotos (${imgs.length} de ${FOTOS_SOL.length} requeridas)</h2><p class="psub">Faltan: ${esc(faltanFotos(s.id).join(', ') || 'ninguna')}</p></div>
+    <h2>Documentos (${FOTOS_SOL.length - faltanFotos(s.id).length} de ${FOTOS_SOL.length} obligatorios)</h2><p class="psub">Faltan: ${esc(faltanFotos(s.id).join(', ') || 'ninguna')}</p></div>
     ${imgs.map(([c, u]) => `<div class="pg pimg"><h2>${esc(c)}</h2>${u ? `<img src="${u}" alt="${esc(c)}">` : ''}</div>`).join('')}`
   await Promise.all($$('img', host).map((im) => im.complete ? 0 : new Promise((ok) => { im.onload = im.onerror = ok })))
   setTimeout(() => { window.print(); toast('Elige «Guardar como PDF» para descargarlo.') }, 150)
@@ -1144,6 +1272,7 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
   const geo = (lat, lng) => (lat != null && lng != null ? `${lat},${lng}` : '')
   const campos = []
   const R0 = e.referencias || ant?.referencias || []
+  const I0 = e.ingresos || ant?.ingresos || {}
   if (tipo === 'nuevo') campos.push(
     { tipo: 'titulo', label: '1 · Datos del cliente' },
     { id: 'curp', label: 'CURP (llena sola la fecha de nacimiento y el sexo)', req: 1, valor: e.curp }, { id: 'nombre', label: 'Nombre completo (nombres y apellidos)', req: 1, valor: e.cliente_nombre },
@@ -1156,21 +1285,24 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
     { id: 'direccion', label: 'Dirección de cobro (calle y número)', req: tipo === 'nuevo' ? 1 : 0, valor: e.direccion ?? ant?.direccion }, { id: 'colonia', label: 'Colonia', valor: e.colonia ?? ant?.colonia },
     { id: 'geon', label: 'Ubicación del negocio', tipo: 'geo', dir: 'negocio', valor: geo(e.lat_negocio ?? ant?.lat_negocio, e.lng_negocio ?? ant?.lng_negocio) },
     { id: 'negocio', label: 'Dirección del negocio', valor: e.direccion_negocio ?? ant?.direccion_negocio },
-    { tipo: 'titulo', label: tipo === 'nuevo' ? '3 · Referencias (opcional)' : 'Referencias (opcional)' },
-    ...[0, 1].flatMap((i) => [{ id: 'rn' + i, label: `Referencia ${i + 1}: nombre`, valor: R0[i]?.nombre }, { id: 'rp' + i, label: 'Parentesco o relación', valor: R0[i]?.parentesco }, { id: 'rt' + i, label: 'Teléfono', tipo: 'tel', valor: R0[i]?.telefono }]),
-    { tipo: 'titulo', label: tipo === 'nuevo' ? '4 · Crédito' : 'Crédito' },
+    { tipo: 'titulo', label: (tipo === 'nuevo' ? '3 · ' : '') + 'Referencias (las 2 primeras son obligatorias para mandar a mesa)' },
+    ...[0, 1, 2, 3].flatMap((i) => [{ id: 'rn' + i, label: `Referencia ${i + 1}${i > 1 ? ' (opcional)' : ''}: nombre completo`, valor: R0[i]?.nombre }, { id: 'rp' + i, label: 'Parentesco o relación', valor: R0[i]?.parentesco }, { id: 'rt' + i, label: 'Teléfono (10 dígitos)', tipo: 'tel', valor: R0[i]?.telefono }]),
+    { tipo: 'titulo', label: (tipo === 'nuevo' ? '4 · ' : '') + 'Ingresos y gastos del cliente' },
+    ...ING.map(([k, l]) => ({ id: 'i_' + k, label: l, tipo: 'number', min: 0, step: '10', valor: I0[k] })),
+    { id: 'i_dep', label: 'Personas que dependen de él o ella', tipo: 'number', min: 0, step: '1', valor: I0.dependientes },
+    { tipo: 'titulo', label: (tipo === 'nuevo' ? '5 · ' : '') + 'Crédito' },
     { id: 'monto', label: 'Monto del crédito (MXN)', tipo: 'number', min: 500, step: '500', req: 1, valor: e.monto ?? (ant ? ant.monto : '') },
     { id: 'frecuencia', label: 'Modalidad', tipo: 'select', req: 1, opciones: mods, valor: mods.some(([f]) => f === (e.frecuencia || ant?.frecuencia)) ? (e.frecuencia || ant?.frecuencia) : mods.some(([f]) => f === 'semanal') ? 'semanal' : mods[0][0] },
-    { id: 'obs', label: 'Observaciones', tipo: 'textarea', valor: e.observaciones },
-    { id: 'enviar', label: 'Enviar a mesa de control ahora', tipo: 'check', valor: !editar })
+    { tipo: 'html', html: '<div class="note-card" id="fCap"></div>' },
+    { id: 'obs', label: 'Observaciones', tipo: 'textarea', valor: e.observaciones })
   const saldoAnt = tipo === 'renovacion' && ant ? ant.saldo : 0
   let confirmado = false
   formModal({
     titulo: editar ? 'Corregir solicitud' : { nuevo: 'Nuevo crédito', renovacion: 'Renovar crédito', recompra: 'Recompra' }[tipo],
     nota: (tipo === 'renovacion' ? `${esc(ant.cliente)} · debe ${peso(saldoAnt)} del crédito #${ant.credito_id} (prestado ${peso(ant.monto)}). Ese saldo se descuenta de lo que se le entrega.`
       : tipo === 'recompra' ? `${esc(ant.cliente)} · ya liquidó. Se crea un crédito nuevo y queda en su expediente como recompra.`
-      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span> ' + (tipo === 'nuevo' || editar ? '<b>Al guardar se abre la lista de fotos y videos:</b> INE, comprobante, 3 del domicilio, 3 del negocio, foto del cliente y video de su mercancía.'
-        : `<b>No se vuelve a subir todo:</b> la foto del cliente, la INE y el comprobante (si tiene menos de ${PARAM('comprobante_vigencia_dias', 90)} días) se toman solos del crédito anterior. Al guardar sólo tomas la solicitud firmada, la carta de ingresos, 3 fotos del domicilio, 3 del negocio y el video de su mercancía.`),
+      : 'Revisamos en toda la empresa que el cliente no esté registrado (por CURP o por nombre).') + ' <span id="fCond"></span> ' + (tipo === 'nuevo' || editar ? '<b>Al guardar se abre la lista de documentos:</b> INE de frente y reverso, 3 fotos del domicilio, 3 del negocio, 2 del interior del negocio, video del negocio de 15 segundos y la solicitud firmada (el cliente puede firmar en la pantalla). Con todo completo aparece «Enviar a mesa de control».'
+        : `<b>No se vuelve a subir todo:</b> la INE, la foto del cliente y el comprobante (si tiene menos de ${PARAM('comprobante_vigencia_dias', 90)} días) se toman solos del crédito anterior. Al guardar tomas las fotos del domicilio y del negocio de hoy, el video del negocio y la solicitud firmada. La renovación la autoriza mesa de control.`),
     boton: 'Guardar solicitud', campos,
     guardar: async (v) => {
       const err = (t) => { const x = new Error(t); x.userMsg = t; throw x }
@@ -1190,10 +1322,12 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
       const row = tipo === 'nuevo'
         ? { cliente_nombre: v.nombre, curp: v.curp, fecha_nacimiento: v.fnac || null, telefono: v.telefono, celular: v.celular || null, ruta_id: +v.ruta }
         : { cliente_nombre: ant.cliente, ruta_id: ant.ruta_id, curp: ant.curp || null, telefono: ant.telefono || null, celular: ant.celular || null, ...(editar ? {} : { credito_anterior_id: ant.credito_id, cliente_id: ant.cliente_id }) }
-      const refs = [0, 1].map((i) => ({ nombre: v['rn' + i], parentesco: v['rp' + i], telefono: v['rt' + i] })).filter((r) => r.nombre || r.telefono)
+      const refs = [0, 1, 2, 3].map((i) => ({ nombre: v['rn' + i], parentesco: v['rp' + i], telefono: v['rt' + i] })).filter((r, i) => i < 2 || r.nombre || r.telefono)
+      const ingresos = Object.fromEntries(ING.map(([k]) => [k, +v['i_' + k] || 0]).concat([['dependientes', +v.i_dep || 0]]))
+      ingresos.capacidad_diaria = Math.round(capacidadDiaria(ingresos) ?? 0)
       if (tipo === 'nuevo') Object.assign(row, { sexo: v.sexo || null, correo: v.correo || null, telefono2: v.tel2 || null })
-      Object.assign(row, { referencias: refs.length ? refs : null, direccion: v.direccion || null, colonia: v.colonia || null, lat, lng, direccion_negocio: v.negocio || null, lat_negocio: latn, lng_negocio: lngn,
-        observaciones: v.obs || null, monto, frecuencia: v.frecuencia, tipo, estado: v.enviar ? 'revision' : 'borrador' })
+      Object.assign(row, { referencias: refs.some((r) => r.nombre || r.telefono) ? refs : null, ingresos: ingresos.ventas > 0 ? ingresos : null, direccion: v.direccion || null, colonia: v.colonia || null, lat, lng, direccion_negocio: v.negocio || null, lat_negocio: latn, lng_negocio: lngn,
+        observaciones: v.obs || null, monto, frecuencia: v.frecuencia, tipo, estado: 'borrador' })
       if (!editar) row.creado_por = DB.perfil.id
       const ok = await escribir(() => editar ? sb.from('solicitudes').update(row).eq('id', editar.id) : sb.from('solicitudes').insert(row).select('id').single())
       if (!ok) return ''
@@ -1201,9 +1335,9 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
       if (nid) setTimeout(() => {
         detalleSolicitud(nid, 'archivos')
         const r = docsSol(nid).filter((d) => d.origen_id).length, f = faltanFotos(nid).length
-        toast(r ? `Se tomaron ${r} documentos del crédito anterior. Faltan ${f}: casa, negocio, solicitud y mercancía.` : 'Ahora toma las fotos: INE, comprobante, casa, negocio y mercancía.')
+        toast(r ? `Se tomaron ${r} documentos del crédito anterior. Faltan ${f}. Al terminar toca «Enviar a mesa de control».` : `Ahora toma los ${f} documentos. Al terminar toca «Enviar a mesa de control».`)
       }, 50)
-      return v.enviar ? 'Solicitud enviada a mesa de control.' : 'Solicitud guardada como borrador.'
+      return 'Solicitud guardada. Falta subir documentos y mandarla a mesa.'
     },
   })
   // La modalidad depende de la gerencia de la ruta; el porcentaje y los pagos se muestran, no se editan
@@ -1218,6 +1352,13 @@ function nuevaSolicitud({ renovar, recompra, editar } = {}) {
     cond()
   })
   fr.addEventListener('change', cond); cond()
+  // Capacidad de pago en vivo mientras se capturan ingresos, gastos y monto
+  const capV = () => {
+    const x = Object.fromEntries(ING.map(([k]) => [k, +($('#f_i_' + k)?.value || 0)])), rid = ru ? +ru.value : ruta0, c = condicion(rid, fr.value)
+    const ev = evalCapacidad(x, +($('#f_monto')?.value || 0), fr.value, c.interes_pct, c.num_cuotas)
+    $('#fCap').innerHTML = `<b>Capacidad de pago</b>${ev ? capHtml(ev) : '<div class="muted">Escribe ventas y gastos para ver cuánto le sobra al día y si le alcanza el pago.</div>'}`
+  }
+  ;[...ING.map(([k]) => '#f_i_' + k), '#f_monto', '#f_frecuencia', '#f_ruta'].forEach((q) => $(q)?.addEventListener('input', capV)); fr.addEventListener('change', capV); capV()
   // La CURP trae la fecha de nacimiento y el sexo: se llenan solos
   $('#f_curp')?.addEventListener('input', (ev) => {
     const c = ev.target.value.toUpperCase().replace(/\s+/g, ''), m = c.match(/^[A-Z]{4}(\d{2})(\d{2})(\d{2})([HMX])[A-Z]{5}([0-9A-Z])/)
@@ -1314,7 +1455,7 @@ VIEWS.cobranza = {
       <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel" id="miRuta"></div><div class="note">Pagos en efectivo. Lo que se registre después de las 18:00 cuenta para el día siguiente.</div>`
-    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes por color y en su orden de visita.', puede('registrar_pagos') ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '')}
+    return `${head('Cobranza', 'Cobro en efectivo por ruta: lo cobrado hoy, el ritmo normal de cada ruta y quién trae atraso. Toca una ruta para ver sus clientes por color y en su orden de visita.', '<button class="btn ghost" type="button" id="cprom">Promesas de pago</button><button class="btn ghost" type="button" id="cdia">Reporte del día</button>' + (false ? '<button class="btn" type="button" id="cpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : ''))}
       <div class="statrow">${[['Cobrado hoy', peso(tot)], ['Pagos registrados hoy', NUM.format(sum(rows, (r) => r.pagos))], ['Promedio diario', peso(prom)], ['Avance vs promedio', pct(tot, prom) + '%']]
         .map(([l, v]) => `<div class="card lift"><div class="lab">${l}</div><div class="val">${v}</div></div>`).join('')}</div>
       <div class="card panel"><div class="ph"><h3>Por ruta</h3></div>
@@ -1326,6 +1467,8 @@ VIEWS.cobranza = {
   init() {
     if (this.unaRuta) listaCobro($('#miRuta'), this.unaRuta)
     $('#cpago')?.addEventListener('click', () => registrarPago())
+    $('#cprom')?.addEventListener('click', () => verPromesas())
+    $('#cdia')?.addEventListener('click', () => reporteDia())
     $$('[data-ruta]').forEach((tr) => tr.addEventListener('click', () => detalleRuta(+tr.dataset.ruta)))
   },
 }
@@ -1336,13 +1479,18 @@ const fotoCliente = (cid) => DB.documentos.find((d) => d.categoria === 'Foto del
 function ordenRuta(L) {
   return L.slice().sort((a, b) => (a.orden_ruta ?? 1e9) - (b.orden_ruta ?? 1e9) || a.cliente.localeCompare(b.cliente) || a.credito_id - b.credito_id)
 }
-function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
+function listaCobro(el, rutaId, est = { f: null, ordenar: false }) {
   if (!el) return
   const r = DB.R[rutaId], hoy = DB.hoy
   const pagHoy = new Set(DB.pagos.filter((x) => x.fecha === hoy && x.tipo !== 'liquidacion_renovacion').map((x) => x.credito_id))
   const todos = ordenRuta(DB.cartera.filter((c) => c.ruta_id === rutaId && c.saldo > 0))
-  const F = { todos: () => true, pendientes: (c) => !pagHoy.has(c.credito_id), atraso: (c) => c.dias_atraso > 0, pagaron: (c) => pagHoy.has(c.credito_id) }
-  const L = est.ordenar ? todos : todos.filter(F[est.f] || F.todos)
+  const promHoy = new Map(promesasDel(hoy, todos).map((g) => [g.credito_id, g]))
+  const F = { promesas: (c) => promHoy.has(c.credito_id), todos: () => true, pendientes: (c) => !pagHoy.has(c.credito_id), atraso: (c) => c.dias_atraso > 0, pagaron: (c) => pagHoy.has(c.credito_id) }
+  // Al empezar el día el asesor ve primero sus promesas de pago
+  if (!est.f) est = { ...est, f: promHoy.size ? 'promesas' : 'todos' }
+  const ultG = (k) => gestionesDe(k).slice(-1)[0]
+  const q = norm(est.q || '')
+  const L = est.ordenar ? todos : todos.filter(F[est.f] || F.todos).filter((c) => !q || norm([c.cliente, c.direccion, c.colonia, c.codigo].filter(Boolean).join(' ')).includes(q))
   const n = (k) => todos.filter(F[k]).length
   const card = (c, i) => {
     const e = ESTADO[c.estado] || ESTADO.al_dia, foto = fotoCliente(c.cliente_id)
@@ -1350,10 +1498,12 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
     return `<div class="cobro inset${pagHoy.has(c.credito_id) ? ' pago' : ''}" style="--c:${e.c}" data-cc="${c.credito_id}">
       <div class="cfoto">${foto ? `<img alt="" data-ft="${esc(foto.path)}">` : esc(c.cliente.trim().slice(0, 1))}</div>
       <div class="cinfo"><b>${est.ordenar ? `<span class="num-orden">${i + 1}</span>` : ''}${esc(c.cliente)}</b><span>${esc([c.direccion, c.colonia].filter(Boolean).join(', ') || 'Sin dirección')}</span>
-        <span class="muted">${e.n}${c.dias_atraso ? ` · ${c.dias_atraso} días` : ''} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos · ${FREC_TXT[c.frecuencia] || ''}</span></div>
+        <span class="muted">${e.n}${c.dias_atraso ? ` · ${c.dias_atraso} días` : ''} · ${c.cuotas_pagadas}/${c.num_cuotas} pagos · ${FREC_TXT[c.frecuencia] || ''}</span>
+        ${promHoy.has(c.credito_id) ? `<span class="chip ${promHoy.get(c.credito_id).ok ? 'g' : 'a'}">Promesa hoy ${horaTxt(promHoy.get(c.credito_id).promesa_hora)}${promHoy.get(c.credito_id).promesa_monto ? ' · ' + peso(promHoy.get(c.credito_id).promesa_monto) : ''}${promHoy.get(c.credito_id).ok ? ' · cumplió' : ''}</span>`
+          : ultG(c.credito_id) && String(ultG(c.credito_id).creado).slice(0, 10) >= addDays(hoy, -7) ? `<span class="chip">${esc(GEST[ultG(c.credito_id).tipo])} · ${fechaCorta(String(ultG(c.credito_id).creado).slice(0, 10))}${ultG(c.credito_id).promesa_fecha ? ' → ' + fechaCorta(ultG(c.credito_id).promesa_fecha) : ''}</span>` : ''}</div>
       <div class="cmonto"><b>${peso(Math.min(c.cuota, c.saldo))}</b><small>debe ${peso(c.saldo)}</small>${pagHoy.has(c.credito_id) ? '<span class="st ok">Pagó hoy</span>' : ''}</div>
       <div class="cacc">${est.ordenar ? `<button class="btn ghost sm" type="button" data-up="${i}" aria-label="Subir">▲</button><button class="btn ghost sm" type="button" data-dn="${i}" aria-label="Bajar">▼</button>`
-        : `${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>` : ''}
+        : `${puede('registrar_pagos') ? `<button class="btn sm" type="button" data-cobrar="${c.credito_id}">Cobrar</button>${pagHoy.has(c.credito_id) ? '' : `<button class="btn ghost sm" type="button" data-gest="${c.credito_id}">No pagó / promesa</button>`}` : ''}
         ${puedeRenovar(c) && puede('crear_solicitudes') ? `<button class="btn sm renov" type="button" data-renov="${c.credito_id}">Renovar</button>` : ''}
         ${cob ? `<a class="btn ghost sm" href="${cob}" target="_blank" rel="noopener">Ir a cobrar</a>` : ''}${neg ? `<a class="btn ghost sm" href="${neg}" target="_blank" rel="noopener">Negocio</a>` : ''}
         ${puede('registrar_pagos') ? `<button class="btn ghost sm${c.lat == null ? ' falta' : ''}" type="button" data-ubi="${c.credito_id}">${c.lat == null ? '📍 Guardar ubicación' : 'Ubicación'}</button>` : ''}
@@ -1362,12 +1512,15 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
   el.innerHTML = `<div class="ph"><div><h3>${esc(r?.ruta || 'Ruta')}</h3><div class="sub">${esc(r?.asesor || '')} · ${todos.length} créditos por cobrar · ${pagHoy.size ? [...pagHoy].filter((k) => todos.some((c) => c.credito_id === k)).length + ' ya pagaron hoy' : 'nadie ha pagado hoy'}</div></div>
       ${puede('ordenar_ruta') ? `<div class="toolbar">${est.ordenar ? '<button class="btn ghost sm" type="button" data-ord="no">Cancelar</button><button class="btn sm" type="button" data-ord="ok">Guardar orden</button>' : '<button class="btn ghost sm" type="button" data-ord="si">Ordenar ruta</button>'}</div>` : ''}</div>
     ${est.ordenar ? '<div class="note-card">Acomoda a los clientes en el orden en que pasas a cobrarles. Así aparecen siempre, también para el gerente si sale a cubrir la ruta.</div>'
-      : `<div class="tabs ftabs">${[['todos', 'Todos'], ['pendientes', 'Por cobrar hoy'], ['atraso', 'Con atraso'], ['pagaron', 'Pagaron hoy']].map(([k, t]) => `<button type="button" data-fc="${k}" class="${est.f === k ? 'on' : ''}">${t} <span class="muted">${n(k)}</span></button>`).join('')}</div>`}
+      : `<input class="ctl" type="search" id="cbq" placeholder="Buscar cliente por nombre, calle o colonia…" value="${esc(est.q || '')}" autocomplete="off" style="width:100%">
+        <div class="tabs ftabs">${[...(promHoy.size ? [['promesas', 'Promesas de hoy']] : []), ['todos', 'Todos'], ['pendientes', 'Por cobrar hoy'], ['atraso', 'Con atraso'], ['pagaron', 'Pagaron hoy']].map(([k, t]) => `<button type="button" data-fc="${k}" class="${est.f === k ? 'on' : ''}">${t} <span class="muted">${n(k)}</span></button>`).join('')}</div>`}
     <div class="cobros">${L.map(card).join('') || '<div class="empty"><b>Nadie en este filtro</b></div>'}</div>
     <div class="legend-st">${ESTADOS.map((x) => `<span><i style="background:${x.c}"></i>${x.n}</span>`).join('')}</div>`
   $$('[data-ft]', el).forEach((im) => fotoEn(im, im.dataset.ft))
   $$('[data-fc]', el).forEach((b) => b.addEventListener('click', () => listaCobro(el, rutaId, { ...est, f: b.dataset.fc })))
+  $('#cbq', el)?.addEventListener('input', (e) => { const pos = e.target.selectionStart; listaCobro(el, rutaId, { ...est, q: e.target.value }); const i = $('#cbq', el); if (i) { i.focus(); i.setSelectionRange(pos, pos) } })
   $$('[data-cobrar]', el).forEach((b) => b.addEventListener('click', () => registrarPago(+b.dataset.cobrar)))
+  $$('[data-gest]', el).forEach((b) => b.addEventListener('click', () => registrarGestion(todos.find((c) => c.credito_id === +b.dataset.gest))))
   $$('[data-renov]', el).forEach((b) => b.addEventListener('click', () => nuevaSolicitud({ renovar: +b.dataset.renov })))
   $$('[data-ficha]', el).forEach((b) => b.addEventListener('click', () => fichaCliente(+b.dataset.ficha)))
   $$('[data-ubi]', el).forEach((b) => b.addEventListener('click', () => guardarUbicacion(todos.find((c) => c.credito_id === +b.dataset.ubi), () => listaCobro($('#miRuta') || $('#rCobro'), rutaId, { f: est.f }))))
@@ -1384,6 +1537,121 @@ function listaCobro(el, rutaId, est = { f: 'todos', ordenar: false }) {
     catch (e) { toast(e.userMsg || 'No se pudo guardar el orden.', 'warn'); b.disabled = false; b.textContent = 'Guardar orden' }
   }))
 }
+// Gestiones de cobranza y promesas de pago
+const GEST = { no_estaba: 'No se encontró al cliente', no_tiene: 'No tuvo para pagar', promesa: 'Promesa de pago', otro: 'Otra gestión' }
+const gestionesDe = (k) => (DB.gestiones || []).filter((g) => g.credito_id === k)
+// Promesas de un día: cumplida si pagó desde que prometió hasta la fecha prometida
+function promesasDel(fecha, creditos) {
+  const ids = new Set(creditos.map((c) => c.credito_id))
+  return (DB.gestiones || []).filter((g) => g.tipo === 'promesa' && g.promesa_fecha === fecha && ids.has(g.credito_id)).map((g) => {
+    const c = DB.cartera.find((x) => x.credito_id === g.credito_id) || {}
+    const pag = sum(DB.pagos.filter((x) => x.credito_id === g.credito_id && x.tipo !== 'liquidacion_renovacion' && x.fecha >= String(g.creado).slice(0, 10) && x.fecha <= fecha), (x) => x.monto)
+    return { ...g, c, pag, ok: pag > 0 && (!g.promesa_monto || pag >= g.promesa_monto - 0.01) }
+  }).sort((a, b) => String(a.promesa_hora || '99').localeCompare(String(b.promesa_hora || '99')))
+}
+const horaTxt = (h) => h ? String(h).slice(0, 5) : ''
+function registrarGestion(c, alTerminar) {
+  formModal({
+    titulo: 'Gestión de cobranza', boton: 'Guardar gestión',
+    nota: `<b>${esc(c.cliente)}</b> · crédito #${c.credito_id} · pago ${peso(c.cuota)} · debe ${peso(c.saldo)}. Anota qué pasó en la visita. Si promete pagar, pon el día y la hora: aparece en tus <b>promesas</b> ese día y la ve tu gerente.`,
+    campos: [
+      { id: 'tipo', label: '¿Qué pasó?', tipo: 'select', req: 1, opciones: Object.entries(GEST), valor: 'promesa' },
+      { id: 'fecha', label: 'Fecha en que promete pagar', tipo: 'date', valor: addDays(DB.hoy, 1) },
+      { id: 'hora', label: 'Hora', tipo: 'time', valor: '10:00' },
+      { id: 'monto', label: 'Monto que promete (MXN)', tipo: 'number', min: 1, step: '0.01', valor: Math.min(c.cuota, c.saldo) },
+      { id: 'nota', label: 'Nota (qué dijo, dónde estaba, etc.)', tipo: 'textarea' },
+    ],
+    guardar: async (v) => {
+      const err = (t) => { const e = new Error(t); e.userMsg = t; throw e }
+      const prom = v.tipo === 'promesa'
+      if (prom && !v.fecha) err('Pon la fecha en que promete pagar.')
+      if (prom && v.fecha < DB.hoy) err('La fecha de la promesa no puede ser de días pasados.')
+      if (!prom && !v.nota) err('Escribe una nota de lo que pasó.')
+      const row = { credito_id: c.credito_id, tipo: v.tipo, nota: v.nota || null, promesa_fecha: prom ? v.fecha : null, promesa_hora: prom && v.hora ? v.hora : null, promesa_monto: prom && +v.monto > 0 ? +v.monto : null }
+      const ok = await escribir(() => sb.from('gestiones').insert(row))
+      if (ok) setTimeout(() => alTerminar?.(), 400)
+      return ok ? (prom ? `Promesa guardada para el ${fechaCorta(v.fecha)}${v.hora ? ' a las ' + v.hora : ''}.` : 'Gestión guardada.') : ''
+    },
+  })
+  const t = $('#f_tipo'), vis = () => ['fecha', 'hora', 'monto'].forEach((k) => { const l = $('#f_' + k)?.closest('.fl'); if (l) l.style.display = t.value === 'promesa' ? '' : 'none' })
+  t.addEventListener('change', vis); vis()
+}
+// Promesas de pago por día (gerente y superiores): quién prometió, cuánto y si cumplió
+function verPromesas(fecha = DB.hoy) {
+  const L = promesasDel(fecha, sc.cartera())
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Promesas de pago</h3><div class="sub">${L.length} promesa${L.length === 1 ? '' : 's'} para el ${fechaCorta(fecha)} · cumplidas ${L.filter((x) => x.ok).length} · por ${peso(sum(L, (x) => x.promesa_monto || 0))}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="toolbar"><button class="btn ghost sm" type="button" data-pd="-1">◀ Día anterior</button><input class="ctl" type="date" id="prF" value="${fecha}"><button class="btn ghost sm" type="button" data-pd="1">Día siguiente ▶</button></div>
+    ${tabla([{ t: 'Hora', f: (x) => horaTxt(x.promesa_hora) || '—' }, { t: 'Cliente', f: (x) => `<b>${esc(x.c.cliente || '')}</b><div class="muted" style="font-size:12px">#${x.credito_id}${x.nota ? ' · ' + esc(x.nota) : ''}</div>` }, { t: 'Asesor', f: (x) => esc(x.c.asesor || '') }, { t: 'Ruta', f: (x) => esc(x.c.ruta || '') },
+      { t: 'Prometió', num: 1, f: (x) => x.promesa_monto ? peso(x.promesa_monto) : '—' }, { t: 'Pagó', num: 1, f: (x) => x.pag ? peso(x.pag) : '—' }, { t: 'Estado', f: (x) => `<span class="st ${x.ok ? 'ok' : fecha < DB.hoy ? 'bad' : 'wait'}">${x.ok ? 'Cumplida' : fecha < DB.hoy ? 'No cumplió' : 'Pendiente'}</span>` }], L) || ''}
+`)
+  $('#prF').addEventListener('change', (e) => e.target.value && verPromesas(e.target.value))
+  $$('[data-pd]').forEach((b) => b.addEventListener('click', () => verPromesas(addDays(fecha, +b.dataset.pd))))
+}
+// Reporte de un día: cobranza y colocación por asesor, oficina (sucursal) o zona; y el detalle de lo que hizo cada asesor
+function reporteDia(fecha = DB.hoy, agr = 'ruta', sel = null) {
+  const cart = sc.cartera(), byId = new Map(DB.cartera.map((c) => [c.credito_id, c])), rutas = new Set(sc.rutas().map((r) => r.ruta_id))
+  const cob = DB.pagos.filter((x) => x.fecha === fecha && x.tipo !== 'liquidacion_renovacion' && rutas.has(byId.get(x.credito_id)?.ruta_id)).map((x) => ({ ...x, c: byId.get(x.credito_id) }))
+  const col = cart.filter((c) => c.fecha_inicio === fecha)
+  const ges = (DB.gestiones || []).filter((g) => String(g.creado).slice(0, 10) === fecha && rutas.has(byId.get(g.credito_id)?.ruta_id)).map((g) => ({ ...g, c: byId.get(g.credito_id) }))
+  const G = { ruta: ['ruta_id', (r) => `${r.ruta} · ${r.asesor || ''}`, 'Asesor (ruta)'], oficina: ['oficina', (r) => r.oficina, 'Oficina (sucursal)'], gerencia: ['gerencia', (r) => r.gerencia, 'Gerencia'], zona: ['zona', (r) => r.zona, 'Zona'] }[agr]
+  const key = (c) => c ? (agr === 'ruta' ? c.ruta_id : c[G[0]]) : null
+  const rows = [...new Map(sc.rutas().map((r) => [agr === 'ruta' ? r.ruta_id : r[G[0]], r])).entries()].map(([k, r]) => {
+    const C = cob.filter((x) => key(x.c) === k), N = col.filter((c) => key(c) === k && c.tipo !== 'renovacion'), Rn = col.filter((c) => key(c) === k && c.tipo === 'renovacion'), Gs = ges.filter((g) => key(g.c) === k)
+    return { k, nombre: G[1](r), cobN: C.length, cob: sum(C, (x) => x.monto), nN: N.length, n: sum(N, (c) => c.monto), rN: Rn.length, r: sum(Rn, (c) => c.monto), rE: sum(Rn, (c) => c.entregado), gN: Gs.length, pN: Gs.filter((g) => g.tipo === 'promesa').length }
+  }).filter((x) => x.cobN || x.nN || x.rN || x.gN || agr === 'ruta')
+  const T = (k) => sum(rows, (x) => x[k])
+  modal(`<div class="ph"><div><h3 style="font-size:20px">Reporte del día</h3><div class="sub">Cobranza y colocación del ${fechaCorta(fecha)}. ${agr === 'ruta' ? 'Toca un asesor para ver todo lo que hizo ese día.' : ''}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
+    <div class="toolbar"><input class="ctl" type="date" id="rdF" value="${fecha}"><div class="field sel"><select class="ctl" id="rdA">${[['ruta', 'Por asesor'], ['oficina', 'Por oficina (sucursal)'], ['gerencia', 'Por gerencia'], ['zona', 'Por zona']].map(([v, t]) => `<option value="${v}"${v === agr ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div>
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>${G[2]}</th><th class="num">Cobros</th><th class="num">Cobrado</th><th class="num">Nuevos</th><th class="num">Colocado nuevos</th><th class="num">Renovaciones</th><th class="num">Colocado renov.</th><th class="num">Gestiones</th><th class="num">Promesas</th></tr></thead><tbody>
+    ${rows.map((x) => `<tr class="${agr === 'ruta' ? 'click' : ''}${sel === x.k ? ' on' : ''}" data-rd="${x.k}"><td class="strong">${esc(x.nombre || '')}</td><td class="num">${x.cobN}</td><td class="num strong">${peso(x.cob)}</td><td class="num">${x.nN}</td><td class="num">${peso(x.n)}</td><td class="num">${x.rN}</td><td class="num">${peso(x.r)}</td><td class="num">${x.gN}</td><td class="num">${x.pN}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td class="num">${T('cobN')}</td><td class="num">${peso(T('cob'))}</td><td class="num">${T('nN')}</td><td class="num">${peso(T('n'))}</td><td class="num">${T('rN')}</td><td class="num">${peso(T('r'))}</td><td class="num">${T('gN')}</td><td class="num">${T('pN')}</td></tr></tfoot></table></div>
+    <div id="rdDet"></div>
+    <div class="toolbar" style="justify-content:flex-end">${puede('descargar_excel') ? '<button class="btn ghost" type="button" id="rdX">Descargar Excel</button>' : ''}</div>`)
+  $('#rdF').addEventListener('change', (e) => e.target.value && reporteDia(e.target.value, agr))
+  $('#rdA').addEventListener('change', (e) => reporteDia(fecha, e.target.value))
+  $('#rdX')?.addEventListener('click', () => csv('reporte_dia_' + fecha, [[G[2], 'nombre'], ['Cobros', 'cobN'], ['Cobrado', 'cob'], ['Nuevos', 'nN'], ['Colocado nuevos', 'n'], ['Renovaciones', 'rN'], ['Colocado renovaciones', 'r'], ['Gestiones', 'gN'], ['Promesas', 'pN']], rows))
+  if (agr === 'ruta') $$('[data-rd]').forEach((tr) => tr.addEventListener('click', () => {
+    const k = +tr.dataset.rd, r = DB.R[k]
+    $$('[data-rd]').forEach((x) => x.classList.toggle('on', x === tr))
+    const C = cob.filter((x) => x.c?.ruta_id === k), Col = col.filter((c) => c.ruta_id === k), Gs = ges.filter((g) => g.c?.ruta_id === k)
+    const L = [...C.map((x) => ({ q: 'Cobro', cl: x.c.cliente, m: x.monto, t: x.observacion || '' })), ...Col.map((c) => ({ q: c.tipo === 'renovacion' ? 'Renovación' : c.tipo === 'recompra' ? 'Recompra' : 'Crédito nuevo', cl: c.cliente, m: c.monto, t: `#${c.credito_id} · entregado ${peso(c.entregado)}` })),
+      ...Gs.map((g) => ({ q: GEST[g.tipo], cl: g.c.cliente, m: g.promesa_monto || 0, t: [g.promesa_fecha ? `paga el ${fechaCorta(g.promesa_fecha)} ${horaTxt(g.promesa_hora)}` : '', g.nota || ''].filter(Boolean).join(' · ') }))]
+    $('#rdDet').innerHTML = `<h3 class="sec-title" style="margin-top:12px">Lo que hizo ${esc(r?.asesor || r?.ruta || '')} el ${fechaCorta(fecha)}</h3>` + (tabla([{ t: 'Qué', f: (x) => `<b>${x.q}</b>` }, { t: 'Cliente', f: (x) => esc(x.cl) }, { t: 'Monto', num: 1, f: (x) => x.m ? peso(x.m) : '—' }, { t: 'Detalle', f: (x) => esc(x.t) }], L) || '')
+  }))
+}
+// Estado de cuenta de un crédito y carta de liquidación (plantilla del dueño), para imprimir o guardar en PDF
+function imprimir(html) {
+  let host = $('#printHost'); if (!host) { host = document.createElement('div'); host.id = 'printHost'; document.body.appendChild(host) }
+  host.innerHTML = html
+  Promise.all($$('img', host).map((im) => im.complete ? 0 : new Promise((ok) => { im.onload = im.onerror = ok }))).then(() => setTimeout(() => { window.print(); toast('Elige «Guardar como PDF» para descargarlo.') }, 150))
+}
+const fechaLarga = (f) => new Date(String(f).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+function estadoCuentaPDF(clienteId) {
+  const cr = DB.cartera.filter((c) => c.cliente_id === clienteId).sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)), c0 = cr[0]
+  const r = (l, v) => `<tr><th>${l}</th><td>${v}</td></tr>`
+  imprimir(`<div class="pg"><img src="logo-nexus.png" alt="Nexus Capital" class="plogo"><h1>Estado de cuenta</h1>
+    <p class="psub">NEXUS CAPITAL MX · ${esc(c0.cliente)} · ${esc(c0.codigo || '')} · impreso ${new Date().toLocaleString('es-MX')}</p>
+    <table>${r('Cliente', esc(c0.cliente))}${r('Dirección', esc([c0.direccion, c0.colonia].filter(Boolean).join(', ')))}${r('Asesor / ruta', esc(`${c0.asesor || ''} · ${c0.ruta || ''} · ${c0.oficina || ''}`))}${r('Debe hoy (todos sus créditos)', `<b>${peso(sum(cr, (x) => x.saldo))}</b>`)}</table>
+    ${cr.map((c) => {
+      const ps = DB.pagos.filter((x) => x.credito_id === c.credito_id).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id)
+      let sd = c.total_pagar
+      return `<h2>Crédito #${c.credito_id} · ${TIPO[c.tipo] || 'Nuevo'} · ${c.saldo > 0 ? 'vigente' : 'liquidado'}</h2>
+        <table>${r('Fecha de inicio', fechaLarga(c.fecha_inicio))}${r('Prestado', peso(c.monto))}${r('Total a pagar', peso(c.total_pagar))}${r('Pagos', `${c.cuotas_pagadas} de ${c.num_cuotas} de ${peso(c.cuota)} (${FREC_TXT[c.frecuencia] || ''})`)}${r('Saldo', `<b>${peso(c.saldo)}</b>`)}</table>
+        ${ps.length ? `<table class="pt"><tr><th>Fecha</th><th>Concepto</th><th>Abono</th><th>Saldo después</th></tr>${ps.map((x) => { sd = Math.max(0, sd - x.monto); return `<tr><td>${x.fecha}</td><td>${x.tipo === 'liquidacion_renovacion' ? 'Liquidado al renovar' : 'Pago'}</td><td>${peso(x.monto)}</td><td>${peso(sd)}</td></tr>` }).join('')}</table>` : '<p class="psub">Sin pagos registrados.</p>'}`
+    }).join('')}</div>`)
+}
+function cartaLiquidacion(c) {
+  const ult = DB.pagos.filter((x) => x.credito_id === c.credito_id).map((x) => x.fecha).sort().pop() || c.ultimo_pago || DB.hoy
+  const lugar = PARAM_TXT('lugar_cartas') || c.oficina || ''
+  imprimir(`<div class="pg carta"><img src="logo-nexus.png" alt="Nexus Capital" class="plogo"><h1 style="margin-top:6px">NEXUS CAPITAL MX</h1><h2 style="border:0">Carta de liquidación de crédito</h2>
+    <p style="text-align:right;margin:26px 0">${esc(lugar)}${lugar ? ', ' : ''}${fechaLarga(DB.hoy)}</p>
+    <p><b>A quien corresponda:</b></p>
+    <p style="text-align:justify;line-height:1.8">Nexus Capital MX hace constar que <b>${esc(c.cliente)}</b> liquidó en su totalidad el crédito con folio <b>${c.credito_id}</b> el <b>${fechaLarga(ult)}</b>. El saldo pendiente de este crédito es de <b>$0.00 (cero pesos 00/100 M.N.)</b>.</p>
+    <p style="text-align:justify;line-height:1.8">Se expide la presente a solicitud del cliente como constancia de liquidación.</p>
+    <p style="margin-top:40px">Atentamente,</p>
+    <div style="margin-top:70px;border-top:1px solid #333;width:300px;padding-top:6px">${esc(DB.perfil.nombre || '')}<br>${esc(ROLES[DB.perfil.rol] || '')} · Nexus Capital MX</div></div>`)
+}
+const PARAM_TXT = () => ''
 // Guardar la ubicación de un cliente que ya existe, estando con él (clientes de Listo sin GPS)
 function guardarUbicacion(c, alTerminar) {
   const tiene = (t) => t === 'cobro' ? c.lat != null : c.lat_negocio != null
@@ -1533,7 +1801,7 @@ VIEWS.cajas = {
     const hoy = DB.hoy, rec = sc.recaudo(), cerrada = new Date().getHours() >= 18, S = saldos(hoy)
     const ger = DB.gerencias.filter((g) => sc.rutas().some((r) => r.gerencia_id === g.id))
     const segHoy = (rid) => sum(DB.movimientos.filter((m) => esGA(m) && m.fecha === hoy && m.caja_destino === 'ruta:' + rid), (m) => m.monto)
-    const btns = [puede('registrar_pagos') ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
+    const btns = [false ? '<button class="btn" type="button" id="kpago"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar pago</button>' : '',
       puede('registrar_gastos') ? '<button class="btn ghost" type="button" id="kgasto">Registrar gasto</button>' : '',
       puede('ver_tesoreria') && (esAdmin() || puede('tesoreria_excedente')) ? '<button class="btn ghost" type="button" id="kteso">Ir a tesorería</button>' : ''].join('')
     return `${head('Cajas', 'Lo que cobra cada asesor entra a su caja; a las 18:00 pasa solo a la caja de su gerente. Lo que se registre después de las 18:00 cuenta para el día siguiente.', btns)}
@@ -1555,11 +1823,12 @@ VIEWS.cajas = {
   },
 }
 function registrarGasto() {
-  const propias = DB.perfil.rol === 'asesor' ? sc.rutas().map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)])
-    : [...new Set(sc.rutas().map((r) => r.gerencia_id))].map((g) => ['gerencia:' + g, cajaNombre('gerencia:' + g)]).concat(esAdmin() ? sc.rutas().map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)]) : [])
+  // Los gastos los registra tesorería y salen de la caja del gerente (el asesor le pide el dinero a su gerente)
+  const S = saldos(DB.hoy)
+  const propias = [...new Set(sc.rutas().map((r) => r.gerencia_id))].map((g) => ['gerencia:' + g, `${cajaNombre('gerencia:' + g)} · en caja ${peso(S.get('gerencia:' + g) || 0)}`])
   formModal({
-    titulo: 'Registrar gasto', nota: 'Sale de la caja y queda en la bitácora con tu usuario.', boton: 'Registrar gasto',
-    campos: [{ id: 'caja', label: 'Sale de la caja', tipo: 'select', req: 1, opciones: propias }, { id: 'categoria', label: 'Tipo de gasto', tipo: 'select', req: 1, opciones: [['Gastos de ruta', 'Gasolina / transporte'], ['Papelería', 'Papelería'], ['Otros gastos', 'Otro']] },
+    titulo: 'Registrar gasto', nota: 'Sale de la caja del gerente que lo pidió y queda registrado con tu usuario. Ejemplo: el asesor necesita gasolina, se la pide a su gerente y el gerente le pide a tesorería que registre el gasto.', boton: 'Registrar gasto',
+    campos: [{ id: 'caja', label: 'Sale de la caja del gerente', tipo: 'select', req: 1, opciones: propias }, { id: 'categoria', label: 'Tipo de gasto', tipo: 'select', req: 1, opciones: [['Gastos de ruta', 'Gasolina / transporte'], ['Papelería', 'Papelería'], ['Otros gastos', 'Otro']] },
       { id: 'concepto', label: 'Concepto', req: 1 }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 }],
     guardar: async (v) => {
       if (!(+v.monto > 0)) { const e = new Error('m'); e.userMsg = 'El monto debe ser mayor a cero.'; throw e }
@@ -1603,11 +1872,13 @@ const RCOLS = {
 VIEWS.reportes = {
   tab: 'general', q: '', desde: null, hasta: null, agrupar: 'ruta', cols: ['clientes', 'base', 'saldo', 'normalidad', 'cobrado', 'nuevos', 'renovado', 'seguros'],
   html() {
-    return `${head('Reportes', 'Cada reporte se puede ver para toda la empresa o por zona, gerencia, oficina o ruta, y descargar en Excel.')}
+    return `${head('Reportes', 'Cada reporte se puede ver para toda la empresa o por zona, gerencia, oficina o ruta, y descargar en Excel.', '<button class="btn ghost" type="button" id="rdia">Reporte del día por asesor</button><button class="btn ghost" type="button" id="rprom">Promesas de pago</button>')}
       <div class="tabs" id="rtabs">${Object.entries(REPORTES).map(([k, r]) => `<button type="button" data-t="${k}" class="${this.tab === k ? 'on' : ''}">${r.t}</button>`).join('')}</div>
       <div id="rbody"></div>`
   },
   init() {
+    $('#rdia')?.addEventListener('click', () => reporteDia())
+    $('#rprom')?.addEventListener('click', () => verPromesas())
     $$('#rtabs button').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.t; $$('#rtabs button').forEach((x) => x.classList.toggle('on', x === b)); this.paint() }))
     this.paint()
   },
@@ -1787,18 +2058,21 @@ VIEWS.admin = {
       $$('[data-et]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.et, +b.dataset.id)))
     } else if (this.tab === 'personal') {
       const P6 = (f) => addDays(f, 365 * 6)
-      const act = DB.personal.filter((x) => !x.fecha_baja), bajas = DB.personal.filter((x) => x.fecha_baja)
+      const qp = norm(this.qp || ''), okq = (x) => !qp || norm([x.nombre, x.puesto, x.curp, x.telefono, x.correo, x.ambito].filter(Boolean).join(' ')).includes(qp)
+      const act = DB.personal.filter((x) => !x.fecha_baja && okq(x)), bajas = DB.personal.filter((x) => x.fecha_baja && okq(x))
       const foto = (x) => DB.documentos.find((d) => d.tipo === 'personal' && d.entidad_id === x.id && d.categoria === 'Foto')
       const fila = (x) => `<tr><td class="strong"><span class="perfoto">${foto(x) ? `<img data-foto="${esc(foto(x).path)}" alt="">` : esc((x.nombre || '?').slice(0, 1))}</span>${esc(x.nombre)}</td><td>${esc(x.puesto)}</td><td>${esc(x.ambito ? ambitoNombre(x.ambito) : '')}</td><td>${esc(x.curp || '')}</td><td>${esc(x.telefono || '')}</td><td>${esc(x.correo || '')}</td><td>${esc(x.fecha_ingreso || '')}</td>
         <td>${x.fecha_baja ? `<span class="st off">Baja ${esc(x.fecha_baja)}</span><div class="muted" style="font-size:12px">${esc(x.motivo_baja || '')} · se guarda hasta ${P6(x.fecha_baja)}</div>` : '<span class="st ok">Activo</span>'}</td>
         <td class="num">${esAdmin() ? `<button class="btn ghost sm" type="button" data-per="${x.id}">Expediente</button>${x.fecha_baja ? '' : ` <button class="btn ghost sm" type="button" data-baja="${x.id}">Dar de baja</button>`}` : ''}</td></tr>`
       const head = '<thead><tr><th>Nombre</th><th>Puesto</th><th>Ámbito</th><th>CURP</th><th>Teléfono</th><th>Correo</th><th>Ingreso</th><th>Estado</th><th></th></tr></thead>'
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Personal activo</h3><div class="sub">Expediente de asesores, gerentes y demás personal</div></div>${esAdmin() ? '<button class="btn" type="button" id="pnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Agregar persona</button>' : ''}</div>
+          <input class="ctl" type="search" id="pq" placeholder="Buscar por nombre, puesto, CURP o teléfono…" value="${esc(this.qp || '')}" autocomplete="off" style="width:100%">
           <div class="tablewrap"><table class="tbl">${head}<tbody>${act.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin personal registrado</b></div></td></tr>'}</tbody></table></div></div>
         <div class="card panel"><div class="ph"><div><h3>Personal dado de baja</h3><div class="sub">Se conserva 6 años por auditoría: foto, nombre, fecha de nacimiento, CURP, dirección, teléfono y correo</div></div><span class="chip">${bajas.length}</span></div>
           <div class="tablewrap"><table class="tbl">${head}<tbody>${bajas.map(fila).join('') || '<tr><td colspan="9"><div class="empty"><b>Sin bajas</b></div></td></tr>'}</tbody></table></div>
           <div class="note">Dar de baja no borra a la persona: sólo marca la fecha y el motivo. Recuerda desactivar también su usuario en «Usuarios y roles».</div></div>`
       $('#pnuevo')?.addEventListener('click', () => editarPersona())
+      $('#pq')?.addEventListener('input', (e) => { this.qp = e.target.value; const pos = e.target.selectionStart; this.paint(); const i = $('#pq'); if (i) { i.focus(); i.setSelectionRange(pos, pos) } })
       $$('[data-per]').forEach((b) => b.addEventListener('click', () => fichaPersona(DB.personal.find((x) => x.id === +b.dataset.per))))
       $$('[data-foto]').forEach((img) => fotoEn(img, img.dataset.foto))
       $$('[data-baja]').forEach((b) => b.addEventListener('click', () => bajaPersona(DB.personal.find((x) => x.id === +b.dataset.baja))))
@@ -1860,6 +2134,7 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
         return `${h}<label class="chk mi"><input type="checkbox" value="${esc(v)}"${sel.has(String(v)) ? ' checked' : ''}> <span>${esc(t)}</span></label>` }).join('')}</div></div>`
     }
     if (c.tipo === 'titulo') return `<div class="ftit">${c.label}</div>`
+    if (c.tipo === 'html') return c.html
     if (c.tipo === 'textarea') return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><textarea class="ctl" id="${id}" rows="${c.rows || 2}" maxlength="${c.max || 2000}" style="width:100%"${req}>${esc(c.valor ?? '')}</textarea></label>`
     if (c.tipo === 'geo') return `<div class="fl"><span>${c.label}</span><div class="geo"><button class="btn ghost sm" type="button" data-geo="${c.id}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Capturar ubicación</button><span class="muted" id="g_${c.id}">${c.valor ? 'Ubicación guardada ✓' : 'Toca el botón estando en el lugar'}</span><input type="hidden" id="${id}" value="${esc(c.valor ?? '')}"></div></div>`
     return `<label class="fl"><span>${c.label}${c.req ? ' *' : ''}</span><input class="ctl" id="${id}" type="${c.tipo || 'text'}" value="${esc(c.valor ?? '')}"${c.min != null ? ` min="${c.min}"` : ''}${c.step ? ` step="${c.step}"` : ''}${req} style="width:100%"></label>`
@@ -1876,7 +2151,7 @@ function formModal({ titulo, nota = '', campos, guardar, boton = 'Guardar' }) {
   $('#fm').addEventListener('submit', async (e) => {
     e.preventDefault()
     const v = {}
-    campos.forEach((c) => { if (c.tipo === 'titulo') return; const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : c.tipo === 'foto' ? (el.files?.[0] || null) : c.tipo === 'multi' ? $$('input:checked', el).map((x) => x.value).join(',') : el.value.trim() })
+    campos.forEach((c) => { if (c.tipo === 'titulo' || c.tipo === 'html') return; const el = $('#f_' + c.id); v[c.id] = c.tipo === 'check' ? el.checked : c.tipo === 'foto' ? (el.files?.[0] || null) : c.tipo === 'multi' ? $$('input:checked', el).map((x) => x.value).join(',') : el.value.trim() })
     const falta = campos.find((c) => c.req && c.id && !v[c.id])
     if (falta) { $('#fmErr').textContent = `Falta: ${falta.label}.`; return }
     const b = $('#fmOk'); b.disabled = true; b.textContent = 'Guardando…'
@@ -2374,7 +2649,7 @@ function agenda(desde, hasta) {
   })
   return m
 }
-const semaforo = (p) => (p >= PARAM('meta_normalidad', 90) ? 'ok' : p >= PARAM('meta_normalidad', 90) - 15 ? 'wait' : 'bad')
+const semaforo = (p) => (p >= PARAM('meta_normalidad', 95) ? 'ok' : p >= PARAM('meta_normalidad', 95) - 15 ? 'wait' : 'bad')
 const rangoFechas = (a, b) => { const out = []; for (let d = a; d <= b; d = addDays(d, 1)) out.push(d); return out }
 VIEWS.normalidad = {
   rango: '30', nivel: 'ruta', fecha: null, comp: 'mes', A: null, B: null,
@@ -2383,7 +2658,7 @@ VIEWS.normalidad = {
     this.fecha = this.fecha || hoy
     const mes = hoy.slice(0, 7), mesAnt = addDays(hoy.slice(0, 8) + '01', -1).slice(0, 7), anio = +hoy.slice(0, 4)
     if (!this.A) this.ajustarComp()
-    return `${head('Normalidad', `Cartera al día ÷ cartera total, en dinero. Meta: ${PARAM('meta_normalidad', 90)} %.`,
+    return `${head('Normalidad', `Cartera al día ÷ cartera total, en dinero. Meta: ${PARAM('meta_normalidad', 95)} %.`,
       `<div class="seg" id="nrango">${[['7', '7 días'], ['30', '30 días'], ['90', '90 días']].map(([k, t]) => `<button type="button" data-r="${k}" class="${this.rango === k ? 'on' : ''}">${t}</button>`).join('')}</div>
        <label class="field"><label for="nfecha">Fecha</label><input class="ctl" type="date" id="nfecha" value="${this.fecha}" max="${hoy}"></label>`)}
       <section class="kpis" id="nk"></section>
@@ -2395,7 +2670,7 @@ VIEWS.normalidad = {
         <div class="chart-box" style="height:240px"><canvas id="ncchart"></canvas></div></div>
       <div class="card panel"><div class="ph"><div><h3>Por nivel</h3><div class="sub" id="nsub"></div></div><div class="tabs" id="nnivel">${[['ruta', 'Ruta'], ['oficina', 'Oficina'], ['gerencia', 'Gerencia'], ['zona', 'Zona']].map(([k, t]) => `<button type="button" data-n="${k}" class="${this.nivel === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
         <div id="ntabla"></div>
-        <div class="note">Normalidad = saldo de créditos al día ÷ saldo total. «Cobrado vs esperado» compara lo cobrado con las cuotas que vencían en los últimos 7 días. Verde: en meta · ámbar: hasta 15 puntos abajo.</div></div>`
+        <div class="note">Normalidad = saldo de créditos al día ÷ saldo total. «Efectividad» compara lo cobrado con las cuotas que vencían en los últimos 7 días. Verde: en meta · ámbar: hasta 15 puntos abajo.</div></div>`
   },
   ajustarComp() {
     const hoy = DB.hoy
@@ -2419,10 +2694,10 @@ VIEWS.normalidad = {
     let esp = 0; ag.forEach((v) => { esp += v.s })
     const cob = sum(sc.recaudo().filter((r) => r.fecha >= desde && r.fecha <= d), (r) => r.monto)
     const k = [
-      { lab: 'Normalidad', val: Math.round(N.p) + '%', meta: `${esHoy ? 'hoy' : 'al ' + fechaCorta(d)} · hace una semana ${Math.round(pAnt)}%`, g: [COL.green, COL.teal], st: semaforo(N.p) },
+      { lab: 'Normalidad', val: p2(N.p) + '%', meta: `${esHoy ? 'hoy' : 'al ' + fechaCorta(d)} · hace una semana ${p2(pAnt)}%`, g: [COL.green, COL.teal], st: semaforo(N.p) },
       { lab: 'Cartera al día', val: peso(N.ok), meta: 'saldo de créditos sin atraso', g: [COL.teal, COL.blue] },
       { lab: 'Cartera total', val: peso(N.tot), meta: 'saldo por cobrar', g: [COL.blue, COL.violet] },
-      { lab: 'Cobrado vs esperado', val: pct(cob, esp) + '%', meta: `${peso(cob)} de ${peso(esp)} · 7 días`, g: [COL.violet, COL.teal] },
+      { lab: 'Efectividad', val: pct2(cob, esp) + '%', meta: `cobrado ${peso(cob)} de ${peso(esp)} esperado · 7 días`, g: [COL.violet, COL.teal] },
     ]
     $('#nk').innerHTML = k.map((x) => `<div class="card kpi lift"><div class="row1"><div class="ico" style="background:linear-gradient(135deg,${x.g[0]},${x.g[1]})"><svg viewBox="0 0 24 24">${ICON.normalidad}</svg></div>${x.st ? `<span class="st ${x.st}">${x.st === 'ok' ? 'En meta' : x.st === 'wait' ? 'Atención' : 'Baja'}</span>` : ''}</div>
       <div><div class="lab">${x.lab}</div><div class="val">${x.val}</div><div class="meta">${x.meta}</div></div></div>`).join('')
@@ -2447,20 +2722,20 @@ VIEWS.normalidad = {
     }
     ag.forEach((v, k) => { const r = DB.R[+k.split('|')[0]]; if (r) get(r).esp += v.s })
     rec.forEach((x) => { const r = DB.R[x.ruta_id]; if (r) get(r).cob += x.monto })
-    const rows = [...m.values()].map((y) => ({ ...y, p: y.tot ? Math.round((y.ok / y.tot) * 100) : 0, pc: pct(y.cob, y.esp) })).sort((a, b) => a.p - b.p)
-    const chip = (p) => `<span class="st ${semaforo(p)}">${p}%</span>`
+    const rows = [...m.values()].map((y) => ({ ...y, p: y.tot ? (y.ok / y.tot) * 100 : 0, pc: pct(y.cob, y.esp) })).sort((a, b) => a.p - b.p)
+    const chip = (p) => `<span class="st ${semaforo(p)}">${p2(p)}%</span>`
     const respT = { ruta: 'Asesor', oficina: 'Gerente', gerencia: 'Gerente', zona: 'Gerente zonal' }[nivel]
     $('#ntabla').innerHTML = tabla([
       { t: { ruta: 'Ruta', oficina: 'Oficina', gerencia: 'Gerencia', zona: 'Zona' }[nivel], k: 'nombre', b: 1 }, { t: respT, k: 'resp' },
-      { t: 'Normalidad', num: 1, f: (r) => chip(r.p), tot: (r) => chip(Math.round((sum(r, (x) => x.ok) / Math.max(1, sum(r, (x) => x.tot))) * 100)) },
+      { t: 'Normalidad', num: 1, f: (r) => chip(r.p), tot: (r) => chip((sum(r, (x) => x.ok) / Math.max(1, sum(r, (x) => x.tot))) * 100) },
       { t: 'Cartera al día', num: 1, f: P('ok'), tot: T('ok') }, { t: 'Cartera total', num: 1, b: 1, f: P('tot'), tot: T('tot') },
       { t: 'Con atraso', num: 1, f: (r) => peso(r.tot - r.ok), tot: (r) => peso(sum(r, (x) => x.tot - x.ok)) },
-      { t: 'Cobrado vs esperado (7 d)', num: 1, f: (r) => r.esp ? pct(r.cob, r.esp) + '%' : '—', tot: (r) => pct(sum(r, (x) => x.cob), sum(r, (x) => x.esp)) + '%' },
+      { t: 'Efectividad (7 d)', num: 1, f: (r) => r.esp ? pct2(r.cob, r.esp) + '%' : '—', tot: (r) => pct2(sum(r, (x) => x.cob), sum(r, (x) => x.esp)) + '%' },
     ], rows, true)
   },
   grafica() {
     const fin = this.fecha, n = +this.rango, dd = rangoFechas(addDays(fin, -(n - 1)), fin)
-    const H = historiaNormalidad(dd), meta = PARAM('meta_normalidad', 90)
+    const H = historiaNormalidad(dd), meta = PARAM('meta_normalidad', 95)
     const ys = dd.map((d) => { const x = H.get(d); return x.tot ? +((x.ok / x.tot) * 100).toFixed(1) : null })
     $('#ngsub').textContent = `Últimos ${n} días hasta el ${fechaCorta(fin)} · ${scopeLabel()}`
     const old = charts.find((c) => c.canvas?.id === 'nchart'); if (old) { old.destroy(); charts = charts.filter((c) => c !== old) }
@@ -2504,8 +2779,8 @@ VIEWS.normalidad = {
     const prom = (v) => { const L = v.filter((x) => x != null); return L.length ? L.reduce((s, x) => s + x, 0) / L.length : null }
     const pa = prom(a), pb = prom(b), dif = pa != null && pb != null ? pb - pa : null
     const nombre = (x) => mode === 'dia' ? fechaCorta(x) : mode === 'mes' ? new Date(x + '-15T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }) : x
-    $('#ncompK').innerHTML = [[nombre(this.A), pa], [nombre(this.B), pb]].map(([l, v]) => `<div class="card"><div class="lab">${esc(l)}${mode === 'dia' ? '' : ' (promedio)'}</div><div class="val">${v == null ? 'sin datos' : v.toFixed(1) + '%'}</div></div>`).join('')
-      + `<div class="card"><div class="lab">Diferencia</div><div class="val" style="color:${dif == null ? 'inherit' : dif >= 0 ? 'var(--green)' : 'var(--red)'}">${dif == null ? '—' : (dif >= 0 ? '▲ +' : '▼ ') + dif.toFixed(1) + ' pts'}</div></div>`
+    $('#ncompK').innerHTML = [[nombre(this.A), pa], [nombre(this.B), pb]].map(([l, v]) => `<div class="card"><div class="lab">${esc(l)}${mode === 'dia' ? '' : ' (promedio)'}</div><div class="val">${v == null ? 'sin datos' : v.toFixed(2) + '%'}</div></div>`).join('')
+      + `<div class="card"><div class="lab">Diferencia</div><div class="val" style="color:${dif == null ? 'inherit' : dif >= 0 ? 'var(--green)' : 'var(--red)'}">${dif == null ? '—' : (dif >= 0 ? '▲ +' : '▼ ') + dif.toFixed(2) + ' pts'}</div></div>`
     const old = charts.find((c) => c.canvas?.id === 'ncchart'); if (old) { old.destroy(); charts = charts.filter((c) => c !== old) }
     chart($('#ncchart'), {
       type: mode === 'dia' ? 'bar' : 'line',
@@ -2626,7 +2901,7 @@ VIEWS.tesoreria = {
   periodo: 'mes', tipo: 'todos',
   html() {
     return `${head('Tesorería', 'El dinero de la empresa de punta a punta: socios y bancos, cajas de gerentes, cajas de asesores y cartera en la calle.',
-      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn ghost" type="button" id="tinv">Inversión de capital</button>' : ''}${['dueno', 'soporte'].includes(DB.perfil.rol) ? '<button class="btn ghost" type="button" id="tret">Retiro de utilidades</button>' : ''}${puede('tesoreria_excedente') ? '<button class="btn ghost" type="button" id="texc">Excedente de gerente → banco</button>' : ''}${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Otro movimiento</button>' : ''}`)}
+      `<div class="seg" id="tper">${[['semana', 'Semana'], ['mes', 'Mes']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div>${esAdmin() ? '<button class="btn ghost" type="button" id="tinv">Inversión de capital</button>' : ''}${['dueno', 'soporte'].includes(DB.perfil.rol) ? '<button class="btn ghost" type="button" id="tret">Retiro de utilidades</button>' : ''}${puede('tesoreria_excedente') ? '<button class="btn ghost" type="button" id="texc">Excedente de gerente → banco</button>' : ''}${puede('registrar_gastos') ? '<button class="btn ghost" type="button" id="tgasto">Registrar gasto</button>' : ''}${esAdmin() ? '<button class="btn" type="button" id="tnuevo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Otro movimiento</button>' : ''}`)}
       <section class="kpis" id="tk"></section>
       <div class="card panel"><div class="ph"><div><h3>Flujo del dinero</h3><div class="sub" id="tflsub"></div></div></div><div class="flow" id="tflow"></div></div>
       <div class="grid2">
@@ -2646,6 +2921,7 @@ VIEWS.tesoreria = {
     $('#tinv')?.addEventListener('click', () => this.rapido('inversion'))
     $('#tret')?.addEventListener('click', () => this.rapido('retiro'))
     $('#texc')?.addEventListener('click', () => this.rapido('excedente'))
+    $('#tgasto')?.addEventListener('click', () => registrarGasto())
     this.pintar()
   },
   pintar() {
@@ -2705,8 +2981,15 @@ VIEWS.tesoreria = {
   },
   movs() {
     const set = cajasAmbito()
-    const L = DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.id || 0) - (a.id || 0)).slice(0, 80)
+    // Los gastos administrativos ($150 por crédito) se ven en un total por día y por caja, no uno por uno
+    const ga = new Map(), L0 = []
+    DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo)).forEach((m) => {
+      if (!esGA(m)) return L0.push(m)
+      const k = m.fecha + '|' + m.caja_destino, y = ga.get(k) || { fecha: m.fecha, caja_origen: m.caja_origen, caja_destino: m.caja_destino, monto: 0, n: 0, id: 0 }
+      y.monto += m.monto; y.n++; ga.set(k, y)
+    })
+    ga.forEach((y) => L0.push({ ...y, concepto: `Gastos administrativos · ${y.n} crédito${y.n > 1 ? 's' : ''}`, categoria: 'Total del día' }))
+    const L = L0.sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.id || 0) - (a.id || 0)).slice(0, 80)
     $('#tmov').innerHTML = tabla([
       { t: 'Fecha', k: 'fecha' }, { t: 'Concepto', f: (m) => `<b>${esc(m.concepto || m.categoria || m.tipo)}</b><div class="muted" style="font-size:12px">${esc(m.categoria || '')}</div>` },
       { t: 'De', f: (m) => esc(cajaNombre(m.caja_origen)) }, { t: 'A', f: (m) => esc(cajaNombre(m.caja_destino)) }, { t: 'Monto', num: 1, b: 1, f: P('monto') },
@@ -2741,19 +3024,23 @@ VIEWS.tesoreria = {
     const cajas = [['externo', 'Externo (fuera de la empresa)'], ...DB.cuentas.map((b) => ['banco:' + b.id, cajaNombre('banco:' + b.id)]),
       ...DB.gerencias.map((g) => ['gerencia:' + g.id, cajaNombre('gerencia:' + g.id)]), ...DB.rutas.map((r) => ['ruta:' + r.ruta_id, cajaNombre('ruta:' + r.ruta_id)])]
     formModal({
-      titulo: 'Registrar movimiento', nota: 'Queda en la bitácora con tu usuario, fecha y hora.',
+      titulo: 'Registrar movimiento',
       campos: [
         { id: 'tipo', label: 'Tipo', tipo: 'select', req: 1, opciones: [['deposito', 'Depósito a banco'], ['retiro', 'Retiro de banco'], ['traslado', 'Traslado entre cajas'], ['egreso', 'Gasto'], ['ingreso', 'Ingreso'], ['fondeo', 'Inversión de capital']] },
         { id: 'origen', label: 'Sale de', tipo: 'select', req: 1, opciones: cajas }, { id: 'destino', label: 'Entra a', tipo: 'select', req: 1, opciones: cajas, valor: cajas[1]?.[0] },
         { id: 'concepto', label: 'Concepto', req: 1 }, { id: 'monto', label: 'Monto (MXN)', tipo: 'number', min: 1, step: '0.01', req: 1 },
         { id: 'fecha', label: 'Fecha', tipo: 'date', req: 1, valor: DB.hoy }, { id: 'obs', label: 'Observación' },
       ],
+      nota: '<b>Depósito a banco:</b> sale de la caja de un gerente o asesor y entra al banco (a la caja le resta, al banco le suma). <b>Retiro de banco:</b> sale del banco y entra a una caja (al banco le resta, a la caja le suma). Queda en la bitácora con tu usuario, fecha y hora.',
       guardar: async (v) => {
         const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
         if (v.origen === v.destino) err('El origen y el destino no pueden ser la misma caja.')
         if (['ingreso', 'fondeo'].includes(v.tipo) && v.origen !== 'externo') err('Un ingreso o inversión debe salir de «Externo».')
         if (v.origen.startsWith('banco:') && v.destino === 'externo' && !['dueno', 'soporte'].includes(DB.perfil.rol)) err('Sólo el dueño puede sacar dinero del banco hacia fuera.')
         if (v.tipo === 'egreso' && v.destino !== 'externo') err('Un gasto debe ir a «Externo».')
+        if (v.tipo === 'deposito' && (!v.destino.startsWith('banco:') || v.origen.startsWith('banco:') || v.origen === 'externo')) err('Un depósito a banco SALE de una caja (gerente o asesor) y ENTRA a una cuenta de banco.')
+        if (v.tipo === 'retiro' && (!v.origen.startsWith('banco:') || v.destino.startsWith('banco:'))) err('Un retiro de banco SALE de una cuenta de banco y ENTRA a una caja (o a «Externo» si es para el dueño).')
+        if (v.tipo === 'traslado' && (v.origen === 'externo' || v.destino === 'externo')) err('Un traslado es entre dos cajas de la empresa; para dinero de fuera usa «Ingreso».')
         if (!(+v.monto > 0)) err('El monto debe ser mayor a cero.')
         const ok = await escribir(() => sb.from('movimientos_tesoreria').insert({ fecha: v.fecha, tipo: v.tipo, caja_origen: v.origen, caja_destino: v.destino, concepto: v.concepto, categoria: { deposito: 'Depósito', retiro: 'Retiro', traslado: 'Traslado', egreso: 'Gasto', ingreso: 'Ingreso', fondeo: 'Inversión' }[v.tipo], monto: +v.monto, observacion: v.obs || null, creado_por: DB.perfil.id }))
         return ok ? 'Movimiento registrado.' : ''
