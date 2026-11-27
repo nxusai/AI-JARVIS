@@ -40,16 +40,16 @@ const PERMISOS = [
     ['ver_cobranza', 'Cobranza'], ['ver_normalidad', 'Normalidad'], ['ver_proyecciones', 'Proyecciones'], ['ver_cajas', 'Cajas'], ['ver_tesoreria', 'Tesorería'], ['ver_reportes', 'Reportes']]],
   ['Puede hacer', [['registrar_pagos', 'Registrar pagos'], ['crear_solicitudes', 'Crear y renovar créditos (solicitudes)'], ['resolver_solicitudes', 'Mesa de control: aprobar o rechazar'],
     ['registrar_gastos', 'Registrar gastos (salen de la caja del gerente)'], ['cancelar_pagos', 'Cancelar pagos registrados por error'], ['revertir_desembolsos', 'Revertir desembolsos (el cliente ya no quiso)'], ['tesoreria_excedente', 'Pasar excedente de gerente al banco'], ['capturar_proyecciones', 'Capturar proyecciones'],
-    ['desembolsar', 'Desembolsar créditos autorizados (con video)'], ['autorizar_excepciones', 'Autorizar renovaciones con excepción'],
+    ['desembolsar', 'Desembolsar créditos autorizados (con video)'], ['autorizar_excepciones', 'Autorizar renovaciones de más del 20 % (mesa de control)'],
     ['ordenar_ruta', 'Ordenar su ruta de cobro'], ['reasignar_cartera', 'Reasignar clientes a otra ruta'],
     ['subir_documentos', 'Subir documentos y fotos'], ['descargar_excel', 'Descargar reportes en Excel']]],
 ]
 const CARGOS_PERM = ['direccion', 'regional', 'zonal', 'gerente', 'asesor', 'mesa', 'tesoreria', 'consulta']
 const V = (...k) => k.map((x) => 'ver_' + x)
-const PERM_EXTRA = { direccion: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], regional: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'],
-  zonal: ['desembolsar', 'autorizar_excepciones', 'reasignar_cartera', 'ordenar_ruta'], gerente: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], asesor: ['desembolsar', 'ordenar_ruta'] }
+const PERM_EXTRA = { direccion: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], regional: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'],
+  zonal: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], mesa: ['autorizar_excepciones'], gerente: ['desembolsar', 'reasignar_cartera', 'ordenar_ruta'], asesor: ['desembolsar', 'ordenar_ruta'] }
 const PERM_BASE = {
-  direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'resolver_solicitudes', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
+  direccion: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'tesoreria_excedente', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   regional: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   zonal: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
   gerente: [...V('tablero', 'clientes', 'originacion', 'solicitudes', 'creditos', 'cobranza', 'normalidad', 'proyecciones', 'cajas', 'tesoreria', 'reportes'), 'registrar_pagos', 'crear_solicitudes', 'capturar_proyecciones', 'subir_documentos', 'descargar_excel'],
@@ -831,7 +831,7 @@ const EST_SOL = { borrador: ['Borrador', 'off'], revision: ['Pendiente mesa', 'w
   autorizada: ['Autorizada · falta desembolsar', 'ok'], desembolsada: ['Desembolsada', 'ok'], rechazada: ['Rechazada', 'bad'], cancelada: ['Cancelada', 'off'] }
 const estSol = (e) => `<span class="st ${(EST_SOL[e] || ['', 'off'])[1]}">${(EST_SOL[e] || [e])[0]}</span>`
 const esMesa = () => puede('resolver_solicitudes')
-const esZonalDe = (s) => puede('autorizar_excepciones') && !!DB.R[s.ruta_id]
+const esZonalDe = (s) => puede('autorizar_excepciones') && (!!DB.R[s.ruta_id] || esMesa())
 const puedeDesembolsar = (s) => puede('desembolsar') && !!DB.R[s.ruta_id]
 const nombreDe = (uid) => (uid && (DB.perfiles.find((p) => p.id === uid) || {}).nombre) || (uid === DB.perfil.id ? DB.perfil.nombre : '') || ''
 const fechaLocal = (ts) => (ts ? iso(new Date(ts)) : '')
@@ -882,7 +882,7 @@ const mapsUrl = (lat, lng, txt) => lat != null && lng != null ? `https://www.goo
   : txt ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(txt)}` : ''
 const BANDEJAS = [
   ['revision', 'Pendientes mesa', '#f5b83d', (s) => s.estado === 'revision', 'Ya las mandó el asesor. Ábrela, revisa y decide.'],
-  ['excepcion', 'Renovaciones con excepción', '#a27bff', (s) => s.estado === 'excepcion', 'Piden más del ' + 20 + ' % sobre su crédito anterior: las autoriza el gerente zonal.'],
+  ['excepcion', 'Renovaciones con excepción', '#a27bff', (s) => s.estado === 'excepcion', 'Piden más del ' + 20 + ' % sobre su crédito anterior: las revisa y decide mesa de control.'],
   ['autorizada', 'Autorizadas · falta desembolsar', '#2fbf71', (s) => s.estado === 'autorizada', 'El asesor va con el cliente, graba el video de entrega y desembolsa.'],
   ['hoy', 'Desembolsadas hoy', '#4c8dff', (s) => s.estado === 'desembolsada' && fechaLocal(s.desembolsado) === DB.hoy, ''],
   ['videos', 'Videos de entrega', '#2bb7d6', (s) => s.estado === 'desembolsada' && !!s.video_path, 'El cliente dice en video cuánto recibe y cómo va a pagar.'],
@@ -1029,7 +1029,7 @@ function detalleSolicitud(id, tab = 'datos') {
           const m = +v.monto
           if (!(m >= 500)) { const e = new Error('m'); e.userMsg = 'El monto mínimo es $500.'; throw e }
           const r = await rpc('autorizada', v.comentario, m)
-          return r === 'excepcion' ? 'Es una renovación con excepción: pasa al gerente zonal para que la autorice.' : r ? 'Solicitud autorizada. El asesor ya la ve para desembolsarla con el video de entrega.' : ''
+          return r === 'excepcion' ? 'Es una renovación con excepción: la debe decidir mesa de control.' : r ? 'Solicitud autorizada. El asesor ya la ve para desembolsarla con el video de entrega.' : ''
         },
       })
     }
@@ -3010,14 +3010,14 @@ VIEWS.tesoreria = {
     const ga = new Map(), L0 = []
     DB.movimientos.filter((m) => (set.has(m.caja_origen) || set.has(m.caja_destino)) && (this.tipo === 'todos' || m.tipo === this.tipo)).forEach((m) => {
       if (!esGA(m)) return L0.push(m)
-      const k = m.fecha + '|' + m.caja_destino, y = ga.get(k) || { fecha: m.fecha, caja_origen: m.caja_origen, caja_destino: m.caja_destino, monto: 0, n: 0, id: 0 }
-      y.monto += m.monto; y.n++; ga.set(k, y)
+      const y = ga.get(m.fecha) || { fecha: m.fecha, caja_origen: m.caja_origen, cajas: new Set(), monto: 0, n: 0, id: 0 }
+      y.monto += m.monto; y.n++; y.cajas.add(m.caja_destino); ga.set(m.fecha, y)
     })
-    ga.forEach((y) => L0.push({ ...y, concepto: `Gastos administrativos · ${y.n} crédito${y.n > 1 ? 's' : ''}`, categoria: 'Total del día' }))
+    ga.forEach((y) => L0.push({ ...y, caja_destino: y.cajas.size === 1 ? [...y.cajas][0] : '', destinoTxt: y.cajas.size > 1 ? `${y.cajas.size} asesores` : '', concepto: `Gastos administrativos · ${y.n} crédito${y.n > 1 ? 's' : ''}`, categoria: 'Total del día' }))
     const L = L0.sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.id || 0) - (a.id || 0)).slice(0, 80)
     $('#tmov').innerHTML = tabla([
       { t: 'Fecha', k: 'fecha' }, { t: 'Concepto', f: (m) => `<b>${esc(m.concepto || m.categoria || m.tipo)}</b><div class="muted" style="font-size:12px">${esc(m.categoria || '')}</div>` },
-      { t: 'De', f: (m) => esc(cajaNombre(m.caja_origen)) }, { t: 'A', f: (m) => esc(cajaNombre(m.caja_destino)) }, { t: 'Monto', num: 1, b: 1, f: P('monto') },
+      { t: 'De', f: (m) => esc(cajaNombre(m.caja_origen)) }, { t: 'A', f: (m) => esc(m.destinoTxt || cajaNombre(m.caja_destino)) }, { t: 'Monto', num: 1, b: 1, f: P('monto') },
     ], L)
   },
   rapido(tipo) {
