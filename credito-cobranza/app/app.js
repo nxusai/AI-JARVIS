@@ -189,7 +189,7 @@ async function fetchAll(table, build) {
 async function loadRaw(perfil) {
   const desde = addDays(iso(new Date()), -400)
   const opt = async (t, b) => { try { return await fetchAll(t, b) } catch (e) { console.warn('sin acceso a', t); return [] } }
-  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones] = await Promise.all([
+  const [rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, regiones, zonas, gerencias, oficinas, rutasT, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones, comOfi] = await Promise.all([
     fetchAll('v_rutas', (q) => q.order('ruta_id')),
     fetchAll('v_cartera', (q) => q.order('credito_id')),
     fetchAll('v_recaudo_diario', (q) => q.gte('fecha', desde).order('fecha')),
@@ -205,8 +205,9 @@ async function loadRaw(perfil) {
     opt('condiciones', (q) => q.order('id')), opt('solicitud_mensajes', (q) => q.order('creado')), opt('permisos_usuario', (q) => q),
     opt('bitacora', (q) => q.gte('cuando', addDays(iso(new Date()), -120)).order('cuando', { ascending: false })),
     opt('gestiones', (q) => q.gte('creado', addDays(iso(new Date()), -120)).order('creado')),
+    opt('comisiones_oficina', (q) => q),
   ])
-  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones }
+  return { rutas, cartera, recaudo, solicitudes, movimientos, cuentas, perfiles, est: { regiones, zonas, gerencias, oficinas, rutas: rutasT }, perfil, pagos, parametros, proyecciones, personal, peticiones, documentos, permisos, condiciones, mensajes, permisosUsuario, bitacora, gestiones, comOfi }
 }
 async function reload() {
   if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return }
@@ -254,7 +255,7 @@ function prep(raw) {
     param: Object.fromEntries((raw.parametros || []).map((x) => [x.clave, x.valor == null ? null : +x.valor])), parametros: raw.parametros || [],
     proyecciones: (raw.proyecciones || []).map((x) => ({ ...x, ...(Object.fromEntries(['meta_cobro', 'meta_colocacion', 'logro_cobro', 'logro_colocacion'].map((k) => [k, x[k] == null ? null : +x[k]]))) })),
     personal: raw.personal || [], peticiones: raw.peticiones || [], documentos: raw.documentos || [], permisos: raw.permisos || [],
-    permisosUsuario: raw.permisosUsuario || [], bitacora: raw.bitacora || [], gestiones: (raw.gestiones || []).map((g) => ({ ...g, promesa_monto: g.promesa_monto == null ? null : +g.promesa_monto })),
+    permisosUsuario: raw.permisosUsuario || [], bitacora: raw.bitacora || [], gestiones: (raw.gestiones || []).map((g) => ({ ...g, promesa_monto: g.promesa_monto == null ? null : +g.promesa_monto })), comOfi: raw.comOfi || [],
     condiciones: (raw.condiciones || []).map((x) => ({ ...x, interes_pct: +x.interes_pct, num_cuotas: +x.num_cuotas })), mensajes: raw.mensajes || [],
     est: raw.est || { regiones: [], zonas: [], gerencias: [], oficinas: [], rutas: [] },
     hoy: iso(new Date()),
@@ -1861,7 +1862,7 @@ const REPORTES = {
   cliente: { t: 'Por cliente', d: 'Deuda de cada cliente, de mayor a menor.' },
   antiguedad: { t: 'Antigüedad', d: 'Saldo agrupado por días de atraso.' },
   colocacion: { t: 'Nuevos y renovaciones', d: 'Colocación por asesor: clientes nuevos, renovaciones y recompras.' },
-  comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado.' },
+  comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado. Cobranza: porcentaje de lo cobrado en las fechas elegidas. Pueden ser distintas por oficina.' },
   seguros: { t: 'Gastos administrativos', d: 'Gastos administrativos cobrados por ruta.' },
   medida: { t: 'A la medida', d: 'Elige cómo agrupar, las fechas y las columnas; descárgalo en Excel.' },
 }
@@ -1894,7 +1895,7 @@ VIEWS.reportes = {
       { t: 'Alto riesgo', k: 'alto_riesgo', num: 1, f: P('alto_riesgo'), tot: T('alto_riesgo') }, { t: 'Vencido', k: 'vencido', num: 1, f: P('vencido'), tot: T('vencido') },
       { t: '% con atraso', num: 1, f: (r) => pct(r.atraso, r.saldo) + '%', tot: (rows) => pct(sum(rows, (r) => r.atraso), sum(rows, (r) => r.saldo)) + '%' },
     ]
-    const porAsesor = (L, extra = () => ({})) => { const m = new Map(); sc.rutas().forEach((r) => m.set(r.ruta_id, { ruta: r.ruta, asesor: r.asesor || '', oficina: r.oficina, gerente: r.gerente, ...extra() })); return m }
+    const porAsesor = (L, extra = () => ({})) => { const m = new Map(); sc.rutas().forEach((r) => m.set(r.ruta_id, { ruta_id: r.ruta_id, oficina_id: r.oficina_id, ruta: r.ruta, asesor: r.asesor || '', oficina: r.oficina, gerente: r.gerente, ...extra() })); return m }
     if (this.tab === 'general') {
       const tot = sum(act, (c) => c.saldo), at = sum(act.filter((c) => c.dias_atraso > 0), (c) => c.saldo)
       const tiles = [['Clientes con préstamo', NUM.format(new Set(act.map((c) => c.cliente_id)).size)], ['Créditos activos', NUM.format(act.length)], ['Total prestado (activos)', peso(sum(act, (c) => c.monto))],
@@ -1931,8 +1932,13 @@ VIEWS.reportes = {
       L.forEach((c) => { const x = m.get(c.ruta_id); if (!x) return
         if (c.tipo === 'renovacion') { x.renov++; x.entregado_ren += c.entregado; x.base_ren += c.monto } else if (c.tipo === 'recompra') { x.recompras++; x.base_rec += c.monto } else { x.nuevos++; x.base_nuevos += c.monto } })
       const rows = [...m.values()].sort((a, b) => (b.base_nuevos + b.entregado_ren) - (a.base_nuevos + a.entregado_ren))
-      const cn = PARAM('comision_nuevo'), cr = PARAM('comision_renovacion_pct')
-      rows.forEach((r) => { r.com_n = cn != null ? r.nuevos * cn : null; r.com_r = cr != null ? r.entregado_ren * cr / 100 : null; r.com = (r.com_n || 0) + (r.com_r || 0) })
+      const cn = PARAM('comision_nuevo'), cr = PARAM('comision_renovacion_pct'), cc = PARAM('comision_cobranza_pct')
+      // Cobranza del periodo por ruta (para la comisión por cobranza)
+      const rutaDe = new Map(DB.cartera.map((c) => [c.credito_id, c.ruta_id])), cobR = new Map()
+      DB.pagos.forEach((x) => { if (x.tipo === 'liquidacion_renovacion' || !enRango(x.fecha)) return; const k = rutaDe.get(x.credito_id); cobR.set(k, (cobR.get(k) || 0) + x.monto) })
+      rows.forEach((r) => { const k = comisionDe(r.oficina_id); r.k = k; r.cobrado = cobR.get(r.ruta_id) || 0
+        r.com_n = k.nuevo != null ? r.nuevos * k.nuevo : null; r.com_r = k.ren != null ? r.entregado_ren * k.ren / 100 : null; r.com_c = k.cob != null ? r.cobrado * k.cob / 100 : null
+        r.com = (r.com_n || 0) + (r.com_r || 0) + (r.com_c || 0) })
       const n = (k) => ({ t: '', k, num: 1, tot: (rr) => sum(rr, (x) => x[k]) })
       if (this.tab === 'colocacion') {
         const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { ...n('nuevos'), t: 'Nuevos' }, { t: 'Base nuevos', num: 1, f: P('base_nuevos'), tot: T('base_nuevos') }, { ...n('renov'), t: 'Renovaciones' },
@@ -1940,14 +1946,16 @@ VIEWS.reportes = {
         body = `<div class="card panel">${hdr(fechas)}${tabla(cols, rows, true)}<div class="note">«Entregado» en renovaciones = nuevo crédito menos lo que debía el cliente.</div></div>`
         exp = () => csv('nuevos_y_renovaciones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Nuevos', 'nuevos'], ['Base nuevos', 'base_nuevos'], ['Renovaciones', 'renov'], ['Renovaciones base', 'base_ren'], ['Renovaciones entregado', 'entregado_ren'], ['Recompras', 'recompras'], ['Base recompras', 'base_rec']], rows)
       } else {
-        const falta = cn == null || cr == null
-        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: `Comisión nuevos (${cn != null ? peso(cn) + ' c/u' : 'por definir'})`, num: 1, f: (r) => r.com_n == null ? '—' : peso(r.com_n), tot: (rr) => cn == null ? '—' : peso(sum(rr, (x) => x.com_n)) },
-          { t: 'Renovaciones (entregado)', num: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { t: `Comisión renovaciones (${cr != null ? cr + ' %' : 'por definir'})`, num: 1, f: (r) => r.com_r == null ? '—' : peso(r.com_r), tot: (rr) => cr == null ? '—' : peso(sum(rr, (x) => x.com_r)) },
+        const falta = cn == null || cr == null || cc == null
+        const tasa = (r, k, f) => (r.k[k] == null ? '' : `<div class="muted" style="font-size:11px">${f(r.k[k])}${r.k.propia ? ' · oficina' : ''}</div>`)
+        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Oficina', k: 'oficina' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: 'Comisión nuevos', num: 1, f: (r) => (r.com_n == null ? '—' : peso(r.com_n)) + tasa(r, 'nuevo', (v) => peso(v) + ' c/u'), tot: (rr) => peso(sum(rr, (x) => x.com_n || 0)) },
+          { t: 'Renovaciones (entregado)', num: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { t: 'Comisión renovaciones', num: 1, f: (r) => (r.com_r == null ? '—' : peso(r.com_r)) + tasa(r, 'ren', (v) => v + ' %'), tot: (rr) => peso(sum(rr, (x) => x.com_r || 0)) },
+          { t: 'Cobrado en el periodo', num: 1, f: P('cobrado'), tot: T('cobrado') }, { t: 'Comisión cobranza', num: 1, f: (r) => (r.com_c == null ? '—' : peso(r.com_c)) + tasa(r, 'cob', (v) => v + ' %'), tot: (rr) => peso(sum(rr, (x) => x.com_c || 0)) },
           { ...n('recompras'), t: 'Recompras' }, { t: 'Total a pagar', num: 1, b: 1, f: P('com'), tot: T('com') }]
         const bcom = esAdmin() ? '<button class="btn" type="button" id="rcom">Cambiar comisiones</button>' : ''
-        body = `<div class="card panel">${hdr(bcom + fechas)}${falta ? `<div class="note-card"><b>Falta capturar las comisiones.</b> ${esAdmin() ? 'Da clic en «Cambiar comisiones» y pon' : 'El dueño debe capturar'} el monto por cliente nuevo y el porcentaje por renovación.</div>` : ''}${tabla(cols, rows, true)}
-          <div class="note">Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
-        exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
+        body = `<div class="card panel">${hdr(bcom + fechas)}${falta ? `<div class="note-card"><b>Falta capturar las comisiones.</b> ${esAdmin() ? 'Da clic en «Cambiar comisiones» y pon' : 'El dueño debe capturar'} el monto por cliente nuevo, el porcentaje por renovación y el porcentaje por cobranza.</div>` : ''}${tabla(cols, rows, true)}
+          <div class="note">Elige las fechas de la semana (por ejemplo de lunes a sábado) para ver la comisión semanal. «Comisión cobranza» = lo que cobró el asesor en esas fechas × el porcentaje. Si una oficina tiene comisiones propias, se usan las suyas. Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
+        exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Cobrado', 'cobrado'], ['Comisión cobranza', 'com_c'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
       }
     } else if (this.tab === 'seguros') {
       const M = DB.movimientos.filter((x) => esGA(x) && enRango(x.fecha) && cajasAmbito().has(x.caja_destino))
@@ -2405,25 +2413,42 @@ function enviarPeticion() {
   const t = $('#f_texto'); if (t) { const a = document.createElement('textarea'); a.id = 'f_texto'; a.className = 'ctl'; a.rows = 4; a.style.cssText = 'width:100%;height:auto;padding:10px 13px;resize:vertical'; a.required = true; t.replaceWith(a) }
 }
 
-// Comisiones: las decide el dueño; se aplican al reporte de inmediato
-function editarComisiones() {
+// Comisiones: las decide el dueño (generales o por oficina); se aplican al reporte de inmediato
+function comisionDe(oficinaId) {
+  const o = (DB.comOfi || []).find((x) => +x.oficina_id === +oficinaId) || {}
+  const v = (k, p) => (o[k] != null ? +o[k] : PARAM(p))
+  return { nuevo: v('nuevo', 'comision_nuevo'), ren: v('renovacion_pct', 'comision_renovacion_pct'), cob: v('cobranza_pct', 'comision_cobranza_pct'), propia: o.oficina_id != null }
+}
+function editarComisiones(ofi = '') {
+  const o = ofi ? (DB.comOfi || []).find((x) => +x.oficina_id === +ofi) || {} : null
+  const val = (k, p) => (o ? o[k] ?? '' : PARAM(p) ?? '')
   formModal({
-    titulo: 'Comisiones de los asesores', nota: 'Se aplican al reporte de comisiones de inmediato. Puedes cambiarlas cuando quieras.', boton: 'Guardar comisiones',
+    titulo: 'Comisiones de los asesores', nota: 'Se aplican al reporte de comisiones de inmediato. Pon las <b>generales</b> para toda la empresa; si una oficina paga distinto, elígela y pon las suyas (lo que dejes vacío usa la general).', boton: 'Guardar comisiones',
     campos: [
-      { id: 'nuevo', label: 'Por cada cliente nuevo (pesos)', tipo: 'number', min: 0, step: '1', valor: PARAM('comision_nuevo') ?? '' },
-      { id: 'renov', label: 'Por renovación (% del dinero entregado)', tipo: 'number', min: 0, step: '0.1', valor: PARAM('comision_renovacion_pct') ?? '' },
+      { id: 'ofi', label: 'Para', tipo: 'select', opciones: [['', 'Toda la empresa (generales)'], ...DB.est.oficinas.map((x) => [x.id, 'Oficina ' + x.nombre + ((DB.comOfi || []).some((c) => +c.oficina_id === +x.id) ? ' (tiene propias)' : '')])], valor: ofi },
+      { id: 'nuevo', label: 'Por cada cliente nuevo (pesos)', tipo: 'number', min: 0, step: '1', valor: val('nuevo', 'comision_nuevo') },
+      { id: 'renov', label: 'Por renovación (% del dinero entregado)', tipo: 'number', min: 0, step: '0.1', valor: val('renovacion_pct', 'comision_renovacion_pct') },
+      { id: 'cobr', label: 'Por cobranza (% de lo cobrado en la semana)', tipo: 'number', min: 0, step: '0.1', valor: val('cobranza_pct', 'comision_cobranza_pct') },
     ],
     guardar: async (v) => {
       const num = (x) => (x === '' ? null : +x)
       const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
-      if (num(v.renov) != null && num(v.renov) > 100) err('El porcentaje no puede ser mayor a 100.')
+      if ([v.renov, v.cobr].some((x) => num(x) != null && num(x) > 100)) err('El porcentaje no puede ser mayor a 100.')
       if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
+      if (v.ofi) {
+        const row = { oficina_id: +v.ofi, nuevo: num(v.nuevo), renovacion_pct: num(v.renov), cobranza_pct: num(v.cobr), actualizado: new Date().toISOString() }
+        const ok = await escribir(() => row.nuevo == null && row.renovacion_pct == null && row.cobranza_pct == null ? sb.from('comisiones_oficina').delete().eq('oficina_id', row.oficina_id) : sb.from('comisiones_oficina').upsert(row))
+        return ok ? 'Comisiones de la oficina guardadas.' : ''
+      }
+      const c = await sb.from('parametros').update({ valor: num(v.cobr) }).eq('clave', 'comision_cobranza_pct')
+      if (c.error) throw errorAmigable(c.error)
       const a = await sb.from('parametros').update({ valor: num(v.nuevo) }).eq('clave', 'comision_nuevo')
       if (a.error) throw errorAmigable(a.error)
       const ok = await escribir(() => sb.from('parametros').update({ valor: num(v.renov) }).eq('clave', 'comision_renovacion_pct'))
       return ok ? 'Comisiones guardadas.' : ''
     },
   })
+  $('#f_ofi').addEventListener('change', (ev) => editarComisiones(ev.target.value))
 }
 
 // ============================================================ permisos por cargo
@@ -2434,7 +2459,7 @@ const PERM_DESC = {
   ver_normalidad: 'Porcentaje de cartera al día y comparativos', ver_proyecciones: 'Metas y logros de cada oficina', ver_cajas: 'Dinero en la caja de cada asesor y gerente',
   ver_tesoreria: 'Bancos, flujo del dinero y movimientos', ver_reportes: 'Reportes de cartera, comisiones y gastos administrativos',
   registrar_pagos: 'Cobrar a los clientes desde el celular', crear_solicitudes: 'Capturar créditos nuevos, renovaciones y recompras', resolver_solicitudes: 'Mesa de control: autorizar, pedir corrección, rechazar o cancelar',
-  registrar_gastos: 'Gasolina, papelería y otros gastos de su caja', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
+  registrar_gastos: 'Gasolina, papelería y otros gastos; salen de la caja del gerente', cancelar_pagos: 'Quitar un pago capturado por error (queda guardado con su motivo)', revertir_desembolsos: 'Deshacer un crédito que el cliente ya no quiso (sin pagos)', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
   capturar_proyecciones: 'Subir la meta de la mañana y el logro de la tarde', subir_documentos: 'INE, comprobantes y fotos del expediente', descargar_excel: 'Bajar los reportes a Excel',
   desembolsar: 'Grabar el video de entrega y convertir la solicitud autorizada en crédito', autorizar_excepciones: 'Renovaciones que piden más del 20 % sobre su crédito anterior',
   ordenar_ruta: 'Acomodar a los clientes en el orden en que se les cobra', reasignar_cartera: 'Pasar clientes de una ruta a otra (desde el tablero)',

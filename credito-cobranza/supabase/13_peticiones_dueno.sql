@@ -9,6 +9,7 @@
 --  5. Contrato firmado obligatorio junto con el video al desembolsar.
 --  6. Captura: ingresos y gastos del cliente, 4 referencias (2 obligatorias) y documentos
 --     obligatorios antes de enviar a mesa de control.
+--  7. Comisiones: por cobranza (% de lo cobrado) y distintas por oficina si el dueño quiere.
 
 -- ---------------------------------------------------------------------------
 -- 1. Meta de normalidad
@@ -225,6 +226,28 @@ end $$;
 drop trigger if exists ingresos_a_cliente on public.solicitudes;
 create trigger ingresos_a_cliente after update of estado on public.solicitudes
   for each row when (new.estado = 'desembolsada' and old.estado is distinct from 'desembolsada') execute function public.ingresos_a_cliente();
+
+-- ---------------------------------------------------------------------------
+-- 7. Comisiones: por cobranza y por oficina
+-- ---------------------------------------------------------------------------
+insert into public.parametros (clave, valor, descripcion) values
+  ('comision_cobranza_pct', null, 'Comisión por cobranza (% de lo cobrado en el periodo)')
+on conflict (clave) do nothing;
+create table if not exists public.comisiones_oficina (
+  oficina_id smallint primary key references public.oficinas (id) on delete cascade,
+  nuevo numeric(12, 2) check (nuevo is null or nuevo >= 0),
+  renovacion_pct numeric(6, 2) check (renovacion_pct is null or renovacion_pct between 0 and 100),
+  cobranza_pct numeric(6, 2) check (cobranza_pct is null or cobranza_pct between 0 and 100),
+  actualizado timestamptz not null default now(),
+  actualizado_por uuid default auth.uid()
+);
+alter table public.comisiones_oficina enable row level security;
+drop policy if exists leer on public.comisiones_oficina;
+create policy leer on public.comisiones_oficina for select to authenticated using (public.usuario_activo());
+drop policy if exists editar on public.comisiones_oficina;
+create policy editar on public.comisiones_oficina for all to authenticated using (public.es_administrador()) with check (public.es_administrador());
+grant select, insert, update, delete on public.comisiones_oficina to authenticated;
+revoke all on public.comisiones_oficina from anon;
 
 -- Verificación: debe dar 95 · 1 · 2 · 1 · 1
 select (select valor from public.parametros where clave = 'meta_normalidad') as meta_normalidad,
