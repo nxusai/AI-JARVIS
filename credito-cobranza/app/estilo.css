@@ -680,3 +680,43 @@ body:has(.modal) #simBar { display: none; }
 .sacc.simacc .btn { opacity: .6; }
 /* Celular: el aviso de datos de ejemplo se queda arriba y no persigue al bajar */
 @media (max-width: 820px) { .demo-banner { position: relative; } }
+
+/* =====================================================================
+   Equipos sencillos (28 nov): laptops de 1366×768, Windows con zoom 125 %,
+   tablets y celulares de gama baja. Que nada se corte ni se encime.
+   ===================================================================== */
+/* Menú lateral: si la pantalla es baja, todo el menú se desliza y los botones se compactan (antes se cortaba) */
+@media (min-width: 821px) and (max-height: 920px) {
+  .side { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+  .side::-webkit-scrollbar { width: 6px; } .side::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 6px; }
+  .nav { overflow: visible; flex: none; gap: 1px; }
+  .nav a { padding: 7px 12px; font-size: 13.5px; }
+  .nav-h { padding: 8px 10px 2px; }
+  .brand { padding: 2px 8px 8px; }
+  .side-foot { margin-top: 10px; gap: 6px; }
+  .side-foot .btn, .side-foot .peticion { height: 34px; min-height: 34px; font-size: 12.5px; }
+  .me { padding: 6px 10px; }
+}
+@media (min-width: 821px) and (max-height: 680px) {
+  .nav a { padding: 6px 10px; font-size: 13px; } .nav a .ic { width: 16px; height: 16px; }
+  .powered { display: none; }
+}
+/* Pantallas medianas (tablet acostada, laptop con zoom): menú más angosto y más espacio para el contenido */
+@media (min-width: 821px) and (max-width: 1180px) {
+  .app { grid-template-columns: 216px minmax(0, 1fr); }
+  .wrap { padding-left: 18px; padding-right: 18px; }
+  .page-head .toolbar, .top .toolbar { flex-wrap: wrap; }
+}
+/* Nada se sale de lado en ningún tamaño */
+.wrap > *, .grid2 > *, .grid3 > * { min-width: 0; }
+.toolbar { flex-wrap: wrap; }
+.btn { max-width: 100%; }
+img, video, canvas { max-width: 100%; }
+/* Insignia de Netlify: se queda arriba de la página y no flota sobre los botones al deslizar */
+#nl-badge-frame { position: absolute !important; }
+/* Celulares de gama baja: sin efecto de vidrio (pesa mucho y en algunos equipos se ve mal); fondo sólido legible */
+.lite .glass, .lite .card, .lite .tabbar, .lite .side, .lite .modal .card, .lite .toast {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.lite .card, .lite .glass { background-color: rgba(13,18,31,.93); }
+.lite .tabbar, .lite .side { background: rgba(10,13,24,.97); }
+.lite .modal .card { background: rgb(14,19,33); }

@@ -102,6 +102,8 @@ let VIEW = 'tablero'
 let charts = []
 
 // ============================================================ arranque
+// Equipos de gama baja (pocos núcleos o poca memoria): se quita el efecto de vidrio para que se vea bien y vaya rápido
+try { const n = navigator.hardwareConcurrency || 8, m = navigator.deviceMemory || 8; if (n <= 2 || m <= 2) document.documentElement.classList.add('lite') } catch {}
 async function boot() {
   if (window.__FIXTURE__) { DB = prep(window.__FIXTURE__); return showApp() }
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return showLogin('Falta conectar la base de datos. Configuración pendiente.', true)
