@@ -591,7 +591,7 @@ VIEWS.tablero = {
         <div class="card panel"><div class="ph"><div><h3>Cobranza del día</h3><div class="sub">Cobrado hoy vs promedio diario de las últimas 2 semanas</div></div></div><div class="list" id="cobranza"></div></div>
       </div>
       <div class="grid2">
-        <div class="card panel"><div class="ph"><div><h3>Colocación: nuevos y renovaciones</h3><div class="sub">Nuevos se pagan por cliente; renovaciones por dinero entregado</div></div><div class="seg" id="colp"><button type="button" data-p="sem" class="on">Semana</button><button type="button" data-p="mes">Mes</button></div></div><div id="colTab"></div></div>
+        <div class="card panel"><div class="ph"><div><h3>Colocación: nuevos y renovaciones</h3><div class="sub">Nuevos se pagan por cliente; renovaciones por dinero entregado</div></div><div class="seg" id="colp">${[['sem', 'Semana'], ['mes', 'Mes'], ['anio', 'Año']].map(([k, t]) => `<button type="button" data-p="${k}" class="${this.periodo === k ? 'on' : ''}">${t}</button>`).join('')}</div></div><div id="colTab"></div></div>
         <div class="card panel"><div class="ph"><div><h3>Gastos administrativos cobrados</h3><div class="sub">$${PARAM('seguro_monto', 150)} por crédito · no cambia la deuda del cliente</div></div></div><div class="grid-rep" id="segTab"></div></div>
       </div>
       <div class="grid3">
@@ -606,8 +606,11 @@ VIEWS.tablero = {
     const total = sum(act, (c) => c.saldo)
     const atraso = sum(act.filter((c) => c.dias_atraso > 0), (c) => c.saldo)
     const recHoy = sum(rec.filter((r) => r.fecha === hoy), (r) => r.monto)
-    const mes = hoy.slice(0, 8) + '01'
-    const colMes = sum(car.filter((c) => c.fecha_inicio >= mes), (c) => c.monto)
+    // El periodo (semana, mes o año) cambia lo colocado y lo cobrado del periodo
+    const per = this.periodo, desdeP = per === 'anio' ? hoy.slice(0, 4) + '-01-01' : per === 'mes' ? hoy.slice(0, 8) + '01' : lunes(hoy)
+    const txtP = { sem: 'esta semana', mes: 'este mes', anio: 'este año' }[per]
+    const colMes = sum(car.filter((c) => c.fecha_inicio >= desdeP && c.fecha_inicio <= hoy), (c) => c.monto)
+    const recP = sum(rec.filter((r) => r.fecha >= desdeP && r.fecha <= hoy), (r) => r.monto)
     const d14 = Array.from({ length: 14 }, (_, i) => addDays(hoy, i - 13))
     const recD = porDia(rec, 'fecha', 'monto', d14[0], hoy), colD = porDia(car, 'fecha_inicio', 'monto', d14[0], hoy)
     const recPrev = sum(rec.filter((r) => r.fecha >= addDays(hoy, -14) && r.fecha < hoy), (r) => r.monto) / 14
@@ -615,7 +618,7 @@ VIEWS.tablero = {
     const meter = (parts) => `<div class="meter">${parts.map(([v, c]) => `<i style="width:${v}%;background:${c}"></i>`).join('')}</div>`
     const umbral = PARAM('atraso_dias', 1)
     const N = normalidadHoy(car), meta = PARAM('meta_normalidad', 95)
-    const colm = car.filter((c) => c.fecha_inicio >= mes)
+    const colm = car.filter((c) => c.fecha_inicio >= desdeP && c.fecha_inicio <= hoy)
     const nuevos = colm.filter((c) => c.tipo !== 'renovacion'), renov = colm.filter((c) => c.tipo === 'renovacion')
     const clientes = new Set(act.map((c) => c.cliente_id)).size
     const K = [
@@ -623,9 +626,9 @@ VIEWS.tablero = {
         extra: meter(ESTADOS.map((e) => [pct(porEstado[e.k], total), e.c])) },
       { lab: 'Normalidad', val: p2(N.p) + '%', meta: `${peso(N.ok)} al día de ${pesoK(N.tot)} · meta ${meta}%`, grad: [COL.green, COL.teal], ico: ICON.normalidad,
         chip: `<span class="chip ${N.p >= meta ? 'g' : N.p >= meta - 15 ? 'a' : 'r'}">${N.p >= meta ? 'En meta' : 'Abajo de meta'}</span>`, extra: meter([[Math.round(N.p), N.p >= meta ? COL.green : COL.amber]]) },
-      { lab: 'Cobrado hoy', val: peso(recHoy), meta: `promedio diario ${peso(recPrev)}`, grad: [COL.blue, COL.violet], ico: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+      { lab: 'Cobrado hoy', val: peso(recHoy), meta: `promedio diario ${peso(recPrev)} · cobrado ${txtP} ${pesoK(recP)}`, grad: [COL.blue, COL.violet], ico: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
         chip: recPrev ? `<span class="chip ${recHoy >= recPrev ? 'g' : 'a'}">${recHoy >= recPrev ? '▲' : '▼'} ${Math.abs(pct(recHoy - recPrev, recPrev))}%</span>` : '', spark: d14.map((d) => recD.get(d) || 0), sc: COL.blue },
-      { lab: 'Colocado este mes', val: peso(colMes), meta: `${NUM.format(new Set(nuevos.map((c) => c.cliente_id)).size)} clientes nuevos · renovaciones ${pesoK(sum(renov, (c) => c.entregado))}`, grad: [COL.violet, COL.teal], ico: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+      { lab: 'Colocado ' + txtP, val: peso(colMes), meta: `${NUM.format(new Set(nuevos.map((c) => c.cliente_id)).size)} clientes nuevos · renovaciones ${pesoK(sum(renov, (c) => c.entregado))}`, grad: [COL.violet, COL.teal], ico: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
         spark: d14.map((d) => colD.get(d) || 0), sc: COL.violet },
     ]
     this.atraso = { atraso, total, umbral }
@@ -670,18 +673,18 @@ VIEWS.tablero = {
       const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto)
       return `<div class="rowitem inset"><div><div class="t">${esc(g.resp || g.nombre)}</div><div class="s">${esc(g.nombre)}</div></div><div class="m">${peso(m)}<small><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Recibido 18:00' : 'Cierre 18:00'}</span></small></div></div>`
     }).join('')
-    this.colocacion('sem'); this.seguros()
+    this.colocacion(this.periodo); this.seguros()
     $$('#colp button').forEach((b) => b.addEventListener('click', () => { $$('#colp button').forEach((x) => x.classList.toggle('on', x === b)); this.colocacion(b.dataset.p) }))
     this.trend()
-    $$('#period button').forEach((b) => b.addEventListener('click', () => { this.periodo = b.dataset.p; $$('#period button').forEach((x) => x.classList.toggle('on', x === b)); reveal(); this.trend() }))
+    $$('#period button').forEach((b) => b.addEventListener('click', () => { this.periodo = b.dataset.p; render() }))
   },
   colocacion(p) {
-    const desde = p === 'sem' ? lunes(DB.hoy) : DB.hoy.slice(0, 8) + '01'
+    const desde = p === 'sem' ? lunes(DB.hoy) : p === 'anio' ? DB.hoy.slice(0, 4) + '-01-01' : DB.hoy.slice(0, 8) + '01'
     const L = sc.cartera().filter((c) => c.fecha_inicio >= desde && c.fecha_inicio <= DB.hoy)
     const g = (t) => L.filter((c) => c.tipo === t)
     const rows = [['Nuevos', g('nuevo')], ['Renovaciones', g('renovacion')], ['Recompras', g('recompra')]].map(([n, X]) => ({ n, clientes: new Set(X.map((c) => c.cliente_id)).size, base: sum(X, (c) => c.monto), entregado: sum(X, (c) => c.entregado) }))
     $('#colTab').innerHTML = tabla([{ t: 'Tipo', k: 'n', b: 1 }, { t: 'Clientes', k: 'clientes', num: 1, tot: (r) => sum(r, (x) => x.clientes) }, { t: 'Prestado (base)', num: 1, f: P('base'), tot: T('base') }, { t: 'Entregado', num: 1, b: 1, f: P('entregado'), tot: T('entregado') }], rows, true)
-      + `<div class="note">${p === 'sem' ? 'Desde el lunes' : 'Desde el día 1'} · ${esc(scopeLabel())}. En renovaciones, «entregado» ya descuenta lo que debía el cliente.</div>`
+      + `<div class="note">${p === 'sem' ? 'Desde el lunes' : p === 'anio' ? 'Desde el 1 de enero' : 'Desde el día 1'} · ${esc(scopeLabel())}. En renovaciones, «entregado» ya descuenta lo que debía el cliente.</div>`
   },
   seguros() {
     const L = DB.movimientos.filter((m) => esGA(m) && cajasAmbito().has(m.caja_destino))
@@ -1602,7 +1605,7 @@ function reporteDia(fecha = DB.hoy, agr = 'ruta', sel = null) {
   }).filter((x) => x.cobN || x.nN || x.rN || x.gN || agr === 'ruta')
   const T = (k) => sum(rows, (x) => x[k])
   modal(`<div class="ph"><div><h3 style="font-size:20px">Reporte del día</h3><div class="sub">Cobranza y colocación del ${fechaCorta(fecha)}. ${agr === 'ruta' ? 'Toca un asesor para ver todo lo que hizo ese día.' : ''}</div></div><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="toolbar"><input class="ctl" type="date" id="rdF" value="${fecha}"><div class="field sel"><select class="ctl" id="rdA">${[['ruta', 'Por asesor'], ['oficina', 'Por oficina (sucursal)'], ['gerencia', 'Por gerencia'], ['zona', 'Por zona']].map(([v, t]) => `<option value="${v}"${v === agr ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div>
+    <div class="toolbar"><input class="ctl" type="date" id="rdF" value="${fecha}"><div class="field sel"><select class="ctl" id="rdA">${[['ruta', 'Por asesor'], ['gerencia', 'Por gerencia (sucursal)'], ['zona', 'Por zona']].map(([v, t]) => `<option value="${v}"${v === agr ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div>
     <div class="tablewrap"><table class="tbl"><thead><tr><th>${G[2]}</th><th class="num">Cobros</th><th class="num">Cobrado</th><th class="num">Nuevos</th><th class="num">Colocado nuevos</th><th class="num">Renovaciones</th><th class="num">Colocado renov.</th><th class="num">Gestiones</th><th class="num">Promesas</th></tr></thead><tbody>
     ${rows.map((x) => `<tr class="${agr === 'ruta' ? 'click' : ''}${sel === x.k ? ' on' : ''}" data-rd="${x.k}"><td class="strong">${esc(x.nombre || '')}</td><td class="num">${x.cobN}</td><td class="num strong">${peso(x.cob)}</td><td class="num">${x.nN}</td><td class="num">${peso(x.n)}</td><td class="num">${x.rN}</td><td class="num">${peso(x.r)}</td><td class="num">${x.gN}</td><td class="num">${x.pN}</td></tr>`).join('')}
     </tbody><tfoot><tr><td>Total</td><td class="num">${T('cobN')}</td><td class="num">${peso(T('cob'))}</td><td class="num">${T('nN')}</td><td class="num">${peso(T('n'))}</td><td class="num">${T('rN')}</td><td class="num">${peso(T('r'))}</td><td class="num">${T('gN')}</td><td class="num">${T('pN')}</td></tr></tfoot></table></div>
@@ -1862,7 +1865,7 @@ const REPORTES = {
   cliente: { t: 'Por cliente', d: 'Deuda de cada cliente, de mayor a menor.' },
   antiguedad: { t: 'Antigüedad', d: 'Saldo agrupado por días de atraso.' },
   colocacion: { t: 'Nuevos y renovaciones', d: 'Colocación por asesor: clientes nuevos, renovaciones y recompras.' },
-  comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado. Cobranza: porcentaje de lo cobrado en las fechas elegidas. Pueden ser distintas por oficina.' },
+  comisiones: { t: 'Comisiones', d: 'Nuevos: monto fijo por cliente. Renovaciones: porcentaje del dinero entregado. Cobranza: porcentaje de lo cobrado en las fechas elegidas. Pueden ser distintas por gerencia.' },
   seguros: { t: 'Gastos administrativos', d: 'Gastos administrativos cobrados por ruta.' },
   medida: { t: 'A la medida', d: 'Elige cómo agrupar, las fechas y las columnas; descárgalo en Excel.' },
 }
@@ -1947,14 +1950,14 @@ VIEWS.reportes = {
         exp = () => csv('nuevos_y_renovaciones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Nuevos', 'nuevos'], ['Base nuevos', 'base_nuevos'], ['Renovaciones', 'renov'], ['Renovaciones base', 'base_ren'], ['Renovaciones entregado', 'entregado_ren'], ['Recompras', 'recompras'], ['Base recompras', 'base_rec']], rows)
       } else {
         const falta = cn == null || cr == null || cc == null
-        const tasa = (r, k, f) => (r.k[k] == null ? '' : `<div class="muted" style="font-size:11px">${f(r.k[k])}${r.k.propia ? ' · oficina' : ''}</div>`)
-        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Oficina', k: 'oficina' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: 'Comisión nuevos', num: 1, f: (r) => (r.com_n == null ? '—' : peso(r.com_n)) + tasa(r, 'nuevo', (v) => peso(v) + ' c/u'), tot: (rr) => peso(sum(rr, (x) => x.com_n || 0)) },
+        const tasa = (r, k, f) => (r.k[k] == null ? '' : `<div class="muted" style="font-size:11px">${f(r.k[k])}${r.k.propia ? ' · gerencia' : ''}</div>`)
+        const cols = [{ t: 'Asesor', k: 'asesor', b: 1 }, { t: 'Ruta', k: 'ruta' }, { t: 'Gerencia', k: 'oficina' }, { ...n('nuevos'), t: 'Clientes nuevos' }, { t: 'Comisión nuevos', num: 1, f: (r) => (r.com_n == null ? '—' : peso(r.com_n)) + tasa(r, 'nuevo', (v) => peso(v) + ' c/u'), tot: (rr) => peso(sum(rr, (x) => x.com_n || 0)) },
           { t: 'Renovaciones (entregado)', num: 1, f: P('entregado_ren'), tot: T('entregado_ren') }, { t: 'Comisión renovaciones', num: 1, f: (r) => (r.com_r == null ? '—' : peso(r.com_r)) + tasa(r, 'ren', (v) => v + ' %'), tot: (rr) => peso(sum(rr, (x) => x.com_r || 0)) },
           { t: 'Cobrado en el periodo', num: 1, f: P('cobrado'), tot: T('cobrado') }, { t: 'Comisión cobranza', num: 1, f: (r) => (r.com_c == null ? '—' : peso(r.com_c)) + tasa(r, 'cob', (v) => v + ' %'), tot: (rr) => peso(sum(rr, (x) => x.com_c || 0)) },
           { ...n('recompras'), t: 'Recompras' }, { t: 'Total a pagar', num: 1, b: 1, f: P('com'), tot: T('com') }]
         const bcom = esAdmin() ? '<button class="btn" type="button" id="rcom">Cambiar comisiones</button>' : ''
         body = `<div class="card panel">${hdr(bcom + fechas)}${falta ? `<div class="note-card"><b>Falta capturar las comisiones.</b> ${esAdmin() ? 'Da clic en «Cambiar comisiones» y pon' : 'El dueño debe capturar'} el monto por cliente nuevo, el porcentaje por renovación y el porcentaje por cobranza.</div>` : ''}${tabla(cols, rows, true)}
-          <div class="note">Elige las fechas de la semana (por ejemplo de lunes a sábado) para ver la comisión semanal. «Comisión cobranza» = lo que cobró el asesor en esas fechas × el porcentaje. Si una oficina tiene comisiones propias, se usan las suyas. Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
+          <div class="note">Elige las fechas de la semana (por ejemplo de lunes a sábado) para ver la comisión semanal. «Comisión cobranza» = lo que cobró el asesor en esas fechas × el porcentaje. Si una gerencia tiene comisiones propias, se usan las suyas. Las recompras se muestran aparte mientras se define si pagan como cliente nuevo o como renovación.</div></div>`
         exp = () => csv('comisiones', [['Asesor', 'asesor'], ['Ruta', 'ruta'], ['Clientes nuevos', 'nuevos'], ['Comisión nuevos', 'com_n'], ['Renovaciones entregado', 'entregado_ren'], ['Comisión renovaciones', 'com_r'], ['Cobrado', 'cobrado'], ['Comisión cobranza', 'com_c'], ['Recompras', 'recompras'], ['Total', 'com']], rows)
       }
     } else if (this.tab === 'seguros') {
@@ -2040,7 +2043,7 @@ VIEWS.admin = {
             <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>${u.activo && (u.rol !== 'dueno' || ['dueno', 'soporte'].includes(p.rol)) ? ` <button class="btn ghost sm" type="button" data-reacc="${esc(u.id)}">Reenviar acceso</button>` : ''}` : ''}</td></tr>`).join('')}
           </tbody></table></div>
           <div class="note">Al crear un usuario te damos su enlace de acceso para mandárselo por WhatsApp; con él crea su contraseña. Si no alcanzó a entrar o se le venció, toca <b>Reenviar acceso</b>. Entran con el cargo y las rutas que les asignes; si a un asesor le cambias la ruta, desde ese momento ve la nueva y deja de ver la anterior. Lo que cada cargo puede ver y hacer se decide en la pestaña <b>Permisos</b>.</div></div>
-        <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → oficina → ruta</span></div>
+        <div class="card panel"><div class="ph"><h3>Cargos del sistema</h3><span class="chip">región → zona → gerencia → ruta</span></div>
           ${roles.map(([n, d]) => `<div class="rolerow inset"><div><div class="rn">${n}</div><div class="rd">${d}</div></div><div class="cap">Permisos validados en la base de datos</div></div>`).join('')}</div>`
       $('#uinv')?.addEventListener('click', invitarUsuario)
       $$('[data-edit]').forEach((b) => b.addEventListener('click', () => editarUsuario(DB.perfiles.find((u) => u.id === b.dataset.edit))))
@@ -2053,14 +2056,13 @@ VIEWS.admin = {
       const E = DB.est, car = DB.cartera.filter((c) => c.saldo > 0)
       const s$ = (k, id) => peso(sum(car.filter((c) => c[k] === id), (c) => c.saldo))
       const ed = (t, id) => esAdmin() ? `<button class="btn ghost sm" type="button" data-et="${t}" data-id="${id}">Editar</button>` : ''
-      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Estructura de la empresa</h3><div class="sub">${E.zonas.length} zonas · ${E.gerencias.length} gerencias · ${E.oficinas.length} oficinas · ${E.rutas.length} rutas</div></div>
-        ${esAdmin() ? `<div class="toolbar">${[['region', 'Región'], ['zona', 'Zona'], ['gerencia', 'Gerencia'], ['oficina', 'Oficina'], ['ruta', 'Ruta']].map(([t, n]) => `<button class="btn ghost sm" type="button" data-nt="${t}">+ ${n}</button>`).join('')}</div>` : ''}</div>
+      el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Estructura de la empresa</h3><div class="sub">${E.regiones.length} región${E.regiones.length === 1 ? '' : 'es'} · ${E.zonas.length} zonas · ${E.gerencias.length} gerencias · ${E.rutas.length} rutas · orden: región → zona → gerencia → ruta</div></div>
+        ${esAdmin() ? `<div class="toolbar">${[['region', 'Región'], ['zona', 'Zona'], ['gerencia', 'Gerencia'], ['ruta', 'Ruta']].map(([t, n]) => `<button class="btn ghost sm" type="button" data-nt="${t}">+ ${n}</button>`).join('')}</div>` : ''}</div>
         <div class="tree">
-        ${E.regiones.map((rg) => `<div class="tn inset"><span><b>${esc(rg.nombre)}</b> <small>· Gerente regional: ${esc(rg.responsable || '—')}</small></span><span class="toolbar"><small>${s$('region_id', rg.id)}</small>${ed('region', rg.id)}</span></div>
-          ${E.zonas.filter((z) => z.region_id === rg.id).map((z) => `<div class="tn inset l2"><span><b>${esc(z.nombre)}</b> <small>· Gerente zonal: ${esc(z.responsable || '—')}</small></span><span class="toolbar"><small>${s$('zona_id', z.id)}</small>${ed('zona', z.id)}</span></div>
-            ${E.gerencias.filter((g) => g.zona_id === z.id).map((g) => `<div class="tn inset l3"><span>${esc(g.nombre)} <small>· Gerente: ${esc(g.responsable || '—')}</small></span><span class="toolbar"><small>${s$('gerencia_id', g.id)}</small>${ed('gerencia', g.id)}</span></div>
-              ${E.oficinas.filter((o) => o.gerencia_id === g.id).map((o) => `<div class="tn inset l4"><span>Oficina ${esc(o.nombre)}</span><span class="toolbar"><small>${s$('oficina_id', o.id)}</small>${ed('oficina', o.id)}</span></div>
-                ${E.rutas.filter((r) => r.oficina_id === o.id).map((r) => `<div class="tn inset l5"><span>${esc(r.nombre)} <small>· ${esc(r.responsable || 'sin asesor')}</small></span><span class="toolbar"><small>${s$('ruta_id', r.id)}</small>${ed('ruta', r.id)}</span></div>`).join('')}`).join('')}`).join('')}`).join('')}`).join('')}
+        ${E.regiones.map((rg) => `<div class="tn inset"><span><span class="chip">Región</span> <b>${esc(rg.nombre)}</b> <small>· Gerente regional: ${esc(rg.responsable || '—')}</small></span><span class="toolbar"><small>${s$('region_id', rg.id)}</small>${ed('region', rg.id)}</span></div>
+          ${E.zonas.filter((z) => z.region_id === rg.id).map((z) => `<div class="tn inset l2"><span><span class="chip">Zona</span> <b>${esc(z.nombre)}</b> <small>· Gerente zonal: ${esc(z.responsable || '—')}</small></span><span class="toolbar"><small>${s$('zona_id', z.id)}</small>${ed('zona', z.id)}</span></div>
+            ${E.gerencias.filter((g) => g.zona_id === z.id).map((g) => `<div class="tn inset l3"><span><span class="chip">Gerencia</span> ${esc(g.nombre)} <small>· Gerente: ${esc(g.responsable || '—')}</small></span><span class="toolbar"><small>${s$('gerencia_id', g.id)}</small>${ed('gerencia', g.id)}</span></div>
+              ${E.rutas.filter((r) => E.oficinas.some((o) => o.id === r.oficina_id && o.gerencia_id === g.id)).map((r) => `<div class="tn inset l4"><span><span class="chip">Ruta</span> ${esc(r.nombre)} <small>· ${esc(r.responsable || 'sin asesor')}</small></span><span class="toolbar"><small>${s$('ruta_id', r.id)}</small>${ed('ruta', r.id)}</span></div>`).join('')}`).join('')}`).join('')}`).join('')}
         </div></div>`
       $$('[data-nt]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.nt)))
       $$('[data-et]').forEach((b) => b.addEventListener('click', () => editarNivel(b.dataset.et, +b.dataset.id)))
@@ -2413,7 +2415,7 @@ function enviarPeticion() {
   const t = $('#f_texto'); if (t) { const a = document.createElement('textarea'); a.id = 'f_texto'; a.className = 'ctl'; a.rows = 4; a.style.cssText = 'width:100%;height:auto;padding:10px 13px;resize:vertical'; a.required = true; t.replaceWith(a) }
 }
 
-// Comisiones: las decide el dueño (generales o por oficina); se aplican al reporte de inmediato
+// Comisiones: las decide el dueño (generales o por gerencia); se aplican al reporte de inmediato
 function comisionDe(oficinaId) {
   const o = (DB.comOfi || []).find((x) => +x.oficina_id === +oficinaId) || {}
   const v = (k, p) => (o[k] != null ? +o[k] : PARAM(p))
@@ -2423,9 +2425,9 @@ function editarComisiones(ofi = '') {
   const o = ofi ? (DB.comOfi || []).find((x) => +x.oficina_id === +ofi) || {} : null
   const val = (k, p) => (o ? o[k] ?? '' : PARAM(p) ?? '')
   formModal({
-    titulo: 'Comisiones de los asesores', nota: 'Se aplican al reporte de comisiones de inmediato. Pon las <b>generales</b> para toda la empresa; si una oficina paga distinto, elígela y pon las suyas (lo que dejes vacío usa la general).', boton: 'Guardar comisiones',
+    titulo: 'Comisiones de los asesores', nota: 'Se aplican al reporte de comisiones de inmediato. Pon las <b>generales</b> para toda la empresa; si una gerencia paga distinto, elígela y pon las suyas (lo que dejes vacío usa la general).', boton: 'Guardar comisiones',
     campos: [
-      { id: 'ofi', label: 'Para', tipo: 'select', opciones: [['', 'Toda la empresa (generales)'], ...DB.est.oficinas.map((x) => [x.id, 'Oficina ' + x.nombre + ((DB.comOfi || []).some((c) => +c.oficina_id === +x.id) ? ' (tiene propias)' : '')])], valor: ofi },
+      { id: 'ofi', label: 'Para', tipo: 'select', opciones: [['', 'Toda la empresa (generales)'], ...DB.est.oficinas.map((x) => [x.id, 'Gerencia ' + (DB.est.gerencias.find((g) => g.id === x.gerencia_id)?.nombre || x.nombre) + ((DB.comOfi || []).some((c) => +c.oficina_id === +x.id) ? ' (tiene propias)' : '')])], valor: ofi },
       { id: 'nuevo', label: 'Por cada cliente nuevo (pesos)', tipo: 'number', min: 0, step: '1', valor: val('nuevo', 'comision_nuevo') },
       { id: 'renov', label: 'Por renovación (% del dinero entregado)', tipo: 'number', min: 0, step: '0.1', valor: val('renovacion_pct', 'comision_renovacion_pct') },
       { id: 'cobr', label: 'Por cobranza (% de lo cobrado en la semana)', tipo: 'number', min: 0, step: '0.1', valor: val('cobranza_pct', 'comision_cobranza_pct') },
@@ -2438,7 +2440,7 @@ function editarComisiones(ofi = '') {
       if (v.ofi) {
         const row = { oficina_id: +v.ofi, nuevo: num(v.nuevo), renovacion_pct: num(v.renov), cobranza_pct: num(v.cobr), actualizado: new Date().toISOString() }
         const ok = await escribir(() => row.nuevo == null && row.renovacion_pct == null && row.cobranza_pct == null ? sb.from('comisiones_oficina').delete().eq('oficina_id', row.oficina_id) : sb.from('comisiones_oficina').upsert(row))
-        return ok ? 'Comisiones de la oficina guardadas.' : ''
+        return ok ? 'Comisiones de la gerencia guardadas.' : ''
       }
       const c = await sb.from('parametros').update({ valor: num(v.cobr) }).eq('clave', 'comision_cobranza_pct')
       if (c.error) throw errorAmigable(c.error)
@@ -2539,7 +2541,16 @@ const NIVELES = {
   zona: { tabla: 'zonas', nombre: 'Zona', resp: 'Gerente zonal', padre: ['region_id', 'regiones', 'Región'] },
   gerencia: { tabla: 'gerencias', nombre: 'Gerencia', resp: 'Gerente', padre: ['zona_id', 'zonas', 'Zona'] },
   oficina: { tabla: 'oficinas', nombre: 'Oficina', resp: null, padre: ['gerencia_id', 'gerencias', 'Gerencia'] },
-  ruta: { tabla: 'rutas', nombre: 'Ruta', resp: 'Asesor de crédito', padre: ['oficina_id', 'oficinas', 'Oficina'] },
+  ruta: { tabla: 'rutas', nombre: 'Ruta', resp: 'Asesor de crédito', padre: ['gerencia_id', 'gerencias', 'Gerencia'] },
+}
+// Gerencia y oficina son lo mismo: cada gerencia tiene su oficina (con el mismo nombre) y ahí se guardan sus rutas
+async function oficinaDe(gerenciaId) {
+  const o = DB.est.oficinas.find((x) => x.gerencia_id === gerenciaId)
+  if (o) return o.id
+  const g = DB.est.gerencias.find((x) => x.id === gerenciaId)
+  const r = await sb.from('oficinas').insert({ nombre: g?.nombre || 'Oficina', gerencia_id: gerenciaId }).select('id').single()
+  if (r.error) throw errorAmigable(r.error)
+  DB.est.oficinas.push({ id: r.data.id, nombre: g?.nombre, gerencia_id: gerenciaId }); return r.data.id
 }
 function editarNivel(tipo, id) {
   const N = NIVELES[tipo], reg = id ? DB.est[N.tabla].find((x) => x.id === id) : null
@@ -2549,7 +2560,8 @@ function editarNivel(tipo, id) {
     const [col, tabla, lab] = N.padre
     const ops = DB.est[tabla].map((x) => [x.id, x.nombre])
     if (!ops.length) { toast(`Primero crea una ${lab.toLowerCase()}.`, 'warn'); return }
-    campos.push({ id: 'padre', label: `Pertenece a (${lab})`, tipo: 'select', req: 1, opciones: ops, valor: reg?.[col] ?? ops[0][0] })
+    const actual = tipo === 'ruta' && reg ? DB.est.oficinas.find((o) => o.id === reg.oficina_id)?.gerencia_id : reg?.[col]
+    campos.push({ id: 'padre', label: `Pertenece a (${lab})`, tipo: 'select', req: 1, opciones: ops, valor: actual ?? ops[0][0] })
   }
   formModal({
     titulo: `${id ? 'Editar' : 'Nueva'} ${N.nombre.toLowerCase()}`, nota: 'El cambio queda registrado con tu usuario.',
@@ -2558,6 +2570,18 @@ function editarNivel(tipo, id) {
       const row = { nombre: v.nombre }
       if (N.resp) row.responsable = v.responsable || null
       if (N.padre) row[N.padre[0]] = +v.padre
+      if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
+      if (tipo === 'ruta') { delete row.gerencia_id; row.oficina_id = await oficinaDe(+v.padre) }
+      if (tipo === 'gerencia') {
+        // La oficina de la gerencia lleva su mismo nombre
+        if (id) { const of = DB.est.oficinas.filter((o) => o.gerencia_id === id); if (of.length === 1) await sb.from('oficinas').update({ nombre: v.nombre }).eq('id', of[0].id) }
+        else {
+          const r = await sb.from('gerencias').insert(row).select('id').single()
+          if (r.error) throw errorAmigable(r.error)
+          const ok = await escribir(() => sb.from('oficinas').insert({ nombre: v.nombre, gerencia_id: r.data.id }))
+          return ok ? 'Gerencia creada.' : ''
+        }
+      }
       const ok = await escribir(() => id ? sb.from(N.tabla).update(row).eq('id', id) : sb.from(N.tabla).insert(row))
       return ok ? `${N.nombre} ${id ? 'actualizada' : 'creada'}.` : ''
     },
@@ -2567,7 +2591,7 @@ function editarNivel(tipo, id) {
 function ambitoCasillas() {
   const E = DB.est, ofi = (o) => E.oficinas.find((x) => x.id === o)?.nombre || ''
   return [['empresa', 'Toda la empresa', 'General'], ...E.zonas.map((x) => ['zona:' + x.id, x.nombre, 'Zonas']), ...E.gerencias.map((x) => ['gerencia:' + x.id, x.nombre, 'Gerencias']),
-    ...E.oficinas.map((x) => ['oficina:' + x.id, x.nombre, 'Oficinas']), ...E.rutas.map((x) => ['ruta:' + x.id, `${x.nombre}${x.responsable ? ' · ' + x.responsable : ''} (oficina ${ofi(x.oficina_id)})`, 'Rutas'])]
+    ...E.rutas.map((x) => ['ruta:' + x.id, `${x.nombre}${x.responsable ? ' · ' + x.responsable : ''} (${ofi(x.oficina_id)})`, 'Rutas'])]
 }
 // Al asignar rutas a un asesor, su nombre queda como responsable de esas rutas (asignación inmediata)
 async function asignarResponsable(rol, ambito, nombre) {
@@ -2578,7 +2602,7 @@ async function asignarResponsable(rol, ambito, nombre) {
 function ambitoOpciones() {
   const E = DB.est
   return [['empresa', 'Toda la empresa'], ...E.regiones.map((x) => ['region:' + x.id, 'Región · ' + x.nombre]), ...E.zonas.map((x) => ['zona:' + x.id, 'Zona · ' + x.nombre]),
-    ...E.gerencias.map((x) => ['gerencia:' + x.id, 'Gerencia · ' + x.nombre]), ...E.oficinas.map((x) => ['oficina:' + x.id, 'Oficina · ' + x.nombre]), ...E.rutas.map((x) => ['ruta:' + x.id, 'Ruta · ' + x.nombre])]
+    ...E.gerencias.map((x) => ['gerencia:' + x.id, 'Gerencia · ' + x.nombre]), ...E.oficinas.map((x) => ['oficina:' + x.id, 'Gerencia · ' + x.nombre]).filter(([v]) => (DB.perfiles || []).some((u) => String(u.ambito || '').split(',').includes(v))), ...E.rutas.map((x) => ['ruta:' + x.id, 'Ruta · ' + x.nombre])]
 }
 function ambitoNombre(a) {
   if (a === 'ninguno') return 'Sólo solicitudes (mesa de control)'
@@ -2827,10 +2851,10 @@ VIEWS.proyecciones = {
   fecha: null,
   html() {
     this.fecha = this.fecha || DB.hoy
-    return `${head('Proyecciones', 'Meta de la mañana contra logro de la tarde, por oficina: cobranza y colocación.',
+    return `${head('Proyecciones', 'Meta de la mañana contra logro de la tarde, por gerencia: cobranza y colocación.',
       `<label class="field"><label>Fecha</label><input class="ctl" type="date" id="pfecha" value="${this.fecha}"></label>`)}
       <section class="kpis" id="pk"></section>
-      <div class="card panel"><div class="ph"><div><h3>Por oficina</h3><div class="sub" id="psub"></div></div></div><div id="ptab"></div>
+      <div class="card panel"><div class="ph"><div><h3>Por gerencia</h3><div class="sub" id="psub"></div></div></div><div id="ptab"></div>
         <div class="note">«Sistema» es lo que registró la plataforma ese día. Si el gerente no captura su logro, se usa el del sistema.</div></div>
       <div class="card panel"><div class="ph"><div><h3>Cumplimiento de los últimos 30 días</h3><div class="sub">${esc(scopeLabel())}</div></div></div><div class="chart-box" style="height:240px"><canvas id="pchart"></canvas></div></div>`
   },
