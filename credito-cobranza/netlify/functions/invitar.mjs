@@ -77,6 +77,10 @@ export default async (req) => {
   const permitidos = ['dueno', 'soporte'].includes(perfil.rol) ? ROLES_DUENO : ROLES
   if (!permitidos.includes(rol) || !AMBITO.test(ambito)) return resp(400, { error: 'Cargo o ámbito no válido.' })
   if (rol === 'dueno' && ambito !== 'empresa') return resp(400, { error: 'El dueño ve toda la empresa: elige «Toda la empresa».' })
+  // Cada cargo ve su nivel: asesor su ruta, gerente su gerencia, zonal su zona, regional su región
+  const NIVEL = { asesor: ['ruta'], gerente: ['gerencia', 'oficina'], zonal: ['zona'], regional: ['region'] }
+  if (['direccion', 'mesa', 'tesoreria'].includes(rol) && ambito !== 'empresa') return resp(400, { error: 'Ese cargo ve toda la empresa.' })
+  if (NIVEL[rol] && !ambito.split(',').every((a) => NIVEL[rol].includes(a.split(':')[0]))) return resp(400, { error: 'El ámbito no corresponde al cargo: el asesor lleva rutas, el gerente gerencias, el zonal zonas y el regional regiones.' })
 
   // Se genera el enlace de invitación SIN mandar correo (el correo de Supabase sin SMTP propio
   // sólo llega al equipo del proyecto y tiene límite por hora). El dueño lo comparte por WhatsApp.

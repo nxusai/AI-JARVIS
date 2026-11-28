@@ -1814,7 +1814,7 @@ VIEWS.cajas = {
       <div class="grid3">${ger.map((g) => {
         const rg = sc.rutas().filter((r) => r.gerencia_id === g.id)
         const m = sum(rec.filter((x) => x.gerencia_id === g.id && x.fecha === hoy), (x) => x.monto) + sum(rg, (r) => segHoy(r.ruta_id))
-        return `<div class="card panel lift"><div class="ph"><div><h3>${esc(g.resp || g.nombre)}</h3><div class="sub">${esc(g.nombre)} · caja ${peso(S.get('gerencia:' + g.id) || 0)}</div></div><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Cerrada' : '18:00'}</span></div>
+        return `<div class="card panel lift"><div class="ph"><div><h3>${esc(g.resp || g.nombre)}</h3><div class="sub">${esc(g.nombre)}${DB.perfil.rol !== 'asesor' ? ' · caja ' + peso(S.get('gerencia:' + g.id) || 0) : ''}</div></div><span class="st ${cerrada ? 'ok' : 'wait'}">${cerrada ? 'Cerrada' : '18:00'}</span></div>
           <div class="kv">${rg.map((r) => { const c = sum(rec.filter((x) => x.ruta_id === r.ruta_id && x.fecha === hoy), (x) => x.monto), sg = segHoy(r.ruta_id)
             return `<div class="r"><span class="k">${esc(r.asesor || r.ruta)}<div class="muted" style="font-size:12px">cobrado ${peso(c)}${sg ? ' · gastos adm. ' + peso(sg) : ''} · en caja ${peso(S.get('ruta:' + r.ruta_id) || 0)}</div></span><span class="v">${peso(c + sg)}</span></div>` }).join('')}
           <div class="r"><span class="k strong">${cerrada ? 'Recibió el gerente' : 'Recibe el gerente a las 18:00'}</span><span class="v" style="color:var(--teal)">${peso(m)}</span></div></div></div>`
@@ -2038,7 +2038,7 @@ VIEWS.admin = {
       el.innerHTML = `<div class="card panel"><div class="ph"><div><h3>Usuarios</h3><div class="sub">Cada usuario tiene un cargo y un ámbito: sólo ve lo que le toca. Los permisos se validan en la base de datos.</div></div>
           ${esAdmin() ? '<button class="btn" type="button" id="uinv"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Invitar usuario</button>' : ''}</div>
           <div class="tablewrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Correo</th><th>Cargo</th><th>Ámbito</th><th>Estado</th><th></th></tr></thead><tbody>
-          ${lista.map((u) => `<tr><td class="strong">${esc(u.nombre || '')}${u.id === p.id ? ' <span class="chip">tú</span>' : ''}</td><td>${esc(u.correo || '')}</td><td>${esc(ROLES[u.rol] || u.rol || '')}</td><td>${esc(amb(u.ambito))}</td>
+          ${lista.map((u) => `<tr><td class="strong">${esc(u.nombre || '')}${u.id === p.id ? ' <span class="chip">tú</span>' : ''}</td><td>${esc(u.correo || '')}</td><td>${esc(ROLES[u.rol] || u.rol || '')}</td><td>${esc(amb(u.ambito))}${ambitoOk(u.rol, u.ambito) ? '' : ` <span class="chip r" title="Su ámbito no corresponde a su cargo">⚠ debería ver ${esc(veTxt(u.rol))}</span>`}</td>
             <td><span class="st ${u.activo ? 'ok' : 'off'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td class="num">${esAdmin() && u.id !== p.id && u.rol !== 'soporte' ? `<button class="btn ghost sm" type="button" data-edit="${esc(u.id)}">Editar</button>${u.activo && (u.rol !== 'dueno' || ['dueno', 'soporte'].includes(p.rol)) ? ` <button class="btn ghost sm" type="button" data-reacc="${esc(u.id)}">Reenviar acceso</button>` : ''}` : ''}</td></tr>`).join('')}
           </tbody></table></div>
@@ -2456,10 +2456,10 @@ function editarComisiones(ofi = '') {
 // ============================================================ permisos por cargo
 // Explicación corta de cada permiso (lo que ve el dueño)
 const PERM_DESC = {
-  ver_tablero: 'Resumen de la cartera, normalidad y cobranza del día', ver_clientes: 'Lista de clientes y su expediente', ver_originacion: 'Pantalla para capturar créditos nuevos y renovaciones',
-  ver_solicitudes: 'Solicitudes en revisión, aprobadas y rechazadas', ver_creditos: 'Todos los créditos con su saldo y atraso', ver_cobranza: 'Lo cobrado por ruta y los clientes por cobrar',
-  ver_normalidad: 'Porcentaje de cartera al día y comparativos', ver_proyecciones: 'Metas y logros de cada oficina', ver_cajas: 'Dinero en la caja de cada asesor y gerente',
-  ver_tesoreria: 'Bancos, flujo del dinero y movimientos', ver_reportes: 'Reportes de cartera, comisiones y gastos administrativos',
+  ver_tablero: 'Resumen de su cartera, normalidad y cobranza del día', ver_clientes: 'Sus clientes y su expediente', ver_originacion: 'Pantalla para capturar créditos nuevos y renovaciones',
+  ver_solicitudes: 'Solicitudes en revisión, aprobadas y rechazadas', ver_creditos: 'Los créditos de su ámbito con su saldo y atraso', ver_cobranza: 'Lo cobrado y los clientes por cobrar de su ámbito',
+  ver_normalidad: 'Porcentaje de cartera al día y comparativos', ver_proyecciones: 'Metas y logros de su gerencia (o de las que le tocan)', ver_cajas: 'Dinero en caja: el asesor ve la suya, el gerente las de su gerencia',
+  ver_tesoreria: 'Flujo del dinero y movimientos de sus cajas (los bancos sólo quien ve toda la empresa)', ver_reportes: 'Reportes de cartera, comisiones y gastos de su ámbito',
   registrar_pagos: 'Cobrar a los clientes desde el celular', crear_solicitudes: 'Capturar créditos nuevos, renovaciones y recompras', resolver_solicitudes: 'Mesa de control: autorizar, pedir corrección, rechazar o cancelar',
   registrar_gastos: 'Gasolina, papelería y otros gastos; salen de la caja del gerente', cancelar_pagos: 'Quitar un pago capturado por error (queda guardado con su motivo)', revertir_desembolsos: 'Deshacer un crédito que el cliente ya no quiso (sin pagos)', tesoreria_excedente: 'Sacar dinero de más de la caja de un gerente y depositarlo al banco',
   capturar_proyecciones: 'Subir la meta de la mañana y el logro de la tarde', subir_documentos: 'INE, comprobantes y fotos del expediente', descargar_excel: 'Bajar los reportes a Excel',
@@ -2472,7 +2472,9 @@ function matrizPermisos() {
   const fila = ([k, t]) => `<label class="perm inset${dueno ? '' : ' ro'}"><span><b>${t}</b><small>${PERM_DESC[k] || ''}</small></span>
     <span class="sw"><input type="checkbox" data-perm="${r}|${k}"${permitido(r, k) ? ' checked' : ''}${dueno ? '' : ' disabled'} aria-label="${esc(t)}"><i></i></span></label>`
   return `<div class="card panel" id="permisos"><div class="ph"><div><h3>Permisos por cargo</h3><div class="sub">${dueno ? 'Elige un cargo y enciende o apaga lo que puede ver y hacer. Se guarda al instante.' : 'Sólo el dueño puede cambiarlos.'} El dueño siempre tiene todo.</div></div></div>
+    <div class="note-card"><b>Dos cosas distintas:</b><br>• <b>Aquí (permisos)</b> decides <b>QUÉ</b> pantallas ve y qué puede hacer cada cargo.<br>• <b>DE QUIÉN</b> son los datos que ve lo decide su <b>ámbito</b> (Usuarios → Editar): el asesor sólo ve su ruta, el gerente su gerencia, el zonal su zona, el regional su región y el dueño o dirección toda la empresa.<br>Ejemplo: si al asesor le prendes «Cajas», ve <b>sólo su caja</b>, no la de los demás. Lo revisa la base de datos: aunque quisiera, no puede ver lo de otros.</div>
     <div class="field sel" style="display:block"><label for="pcargo">Cargo</label><select class="ctl" id="pcargo" style="width:100%">${CARGOS_PERM.map((x) => `<option value="${x}"${x === r ? ' selected' : ''}>${esc(ROLES[x])}</option>`).join('')}</select></div>
+    <div class="pinfo">Un <b>${esc(ROLES[r] || '')}</b> ve los datos de <b>${esc(veTxt(r))}</b>.${r === 'mesa' ? ' Mesa sólo ve solicitudes y el historial del cliente, nunca la cartera.' : ''}</div>
     ${PERMISOS.map(([g, L]) => `<h3 class="sec-title" style="margin-top:4px">${g}</h3><div class="perms">${L.map(fila).join('')}</div>`).join('')}
     <div class="note">Cada quien sólo ve la parte de la empresa de sus rutas. Lo de «Puede hacer» también lo revisa la base de datos: si no lo tiene, el sistema lo rechaza. Mesa de control es externa: aunque le prendas secciones, nunca ve la cartera ni los clientes; sólo las solicitudes y el historial del cliente de cada una. Dar de alta usuarios, estructura y parámetros es sólo de dueño y dirección.</div></div>`
 }
@@ -2587,6 +2589,52 @@ function editarNivel(tipo, id) {
     },
   })
 }
+// Cada cargo ve un nivel de la empresa: el asesor su ruta, el gerente su gerencia, el zonal su zona y el regional su región.
+// Dueño, dirección, mesa y tesorería ven toda la empresa. Consulta / auditoría: lo que el dueño le marque.
+const NIVEL_CARGO = { asesor: 'ruta', gerente: 'gerencia', zonal: 'zona', regional: 'region', dueno: 'empresa', direccion: 'empresa', mesa: 'empresa', tesoreria: 'empresa', soporte: 'empresa', consulta: null }
+const NIVEL_TXT = { ruta: 'su ruta (o sus rutas)', gerencia: 'su gerencia', zona: 'su zona', region: 'su región', empresa: 'toda la empresa' }
+const veTxt = (rol) => NIVEL_CARGO[rol] === undefined ? '' : NIVEL_CARGO[rol] ? NIVEL_TXT[NIVEL_CARGO[rol]] : 'lo que le marques (puede ser toda la empresa)'
+// ¿El ámbito guardado corresponde a su cargo? (gerencia y oficina son lo mismo)
+function ambitoOk(rol, ambito) {
+  const n = NIVEL_CARGO[rol]; if (n === null || n === undefined) return true
+  const L = String(ambito || 'empresa').split(',').filter(Boolean)
+  if (n === 'empresa') return L.length === 1 && L[0] === 'empresa'
+  return L.length > 0 && L.every((a) => a.startsWith(n + ':') || (n === 'gerencia' && a.startsWith('oficina:')))
+}
+// Casillas de ámbito según el cargo: el asesor sólo puede tener rutas, el gerente gerencias, etc.
+function ambitoCasillasPara(rol) {
+  const E = DB.est, n = NIVEL_CARGO[rol], gerDe = (r) => E.gerencias.find((g) => E.oficinas.some((o) => o.id === r.oficina_id && o.gerencia_id === g.id))?.nombre || ''
+  const rutas = E.rutas.map((x) => ['ruta:' + x.id, `${x.nombre}${x.responsable ? ' · ' + x.responsable : ''}`, 'Rutas · ' + gerDe(x)])
+  const ger = E.gerencias.map((x) => ['gerencia:' + x.id, x.nombre + (x.responsable ? ' · ' + x.responsable : ''), 'Gerencias'])
+  const zon = E.zonas.map((x) => ['zona:' + x.id, x.nombre + (x.responsable ? ' · ' + x.responsable : ''), 'Zonas'])
+  const reg = E.regiones.map((x) => ['region:' + x.id, x.nombre + (x.responsable ? ' · ' + x.responsable : ''), 'Regiones'])
+  if (n === 'ruta') return rutas
+  if (n === 'gerencia') return ger
+  if (n === 'zona') return zon
+  if (n === 'region') return reg
+  if (n === 'empresa') return [['empresa', 'Toda la empresa', 'General']]
+  return [['empresa', 'Toda la empresa', 'General'], ...reg, ...zon, ...ger, ...rutas]
+}
+const ambitoLabel = (rol) => NIVEL_CARGO[rol] === 'empresa' ? `Qué ve: ${ROLES[rol] || 'este cargo'} ve toda la empresa` : NIVEL_CARGO[rol] ? `Qué ve: marca ${NIVEL_TXT[NIVEL_CARGO[rol]]} (sólo verá eso)` : 'Qué ve: marca lo que puede consultar'
+// Pinta las casillas cuando cambia el cargo en el formulario
+function casillasAmbito(rol, valor) {
+  const box = $('#f_ambito'); if (!box) return
+  const sel = new Set(String(valor || '').split(',').filter(Boolean)); let g = ''
+  const L = ambitoCasillasPara(rol)
+  if (NIVEL_CARGO[rol] === 'empresa') sel.add('empresa')
+  box.innerHTML = L.map(([v, t, grupo]) => { const h = grupo && grupo !== g ? `<div class="mg">${esc(grupo)}</div>` : ''; g = grupo || g
+    return `${h}<label class="chk mi"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}${NIVEL_CARGO[rol] === 'empresa' ? ' disabled' : ''}> <span>${esc(t)}</span></label>` }).join('')
+  const lab = box.closest('.fl')?.querySelector('span'); if (lab) lab.textContent = ambitoLabel(rol) + ' *'
+  $$('input', box).forEach((x) => x.addEventListener('change', () => { if (x.checked && (x.value === 'empresa')) $$('input', box).forEach((y) => { if (y !== x) y.checked = false }); else if (x.checked) { const e = $('input[value="empresa"]', box); if (e) e.checked = false } }))
+}
+function validarAmbito(rol, amb) {
+  const n = NIVEL_CARGO[rol]
+  if (n === 'empresa') return 'empresa'
+  const err = (m) => { const e = new Error(m); e.userMsg = m; throw e }
+  if (!amb) err(n ? `Marca ${NIVEL_TXT[n]}.` : 'Marca lo que puede consultar.')
+  if (!ambitoOk(rol, amb)) err(`Un ${(ROLES[rol] || '').toLowerCase()} sólo puede tener ${NIVEL_TXT[n]}.`)
+  return amb
+}
 // Lista para las casillas: agrupada por nivel, como «consultar y agregar rutas» de Listo
 function ambitoCasillas() {
   const E = DB.est, ofi = (o) => E.oficinas.find((x) => x.id === o)?.nombre || ''
@@ -2617,17 +2665,19 @@ function editarUsuario(u) {
     campos: [
       { id: 'nombre', label: 'Nombre', req: 1, valor: u.nombre },
       { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: u.rol },
-      { id: 'ambito', label: 'Qué puede ver: marca sus rutas, oficinas, gerencias o zonas (puedes marcar varias)', tipo: 'multi', req: 1, opciones: ambitoCasillas(), valor: u.ambito || 'empresa' },
+      { id: 'ambito', label: ambitoLabel(u.rol), tipo: 'multi', opciones: ambitoCasillasPara(u.rol), valor: u.ambito || 'empresa' },
       { id: 'activo', label: 'Activo (puede entrar al sistema)', tipo: 'check', valor: u.activo },
     ],
     guardar: async (v) => {
-      const amb = ['dueno', 'direccion', 'mesa'].includes(v.rol) ? 'empresa' : v.ambito
-      if (!amb) { const e = new Error('amb'); e.userMsg = 'Marca al menos una ruta, oficina, gerencia o zona.'; throw e }
+      const amb = validarAmbito(v.rol, v.ambito)
       if (sb && !SIM) await asignarResponsable(v.rol, amb, v.nombre)
       const ok = await escribir(() => sb.from('perfiles').update({ nombre: v.nombre, rol: v.rol, ambito: amb, activo: v.activo }).eq('id', u.id))
       return ok ? `Usuario actualizado. Desde ahora ve: ${ambitoNombre(amb)}.` : ''
     },
   })
+  casillasAmbito(u.rol, String(u.ambito || '').replace(/oficina:(\d+)/g, (_, o) => 'gerencia:' + (DB.est.oficinas.find((x) => x.id === +o)?.gerencia_id ?? o)))
+  if (!ambitoOk(u.rol, u.ambito)) $('#fmErr').textContent = `Ojo: hoy ve «${ambitoNombre(u.ambito || 'empresa')}», que no corresponde a su cargo. Marca ${veTxt(u.rol)} y guarda.`
+  $('#f_rol').addEventListener('change', (e) => casillasAmbito(e.target.value, ''))
 }
 // Enlace de acceso del usuario nuevo: se comparte por WhatsApp (no depende del correo)
 function enlaceInvitacion(nombre, enlace, restablecer) {
@@ -2661,13 +2711,12 @@ function invitarUsuario() {
     campos: [
       { id: 'nombre', label: 'Nombre completo', req: 1 }, { id: 'correo', label: 'Correo', tipo: 'email', req: 1 },
       { id: 'rol', label: 'Cargo', tipo: 'select', req: 1, opciones: cargoOpciones(), valor: 'asesor' },
-      { id: 'ambito', label: 'Qué puede ver: marca sus rutas, oficinas, gerencias o zonas (puedes marcar varias)', tipo: 'multi', req: 1, opciones: ambitoCasillas(), valor: 'empresa' },
+      { id: 'ambito', label: ambitoLabel('asesor'), tipo: 'multi', opciones: ambitoCasillasPara('asesor'), valor: '' },
     ],
     guardar: async (v) => {
+      v.ambito = validarAmbito(v.rol, v.ambito)
       if (!sb) { toast('Modo de prueba: los cambios no se guardan.'); return '' }
       if (SIM) { toast('Vista de prueba («Ver como»): no se guarda nada.', 'warn'); return '' }
-      if (['dueno', 'direccion', 'mesa'].includes(v.rol)) v.ambito = 'empresa'
-      if (!v.ambito) { const e = new Error('amb'); e.userMsg = 'Marca al menos una ruta, oficina, gerencia o zona.'; throw e }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.correo)) { const e = new Error('correo'); e.userMsg = 'Escribe un correo válido.'; throw e }
       const { data } = await sb.auth.getSession()
       const r = await fetch('/.netlify/functions/invitar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.session.access_token }, body: JSON.stringify(v) })
@@ -2679,6 +2728,8 @@ function invitarUsuario() {
       return j.existia ? `${v.nombre} ya tenía cuenta sin estrenar: te damos un enlace nuevo.` : `Usuario creado: ${v.nombre}.`
     },
   })
+  casillasAmbito('asesor', '')
+  $('#f_rol').addEventListener('change', (e) => casillasAmbito(e.target.value, ''))
 }
 
 // ============================================================ Normalidad
